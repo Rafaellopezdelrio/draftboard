@@ -10,6 +10,7 @@ import { CompAnalysis } from "./components/CompAnalysis";
 import { useLcuSync } from "./state/lcuSync";
 import { SettingsView } from "./components/SettingsView";
 import { HistoryView } from "./components/HistoryView";
+import { CoachView } from "./components/CoachView";
 
 const ROLES: Role[] = ["TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY"];
 
@@ -20,6 +21,7 @@ function App() {
   const lcuStatus = useLcuSync();
   const [showSettings, setShowSettings] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [showCoach, setShowCoach] = useState(false);
 
   useEffect(() => {
     loadChampionDb().then(setDb).catch((e) => setError(String(e)));
@@ -81,6 +83,12 @@ function App() {
           </span>
           <span className="text-xs text-white/40">Patch {db.patch}</span>
           <button
+            onClick={() => setShowCoach(true)}
+            className="px-2 py-1 text-xs bg-bg-elev border border-border-subtle rounded hover:border-accent text-white/80"
+          >
+            Coach
+          </button>
+          <button
             onClick={() => setShowHistory(true)}
             className="px-2 py-1 text-xs bg-bg-elev border border-border-subtle rounded hover:border-accent text-white/80"
           >
@@ -121,6 +129,7 @@ function App() {
       {showHistory && (
         <HistoryView db={db} onClose={() => setShowHistory(false)} />
       )}
+      {showCoach && <CoachView db={db} onClose={() => setShowCoach(false)} />}
     </main>
   );
 }

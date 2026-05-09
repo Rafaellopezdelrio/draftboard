@@ -113,15 +113,64 @@ export async function getRecentMatchIds(
   );
 }
 
+export interface MatchFull {
+  matchId: string;
+  durationSec: number;
+  endTsMs: number;
+  queueId: number;
+  participants: MatchParticipant[];
+  teams: MatchTeam[];
+}
+
+export interface MatchParticipant {
+  puuid: string;
+  participantId: number;
+  championId: number;
+  teamId: number;
+  position: string;
+  win: boolean;
+  kills: number;
+  deaths: number;
+  assists: number;
+  cs: number;
+  goldEarned: number;
+  totalDamageDealtToChampions: number;
+  totalDamageTaken: number;
+  visionScore: number;
+  wardsPlaced: number;
+  wardsKilled: number;
+  controlWardsBought: number;
+  champLevel: number;
+  items: number[];
+  summoner1Id: number;
+  summoner2Id: number;
+  perks: unknown;
+}
+
+export interface MatchTeam {
+  teamId: number;
+  win: boolean;
+  objectives: {
+    baron: { kills: number };
+    dragon: { kills: number };
+    tower: { kills: number };
+    riftHerald: { kills: number };
+    inhibitor: { kills: number };
+  };
+}
+
 interface MatchDto {
   metadata: { matchId: string };
   info: {
     gameDuration: number;
     gameEndTimestamp: number;
     queueId: number;
+    teams: MatchTeam[];
     participants: Array<{
       puuid: string;
+      participantId: number;
       championId: number;
+      teamId: number;
       win: boolean;
       kills: number;
       deaths: number;
@@ -129,7 +178,65 @@ interface MatchDto {
       totalMinionsKilled: number;
       neutralMinionsKilled: number;
       teamPosition: string;
+      goldEarned: number;
+      totalDamageDealtToChampions: number;
+      totalDamageTaken: number;
+      visionScore: number;
+      wardsPlaced: number;
+      wardsKilled: number;
+      detectorWardsPlaced: number;
+      champLevel: number;
+      item0: number; item1: number; item2: number;
+      item3: number; item4: number; item5: number; item6: number;
+      summoner1Id: number; summoner2Id: number;
+      perks: unknown;
     }>;
+  };
+}
+
+export interface TimelineFrame {
+  timestamp: number;
+  events: TimelineEvent[];
+  participantFrames: Record<string, ParticipantFrame>;
+}
+
+export interface ParticipantFrame {
+  participantId: number;
+  currentGold: number;
+  totalGold: number;
+  level: number;
+  xp: number;
+  minionsKilled: number;
+  jungleMinionsKilled: number;
+  position: { x: number; y: number };
+}
+
+export type TimelineEvent =
+  | { type: "CHAMPION_KILL"; timestamp: number; killerId: number; victimId: number; assistingParticipantIds?: number[]; position?: { x: number; y: number } }
+  | { type: "ITEM_PURCHASED"; timestamp: number; participantId: number; itemId: number }
+  | { type: "ITEM_SOLD"; timestamp: number; participantId: number; itemId: number }
+  | { type: "SKILL_LEVEL_UP"; timestamp: number; participantId: number; skillSlot: number; levelUpType: string }
+  | { type: "WARD_PLACED"; timestamp: number; creatorId: number; wardType: string }
+  | { type: "WARD_KILL"; timestamp: number; killerId: number; wardType: string }
+  | { type: "ELITE_MONSTER_KILL"; timestamp: number; killerId: number; monsterType: string; monsterSubType?: string }
+  | { type: "BUILDING_KILL"; timestamp: number; killerId?: number; teamId: number; buildingType: string }
+  | { type: string; timestamp: number; [k: string]: unknown };
+
+export interface MatchTimeline {
+  matchId: string;
+  participantToPuuid: Record<number, string>;
+  frames: TimelineFrame[];
+}
+
+interface TimelineDto {
+  metadata: { matchId: string; participants: string[] };
+  info: {
+    frames: Array<{
+      timestamp: number;
+      events: TimelineEvent[];
+      participantFrames: Record<string, ParticipantFrame>;
+    }>;
+    participants: Array<{ participantId: number; puuid: string }>;
   };
 }
 
@@ -138,24 +245,80 @@ export async function getMatch(
   puuid: string,
   matchId: string
 ): Promise<MatchSummary> {
-  const cluster = REGION_TO_CLUSTER[cfg.region];
-  const m = await api<MatchDto>(
-    `https://${cluster}.api.riotgames.com/lol/match/v5/matches/${matchId}`,
-    cfg.apiKey
-  );
-  const me = m.info.participants.find((p) => p.puuid === puuid);
+  const m = await getMatchFull(cfg, matchId);
+  const me = m.participants.find((p) => p.puuid === puuid);
   if (!me) throw new Error("PUUID not in match");
   return {
-    matchId: m.metadata.matchId,
+    matchId: m.matchId,
     championId: me.championId,
     win: me.win,
     kills: me.kills,
     deaths: me.deaths,
     assists: me.assists,
-    cs: me.totalMinionsKilled + me.neutralMinionsKilled,
+    cs: me.cs,
+    durationSec: m.durationSec,
+    gameEndTimestampMs: m.endTsMs,
+    queueId: m.queueId,
+    position: me.position,
+  };
+}
+
+export async function getMatchFull(
+  cfg: RiotConfig,
+  matchId: string
+): Promise<MatchFull> {
+  const cluster = REGION_TO_CLUSTER[cfg.region];
+  const m = await api<MatchDto>(
+    `https://${cluster}.api.riotgames.com/lol/match/v5/matches/${matchId}`,
+    cfg.apiKey
+  );
+  return {
+    matchId: m.metadata.matchId,
     durationSec: m.info.gameDuration,
-    gameEndTimestampMs: m.info.gameEndTimestamp,
+    endTsMs: m.info.gameEndTimestamp,
     queueId: m.info.queueId,
-    position: me.teamPosition,
+    teams: m.info.teams,
+    participants: m.info.participants.map((p) => ({
+      puuid: p.puuid,
+      participantId: p.participantId,
+      championId: p.championId,
+      teamId: p.teamId,
+      position: p.teamPosition,
+      win: p.win,
+      kills: p.kills,
+      deaths: p.deaths,
+      assists: p.assists,
+      cs: p.totalMinionsKilled + p.neutralMinionsKilled,
+      goldEarned: p.goldEarned,
+      totalDamageDealtToChampions: p.totalDamageDealtToChampions,
+      totalDamageTaken: p.totalDamageTaken,
+      visionScore: p.visionScore,
+      wardsPlaced: p.wardsPlaced,
+      wardsKilled: p.wardsKilled,
+      controlWardsBought: p.detectorWardsPlaced,
+      champLevel: p.champLevel,
+      items: [p.item0, p.item1, p.item2, p.item3, p.item4, p.item5, p.item6].filter((x) => x > 0),
+      summoner1Id: p.summoner1Id,
+      summoner2Id: p.summoner2Id,
+      perks: p.perks,
+    })),
+  };
+}
+
+export async function getMatchTimeline(
+  cfg: RiotConfig,
+  matchId: string
+): Promise<MatchTimeline> {
+  const cluster = REGION_TO_CLUSTER[cfg.region];
+  const t = await api<TimelineDto>(
+    `https://${cluster}.api.riotgames.com/lol/match/v5/matches/${matchId}/timeline`,
+    cfg.apiKey
+  );
+  const participantToPuuid: Record<number, string> = {};
+  for (const p of t.info.participants) participantToPuuid[p.participantId] = p.puuid;
+  return {
+    matchId: t.metadata.matchId,
+    participantToPuuid,
+    frames: t.info.frames,
   };
 }
