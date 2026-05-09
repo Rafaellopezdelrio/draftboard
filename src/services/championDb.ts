@@ -1,8 +1,9 @@
 import type { ChampionDb } from "../types/champion";
 import { fetchChampions, fetchLatestPatch } from "./dataDragon";
-import { fetchCounters, fetchMeta } from "./murderBridge";
+import { fetchCounters } from "./murderBridge";
+import { buildMetaList } from "../data/metaTierList";
 
-const STORAGE_KEY = "lol-draft-advisor:championDb";
+const STORAGE_KEY = "lol-draft-advisor:championDb:v2";
 const STALE_AFTER_MS = 1000 * 60 * 60 * 12; // 12h
 
 export async function loadChampionDb(force = false): Promise<ChampionDb> {
@@ -11,11 +12,11 @@ export async function loadChampionDb(force = false): Promise<ChampionDb> {
     if (cached && Date.now() - cached.fetchedAt < STALE_AFTER_MS) return cached;
   }
   const patch = await fetchLatestPatch();
-  const [champions, counters, meta] = await Promise.all([
+  const [champions, counters] = await Promise.all([
     fetchChampions(patch),
     fetchCounters(patch),
-    fetchMeta(patch),
   ]);
+  const meta = buildMetaList(champions);
   const db: ChampionDb = {
     patch,
     champions,

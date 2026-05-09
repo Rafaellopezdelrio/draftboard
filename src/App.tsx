@@ -7,6 +7,7 @@ import { suggest } from "./engine/suggestionEngine";
 import { DraftBoard } from "./components/DraftBoard";
 import { SuggestionPanel } from "./components/SuggestionPanel";
 import { CompAnalysis } from "./components/CompAnalysis";
+import { useLcuSync } from "./state/lcuSync";
 
 const ROLES: Role[] = ["TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY"];
 
@@ -14,6 +15,7 @@ function App() {
   const [db, setDb] = useState<ChampionDb | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { ally, enemy, bans, myRole, setMyRole } = useDraftStore();
+  const lcuStatus = useLcuSync();
 
   useEffect(() => {
     loadChampionDb().then(setDb).catch((e) => setError(String(e)));
@@ -67,6 +69,12 @@ function App() {
       <header className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-accent">LoL Draft Advisor</h1>
         <div className="flex items-center gap-2">
+          <span
+            className={`text-xs px-2 py-1 rounded ${lcuStatus.connected ? "bg-good/20 text-good" : "bg-white/5 text-white/50"}`}
+            title={lcuStatus.reason ?? ""}
+          >
+            {lcuStatus.connected ? "Cliente conectado" : "Modo manual"}
+          </span>
           <span className="text-xs text-white/40">Patch {db.patch}</span>
           <select
             value={myRole ?? ""}
