@@ -19,6 +19,8 @@ import { PreferencesView } from "./components/PreferencesView";
 import { OwnMasteriesPanel } from "./components/OwnMasteriesPanel";
 import { PhaseTimer } from "./components/PhaseTimer";
 import { BanSuggestionsPanel } from "./components/BanSuggestionsPanel";
+import { OnboardingView } from "./components/OnboardingView";
+import { lcuMasteries } from "./services/lcuPersonalData";
 import { predictDraftWinrate } from "./engine/draftWinrateEngine";
 import { personalStatsByChampion } from "./services/matchRepo";
 import { loadSettings } from "./services/settingsRepo";
@@ -57,13 +59,22 @@ function App() {
 
   useEffect(() => {
     loadPrefs();
-    loadSettings().then((cfg) => {
-      if (cfg?.puuid)
-        getTopMasteries(cfg, cfg.puuid, 20)
-          .then(setMasteries)
-          .catch(() => {});
-    });
   }, [loadPrefs]);
+
+  // Try LCU first for masteries (no key needed); fall back to Riot API.
+  useEffect(() => {
+    (async () => {
+      const fromLcu = await lcuMasteries();
+      if (fromLcu.length > 0) {
+        setMasteries(fromLcu);
+        return;
+      }
+      const cfg = await loadSettings();
+      if (cfg?.puuid && cfg.apiKey) {
+        getTopMasteries(cfg, cfg.puuid, 20).then(setMasteries).catch(() => {});
+      }
+    })();
+  }, [lcuStatus.connected]);
 
   // Reload personal stats whenever role changes — so the engine uses
   // only your data in that specific role (mid CS != support CS).
@@ -207,7 +218,7 @@ function App() {
       </header>
 
       <div className="grid grid-cols-[2fr_320px] gap-4">
-        <DraftBoard db={db} />
+        <DraftBoard db={db} lcuConnected={lcuStatus.connected} />
         <div className={prefs.compactMode ? "space-y-2" : "space-y-4"}>
           {prefs.showDraftWinrate && draftPrediction && (
             <DraftWinrateBadge pred={draftPrediction} />
@@ -253,6 +264,9 @@ function App() {
       {showCoach && <CoachView db={db} onClose={() => setShowCoach(false)} />}
       {showTrends && <TrendsView onClose={() => setShowTrends(false)} />}
       {showPrefs && <PreferencesView onClose={() => setShowPrefs(false)} />}
+      {!prefs.onboardingDone && (
+        <OnboardingView onClose={() => usePrefsStore.getState().set("onboardingDone", true)} />
+      )}
     </main>
   );
 }

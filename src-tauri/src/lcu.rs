@@ -323,6 +323,34 @@ async fn apply_runes(page: RunePageInput) -> Result<()> {
     Ok(())
 }
 
+#[tauri::command]
+pub async fn lcu_get_json(path: String) -> Result<serde_json::Value, String> {
+    fetch_lcu_json(&path).await.map_err(|e| e.to_string())
+}
+
+async fn fetch_lcu_json(path: &str) -> Result<serde_json::Value> {
+    let lf = read_lockfile()?;
+    let auth = format!("riot:{}", lf.password);
+    let auth_b64 = B64.encode(auth.as_bytes());
+
+    let tls = rustls_dangerous_config()?;
+    let client = reqwest::Client::builder()
+        .use_preconfigured_tls(tls)
+        .build()?;
+
+    let url = format!("https://127.0.0.1:{}{}", lf.port, path);
+    let resp = client
+        .get(&url)
+        .header("Authorization", format!("Basic {}", auth_b64))
+        .send()
+        .await
+        .context("LCU GET request")?;
+    if !resp.status().is_success() {
+        return Err(anyhow!("LCU GET {} returned {}", path, resp.status()));
+    }
+    Ok(resp.json::<serde_json::Value>().await?)
+}
+
 async fn fetch_summoner_by_id(summoner_id: u64) -> Result<LcuSummonerLite> {
     let lf = read_lockfile()?;
     let auth = format!("riot:{}", lf.password);

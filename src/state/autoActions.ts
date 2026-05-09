@@ -18,24 +18,24 @@ export function useAutoActions({ db }: Args) {
   const myRole = useDraftStore((s) => s.myRole);
   const intent = useDraftStore((s) => s.myChampionIntent);
 
-  // On hover (intent), optionally pre-apply runes
+  // On hover (intent), optionally pre-apply runes (disabled in safe mode)
   useEffect(() => {
-    if (!prefs.autoApplyOnHover || !intent || !myRole || !db) return;
+    if (prefs.safeMode || !prefs.autoApplyOnHover || !intent || !myRole || !db) return;
     apply(db, intent, myRole);
-  }, [prefs.autoApplyOnHover, intent, myRole, db]);
+  }, [prefs.safeMode, prefs.autoApplyOnHover, intent, myRole, db]);
 
-  // On lock, optionally apply runes
+  // On lock, optionally apply runes (disabled in safe mode)
   useEffect(() => {
     if (!db) return;
     const handler = (e: Event) => {
-      if (!prefs.autoApplyRunes) return;
+      if (prefs.safeMode || !prefs.autoApplyRunes) return;
       const detail = (e as CustomEvent<{ championKey: string }>).detail;
       if (!detail?.championKey || !myRole) return;
       apply(db, detail.championKey, myRole);
     };
     window.addEventListener("draft:champion-locked", handler);
     return () => window.removeEventListener("draft:champion-locked", handler);
-  }, [prefs.autoApplyRunes, myRole, db]);
+  }, [prefs.safeMode, prefs.autoApplyRunes, myRole, db]);
 }
 
 async function apply(db: ChampionDb, championKey: string, role: string) {

@@ -1,13 +1,8 @@
 import { useEffect, useState } from "react";
-import {
-  getAccount,
-  getRecentMatchIds,
-  getMatch,
-  type Region,
-} from "../services/riotApi";
+import { getAccount, type Region } from "../services/riotApi";
 import { loadSettings, saveSettings } from "../services/settingsRepo";
-import { existingMatchIds, saveMatch } from "../services/matchRepo";
 import { getCurrentSummoner } from "../services/lcuService";
+import { syncPersonalData } from "../services/personalDataSync";
 import { aggregateFromMaster } from "../services/metaAggregator";
 import { fetchLatestPatch } from "../services/dataDragon";
 
@@ -84,17 +79,23 @@ export function SettingsView({ onClose }: Props) {
 
   async function handleSaveAndSync() {
     setBusy(true);
-    setStatus("Validando cuenta...");
+    setStatus("Sincronizando...");
     try {
-      const cfg = { apiKey, region, riotIdName, riotIdTag };
-      const account = await getAccount(cfg);
-      setPuuid(account.puuid);
-      await saveSettings({ ...cfg, puuid: account.puuid });
-      setStatus("Descargando partidas...");
-      await backfill(cfg, account.puuid, (n, total) =>
-        setStatus(`Descargando ${n}/${total}...`)
+      // If user provided API key, validate and save it. Otherwise sync via LCU.
+      if (apiKey && riotIdName && riotIdTag) {
+        const cfg = { apiKey, region, riotIdName, riotIdTag };
+        const account = await getAccount(cfg);
+        setPuuid(account.puuid);
+        await saveSettings({ ...cfg, puuid: account.puuid });
+      }
+      const result = await syncPersonalData((p) =>
+        setStatus(`${p.source}: ${p.message ?? `${p.done}/${p.total}`}`)
       );
-      setStatus("Listo ✓");
+      if (result.source === "none") {
+        setStatus("Abre el cliente de LoL y reintenta — sin LCU ni API key no puedo sincronizar");
+      } else {
+        setStatus(`Listo ✓ (${result.matches} partidas vía ${result.source})`);
+      }
     } catch (e) {
       setStatus(`Error: ${String(e)}`);
     } finally {
@@ -108,28 +109,50 @@ export function SettingsView({ onClose }: Props) {
       onClick={onClose}
     >
       <div
-        className="bg-bg-elev border border-border-subtle rounded-lg p-6 w-[480px] space-y-3"
+        className="bg-bg-elev border border-border-subtle rounded-lg p-6 w-[520px] space-y-3 max-h-[85vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-lg font-semibold text-accent">Configuración Riot</h2>
+        <h2 className="text-lg font-semibold text-accent">Configuración</h2>
 
-        <Field label="Riot API Key">
-          <input
-            type="password"
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-            placeholder="RGAPI-..."
-            className="w-full bg-bg px-3 py-2 rounded outline-none border border-border-subtle focus:border-accent text-white"
-          />
-          <a
-            href="https://developer.riotgames.com/"
-            target="_blank"
-            className="text-xs text-accent/80 hover:text-accent"
-            rel="noreferrer"
-          >
-            Obtén tu key en developer.riotgames.com →
-          </a>
-        </Field>
+        <div className="bg-bg-card border border-good/30 rounded p-3 text-xs text-white/80">
+          <p className="font-medium text-good mb-1">
+            ✓ Modo automático (recomendado)
+          </p>
+          <p>
+            Con el cliente de LoL abierto, la app detecta tu cuenta y partidas
+            automáticamente. No necesitas hacer nada más.
+          </p>
+        </div>
+
+        <details className="bg-bg-card border border-border-subtle rounded p-3 text-xs text-white/70">
+          <summary className="cursor-pointer text-white/80 font-medium">
+            ⚙️ Opciones avanzadas (API key Riot)
+          </summary>
+          <div className="mt-3 space-y-3">
+            <p>
+              Solo necesario para: scout de enemigos en champ select, agregación
+              global del meta, y para usar la app sin tener el cliente abierto.
+            </p>
+
+            <Field label="Riot API Key (opcional)">
+              <input
+                type="password"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder="RGAPI-..."
+                className="w-full bg-bg px-3 py-2 rounded outline-none border border-border-subtle focus:border-accent text-white"
+              />
+              <a
+                href="https://developer.riotgames.com/"
+                target="_blank"
+                className="text-xs text-accent/80 hover:text-accent"
+                rel="noreferrer"
+              >
+                Obtén tu key en developer.riotgames.com →
+              </a>
+            </Field>
+          </div>
+        </details>
 
         <Field label="Región">
           <select
@@ -227,23 +250,3 @@ function Field({
   );
 }
 
-async function backfill(
-  cfg: { apiKey: string; region: Region; riotIdName: string; riotIdTag: string },
-  puuid: string,
-  onProgress: (done: number, total: number) => void
-) {
-  const ids = await getRecentMatchIds(cfg, puuid, 20);
-  const known = await existingMatchIds();
-  const todo = ids.filter((id) => !known.has(id));
-  let done = 0;
-  for (const id of todo) {
-    try {
-      const m = await getMatch(cfg, puuid, id);
-      await saveMatch(m);
-    } catch {
-      // skip individual failures
-    }
-    done++;
-    onProgress(done, todo.length);
-  }
-}

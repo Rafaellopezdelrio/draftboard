@@ -1,7 +1,8 @@
 mod lcu;
 
 use lcu::{
-    lcu_apply_runes, lcu_current_summoner, lcu_status, lcu_summoner_by_id, LcuState,
+    lcu_apply_runes, lcu_current_summoner, lcu_get_json, lcu_status, lcu_summoner_by_id,
+    LcuState,
 };
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -53,7 +54,8 @@ pub fn run() {
             lcu_status,
             lcu_current_summoner,
             lcu_summoner_by_id,
-            lcu_apply_runes
+            lcu_apply_runes,
+            lcu_get_json
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

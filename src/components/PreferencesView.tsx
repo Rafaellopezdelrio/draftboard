@@ -46,6 +46,21 @@ const SECTIONS: Section[] = [
     ],
   },
   {
+    title: "Seguridad y experiencia",
+    items: [
+      {
+        key: "safeMode",
+        label: "Modo seguro (desactiva todas las acciones automáticas)",
+        detail: "Solo lectura. Tú haces todos los clicks. La opción más conservadora frente al ToS de Riot.",
+      },
+      {
+        key: "beginnerMode",
+        label: "Modo principiante",
+        detail: "Más explicaciones, tooltips y razones detrás de cada sugerencia.",
+      },
+    ],
+  },
+  {
     title: "Acciones automáticas (LCU)",
     items: [
       {

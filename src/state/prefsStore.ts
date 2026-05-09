@@ -35,6 +35,11 @@ export interface Preferences {
   anthropicApiKey: string;
   aiCoachEnabled: boolean;
   aiCoachLanguage: "es" | "en";
+
+  // Safety + onboarding
+  safeMode: boolean;
+  beginnerMode: boolean;
+  onboardingDone: boolean;
 }
 
 export const DEFAULT_PREFS: Preferences = {
@@ -64,6 +69,10 @@ export const DEFAULT_PREFS: Preferences = {
   anthropicApiKey: "",
   aiCoachEnabled: false,
   aiCoachLanguage: "es",
+
+  safeMode: false,
+  beginnerMode: false,
+  onboardingDone: false,
 };
 
 interface PrefsState {

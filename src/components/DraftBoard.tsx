@@ -5,9 +5,10 @@ import { ChampionPicker } from "./ChampionPicker";
 
 interface Props {
   db: ChampionDb;
+  lcuConnected?: boolean;
 }
 
-export function DraftBoard({ db }: Props) {
+export function DraftBoard({ db, lcuConnected = false }: Props) {
   const { ally, enemy, bans, setPick, setBan, reset } = useDraftStore();
   const [picker, setPicker] = useState<
     | { kind: "pick"; side: Side; index: number }
@@ -46,12 +47,14 @@ export function DraftBoard({ db }: Props) {
         onBanClick={(i) => setPicker({ kind: "ban", side: "enemy", index: i })}
       />
 
-      <button
-        onClick={reset}
-        className="col-span-2 bg-bg-card text-white/70 hover:text-white py-2 rounded text-sm border border-border-subtle"
-      >
-        Reiniciar draft
-      </button>
+      {!lcuConnected && (
+        <button
+          onClick={reset}
+          className="col-span-2 bg-bg-card text-white/70 hover:text-white py-2 rounded text-sm border border-border-subtle"
+        >
+          Reiniciar draft
+        </button>
+      )}
 
       {picker && (
         <ChampionPicker
