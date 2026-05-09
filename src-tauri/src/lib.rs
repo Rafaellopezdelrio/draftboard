@@ -4,6 +4,8 @@ use lcu::{lcu_status, LcuState};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let _ = rustls::crypto::aws_lc_rs::default_provider().install_default();
+
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .manage(LcuState::default())

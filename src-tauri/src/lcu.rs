@@ -5,7 +5,7 @@ use serde::Serialize;
 use serde_json::Value;
 use std::path::PathBuf;
 use std::time::Duration;
-use tauri::{AppHandle, Emitter, Manager};
+use tauri::{AppHandle, Emitter, Manager as _};
 use tokio::sync::Mutex;
 use tokio::time::sleep;
 use tokio_tungstenite::tungstenite::client::IntoClientRequest;
