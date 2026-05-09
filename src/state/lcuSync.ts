@@ -50,6 +50,7 @@ function applySession(s: LcuChampSelectSession) {
     const champKey = p.championId > 0 ? String(p.championId) : null;
     store.setPick("enemy", idx, champKey);
   });
+  store.setEnemySummonerIds(s.theirTeam.map((p) => p.summonerId ?? 0));
 
   s.bans.myTeamBans.forEach((id, idx) => {
     if (id > 0) store.setBan("ally", idx, String(id));

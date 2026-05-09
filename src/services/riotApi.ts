@@ -83,11 +83,19 @@ const limiter = new RateLimiter(95, 120_000);
 
 async function api<T>(url: string, key: string): Promise<T> {
   await limiter.take();
-  const res = await httpFetch(url, { headers: { "X-Riot-Token": key } });
+  const res = await httpFetch(url, { headers: { "X-Riot-Token": key.trim() } });
   if (res.status === 429) {
     const retry = parseInt(res.headers.get("Retry-After") ?? "5", 10);
     await new Promise((r) => setTimeout(r, retry * 1000));
     return api(url, key);
+  }
+  if (res.status === 401 || res.status === 403) {
+    throw new Error(
+      "API key inválida o caducada. Las dev keys duran 24h — regenera en developer.riotgames.com."
+    );
+  }
+  if (res.status === 404) {
+    throw new Error(`Riot ID no encontrado en la región seleccionada.`);
   }
   if (!res.ok) throw new Error(`Riot API ${res.status}: ${url}`);
   return res.json() as Promise<T>;
@@ -109,6 +117,76 @@ export async function getRecentMatchIds(
   const cluster = REGION_TO_CLUSTER[cfg.region];
   return api(
     `https://${cluster}.api.riotgames.com/lol/match/v5/matches/by-puuid/${puuid}/ids?start=0&count=${count}`,
+    cfg.apiKey
+  );
+}
+
+export async function getAccountByRiotId(
+  cfg: RiotConfig,
+  gameName: string,
+  tagLine: string
+): Promise<AccountDto> {
+  const cluster = REGION_TO_CLUSTER[cfg.region];
+  return api(
+    `https://${cluster}.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`,
+    cfg.apiKey
+  );
+}
+
+export interface SummonerDto {
+  id: string;
+  accountId: string;
+  puuid: string;
+  profileIconId: number;
+  summonerLevel: number;
+}
+
+export async function getSummonerByPuuid(
+  cfg: RiotConfig,
+  puuid: string
+): Promise<SummonerDto> {
+  return api(
+    `https://${cfg.region}.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/${puuid}`,
+    cfg.apiKey
+  );
+}
+
+export interface LeagueEntryDto {
+  queueType: string;
+  tier: string;
+  rank: string;
+  leaguePoints: number;
+  wins: number;
+  losses: number;
+  hotStreak: boolean;
+  veteran: boolean;
+  freshBlood: boolean;
+}
+
+export async function getLeagueEntriesBySummoner(
+  cfg: RiotConfig,
+  summonerId: string
+): Promise<LeagueEntryDto[]> {
+  return api(
+    `https://${cfg.region}.api.riotgames.com/lol/league/v4/entries/by-summoner/${summonerId}`,
+    cfg.apiKey
+  );
+}
+
+export interface ChampionMasteryDto {
+  championId: number;
+  championLevel: number;
+  championPoints: number;
+  lastPlayTime: number;
+}
+
+export async function getTopMasteries(
+  cfg: RiotConfig,
+  puuid: string,
+  count = 5
+): Promise<ChampionMasteryDto[]> {
+  return api(
+    `https://${cfg.region}.api.riotgames.com/lol/champion-mastery/v4/champion-masteries/by-puuid/${puuid}/top?count=${count}`,
     cfg.apiKey
   );
 }

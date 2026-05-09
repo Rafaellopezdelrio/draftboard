@@ -11,13 +11,15 @@ import { useLcuSync } from "./state/lcuSync";
 import { SettingsView } from "./components/SettingsView";
 import { HistoryView } from "./components/HistoryView";
 import { CoachView } from "./components/CoachView";
+import { EnemyScoutPanel } from "./components/EnemyScoutPanel";
 
 const ROLES: Role[] = ["TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY"];
 
 function App() {
   const [db, setDb] = useState<ChampionDb | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const { ally, enemy, bans, myRole, setMyRole } = useDraftStore();
+  const { ally, enemy, bans, myRole, setMyRole, enemySummonerIds } =
+    useDraftStore();
   const lcuStatus = useLcuSync();
   const [showSettings, setShowSettings] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
@@ -122,6 +124,7 @@ function App() {
         <div className="space-y-4">
           <SuggestionPanel suggestions={suggestions} />
           <CompAnalysis db={db} allyKeys={allyKeys} />
+          <EnemyScoutPanel db={db} enemySummonerIds={enemySummonerIds} />
         </div>
       </div>
 

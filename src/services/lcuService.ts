@@ -20,6 +20,24 @@ export async function getCurrentSummoner(): Promise<LcuSummoner | null> {
   }
 }
 
+export interface LcuSummonerLite {
+  puuid: string;
+  gameName?: string;
+  tagLine?: string;
+  summonerId?: number;
+}
+
+export async function getSummonerById(
+  summonerId: number
+): Promise<LcuSummonerLite | null> {
+  if (!isTauri()) return null;
+  try {
+    return await invoke<LcuSummonerLite>("lcu_summoner_by_id", { summonerId });
+  } catch {
+    return null;
+  }
+}
+
 export interface LcuStatus {
   connected: boolean;
   reason?: string | null;

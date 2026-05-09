@@ -236,6 +236,48 @@ pub async fn lcu_current_summoner() -> Result<LcuSummoner, String> {
     fetch_current_summoner().await.map_err(|e| e.to_string())
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LcuSummonerLite {
+    pub puuid: String,
+    #[serde(rename = "gameName")]
+    pub game_name: Option<String>,
+    #[serde(rename = "tagLine")]
+    pub tag_line: Option<String>,
+    #[serde(rename = "summonerId")]
+    pub summoner_id: Option<u64>,
+}
+
+#[tauri::command]
+pub async fn lcu_summoner_by_id(summoner_id: u64) -> Result<LcuSummonerLite, String> {
+    fetch_summoner_by_id(summoner_id).await.map_err(|e| e.to_string())
+}
+
+async fn fetch_summoner_by_id(summoner_id: u64) -> Result<LcuSummonerLite> {
+    let lf = read_lockfile()?;
+    let auth = format!("riot:{}", lf.password);
+    let auth_b64 = B64.encode(auth.as_bytes());
+
+    let tls = rustls_dangerous_config()?;
+    let client = reqwest::Client::builder()
+        .use_preconfigured_tls(tls)
+        .build()?;
+
+    let url = format!(
+        "https://127.0.0.1:{}/lol-summoner/v2/summoners/{}",
+        lf.port, summoner_id
+    );
+    let resp = client
+        .get(&url)
+        .header("Authorization", format!("Basic {}", auth_b64))
+        .send()
+        .await
+        .context("LCU summoner-by-id request")?;
+    if !resp.status().is_success() {
+        return Err(anyhow!("LCU returned {}", resp.status()));
+    }
+    Ok(resp.json::<LcuSummonerLite>().await?)
+}
+
 async fn fetch_current_summoner() -> Result<LcuSummoner> {
     let lf = read_lockfile()?;
     let region = read_region().ok();

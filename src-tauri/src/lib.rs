@@ -1,6 +1,6 @@
 mod lcu;
 
-use lcu::{lcu_current_summoner, lcu_status, LcuState};
+use lcu::{lcu_current_summoner, lcu_status, lcu_summoner_by_id, LcuState};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -27,7 +27,11 @@ pub fn run() {
             lcu::spawn_watcher(app.handle().clone());
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![lcu_status, lcu_current_summoner])
+        .invoke_handler(tauri::generate_handler![
+            lcu_status,
+            lcu_current_summoner,
+            lcu_summoner_by_id
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

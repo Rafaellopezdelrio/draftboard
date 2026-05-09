@@ -15,10 +15,12 @@ export interface DraftState {
   enemy: DraftSlot[];
   bans: { ally: string[]; enemy: string[] };
   myRole: Role | null;
+  enemySummonerIds: number[];
   setPick: (side: Side, index: number, championKey: string | null) => void;
   setRoleForSlot: (side: Side, index: number, role: Role | null) => void;
   setMyRole: (role: Role | null) => void;
   setBan: (side: Side, index: number, championKey: string | null) => void;
+  setEnemySummonerIds: (ids: number[]) => void;
   reset: () => void;
 }
 
@@ -35,6 +37,8 @@ export const useDraftStore = create<DraftState>((set) => ({
   enemy: emptySlots("enemy"),
   bans: { ally: [], enemy: [] },
   myRole: null,
+  enemySummonerIds: [],
+  setEnemySummonerIds: (ids) => set({ enemySummonerIds: ids }),
   setPick: (side, index, championKey) =>
     set((s) => {
       const slots = [...s[side]];
