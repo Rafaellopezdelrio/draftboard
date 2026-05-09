@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Context, Result};
 use base64::{engine::general_purpose::STANDARD as B64, Engine};
 use futures_util::{SinkExt, StreamExt};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::path::PathBuf;
 use std::time::Duration;
@@ -215,4 +215,71 @@ fn rustls_dangerous_config() -> Result<rustls::ClientConfig> {
 #[tauri::command]
 pub async fn lcu_status(state: tauri::State<'_, LcuState>) -> Result<LcuStatus, String> {
     Ok(state.status.lock().await.clone())
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LcuSummoner {
+    pub puuid: String,
+    #[serde(rename = "gameName")]
+    pub game_name: Option<String>,
+    #[serde(rename = "tagLine")]
+    pub tag_line: Option<String>,
+    #[serde(rename = "displayName")]
+    pub display_name: Option<String>,
+    #[serde(rename = "summonerLevel")]
+    pub summoner_level: Option<u32>,
+    pub region: Option<String>,
+}
+
+#[tauri::command]
+pub async fn lcu_current_summoner() -> Result<LcuSummoner, String> {
+    fetch_current_summoner().await.map_err(|e| e.to_string())
+}
+
+async fn fetch_current_summoner() -> Result<LcuSummoner> {
+    let lf = read_lockfile()?;
+    let region = read_region().ok();
+    let auth = format!("riot:{}", lf.password);
+    let auth_b64 = B64.encode(auth.as_bytes());
+
+    let tls = rustls_dangerous_config()?;
+    let client = reqwest::Client::builder()
+        .use_preconfigured_tls(tls)
+        .build()?;
+
+    let url = format!("https://127.0.0.1:{}/lol-summoner/v1/current-summoner", lf.port);
+    let resp = client
+        .get(&url)
+        .header("Authorization", format!("Basic {}", auth_b64))
+        .send()
+        .await
+        .context("LCU current-summoner request")?;
+    if !resp.status().is_success() {
+        return Err(anyhow!("LCU returned {}", resp.status()));
+    }
+    let mut s: LcuSummoner = resp.json().await.context("parse summoner")?;
+    s.region = region;
+    Ok(s)
+}
+
+fn read_region() -> Result<String> {
+    // ProductSettings is in: <LeagueInstall>\Config\LeagueClientSettings.yaml or
+    // %LOCALAPPDATA%\Riot Games\Riot Client\Data\RiotClientSettings.yaml
+    // Easier: read from LeagueClientSettings.yaml
+    use std::fs;
+    let candidates = [
+        format!("{}\\Riot Games\\Riot Client\\Data\\RiotClientSettings.yaml", std::env::var("LOCALAPPDATA").unwrap_or_default()),
+    ];
+    for path in candidates {
+        if let Ok(content) = fs::read_to_string(&path) {
+            // very small parse: look for "region:"
+            for line in content.lines() {
+                let l = line.trim();
+                if let Some(rest) = l.strip_prefix("region:") {
+                    return Ok(rest.trim().trim_matches('"').to_lowercase());
+                }
+            }
+        }
+    }
+    Err(anyhow!("region not found"))
 }

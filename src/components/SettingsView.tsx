@@ -7,6 +7,7 @@ import {
 } from "../services/riotApi";
 import { loadSettings, saveSettings } from "../services/settingsRepo";
 import { existingMatchIds, saveMatch } from "../services/matchRepo";
+import { getCurrentSummoner } from "../services/lcuService";
 
 const REGIONS: { value: Region; label: string }[] = [
   { value: "euw1", label: "EU West" },
@@ -44,6 +45,23 @@ export function SettingsView({ onClose }: Props) {
       setPuuid(s.puuid);
     });
   }, []);
+
+  async function autoDetect() {
+    setStatus("Detectando cuenta del cliente...");
+    const s = await getCurrentSummoner();
+    if (!s) {
+      setStatus("Cliente no abierto. Abre LoL primero.");
+      return;
+    }
+    if (s.gameName) setRiotIdName(s.gameName);
+    if (s.tagLine) setRiotIdTag(s.tagLine);
+    if (s.puuid) setPuuid(s.puuid);
+    if (s.region) {
+      const r = s.region.toLowerCase() as Region;
+      if (REGIONS.some((x) => x.value === r)) setRegion(r);
+    }
+    setStatus(`Detectado: ${s.gameName ?? s.displayName ?? "?"}#${s.tagLine ?? "?"}`);
+  }
 
   async function handleSaveAndSync() {
     setBusy(true);
@@ -124,6 +142,13 @@ export function SettingsView({ onClose }: Props) {
               className="w-24 bg-bg px-3 py-2 rounded border border-border-subtle text-white"
             />
           </div>
+          <button
+            onClick={autoDetect}
+            type="button"
+            className="text-xs text-accent/80 hover:text-accent mt-1"
+          >
+            🔍 Auto-detectar desde el cliente de LoL
+          </button>
         </Field>
 
         {puuid && (

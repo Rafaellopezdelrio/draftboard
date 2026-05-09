@@ -1,5 +1,24 @@
 import { listen } from "@tauri-apps/api/event";
+import { invoke } from "@tauri-apps/api/core";
 import type { Role } from "../types/champion";
+
+export interface LcuSummoner {
+  puuid: string;
+  gameName?: string;
+  tagLine?: string;
+  displayName?: string;
+  summonerLevel?: number;
+  region?: string;
+}
+
+export async function getCurrentSummoner(): Promise<LcuSummoner | null> {
+  if (!isTauri()) return null;
+  try {
+    return await invoke<LcuSummoner>("lcu_current_summoner");
+  } catch {
+    return null;
+  }
+}
 
 export interface LcuStatus {
   connected: boolean;
