@@ -28,6 +28,12 @@ pub fn run() {
             sql: include_str!("../../src/db/schema_v3.sql"),
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 4,
+            description: "matchup tracking",
+            sql: include_str!("../../src/db/schema_v4.sql"),
+            kind: MigrationKind::Up,
+        },
     ];
 
     tauri::Builder::default()

@@ -58,6 +58,7 @@ export interface MatchSummary {
   gameEndTimestampMs: number;
   queueId: number;
   position: string;
+  opponentChampionId: number;
 }
 
 class RateLimiter {
@@ -365,6 +366,9 @@ export async function getMatch(
   const m = await getMatchFull(cfg, matchId);
   const me = m.participants.find((p) => p.puuid === puuid);
   if (!me) throw new Error("PUUID not in match");
+  const opponent = m.participants.find(
+    (p) => p.teamId !== me.teamId && p.position === me.position
+  );
   return {
     matchId: m.matchId,
     championId: me.championId,
@@ -377,6 +381,7 @@ export async function getMatch(
     gameEndTimestampMs: m.endTsMs,
     queueId: m.queueId,
     position: me.position,
+    opponentChampionId: opponent?.championId ?? 0,
   };
 }
 

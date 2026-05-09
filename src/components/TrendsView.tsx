@@ -1,24 +1,52 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { recentMatches, type MatchRow } from "../services/matchRepo";
 import {
   computeTrends,
   detectWeakestArea,
-  type Trend,
 } from "../engine/trendsEngine";
+import type { Role } from "../types/champion";
 
 interface Props {
   onClose: () => void;
 }
 
+const ROLE_OPTIONS: Array<{ value: Role | "ALL"; label: string }> = [
+  { value: "ALL", label: "Todos los roles" },
+  { value: "TOP", label: "Top" },
+  { value: "JUNGLE", label: "Jungla" },
+  { value: "MIDDLE", label: "Mid" },
+  { value: "BOTTOM", label: "ADC" },
+  { value: "UTILITY", label: "Support" },
+];
+
+const QUEUE_OPTIONS: Array<{ value: number | "ALL"; label: string }> = [
+  { value: "ALL", label: "Todas las colas" },
+  { value: 420, label: "Ranked SoloQ" },
+  { value: 440, label: "Ranked Flex" },
+  { value: 400, label: "Normal Draft" },
+  { value: 430, label: "Normal Blind" },
+  { value: 450, label: "ARAM" },
+];
+
 export function TrendsView({ onClose }: Props) {
   const [matches, setMatches] = useState<MatchRow[]>([]);
+  const [role, setRole] = useState<Role | "ALL">("ALL");
+  const [queue, setQueue] = useState<number | "ALL">("ALL");
 
   useEffect(() => {
-    recentMatches(50).then(setMatches);
+    recentMatches(200).then(setMatches);
   }, []);
 
-  const trends = computeTrends(matches);
-  const weakest = detectWeakestArea(matches);
+  const filtered = useMemo(() => {
+    return matches.filter(
+      (m) =>
+        (role === "ALL" || m.position === role) &&
+        (queue === "ALL" || m.queueId === queue)
+    );
+  }, [matches, role, queue]);
+
+  const trends = computeTrends(filtered);
+  const weakest = detectWeakestArea(filtered);
 
   return (
     <div
@@ -26,17 +54,47 @@ export function TrendsView({ onClose }: Props) {
       onClick={onClose}
     >
       <div
-        className="bg-bg-elev border border-border-subtle rounded-lg p-4 w-[640px] max-h-[80vh] flex flex-col"
+        className="bg-bg-elev border border-border-subtle rounded-lg p-4 w-[680px] max-h-[85vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-lg font-semibold text-accent mb-3">
-          Tendencias
-        </h2>
+        <div className="flex items-baseline justify-between mb-3">
+          <h2 className="text-lg font-semibold text-accent">Tendencias</h2>
+          <span className="text-xs text-white/40">
+            {filtered.length} partidas
+          </span>
+        </div>
+
+        <div className="flex gap-2 mb-3">
+          <select
+            value={role}
+            onChange={(e) => setRole(e.target.value as Role | "ALL")}
+            className="bg-bg text-white text-sm px-2 py-1 rounded border border-border-subtle"
+          >
+            {ROLE_OPTIONS.map((r) => (
+              <option key={r.value} value={r.value}>
+                {r.label}
+              </option>
+            ))}
+          </select>
+          <select
+            value={queue}
+            onChange={(e) =>
+              setQueue(e.target.value === "ALL" ? "ALL" : Number(e.target.value))
+            }
+            className="bg-bg text-white text-sm px-2 py-1 rounded border border-border-subtle"
+          >
+            {QUEUE_OPTIONS.map((q) => (
+              <option key={q.value} value={q.value}>
+                {q.label}
+              </option>
+            ))}
+          </select>
+        </div>
 
         {weakest && (
           <div className="mb-3 p-3 rounded border border-bad/60 bg-bad/10">
             <p className="text-xs uppercase text-white/50 tracking-wide">
-              Tu mayor problema esta semana
+              Tu mayor problema {role !== "ALL" ? `en ${role}` : "esta semana"}
             </p>
             <p className="font-medium text-white mt-1">{weakest.category}</p>
             <p className="text-sm text-white/80">{weakest.detail}</p>
@@ -45,30 +103,29 @@ export function TrendsView({ onClose }: Props) {
 
         {trends.length === 0 ? (
           <p className="text-white/50 text-center py-4">
-            Necesitas al menos 6 partidas para detectar tendencias.
+            Necesitas al menos 6 partidas con estos filtros para ver tendencias.
           </p>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-2 overflow-y-auto">
             {trends.map((t, i) => (
-              <TrendRow key={i} trend={t} />
+              <div
+                key={i}
+                className={`p-2 rounded border text-sm ${
+                  t.severity === "good"
+                    ? "border-good/60 bg-good/10 text-good"
+                    : t.severity === "warn"
+                      ? "border-meh/60 bg-meh/10 text-meh"
+                      : t.severity === "bad"
+                        ? "border-bad/60 bg-bad/10 text-bad"
+                        : "border-border-subtle bg-bg-card text-white/80"
+                }`}
+              >
+                {t.insight}
+              </div>
             ))}
           </div>
         )}
       </div>
-    </div>
-  );
-}
-
-function TrendRow({ trend }: { trend: Trend }) {
-  const colors = {
-    good: "border-good/60 bg-good/10 text-good",
-    warn: "border-meh/60 bg-meh/10 text-meh",
-    bad: "border-bad/60 bg-bad/10 text-bad",
-    info: "border-border-subtle bg-bg-card text-white/80",
-  };
-  return (
-    <div className={`p-2 rounded border text-sm ${colors[trend.severity]}`}>
-      {trend.insight}
     </div>
   );
 }

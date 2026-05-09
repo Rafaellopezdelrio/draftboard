@@ -11,6 +11,7 @@ import { loadSettings } from "../services/settingsRepo";
 import type { ChampionDb } from "../types/champion";
 import { GpiRadar } from "./GpiRadar";
 import { usePrefsStore } from "../state/prefsStore";
+import { aiCoachAnalysis } from "../services/aiCoach";
 
 interface Props {
   db: ChampionDb;
@@ -28,6 +29,12 @@ export function CoachView({ db, onClose }: Props) {
     Array<{ id: string; champion: string; win: boolean }>
   >([]);
   const showGpi = usePrefsStore((s) => s.prefs.coachShowGpi);
+  const aiEnabled = usePrefsStore((s) => s.prefs.aiCoachEnabled);
+  const anthropicKey = usePrefsStore((s) => s.prefs.anthropicApiKey);
+  const aiLang = usePrefsStore((s) => s.prefs.aiCoachLanguage);
+  const [aiResponse, setAiResponse] = useState<string>("");
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiErr, setAiErr] = useState<string | null>(null);
 
   useEffect(() => {
     recentMatches(20).then((rows) => {
@@ -46,6 +53,8 @@ export function CoachView({ db, onClose }: Props) {
     if (!matchId) return;
     setLoading(true);
     setErr(null);
+    setAiResponse("");
+    setAiErr(null);
     (async () => {
       try {
         const cfg = await loadSettings();
@@ -64,6 +73,41 @@ export function CoachView({ db, onClose }: Props) {
       }
     })();
   }, [matchId]);
+
+  async function runAi() {
+    if (!matchFull) return;
+    const cfg = await loadSettings();
+    if (!cfg?.puuid) return;
+    const me = matchFull.participants.find((p) => p.puuid === cfg.puuid);
+    if (!me) return;
+    const opp = matchFull.participants.find(
+      (p) => p.teamId !== me.teamId && p.position === me.position
+    );
+    setAiLoading(true);
+    setAiErr(null);
+    try {
+      const myChampName =
+        db.champions[String(me.championId)]?.name ?? `#${me.championId}`;
+      const oppName = opp
+        ? (db.champions[String(opp.championId)]?.name ?? `#${opp.championId}`)
+        : null;
+      const text = await aiCoachAnalysis({
+        apiKey: anthropicKey,
+        match: matchFull,
+        myPuuid: cfg.puuid,
+        insights,
+        gpi,
+        championName: myChampName,
+        opponentChampionName: oppName,
+        language: aiLang,
+      });
+      setAiResponse(text);
+    } catch (e) {
+      setAiErr(String(e));
+    } finally {
+      setAiLoading(false);
+    }
+  }
 
   const me = matchFull?.participants.find((p) => p.puuid && true);
 
@@ -102,6 +146,34 @@ export function CoachView({ db, onClose }: Props) {
             {gpi && showGpi && (
               <div className="bg-bg-card border border-border-subtle rounded p-3">
                 <GpiRadar score={gpi} />
+              </div>
+            )}
+
+            {aiEnabled && (
+              <div className="bg-bg-card border border-border-subtle rounded p-3 space-y-2">
+                <div className="flex items-baseline justify-between">
+                  <h3 className="text-sm uppercase tracking-wide text-accent">
+                    AI Coach
+                  </h3>
+                  <button
+                    onClick={runAi}
+                    disabled={aiLoading || !anthropicKey}
+                    className="text-xs px-2 py-1 bg-accent text-black rounded disabled:opacity-50"
+                  >
+                    {aiLoading ? "Analizando..." : "Analizar con Claude"}
+                  </button>
+                </div>
+                {!anthropicKey && (
+                  <p className="text-xs text-meh">
+                    Pega tu API key Anthropic en Prefs para usar el AI Coach.
+                  </p>
+                )}
+                {aiErr && <p className="text-sm text-bad">{aiErr}</p>}
+                {aiResponse && (
+                  <p className="text-sm text-white/90 whitespace-pre-wrap leading-relaxed">
+                    {aiResponse}
+                  </p>
+                )}
               </div>
             )}
             {insights.length === 0 ? (

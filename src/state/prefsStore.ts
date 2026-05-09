@@ -30,6 +30,11 @@ export interface Preferences {
 
   // UI
   compactMode: boolean;
+
+  // AI Coach
+  anthropicApiKey: string;
+  aiCoachEnabled: boolean;
+  aiCoachLanguage: "es" | "en";
 }
 
 export const DEFAULT_PREFS: Preferences = {
@@ -55,6 +60,10 @@ export const DEFAULT_PREFS: Preferences = {
   liveScoutRefresh: true,
 
   compactMode: false,
+
+  anthropicApiKey: "",
+  aiCoachEnabled: false,
+  aiCoachLanguage: "es",
 };
 
 interface PrefsState {

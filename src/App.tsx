@@ -18,6 +18,7 @@ import { DraftWinrateBadge } from "./components/DraftWinrateBadge";
 import { PreferencesView } from "./components/PreferencesView";
 import { OwnMasteriesPanel } from "./components/OwnMasteriesPanel";
 import { PhaseTimer } from "./components/PhaseTimer";
+import { BanSuggestionsPanel } from "./components/BanSuggestionsPanel";
 import { predictDraftWinrate } from "./engine/draftWinrateEngine";
 import { personalStatsByChampion } from "./services/matchRepo";
 import { loadSettings } from "./services/settingsRepo";
@@ -56,7 +57,6 @@ function App() {
 
   useEffect(() => {
     loadPrefs();
-    personalStatsByChampion().then(setPersonalStats);
     loadSettings().then((cfg) => {
       if (cfg?.puuid)
         getTopMasteries(cfg, cfg.puuid, 20)
@@ -64,6 +64,14 @@ function App() {
           .catch(() => {});
     });
   }, [loadPrefs]);
+
+  // Reload personal stats whenever role changes — so the engine uses
+  // only your data in that specific role (mid CS != support CS).
+  useEffect(() => {
+    personalStatsByChampion(myRole ? { position: myRole } : undefined).then(
+      setPersonalStats
+    );
+  }, [myRole]);
 
   useEffect(() => {
     loadChampionDb().then(setDb).catch((e) => setError(String(e)));
@@ -214,6 +222,12 @@ function App() {
               role={myRole}
             />
           )}
+          <BanSuggestionsPanel
+            db={db}
+            role={myRole}
+            bannedKeys={bans.ally.concat(bans.enemy)}
+            pickedKeys={[...allyKeys, ...enemyKeys]}
+          />
           {prefs.showCompAnalysis && (
             <CompAnalysis db={db} allyKeys={allyKeys} />
           )}

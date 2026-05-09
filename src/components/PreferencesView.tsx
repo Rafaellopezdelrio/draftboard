@@ -88,6 +88,16 @@ const SECTIONS: Section[] = [
     title: "Interfaz",
     items: [{ key: "compactMode", label: "Modo compacto (paneles más densos)" }],
   },
+  {
+    title: "AI Coach (Anthropic)",
+    items: [
+      {
+        key: "aiCoachEnabled",
+        label: "Habilitar AI Coach (requiere API key)",
+        detail: "Análisis natural de cada partida con Claude. Necesitas tu propia clave Anthropic.",
+      },
+    ],
+  },
 ];
 
 export function PreferencesView({ onClose }: Props) {
@@ -113,6 +123,7 @@ export function PreferencesView({ onClose }: Props) {
         </div>
 
         <div className="space-y-5">
+          <AnthropicKeyField />
           {SECTIONS.map((sec) => (
             <section key={sec.title}>
               <h3 className="text-xs uppercase tracking-wide text-white/50 mb-2">
@@ -144,6 +155,45 @@ export function PreferencesView({ onClose }: Props) {
         </div>
       </div>
     </div>
+  );
+}
+
+function AnthropicKeyField() {
+  const key = usePrefsStore((s) => s.prefs.anthropicApiKey);
+  const lang = usePrefsStore((s) => s.prefs.aiCoachLanguage);
+  const set = usePrefsStore((s) => s.set);
+  return (
+    <section>
+      <h3 className="text-xs uppercase tracking-wide text-white/50 mb-2">
+        Anthropic API Key (para AI Coach)
+      </h3>
+      <input
+        type="password"
+        value={key}
+        onChange={(e) => set("anthropicApiKey", e.target.value)}
+        placeholder="sk-ant-..."
+        className="w-full bg-bg px-3 py-2 rounded outline-none border border-border-subtle focus:border-accent text-white text-sm"
+      />
+      <a
+        href="https://console.anthropic.com/settings/keys"
+        target="_blank"
+        rel="noreferrer"
+        className="text-xs text-accent/80 hover:text-accent"
+      >
+        Obtén tu key en console.anthropic.com →
+      </a>
+      <div className="mt-2 flex items-center gap-2">
+        <label className="text-xs text-white/50">Idioma del coach</label>
+        <select
+          value={lang}
+          onChange={(e) => set("aiCoachLanguage", e.target.value as "es" | "en")}
+          className="bg-bg text-white text-xs px-2 py-1 rounded border border-border-subtle"
+        >
+          <option value="es">Español</option>
+          <option value="en">English</option>
+        </select>
+      </div>
+    </section>
   );
 }
 
