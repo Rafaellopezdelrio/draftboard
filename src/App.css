@@ -1,13 +1,22 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #0b0e14;
+  --color-bg-elev: #141823;
+  --color-bg-card: #1c2230;
+  --color-border-subtle: #2a3142;
+  --color-good: #22c55e;
+  --color-meh: #eab308;
+  --color-bad: #ef4444;
+  --color-accent: #c89b3c;
+}
 
 html,
 body,
 #root {
   height: 100%;
   margin: 0;
-  background: #0b0e14;
+  background: var(--color-bg);
   color: #e6e8ee;
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 }
