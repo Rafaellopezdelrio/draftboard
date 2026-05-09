@@ -10,6 +10,7 @@ import { recentMatches } from "../services/matchRepo";
 import { loadSettings } from "../services/settingsRepo";
 import type { ChampionDb } from "../types/champion";
 import { GpiRadar } from "./GpiRadar";
+import { usePrefsStore } from "../state/prefsStore";
 
 interface Props {
   db: ChampionDb;
@@ -26,6 +27,7 @@ export function CoachView({ db, onClose }: Props) {
   const [matchOptions, setMatchOptions] = useState<
     Array<{ id: string; champion: string; win: boolean }>
   >([]);
+  const showGpi = usePrefsStore((s) => s.prefs.coachShowGpi);
 
   useEffect(() => {
     recentMatches(20).then((rows) => {
@@ -97,7 +99,7 @@ export function CoachView({ db, onClose }: Props) {
             <div className="text-xs text-white/50">
               {Math.round(matchFull.durationSec / 60)}min · queue {matchFull.queueId}
             </div>
-            {gpi && (
+            {gpi && showGpi && (
               <div className="bg-bg-card border border-border-subtle rounded p-3">
                 <GpiRadar score={gpi} />
               </div>

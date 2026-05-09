@@ -9,6 +9,7 @@ import {
 } from "../services/aggregateRepo";
 import type { ChampionDb, Role } from "../types/champion";
 import { applyRunes } from "../services/lcuService";
+import { usePrefsStore } from "../state/prefsStore";
 
 interface Props {
   db: ChampionDb;
@@ -23,6 +24,7 @@ export function BuildPanel({ db, championKey, role }: Props) {
   const [runes, setRunes] = useState<RuneAgg | null>(null);
   const [skills, setSkills] = useState<SkillOrderAgg | null>(null);
   const [importStatus, setImportStatus] = useState<string>("");
+  const showRuneButton = usePrefsStore((s) => s.prefs.showRuneImportButton);
 
   useEffect(() => {
     const champId = Number(championKey);
@@ -101,6 +103,7 @@ export function BuildPanel({ db, championKey, role }: Props) {
         <div>
           <div className="flex items-baseline justify-between mb-1">
             <p className="text-xs text-white/50">Runas</p>
+            {showRuneButton && (
             <button
               className="text-xs text-accent hover:underline"
               onClick={async () => {
@@ -116,6 +119,7 @@ export function BuildPanel({ db, championKey, role }: Props) {
             >
               Aplicar al cliente →
             </button>
+            )}
           </div>
           <div className="flex flex-wrap gap-1 mb-1">
             {runes.perks.slice(0, 4).map((id, i) => (

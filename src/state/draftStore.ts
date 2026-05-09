@@ -16,11 +16,22 @@ export interface DraftState {
   bans: { ally: string[]; enemy: string[] };
   myRole: Role | null;
   enemySummonerIds: number[];
+  myCellId: number | null;
+  myChampionIntent: string | null;
+  myChampionLocked: string | null;
+  phase: string | null;
+  timerSec: number | null;
   setPick: (side: Side, index: number, championKey: string | null) => void;
   setRoleForSlot: (side: Side, index: number, role: Role | null) => void;
   setMyRole: (role: Role | null) => void;
   setBan: (side: Side, index: number, championKey: string | null) => void;
   setEnemySummonerIds: (ids: number[]) => void;
+  setLocalSelection: (
+    cellId: number | null,
+    intent: string | null,
+    locked: string | null
+  ) => void;
+  setPhase: (phase: string | null, timerSec: number | null) => void;
   reset: () => void;
 }
 
@@ -38,7 +49,15 @@ export const useDraftStore = create<DraftState>((set) => ({
   bans: { ally: [], enemy: [] },
   myRole: null,
   enemySummonerIds: [],
+  myCellId: null,
+  myChampionIntent: null,
+  myChampionLocked: null,
+  phase: null,
+  timerSec: null,
   setEnemySummonerIds: (ids) => set({ enemySummonerIds: ids }),
+  setLocalSelection: (cellId, intent, locked) =>
+    set({ myCellId: cellId, myChampionIntent: intent, myChampionLocked: locked }),
+  setPhase: (phase, timerSec) => set({ phase, timerSec }),
   setPick: (side, index, championKey) =>
     set((s) => {
       const slots = [...s[side]];

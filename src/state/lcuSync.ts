@@ -23,6 +23,8 @@ export function useLcuSync() {
   return status;
 }
 
+let lastLockedChamp: string | null = null;
+
 function applySession(s: LcuChampSelectSession) {
   const store = useDraftStore.getState();
   const myCell = s.localPlayerCellId;
@@ -32,6 +34,26 @@ function applySession(s: LcuChampSelectSession) {
   if (myPlayer) {
     const role = lcuPositionToRole(myPlayer.assignedPosition);
     if (role) store.setMyRole(role);
+    const locked =
+      myPlayer.championId > 0 ? String(myPlayer.championId) : null;
+    const intent =
+      myPlayer.championPickIntent && myPlayer.championPickIntent > 0
+        ? String(myPlayer.championPickIntent)
+        : null;
+    store.setLocalSelection(myCell, intent, locked);
+
+    // Fire lock event the first time we see this champion locked.
+    if (locked && locked !== lastLockedChamp) {
+      lastLockedChamp = locked;
+      window.dispatchEvent(
+        new CustomEvent("draft:champion-locked", { detail: { championKey: locked } })
+      );
+    }
+    if (!locked) lastLockedChamp = null;
+  }
+
+  if (s.timer) {
+    store.setPhase(s.timer.phase, Math.max(0, Math.round(s.timer.adjustedTimeLeftInPhase / 1000)));
   }
 
   s.myTeam.forEach((p, idx) => {

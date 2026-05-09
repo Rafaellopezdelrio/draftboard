@@ -15,33 +15,55 @@ import { EnemyScoutPanel } from "./components/EnemyScoutPanel";
 import { TrendsView } from "./components/TrendsView";
 import { BuildPanel } from "./components/BuildPanel";
 import { DraftWinrateBadge } from "./components/DraftWinrateBadge";
+import { PreferencesView } from "./components/PreferencesView";
+import { OwnMasteriesPanel } from "./components/OwnMasteriesPanel";
+import { PhaseTimer } from "./components/PhaseTimer";
 import { predictDraftWinrate } from "./engine/draftWinrateEngine";
 import { personalStatsByChampion } from "./services/matchRepo";
 import { loadSettings } from "./services/settingsRepo";
 import { getTopMasteries, type ChampionMasteryDto } from "./services/riotApi";
 import type { ChampionPersonalStat } from "./services/matchRepo";
+import { usePrefsStore } from "./state/prefsStore";
+import { useAutoActions } from "./state/autoActions";
 
 const ROLES: Role[] = ["TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY"];
 
 function App() {
   const [db, setDb] = useState<ChampionDb | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const { ally, enemy, bans, myRole, setMyRole, enemySummonerIds } =
-    useDraftStore();
+  const {
+    ally,
+    enemy,
+    bans,
+    myRole,
+    setMyRole,
+    enemySummonerIds,
+    myChampionIntent,
+    myChampionLocked,
+  } = useDraftStore();
   const lcuStatus = useLcuSync();
+  const prefs = usePrefsStore((s) => s.prefs);
+  const loadPrefs = usePrefsStore((s) => s.load);
   const [showSettings, setShowSettings] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showCoach, setShowCoach] = useState(false);
   const [showTrends, setShowTrends] = useState(false);
+  const [showPrefs, setShowPrefs] = useState(false);
   const [personalStats, setPersonalStats] = useState<ChampionPersonalStat[]>([]);
   const [masteries, setMasteries] = useState<ChampionMasteryDto[]>([]);
 
+  useAutoActions({ db });
+
   useEffect(() => {
+    loadPrefs();
     personalStatsByChampion().then(setPersonalStats);
     loadSettings().then((cfg) => {
-      if (cfg?.puuid) getTopMasteries(cfg, cfg.puuid, 20).then(setMasteries).catch(() => {});
+      if (cfg?.puuid)
+        getTopMasteries(cfg, cfg.puuid, 20)
+          .then(setMasteries)
+          .catch(() => {});
     });
-  }, []);
+  }, [loadPrefs]);
 
   useEffect(() => {
     loadChampionDb().then(setDb).catch((e) => setError(String(e)));
@@ -53,6 +75,10 @@ function App() {
   );
   const enemyKeys = useMemo(
     () => enemy.map((s) => s.championKey).filter((x): x is string => Boolean(x)),
+    [enemy]
+  );
+  const enemyChampionIds = useMemo(
+    () => enemy.map((s) => (s.championKey ? Number(s.championKey) : null)),
     [enemy]
   );
   const bannedKeys = useMemo(
@@ -68,15 +94,29 @@ function App() {
       allyKeys,
       enemyKeys,
       bannedKeys,
-      personalStats,
-      masteries,
+      personalStats: prefs.usePersonalStats ? personalStats : [],
+      masteries: prefs.useMastery ? masteries : [],
     });
-  }, [db, myRole, allyKeys, enemyKeys, bannedKeys, personalStats, masteries]);
+  }, [
+    db,
+    myRole,
+    allyKeys,
+    enemyKeys,
+    bannedKeys,
+    personalStats,
+    masteries,
+    prefs.usePersonalStats,
+    prefs.useMastery,
+  ]);
 
   const draftPrediction = useMemo(() => {
     if (!db || allyKeys.length === 0 || enemyKeys.length === 0) return null;
     return predictDraftWinrate({ db, allyKeys, enemyKeys });
   }, [db, allyKeys, enemyKeys]);
+
+  // Use locked champion if available, else hovered intent, else first suggestion
+  const buildChampionKey =
+    myChampionLocked ?? myChampionIntent ?? suggestions[0]?.champion.key ?? null;
 
   if (error) {
     return (
@@ -99,15 +139,16 @@ function App() {
 
   return (
     <main className="min-h-full p-4 space-y-4">
-      <header className="flex items-center justify-between">
+      <header className="flex items-center justify-between flex-wrap gap-2">
         <h1 className="text-xl font-bold text-accent">LoL Draft Advisor</h1>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <span
             className={`text-xs px-2 py-1 rounded ${lcuStatus.connected ? "bg-good/20 text-good" : "bg-white/5 text-white/50"}`}
             title={lcuStatus.reason ?? ""}
           >
             {lcuStatus.connected ? "Cliente conectado" : "Modo manual"}
           </span>
+          {prefs.liveTimer && <PhaseTimer />}
           <span className="text-xs text-white/40">Patch {db.patch}</span>
           <button
             onClick={() => setShowCoach(true)}
@@ -126,6 +167,13 @@ function App() {
             className="px-2 py-1 text-xs bg-bg-elev border border-border-subtle rounded hover:border-accent text-white/80"
           >
             Historial
+          </button>
+          <button
+            onClick={() => setShowPrefs(true)}
+            className="px-2 py-1 text-xs bg-bg-elev border border-border-subtle rounded hover:border-accent text-white/80"
+            title="Preferencias"
+          >
+            Prefs
           </button>
           <button
             onClick={() => setShowSettings(true)}
@@ -152,18 +200,35 @@ function App() {
 
       <div className="grid grid-cols-[2fr_320px] gap-4">
         <DraftBoard db={db} />
-        <div className="space-y-4">
-          {draftPrediction && <DraftWinrateBadge pred={draftPrediction} />}
-          <SuggestionPanel suggestions={suggestions} />
-          {suggestions[0] && myRole && (
+        <div className={prefs.compactMode ? "space-y-2" : "space-y-4"}>
+          {prefs.showDraftWinrate && draftPrediction && (
+            <DraftWinrateBadge pred={draftPrediction} />
+          )}
+          {prefs.showSuggestions && (
+            <SuggestionPanel suggestions={suggestions} />
+          )}
+          {prefs.showBuildPanel && buildChampionKey && myRole && (
             <BuildPanel
               db={db}
-              championKey={suggestions[0].champion.key}
+              championKey={buildChampionKey}
               role={myRole}
             />
           )}
-          <CompAnalysis db={db} allyKeys={allyKeys} />
-          <EnemyScoutPanel db={db} enemySummonerIds={enemySummonerIds} />
+          {prefs.showCompAnalysis && (
+            <CompAnalysis db={db} allyKeys={allyKeys} />
+          )}
+          {prefs.showEnemyScout && (
+            <EnemyScoutPanel
+              db={db}
+              enemySummonerIds={enemySummonerIds}
+              enemyChampionIds={enemyChampionIds}
+            />
+          )}
+          <OwnMasteriesPanel
+            db={db}
+            masteries={masteries}
+            personalStats={personalStats}
+          />
         </div>
       </div>
 
@@ -173,6 +238,7 @@ function App() {
       )}
       {showCoach && <CoachView db={db} onClose={() => setShowCoach(false)} />}
       {showTrends && <TrendsView onClose={() => setShowTrends(false)} />}
+      {showPrefs && <PreferencesView onClose={() => setShowPrefs(false)} />}
     </main>
   );
 }

@@ -17,8 +17,10 @@ export interface ScoutResult {
   hotStreak: boolean;
   coldStreak: boolean;
   topChampionIds: number[];
+  topMasteries: Array<{ championId: number; level: number; points: number }>;
   mainChampionId: number | null;
   mostPlayedRecent: { championId: number; games: number; wins: number } | null;
+  pickedChampionMastery: { championId: number; level: number; points: number } | null;
 }
 
 const CACHE = new Map<string, { ts: number; result: ScoutResult }>();
@@ -26,15 +28,17 @@ const CACHE_TTL = 5 * 60 * 1000;
 
 export async function scoutPlayer(
   cfg: RiotConfig,
-  puuid: string
+  puuid: string,
+  pickedChampionId?: number
 ): Promise<ScoutResult> {
-  const cached = CACHE.get(puuid);
+  const cacheKey = `${puuid}:${pickedChampionId ?? "any"}`;
+  const cached = CACHE.get(cacheKey);
   if (cached && Date.now() - cached.ts < CACHE_TTL) return cached.result;
 
   // Run independent calls in parallel
   const [summonerR, masteriesR, recentIdsR] = await Promise.allSettled([
     getSummonerByPuuid(cfg, puuid),
-    getTopMasteries(cfg, puuid, 5),
+    getTopMasteries(cfg, puuid, 7),
     getRecentMatchIds(cfg, puuid, 10),
   ]);
 
@@ -92,6 +96,16 @@ export async function scoutPlayer(
     }
   }
 
+  const topMasteries = masteries.map((m) => ({
+    championId: m.championId,
+    level: m.championLevel,
+    points: m.championPoints,
+  }));
+  const pickedChampionMastery =
+    pickedChampionId !== undefined
+      ? topMasteries.find((m) => m.championId === pickedChampionId) ?? null
+      : null;
+
   const result: ScoutResult = {
     puuid,
     summonerLevel: summoner?.summonerLevel ?? null,
@@ -102,9 +116,15 @@ export async function scoutPlayer(
     hotStreak,
     coldStreak,
     topChampionIds: masteries.map((m) => m.championId),
+    topMasteries,
     mainChampionId: masteries[0]?.championId ?? null,
     mostPlayedRecent,
+    pickedChampionMastery,
   };
-  CACHE.set(puuid, { ts: Date.now(), result });
+  CACHE.set(cacheKey, { ts: Date.now(), result });
   return result;
+}
+
+export function clearScoutCache() {
+  CACHE.clear();
 }

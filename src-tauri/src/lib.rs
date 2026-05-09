@@ -22,6 +22,12 @@ pub fn run() {
             sql: include_str!("../../src/db/schema_v2.sql"),
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 3,
+            description: "preferences",
+            sql: include_str!("../../src/db/schema_v3.sql"),
+            kind: MigrationKind::Up,
+        },
     ];
 
     tauri::Builder::default()
