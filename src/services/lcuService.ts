@@ -38,6 +38,23 @@ export async function getSummonerById(
   }
 }
 
+export interface RunePageInput {
+  name: string;
+  primaryStyleId: number;
+  subStyleId: number;
+  selectedPerkIds: number[];
+}
+
+export async function applyRunes(page: RunePageInput): Promise<boolean> {
+  if (!isTauri()) return false;
+  try {
+    await invoke("lcu_apply_runes", { page });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export interface LcuStatus {
   connected: boolean;
   reason?: string | null;

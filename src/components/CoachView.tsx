@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { analyzeMatch, type Insight } from "../engine/coachEngine";
+import { computeGpi, type GpiScore } from "../engine/gpiEngine";
 import {
   getMatchFull,
   getMatchTimeline,
@@ -8,6 +9,7 @@ import {
 import { recentMatches } from "../services/matchRepo";
 import { loadSettings } from "../services/settingsRepo";
 import type { ChampionDb } from "../types/champion";
+import { GpiRadar } from "./GpiRadar";
 
 interface Props {
   db: ChampionDb;
@@ -18,6 +20,7 @@ export function CoachView({ db, onClose }: Props) {
   const [matchId, setMatchId] = useState<string | null>(null);
   const [matchFull, setMatchFull] = useState<MatchFull | null>(null);
   const [insights, setInsights] = useState<Insight[]>([]);
+  const [gpi, setGpi] = useState<GpiScore | null>(null);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [matchOptions, setMatchOptions] = useState<
@@ -51,6 +54,7 @@ export function CoachView({ db, onClose }: Props) {
         ]);
         setMatchFull(full);
         setInsights(analyzeMatch({ match: full, timeline, myPuuid: cfg.puuid }));
+        setGpi(computeGpi(full, cfg.puuid));
       } catch (e) {
         setErr(String(e));
       } finally {
@@ -89,10 +93,15 @@ export function CoachView({ db, onClose }: Props) {
         {err && <p className="text-bad">{err}</p>}
 
         {!loading && !err && matchFull && me && (
-          <div className="overflow-y-auto space-y-2">
+          <div className="overflow-y-auto space-y-3">
             <div className="text-xs text-white/50">
               {Math.round(matchFull.durationSec / 60)}min · queue {matchFull.queueId}
             </div>
+            {gpi && (
+              <div className="bg-bg-card border border-border-subtle rounded p-3">
+                <GpiRadar score={gpi} />
+              </div>
+            )}
             {insights.length === 0 ? (
               <p className="text-white/50 text-center py-4">
                 Sin observaciones — partida limpia.

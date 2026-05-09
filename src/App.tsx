@@ -12,6 +12,14 @@ import { SettingsView } from "./components/SettingsView";
 import { HistoryView } from "./components/HistoryView";
 import { CoachView } from "./components/CoachView";
 import { EnemyScoutPanel } from "./components/EnemyScoutPanel";
+import { TrendsView } from "./components/TrendsView";
+import { BuildPanel } from "./components/BuildPanel";
+import { DraftWinrateBadge } from "./components/DraftWinrateBadge";
+import { predictDraftWinrate } from "./engine/draftWinrateEngine";
+import { personalStatsByChampion } from "./services/matchRepo";
+import { loadSettings } from "./services/settingsRepo";
+import { getTopMasteries, type ChampionMasteryDto } from "./services/riotApi";
+import type { ChampionPersonalStat } from "./services/matchRepo";
 
 const ROLES: Role[] = ["TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY"];
 
@@ -24,6 +32,16 @@ function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showCoach, setShowCoach] = useState(false);
+  const [showTrends, setShowTrends] = useState(false);
+  const [personalStats, setPersonalStats] = useState<ChampionPersonalStat[]>([]);
+  const [masteries, setMasteries] = useState<ChampionMasteryDto[]>([]);
+
+  useEffect(() => {
+    personalStatsByChampion().then(setPersonalStats);
+    loadSettings().then((cfg) => {
+      if (cfg?.puuid) getTopMasteries(cfg, cfg.puuid, 20).then(setMasteries).catch(() => {});
+    });
+  }, []);
 
   useEffect(() => {
     loadChampionDb().then(setDb).catch((e) => setError(String(e)));
@@ -50,8 +68,15 @@ function App() {
       allyKeys,
       enemyKeys,
       bannedKeys,
+      personalStats,
+      masteries,
     });
-  }, [db, myRole, allyKeys, enemyKeys, bannedKeys]);
+  }, [db, myRole, allyKeys, enemyKeys, bannedKeys, personalStats, masteries]);
+
+  const draftPrediction = useMemo(() => {
+    if (!db || allyKeys.length === 0 || enemyKeys.length === 0) return null;
+    return predictDraftWinrate({ db, allyKeys, enemyKeys });
+  }, [db, allyKeys, enemyKeys]);
 
   if (error) {
     return (
@@ -91,6 +116,12 @@ function App() {
             Coach
           </button>
           <button
+            onClick={() => setShowTrends(true)}
+            className="px-2 py-1 text-xs bg-bg-elev border border-border-subtle rounded hover:border-accent text-white/80"
+          >
+            Trends
+          </button>
+          <button
             onClick={() => setShowHistory(true)}
             className="px-2 py-1 text-xs bg-bg-elev border border-border-subtle rounded hover:border-accent text-white/80"
           >
@@ -122,7 +153,15 @@ function App() {
       <div className="grid grid-cols-[2fr_320px] gap-4">
         <DraftBoard db={db} />
         <div className="space-y-4">
+          {draftPrediction && <DraftWinrateBadge pred={draftPrediction} />}
           <SuggestionPanel suggestions={suggestions} />
+          {suggestions[0] && myRole && (
+            <BuildPanel
+              db={db}
+              championKey={suggestions[0].champion.key}
+              role={myRole}
+            />
+          )}
           <CompAnalysis db={db} allyKeys={allyKeys} />
           <EnemyScoutPanel db={db} enemySummonerIds={enemySummonerIds} />
         </div>
@@ -133,6 +172,7 @@ function App() {
         <HistoryView db={db} onClose={() => setShowHistory(false)} />
       )}
       {showCoach && <CoachView db={db} onClose={() => setShowCoach(false)} />}
+      {showTrends && <TrendsView onClose={() => setShowTrends(false)} />}
     </main>
   );
 }

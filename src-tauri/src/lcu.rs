@@ -252,6 +252,77 @@ pub async fn lcu_summoner_by_id(summoner_id: u64) -> Result<LcuSummonerLite, Str
     fetch_summoner_by_id(summoner_id).await.map_err(|e| e.to_string())
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RunePageInput {
+    pub name: String,
+    #[serde(rename = "primaryStyleId")]
+    pub primary_style_id: u32,
+    #[serde(rename = "subStyleId")]
+    pub sub_style_id: u32,
+    #[serde(rename = "selectedPerkIds")]
+    pub selected_perk_ids: Vec<u32>,
+}
+
+#[tauri::command]
+pub async fn lcu_apply_runes(page: RunePageInput) -> Result<(), String> {
+    apply_runes(page).await.map_err(|e| e.to_string())
+}
+
+async fn apply_runes(page: RunePageInput) -> Result<()> {
+    let lf = read_lockfile()?;
+    let auth = format!("riot:{}", lf.password);
+    let auth_b64 = B64.encode(auth.as_bytes());
+
+    let tls = rustls_dangerous_config()?;
+    let client = reqwest::Client::builder()
+        .use_preconfigured_tls(tls)
+        .build()?;
+
+    let base = format!("https://127.0.0.1:{}", lf.port);
+
+    // 1) Get current rune page id
+    let pages: Vec<serde_json::Value> = client
+        .get(format!("{}/lol-perks/v1/pages", base))
+        .header("Authorization", format!("Basic {}", auth_b64))
+        .send()
+        .await?
+        .json()
+        .await?;
+
+    let editable = pages
+        .iter()
+        .find(|p| p.get("isEditable").and_then(|v| v.as_bool()).unwrap_or(false));
+
+    if let Some(existing) = editable {
+        if let Some(id) = existing.get("id").and_then(|v| v.as_i64()) {
+            let _ = client
+                .delete(format!("{}/lol-perks/v1/pages/{}", base, id))
+                .header("Authorization", format!("Basic {}", auth_b64))
+                .send()
+                .await;
+        }
+    }
+
+    let body = serde_json::json!({
+        "name": page.name,
+        "primaryStyleId": page.primary_style_id,
+        "subStyleId": page.sub_style_id,
+        "selectedPerkIds": page.selected_perk_ids,
+        "current": true,
+    });
+
+    let resp = client
+        .post(format!("{}/lol-perks/v1/pages", base))
+        .header("Authorization", format!("Basic {}", auth_b64))
+        .json(&body)
+        .send()
+        .await?;
+    if !resp.status().is_success() {
+        return Err(anyhow!("apply runes returned {}", resp.status()));
+    }
+    Ok(())
+}
+
 async fn fetch_summoner_by_id(summoner_id: u64) -> Result<LcuSummonerLite> {
     let lf = read_lockfile()?;
     let auth = format!("riot:{}", lf.password);

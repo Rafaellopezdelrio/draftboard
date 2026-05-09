@@ -8,6 +8,8 @@ import {
 import { loadSettings, saveSettings } from "../services/settingsRepo";
 import { existingMatchIds, saveMatch } from "../services/matchRepo";
 import { getCurrentSummoner } from "../services/lcuService";
+import { aggregateFromMaster } from "../services/metaAggregator";
+import { fetchLatestPatch } from "../services/dataDragon";
 
 const REGIONS: { value: Region; label: string }[] = [
   { value: "euw1", label: "EU West" },
@@ -45,6 +47,23 @@ export function SettingsView({ onClose }: Props) {
       setPuuid(s.puuid);
     });
   }, []);
+
+  async function syncMeta() {
+    setBusy(true);
+    setStatus("Sincronizando meta global...");
+    try {
+      const cfg = { apiKey, region, riotIdName, riotIdTag };
+      const patch = await fetchLatestPatch();
+      await aggregateFromMaster(cfg, patch, (p) =>
+        setStatus(`${p.phase}: ${p.done}/${p.total}`)
+      );
+      setStatus("Meta sincronizado ✓ (recarga la app para usarlo)");
+    } catch (e) {
+      setStatus(`Error: ${String(e)}`);
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function autoDetect() {
     setStatus("Detectando cuenta del cliente...");
@@ -169,6 +188,14 @@ export function SettingsView({ onClose }: Props) {
             className="px-4 py-2 text-white/70 hover:text-white"
           >
             Cancelar
+          </button>
+          <button
+            disabled={busy || !apiKey}
+            onClick={syncMeta}
+            type="button"
+            className="px-3 py-2 bg-bg-card border border-border-subtle rounded text-white/80 hover:border-accent disabled:opacity-50"
+          >
+            Sincronizar meta
           </button>
           <button
             disabled={busy || !apiKey || !riotIdName || !riotIdTag}

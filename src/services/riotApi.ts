@@ -180,6 +180,45 @@ export interface ChampionMasteryDto {
   lastPlayTime: number;
 }
 
+export interface LeagueListEntryDto {
+  summonerId: string;
+  leaguePoints: number;
+  rank: string;
+  wins: number;
+  losses: number;
+  hotStreak: boolean;
+}
+
+export interface LeagueListDto {
+  tier: string;
+  entries: LeagueListEntryDto[];
+}
+
+export async function getMasterLeague(cfg: RiotConfig): Promise<LeagueListDto> {
+  return api(
+    `https://${cfg.region}.api.riotgames.com/lol/league/v4/masterleagues/by-queue/RANKED_SOLO_5x5`,
+    cfg.apiKey
+  );
+}
+
+export async function getSummonerByPuuidPlatform(
+  cfg: RiotConfig,
+  puuid: string
+): Promise<SummonerDto> {
+  return getSummonerByPuuid(cfg, puuid);
+}
+
+export async function getPuuidBySummonerId(
+  cfg: RiotConfig,
+  summonerId: string
+): Promise<string> {
+  const s = await api<{ puuid: string }>(
+    `https://${cfg.region}.api.riotgames.com/lol/summoner/v4/summoners/${summonerId}`,
+    cfg.apiKey
+  );
+  return s.puuid;
+}
+
 export async function getTopMasteries(
   cfg: RiotConfig,
   puuid: string,

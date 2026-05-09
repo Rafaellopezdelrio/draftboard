@@ -5,6 +5,8 @@ import type {
   Role,
 } from "../types/champion";
 import { counterScore } from "../services/murderBridge";
+import type { ChampionPersonalStat } from "../services/matchRepo";
+import type { ChampionMasteryDto } from "../services/riotApi";
 
 export interface ScoredSuggestion {
   champion: Champion;
@@ -25,13 +27,17 @@ interface SuggestParams {
   allyKeys: string[];
   enemyKeys: string[];
   bannedKeys: string[];
+  personalStats?: ChampionPersonalStat[];
+  masteries?: ChampionMasteryDto[];
   limit?: number;
 }
 
-const W_COUNTER = 0.4;
-const W_SYNERGY = 0.3;
+const W_COUNTER = 0.3;
+const W_SYNERGY = 0.2;
 const W_META = 0.2;
 const W_ARCHETYPE = 0.1;
+const W_PERSONAL = 0.15;
+const W_MASTERY = 0.05;
 
 export function suggest({
   db,
@@ -39,10 +45,16 @@ export function suggest({
   allyKeys,
   enemyKeys,
   bannedKeys,
+  personalStats = [],
+  masteries = [],
   limit = 10,
 }: SuggestParams): ScoredSuggestion[] {
   const taken = new Set([...allyKeys, ...enemyKeys, ...bannedKeys]);
   const missingArchetypes = detectMissingArchetypes(db, allyKeys);
+  const personalById = new Map<number, ChampionPersonalStat>();
+  for (const p of personalStats) personalById.set(p.championId, p);
+  const masteryById = new Map<number, ChampionMasteryDto>();
+  for (const m of masteries) masteryById.set(m.championId, m);
 
   const candidates = Object.values(db.champions).filter(
     (c) => !taken.has(c.key) && (role === null || c.roles.includes(role))
@@ -54,6 +66,8 @@ export function suggest({
     enemyKeys,
     allyKeys,
     missingArchetypes,
+    personalById,
+    masteryById,
   }));
 
   scored.sort((a, b) => b.score - a.score);
@@ -66,6 +80,8 @@ interface ScoreCtx {
   enemyKeys: string[];
   allyKeys: string[];
   missingArchetypes: Set<Archetype>;
+  personalById: Map<number, ChampionPersonalStat>;
+  masteryById: Map<number, ChampionMasteryDto>;
 }
 
 function scoreChampion(c: Champion, ctx: ScoreCtx): ScoredSuggestion {
@@ -74,14 +90,21 @@ function scoreChampion(c: Champion, ctx: ScoreCtx): ScoredSuggestion {
   const synergy = synergyScore(c, ctx.allyKeys, ctx.db);
   const meta = metaScore(c.key, role, ctx.db);
   const archetype = archetypeFitScore(c, ctx.missingArchetypes);
+  const champIdNum = Number(c.key);
+  const personal = personalScore(champIdNum, ctx.personalById);
+  const mastery = masteryScore(champIdNum, ctx.masteryById);
 
   const score =
     W_COUNTER * counter +
     W_SYNERGY * synergy +
     W_META * meta +
-    W_ARCHETYPE * archetype;
+    W_ARCHETYPE * archetype +
+    W_PERSONAL * personal +
+    W_MASTERY * mastery;
 
   const reasons: string[] = [];
+  if (personal > 0.6) reasons.push(`tu winrate ${(personal * 100).toFixed(0)}%`);
+  if (mastery > 0.7) reasons.push(`lo dominas`);
   if (counter > 0.55) reasons.push(`countra a enemigos`);
   if (synergy > 0.55) reasons.push(`sinergia con tu equipo`);
   if (meta > 0.55) reasons.push(`fuerte en el meta`);
@@ -97,6 +120,27 @@ function scoreChampion(c: Champion, ctx: ScoreCtx): ScoredSuggestion {
     reasons,
     color,
   };
+}
+
+function personalScore(
+  championId: number,
+  personalById: Map<number, ChampionPersonalStat>
+): number {
+  const p = personalById.get(championId);
+  if (!p || p.games < 3) return 0.5;
+  return p.winRate;
+}
+
+function masteryScore(
+  championId: number,
+  masteryById: Map<number, ChampionMasteryDto>
+): number {
+  const m = masteryById.get(championId);
+  if (!m) return 0.3;
+  if (m.championLevel >= 7) return 1;
+  if (m.championLevel >= 5) return 0.8;
+  if (m.championLevel >= 3) return 0.6;
+  return 0.4;
 }
 
 function synergyScore(
