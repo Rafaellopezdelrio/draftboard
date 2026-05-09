@@ -8,6 +8,8 @@ import { DraftBoard } from "./components/DraftBoard";
 import { SuggestionPanel } from "./components/SuggestionPanel";
 import { CompAnalysis } from "./components/CompAnalysis";
 import { useLcuSync } from "./state/lcuSync";
+import { SettingsView } from "./components/SettingsView";
+import { HistoryView } from "./components/HistoryView";
 
 const ROLES: Role[] = ["TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY"];
 
@@ -16,6 +18,8 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const { ally, enemy, bans, myRole, setMyRole } = useDraftStore();
   const lcuStatus = useLcuSync();
+  const [showSettings, setShowSettings] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
 
   useEffect(() => {
     loadChampionDb().then(setDb).catch((e) => setError(String(e)));
@@ -76,6 +80,18 @@ function App() {
             {lcuStatus.connected ? "Cliente conectado" : "Modo manual"}
           </span>
           <span className="text-xs text-white/40">Patch {db.patch}</span>
+          <button
+            onClick={() => setShowHistory(true)}
+            className="px-2 py-1 text-xs bg-bg-elev border border-border-subtle rounded hover:border-accent text-white/80"
+          >
+            Historial
+          </button>
+          <button
+            onClick={() => setShowSettings(true)}
+            className="px-2 py-1 text-xs bg-bg-elev border border-border-subtle rounded hover:border-accent text-white/80"
+          >
+            ⚙
+          </button>
           <select
             value={myRole ?? ""}
             onChange={(e) =>
@@ -100,6 +116,11 @@ function App() {
           <CompAnalysis db={db} allyKeys={allyKeys} />
         </div>
       </div>
+
+      {showSettings && <SettingsView onClose={() => setShowSettings(false)} />}
+      {showHistory && (
+        <HistoryView db={db} onClose={() => setShowHistory(false)} />
+      )}
     </main>
   );
 }

@@ -1,0 +1,197 @@
+import { useEffect, useState } from "react";
+import {
+  getAccount,
+  getRecentMatchIds,
+  getMatch,
+  type Region,
+} from "../services/riotApi";
+import { loadSettings, saveSettings } from "../services/settingsRepo";
+import { existingMatchIds, saveMatch } from "../services/matchRepo";
+
+const REGIONS: { value: Region; label: string }[] = [
+  { value: "euw1", label: "EU West" },
+  { value: "eun1", label: "EU Nordic & East" },
+  { value: "na1", label: "North America" },
+  { value: "kr", label: "Korea" },
+  { value: "br1", label: "Brazil" },
+  { value: "la1", label: "LAN" },
+  { value: "la2", label: "LAS" },
+  { value: "tr1", label: "Turkey" },
+  { value: "oc1", label: "OCE" },
+  { value: "jp1", label: "Japan" },
+];
+
+interface Props {
+  onClose: () => void;
+}
+
+export function SettingsView({ onClose }: Props) {
+  const [apiKey, setApiKey] = useState("");
+  const [region, setRegion] = useState<Region>("euw1");
+  const [riotIdName, setRiotIdName] = useState("");
+  const [riotIdTag, setRiotIdTag] = useState("");
+  const [puuid, setPuuid] = useState<string | undefined>();
+  const [status, setStatus] = useState<string>("");
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    loadSettings().then((s) => {
+      if (!s) return;
+      setApiKey(s.apiKey);
+      setRegion(s.region);
+      setRiotIdName(s.riotIdName);
+      setRiotIdTag(s.riotIdTag);
+      setPuuid(s.puuid);
+    });
+  }, []);
+
+  async function handleSaveAndSync() {
+    setBusy(true);
+    setStatus("Validando cuenta...");
+    try {
+      const cfg = { apiKey, region, riotIdName, riotIdTag };
+      const account = await getAccount(cfg);
+      setPuuid(account.puuid);
+      await saveSettings({ ...cfg, puuid: account.puuid });
+      setStatus("Descargando partidas...");
+      await backfill(cfg, account.puuid, (n, total) =>
+        setStatus(`Descargando ${n}/${total}...`)
+      );
+      setStatus("Listo ✓");
+    } catch (e) {
+      setStatus(`Error: ${String(e)}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center"
+      onClick={onClose}
+    >
+      <div
+        className="bg-bg-elev border border-border-subtle rounded-lg p-6 w-[480px] space-y-3"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 className="text-lg font-semibold text-accent">Configuración Riot</h2>
+
+        <Field label="Riot API Key">
+          <input
+            type="password"
+            value={apiKey}
+            onChange={(e) => setApiKey(e.target.value)}
+            placeholder="RGAPI-..."
+            className="w-full bg-bg px-3 py-2 rounded outline-none border border-border-subtle focus:border-accent text-white"
+          />
+          <a
+            href="https://developer.riotgames.com/"
+            target="_blank"
+            className="text-xs text-accent/80 hover:text-accent"
+            rel="noreferrer"
+          >
+            Obtén tu key en developer.riotgames.com →
+          </a>
+        </Field>
+
+        <Field label="Región">
+          <select
+            value={region}
+            onChange={(e) => setRegion(e.target.value as Region)}
+            className="w-full bg-bg px-3 py-2 rounded border border-border-subtle text-white"
+          >
+            {REGIONS.map((r) => (
+              <option key={r.value} value={r.value}>
+                {r.label}
+              </option>
+            ))}
+          </select>
+        </Field>
+
+        <Field label="Riot ID">
+          <div className="flex gap-2">
+            <input
+              value={riotIdName}
+              onChange={(e) => setRiotIdName(e.target.value)}
+              placeholder="Faker"
+              className="flex-1 bg-bg px-3 py-2 rounded border border-border-subtle text-white"
+            />
+            <span className="self-center text-white/40">#</span>
+            <input
+              value={riotIdTag}
+              onChange={(e) => setRiotIdTag(e.target.value)}
+              placeholder="KR1"
+              className="w-24 bg-bg px-3 py-2 rounded border border-border-subtle text-white"
+            />
+          </div>
+        </Field>
+
+        {puuid && (
+          <p className="text-xs text-white/40 truncate">PUUID: {puuid}</p>
+        )}
+
+        {status && (
+          <p
+            className={`text-sm ${status.startsWith("Error") ? "text-bad" : status.startsWith("Listo") ? "text-good" : "text-white/70"}`}
+          >
+            {status}
+          </p>
+        )}
+
+        <div className="flex justify-end gap-2 pt-2">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-white/70 hover:text-white"
+          >
+            Cancelar
+          </button>
+          <button
+            disabled={busy || !apiKey || !riotIdName || !riotIdTag}
+            onClick={handleSaveAndSync}
+            className="px-4 py-2 bg-accent text-black font-medium rounded disabled:opacity-50"
+          >
+            {busy ? "..." : "Guardar y sincronizar"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-1">
+      <label className="text-xs uppercase tracking-wide text-white/50">
+        {label}
+      </label>
+      {children}
+    </div>
+  );
+}
+
+async function backfill(
+  cfg: { apiKey: string; region: Region; riotIdName: string; riotIdTag: string },
+  puuid: string,
+  onProgress: (done: number, total: number) => void
+) {
+  const ids = await getRecentMatchIds(cfg, puuid, 20);
+  const known = await existingMatchIds();
+  const todo = ids.filter((id) => !known.has(id));
+  let done = 0;
+  for (const id of todo) {
+    try {
+      const m = await getMatch(cfg, puuid, id);
+      await saveMatch(m);
+    } catch {
+      // skip individual failures
+    }
+    done++;
+    onProgress(done, todo.length);
+  }
+}

@@ -4,6 +4,17 @@
 // Routing: account is on the "regional" route (americas/europe/asia/sea),
 // match is on the regional route as well, league/summoner/mastery on the
 // "platform" route (euw1, na1, kr, ...).
+//
+// Uses Tauri's HTTP plugin when available (no CORS), falls back to fetch in browser.
+
+import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
+
+function isTauri(): boolean {
+  return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+}
+
+const httpFetch: typeof fetch = (input, init) =>
+  isTauri() ? (tauriFetch as unknown as typeof fetch)(input, init) : fetch(input, init);
 
 export type Region = "euw1" | "na1" | "kr" | "eun1" | "br1" | "la1" | "la2" | "oc1" | "tr1" | "ru" | "jp1";
 export type Cluster = "europe" | "americas" | "asia" | "sea";
@@ -72,7 +83,7 @@ const limiter = new RateLimiter(95, 120_000);
 
 async function api<T>(url: string, key: string): Promise<T> {
   await limiter.take();
-  const res = await fetch(url, { headers: { "X-Riot-Token": key } });
+  const res = await httpFetch(url, { headers: { "X-Riot-Token": key } });
   if (res.status === 429) {
     const retry = parseInt(res.headers.get("Retry-After") ?? "5", 10);
     await new Promise((r) => setTimeout(r, retry * 1000));

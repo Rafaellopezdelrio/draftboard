@@ -5,6 +5,18 @@
   "windows": ["main"],
   "permissions": [
     "core:default",
-    "opener:default"
+    "opener:default",
+    "sql:default",
+    "sql:allow-load",
+    "sql:allow-execute",
+    "sql:allow-select",
+    {
+      "identifier": "http:default",
+      "allow": [
+        { "url": "https://*.api.riotgames.com/*" },
+        { "url": "https://ddragon.leagueoflegends.com/*" },
+        { "url": "https://raw.communitydragon.org/*" }
+      ]
+    }
   ]
 }

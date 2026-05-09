@@ -12,9 +12,11 @@
   "app": {
     "windows": [
       {
-        "title": "lol-draft-advisor-app",
-        "width": 800,
-        "height": 600
+        "title": "LoL Draft Advisor",
+        "width": 1280,
+        "height": 800,
+        "minWidth": 960,
+        "minHeight": 600
       }
     ],
     "security": {
