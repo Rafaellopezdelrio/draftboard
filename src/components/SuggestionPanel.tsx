@@ -1,10 +1,12 @@
 import type { ScoredSuggestion } from "../engine/suggestionEngine";
+import { usePrefsStore } from "../state/prefsStore";
 
 interface Props {
   suggestions: ScoredSuggestion[];
 }
 
 export function SuggestionPanel({ suggestions }: Props) {
+  const beginner = usePrefsStore((s) => s.prefs.beginnerMode);
   if (suggestions.length === 0) {
     return (
       <p className="text-white/50 text-sm">
@@ -45,6 +47,22 @@ export function SuggestionPanel({ suggestions }: Props) {
               <p className="text-xs text-white/60">
                 {s.reasons[0] ?? "pick decente"}
               </p>
+              {beginner && (
+                <ul className="text-[10px] text-white/50 mt-1 space-y-0.5">
+                  <li>
+                    Counter: {(s.breakdown.counter * 100).toFixed(0)}% — qué tan
+                    bien gana vs los enemigos pickeados
+                  </li>
+                  <li>
+                    Sinergia: {(s.breakdown.synergy * 100).toFixed(0)}% — cómo
+                    encaja con tus aliados
+                  </li>
+                  <li>
+                    Meta: {(s.breakdown.meta * 100).toFixed(0)}% — fuerza en el
+                    parche actual
+                  </li>
+                </ul>
+              )}
             </div>
           </div>
         );
