@@ -5,6 +5,8 @@ import { invoke } from "@tauri-apps/api/core";
 import type { MatchSummary } from "./riotApi";
 import type { ChampionMasteryDto } from "./riotApi";
 
+const SMITE_SPELL_ID = 11;
+
 function isTauri(): boolean {
   return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 }
@@ -28,6 +30,8 @@ interface LcuMatchHistoryResponse {
       participants: Array<{
         championId: number;
         teamId: number;
+        spell1Id?: number;
+        spell2Id?: number;
         stats: {
           win: boolean;
           kills: number;
@@ -35,6 +39,9 @@ interface LcuMatchHistoryResponse {
           assists: number;
           totalMinionsKilled: number;
           neutralMinionsKilled: number;
+          // Newer fields, sometimes present
+          teamPosition?: string;
+          individualPosition?: string;
         };
         timeline: { lane: string; role: string };
       }>;
@@ -68,15 +75,15 @@ export async function lcuRecentMatches(
     const me = g.participants[myPid - 1];
     if (!me) continue;
 
-    const position = lcuLaneRoleToPosition(me.timeline.lane, me.timeline.role);
-    const opponent = g.participants.find(
-      (p) =>
-        p.teamId !== me.teamId &&
-        lcuLaneRoleToPosition(
-          (p.timeline?.lane ?? "") as string,
-          (p.timeline?.role ?? "") as string
-        ) === position
-    );
+    const myPosition = inferPosition(me, g.queueId);
+    let opponent = null;
+    if (myPosition) {
+      opponent = g.participants.find(
+        (p) =>
+          p.teamId !== me.teamId &&
+          inferPosition(p, g.queueId) === myPosition
+      );
+    }
 
     out.push({
       matchId: `LCU_${g.gameId}`,
@@ -89,23 +96,63 @@ export async function lcuRecentMatches(
       durationSec: g.gameDuration,
       gameEndTimestampMs: g.gameCreation + g.gameDuration * 1000,
       queueId: g.queueId,
-      position,
+      position: myPosition,
       opponentChampionId: opponent?.championId ?? 0,
     });
   }
   return out;
 }
 
-function lcuLaneRoleToPosition(lane: string, role: string): string {
-  const l = (lane ?? "").toUpperCase();
-  const r = (role ?? "").toUpperCase();
-  if (l === "TOP") return "TOP";
-  if (l === "JUNGLE") return "JUNGLE";
-  if (l === "MIDDLE" || l === "MID") return "MIDDLE";
-  if (l === "BOTTOM" || l === "BOT") {
-    if (r === "DUO_SUPPORT" || r === "SUPPORT") return "UTILITY";
+/**
+ * Infer player position with multiple signals:
+ * 1. Modern teamPosition / individualPosition fields (present in some LCU returns)
+ * 2. Smite check — only jungler carries smite
+ * 3. CS check — junglers have low minionsKilled, lots of jungleMinionsKilled
+ * 4. Lane/role legacy fields as last resort
+ *
+ * Returns "" (empty) if signals contradict — better empty than wrong.
+ */
+function inferPosition(
+  p: LcuMatchHistoryResponse["games"]["games"][number]["participants"][number],
+  queueId: number
+): string {
+  // ARAM has no positions
+  if (queueId === 450) return "";
+
+  // 1. Modern teamPosition (most reliable when available)
+  const tp = (p.stats.teamPosition ?? "").toUpperCase();
+  if (tp === "TOP" || tp === "JUNGLE" || tp === "MIDDLE" || tp === "BOTTOM" || tp === "UTILITY") {
+    return tp;
+  }
+
+  // 2. Smite check (huge signal for jungle)
+  const hasSmite = p.spell1Id === SMITE_SPELL_ID || p.spell2Id === SMITE_SPELL_ID;
+  const jungleCS = p.stats.neutralMinionsKilled ?? 0;
+  const laneCS = p.stats.totalMinionsKilled ?? 0;
+
+  if (hasSmite && jungleCS >= 30) return "JUNGLE";
+  if (hasSmite) return "JUNGLE"; // smite at all = JG intent
+
+  // 3. CS pattern: high jungle CS + low lane CS = jungle even without smite (rare)
+  if (jungleCS > 50 && laneCS < 80) return "JUNGLE";
+
+  // 4. Legacy lane/role fallback — only trust if NOT contradicting smite check
+  const lane = (p.timeline?.lane ?? "").toUpperCase();
+  const role = (p.timeline?.role ?? "").toUpperCase();
+
+  // If lane says JUNGLE but no smite, it's wrong → return empty
+  if (lane === "JUNGLE" && !hasSmite) return "";
+
+  if (lane === "TOP") return "TOP";
+  if (lane === "MIDDLE" || lane === "MID") return "MIDDLE";
+  if (lane === "BOTTOM" || lane === "BOT") {
+    if (role === "DUO_SUPPORT" || role === "SUPPORT") return "UTILITY";
     return "BOTTOM";
   }
+
+  // 5. Last resort: very low CS = probably support
+  if (laneCS < 50 && jungleCS < 20) return "UTILITY";
+
   return "";
 }
 
