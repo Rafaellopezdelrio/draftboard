@@ -6,8 +6,14 @@ interface Props {
   suggestions: ScoredSuggestion[];
 }
 
-function SuggestionPanelInner({ suggestions }: Props) {
+interface PropsExt extends Props {
+  hasRole?: boolean;
+  hasDraft?: boolean;
+}
+
+function SuggestionPanelInner({ suggestions, hasRole, hasDraft }: PropsExt) {
   const beginner = usePrefsStore((s) => s.prefs.beginnerMode);
+  const noContext = !hasRole && !hasDraft;
   if (suggestions.length === 0) {
     return (
       <p className="text-white/50 text-sm">
@@ -17,9 +23,24 @@ function SuggestionPanelInner({ suggestions }: Props) {
   }
   return (
     <div className="space-y-2">
-      <h3 className="text-sm uppercase tracking-wide text-white/50">
-        Top picks
-      </h3>
+      <div className="flex items-baseline justify-between">
+        <h3 className="text-sm uppercase tracking-wide text-white/50">
+          Top picks
+        </h3>
+        {noContext && (
+          <span
+            className="text-[10px] text-meh"
+            title="Genéricos del meta. Selecciona tu rol y empieza el draft para ver picks personalizados."
+          >
+            ⚠ genéricos
+          </span>
+        )}
+      </div>
+      {noContext && (
+        <p className="text-xs text-white/50 italic mb-1">
+          Selecciona tu rol arriba para ver picks adaptados a tu pool y al draft.
+        </p>
+      )}
       {suggestions.slice(0, 5).map((s) => {
         const colorClass =
           s.color === "good"

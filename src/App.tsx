@@ -326,7 +326,11 @@ function App() {
             bannedKeys={bannedKeys}
           />
           {prefs.showSuggestions && (
-            <SuggestionPanel suggestions={suggestions} />
+            <SuggestionPanel
+              suggestions={suggestions}
+              hasRole={!!myRole}
+              hasDraft={allyKeys.length > 0 || enemyKeys.length > 0}
+            />
           )}
           {prefs.showBuildPanel && buildChampionKey && myRole && (
             <BuildPanel
