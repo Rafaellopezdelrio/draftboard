@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { recentMatches, type MatchRow } from "../services/matchRepo";
 import type { ChampionDb, Role } from "../types/champion";
-import { queueLabel } from "../data/queueNames";
+import { queueLabel, isRelevantQueue } from "../data/queueNames";
 import { useEscape } from "../hooks/useKeyboardShortcuts";
 
 interface Props {
@@ -34,6 +34,7 @@ export function HistoryView({ db, onClose }: Props) {
   const [queueTab, setQueueTab] = useState<QueueFilter>("RANKED");
   const [roleFilter, setRoleFilter] = useState<Role | "ALL">("ALL");
   const [championFilter, setChampionFilter] = useState<string>("");
+  const [hideNoise, setHideNoise] = useState<boolean>(true);
   useEscape(onClose);
 
   useEffect(() => {
@@ -42,6 +43,11 @@ export function HistoryView({ db, onClose }: Props) {
 
   const filtered = useMemo(() => {
     return matches.filter((m) => {
+      // Hide noise: customs, very short games (remakes/dodges), tutorials
+      if (hideNoise) {
+        if (!isRelevantQueue(m.queueId)) return false;
+        if (m.durationSec < 5 * 60) return false; // remake/dodge
+      }
       // Queue filter
       const tab = QUEUE_TABS.find((t) => t.value === queueTab);
       if (tab?.ids && !tab.ids.includes(m.queueId)) return false;
@@ -56,7 +62,11 @@ export function HistoryView({ db, onClose }: Props) {
       }
       return true;
     });
-  }, [matches, queueTab, roleFilter, championFilter, db]);
+  }, [matches, queueTab, roleFilter, championFilter, db, hideNoise]);
+
+  const hiddenCount = matches.length - matches.filter((m) =>
+    isRelevantQueue(m.queueId) && m.durationSec >= 5 * 60
+  ).length;
 
   const wins = filtered.filter((m) => m.win).length;
   const winRate = filtered.length > 0 ? (wins / filtered.length) * 100 : 0;
@@ -110,21 +120,35 @@ export function HistoryView({ db, onClose }: Props) {
             ))}
           </div>
 
-          {/* Role filter */}
-          <div className="flex gap-1">
-            {ROLE_TABS.map((r) => (
-              <button
-                key={r.value}
-                onClick={() => setRoleFilter(r.value)}
-                className={`px-3 py-1 text-xs rounded border ${
-                  roleFilter === r.value
-                    ? "border-accent/60 bg-accent/10 text-accent"
-                    : "border-border-subtle text-white/60 hover:border-white/30"
-                }`}
-              >
-                {r.label}
-              </button>
-            ))}
+          {/* Role filter + noise toggle */}
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex gap-1 flex-wrap">
+              {ROLE_TABS.map((r) => (
+                <button
+                  key={r.value}
+                  onClick={() => setRoleFilter(r.value)}
+                  className={`px-3 py-1 text-xs rounded border ${
+                    roleFilter === r.value
+                      ? "border-accent/60 bg-accent/10 text-accent"
+                      : "border-border-subtle text-white/60 hover:border-white/30"
+                  }`}
+                >
+                  {r.label}
+                </button>
+              ))}
+            </div>
+            <label className="flex items-center gap-1.5 text-xs text-white/60 cursor-pointer whitespace-nowrap">
+              <input
+                type="checkbox"
+                checked={hideNoise}
+                onChange={(e) => setHideNoise(e.target.checked)}
+                className="accent-accent"
+              />
+              Solo PvP real
+              {hiddenCount > 0 && (
+                <span className="text-white/40">({hiddenCount} ocultas)</span>
+              )}
+            </label>
           </div>
         </div>
 
