@@ -276,6 +276,8 @@ async fn apply_runes(page: RunePageInput) -> Result<()> {
     let tls = rustls_dangerous_config()?;
     let client = reqwest::Client::builder()
         .use_preconfigured_tls(tls)
+        .timeout(Duration::from_secs(5))
+        .connect_timeout(Duration::from_secs(2))
         .build()?;
 
     let base = format!("https://127.0.0.1:{}", lf.port);
@@ -336,6 +338,8 @@ async fn fetch_lcu_json(path: &str) -> Result<serde_json::Value> {
     let tls = rustls_dangerous_config()?;
     let client = reqwest::Client::builder()
         .use_preconfigured_tls(tls)
+        .timeout(Duration::from_secs(5))
+        .connect_timeout(Duration::from_secs(2))
         .build()?;
 
     let url = format!("https://127.0.0.1:{}{}", lf.port, path);
@@ -359,6 +363,8 @@ async fn fetch_summoner_by_id(summoner_id: u64) -> Result<LcuSummonerLite> {
     let tls = rustls_dangerous_config()?;
     let client = reqwest::Client::builder()
         .use_preconfigured_tls(tls)
+        .timeout(Duration::from_secs(5))
+        .connect_timeout(Duration::from_secs(2))
         .build()?;
 
     let url = format!(
@@ -386,6 +392,8 @@ async fn fetch_current_summoner() -> Result<LcuSummoner> {
     let tls = rustls_dangerous_config()?;
     let client = reqwest::Client::builder()
         .use_preconfigured_tls(tls)
+        .timeout(Duration::from_secs(5))
+        .connect_timeout(Duration::from_secs(2))
         .build()?;
 
     let url = format!("https://127.0.0.1:{}/lol-summoner/v1/current-summoner", lf.port);

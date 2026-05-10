@@ -17,17 +17,40 @@ export function OnboardingView({ onClose }: Props) {
 
   async function handleStart() {
     setStep("syncing");
-    const summoner = await getCurrentSummoner();
-    const result = await syncPersonalData(setProgress);
+    // Hard cap: 12s. If LCU is unreachable, don't block the user forever.
+    const timeout = new Promise<{ timeout: true }>((resolve) =>
+      setTimeout(() => resolve({ timeout: true }), 12_000)
+    );
+    const work = (async () => {
+      const summoner = await getCurrentSummoner();
+      const result = await syncPersonalData(setProgress);
+      return { summoner, result };
+    })();
+    const race = await Promise.race([work, timeout]);
+
+    if ("timeout" in race) {
+      setSummary(
+        "El cliente de LoL no responde. Puedes seguir en modo manual y abrir el cliente más tarde — la app se conectará sola."
+      );
+      setStep("done");
+      return;
+    }
+
+    const { summoner, result } = race;
     if (result.source === "none") {
       setSummary(
-        "No detectamos el cliente de LoL abierto. Ábrelo y pulsa Reintentar, o continúa en modo manual."
+        "No detectamos el cliente de LoL abierto. Puedes seguir en modo manual — la app se conectará sola cuando lo abras."
       );
     } else {
       setSummary(
         `${summoner?.gameName ?? "Cuenta"}#${summoner?.tagLine ?? ""} — ${result.matches} partidas + ${result.masteries} maestrías sincronizadas vía ${result.source}.`
       );
     }
+    setStep("done");
+  }
+
+  function skipToManual() {
+    setSummary("Modo manual activado. Cuando abras el cliente de LoL, la app detectará tu cuenta automáticamente.");
     setStep("done");
   }
 
@@ -64,8 +87,14 @@ export function OnboardingView({ onClose }: Props) {
             >
               Empezar — detectar cuenta
             </button>
+            <button
+              onClick={skipToManual}
+              className="w-full py-2 text-sm text-white/60 hover:text-white"
+            >
+              Saltar — usar en modo manual
+            </button>
             <p className="text-xs text-white/40 text-center">
-              Necesitas tener el cliente de LoL abierto
+              Recomendado: ten el cliente de LoL abierto
             </p>
           </>
         )}
@@ -131,6 +160,15 @@ export function OnboardingView({ onClose }: Props) {
             {!progress && (
               <p className="text-sm text-white/60">Buscando cliente de LoL...</p>
             )}
+            <button
+              onClick={skipToManual}
+              className="w-full py-2 text-sm text-white/60 hover:text-white border border-border-subtle rounded"
+            >
+              Saltar y usar en modo manual
+            </button>
+            <p className="text-xs text-white/40 text-center">
+              Si tarda más de 10s, el cliente seguramente no está abierto
+            </p>
           </>
         )}
 
