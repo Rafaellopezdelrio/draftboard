@@ -3,6 +3,7 @@ import { getAccount, type Region } from "../services/riotApi";
 import { loadSettings, saveSettings } from "../services/settingsRepo";
 import { getCurrentSummoner } from "../services/lcuService";
 import { syncPersonalData } from "../services/personalDataSync";
+import { clearAllMatches } from "../services/matchRepo";
 import { aggregateFromMaster } from "../services/metaAggregator";
 import { fetchLatestPatch } from "../services/dataDragon";
 
@@ -42,6 +43,23 @@ export function SettingsView({ onClose }: Props) {
       setPuuid(s.puuid);
     });
   }, []);
+
+  async function resyncAll() {
+    if (!confirm("Esto borra todas tus partidas guardadas y vuelve a descargar las 20 más recientes. ¿Seguir?")) return;
+    setBusy(true);
+    setStatus("Borrando partidas viejas...");
+    try {
+      await clearAllMatches();
+      const result = await syncPersonalData((p) =>
+        setStatus(`${p.source}: ${p.message ?? `${p.done}/${p.total}`}`)
+      );
+      setStatus(`Resincronizado ✓ (${result.matches} partidas vía ${result.source})`);
+    } catch (e) {
+      setStatus(`Error: ${String(e)}`);
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function syncMeta() {
     setBusy(true);
@@ -211,6 +229,15 @@ export function SettingsView({ onClose }: Props) {
             className="px-4 py-2 text-white/70 hover:text-white"
           >
             Cancelar
+          </button>
+          <button
+            disabled={busy}
+            onClick={resyncAll}
+            type="button"
+            className="px-3 py-2 bg-bg-card border border-bad/40 rounded text-bad/90 hover:border-bad disabled:opacity-50"
+            title="Borra y vuelve a descargar tus partidas (útil tras actualizar la app)"
+          >
+            Re-sync
           </button>
           <button
             disabled={busy || !apiKey}

@@ -1,3 +1,4 @@
+import { memo } from "react";
 import type { ScoredSuggestion } from "../engine/suggestionEngine";
 import { usePrefsStore } from "../state/prefsStore";
 
@@ -5,7 +6,7 @@ interface Props {
   suggestions: ScoredSuggestion[];
 }
 
-export function SuggestionPanel({ suggestions }: Props) {
+function SuggestionPanelInner({ suggestions }: Props) {
   const beginner = usePrefsStore((s) => s.prefs.beginnerMode);
   if (suggestions.length === 0) {
     return (
@@ -70,3 +71,5 @@ export function SuggestionPanel({ suggestions }: Props) {
     </div>
   );
 }
+
+export const SuggestionPanel = memo(SuggestionPanelInner);

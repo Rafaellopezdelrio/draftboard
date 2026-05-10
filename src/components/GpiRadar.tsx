@@ -1,4 +1,5 @@
 import type { GpiScore } from "../engine/gpiEngine";
+import { InfoTooltip } from "./InfoTooltip";
 
 interface Props {
   score: GpiScore;
@@ -71,7 +72,9 @@ export function GpiRadar({ score }: Props) {
     <div className="flex items-center gap-4">
       <div className="text-center">
         <p className={`text-5xl font-bold ${totalColor}`}>{score.total}</p>
-        <p className="text-xs text-white/40 uppercase">GPI</p>
+        <p className="text-xs text-white/40 uppercase">
+          <InfoTooltip term="GPI" />
+        </p>
       </div>
       <svg viewBox="0 0 200 200" className="w-44 h-44">
         <circle cx={cx} cy={cy} r={r} fill="none" stroke="#2a3142" />

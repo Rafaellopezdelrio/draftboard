@@ -1,6 +1,12 @@
 import { getDb, isTauri } from "../db/client";
 import type { MatchSummary } from "./riotApi";
 
+export async function clearAllMatches(): Promise<void> {
+  if (!isTauri()) return;
+  const db = await getDb();
+  await db.execute("DELETE FROM matches");
+}
+
 export async function existingMatchIds(): Promise<Set<string>> {
   if (!isTauri()) return new Set();
   const db = await getDb();

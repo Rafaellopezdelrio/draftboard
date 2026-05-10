@@ -4,9 +4,12 @@ import {
   computeTrends,
   detectWeakestArea,
 } from "../engine/trendsEngine";
-import type { Role } from "../types/champion";
+import type { ChampionDb, Role } from "../types/champion";
+import { usePrefsStore } from "../state/prefsStore";
+import { aiTrendsAnalysis } from "../services/aiCoach";
 
 interface Props {
+  db: ChampionDb;
   onClose: () => void;
 }
 
@@ -28,10 +31,16 @@ const QUEUE_OPTIONS: Array<{ value: number | "ALL"; label: string }> = [
   { value: 450, label: "ARAM" },
 ];
 
-export function TrendsView({ onClose }: Props) {
+export function TrendsView({ db, onClose }: Props) {
   const [matches, setMatches] = useState<MatchRow[]>([]);
   const [role, setRole] = useState<Role | "ALL">("ALL");
   const [queue, setQueue] = useState<number | "ALL">("ALL");
+  const aiEnabled = usePrefsStore((s) => s.prefs.aiCoachEnabled);
+  const apiKey = usePrefsStore((s) => s.prefs.anthropicApiKey);
+  const aiLang = usePrefsStore((s) => s.prefs.aiCoachLanguage);
+  const [aiText, setAiText] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiErr, setAiErr] = useState<string | null>(null);
 
   useEffect(() => {
     recentMatches(200).then(setMatches);
@@ -47,6 +56,36 @@ export function TrendsView({ onClose }: Props) {
 
   const trends = computeTrends(filtered);
   const weakest = detectWeakestArea(filtered);
+
+  async function runAi() {
+    setAiLoading(true);
+    setAiErr(null);
+    try {
+      const summary = filtered.slice(0, 15).map((m) => {
+        const c = db.champions[String(m.championId)];
+        return {
+          championName: c?.name ?? `#${m.championId}`,
+          position: m.position,
+          win: m.win,
+          kda: `${m.kills}/${m.deaths}/${m.assists}`,
+          cspm: m.cs / (m.durationSec / 60),
+          visionScore: 0,
+          durationMin: m.durationSec / 60,
+          queueId: m.queueId,
+        };
+      });
+      const text = await aiTrendsAnalysis({
+        apiKey,
+        matches: summary,
+        language: aiLang,
+      });
+      setAiText(text);
+    } catch (e) {
+      setAiErr(String(e));
+    } finally {
+      setAiLoading(false);
+    }
+  }
 
   return (
     <div
@@ -98,6 +137,29 @@ export function TrendsView({ onClose }: Props) {
             </p>
             <p className="font-medium text-white mt-1">{weakest.category}</p>
             <p className="text-sm text-white/80">{weakest.detail}</p>
+          </div>
+        )}
+
+        {aiEnabled && filtered.length >= 5 && (
+          <div className="mb-3 p-3 rounded border border-accent/40 bg-accent/5">
+            <div className="flex items-baseline justify-between mb-2">
+              <h3 className="text-sm uppercase text-accent tracking-wide">
+                AI Coach (tendencias)
+              </h3>
+              <button
+                onClick={runAi}
+                disabled={aiLoading || !apiKey}
+                className="text-xs px-2 py-1 bg-accent text-black rounded disabled:opacity-50"
+              >
+                {aiLoading ? "Analizando..." : "Analizar últimas " + filtered.slice(0, 15).length}
+              </button>
+            </div>
+            {aiErr && <p className="text-sm text-bad">{aiErr}</p>}
+            {aiText && (
+              <p className="text-sm text-white/90 whitespace-pre-wrap leading-relaxed">
+                {aiText}
+              </p>
+            )}
           </div>
         )}
 

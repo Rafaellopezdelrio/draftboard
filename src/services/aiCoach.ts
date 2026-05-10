@@ -30,6 +30,71 @@ export interface AiCoachInput {
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
 const MODEL = "claude-sonnet-4-6";
 
+export interface AiTrendsInput {
+  apiKey: string;
+  matches: Array<{
+    championName: string;
+    position: string;
+    win: boolean;
+    kda: string;
+    cspm: number;
+    visionScore: number;
+    durationMin: number;
+    queueId: number;
+  }>;
+  language?: "es" | "en";
+}
+
+export async function aiTrendsAnalysis(input: AiTrendsInput): Promise<string> {
+  if (input.matches.length < 5) {
+    throw new Error("Se necesitan al menos 5 partidas");
+  }
+  const wins = input.matches.filter((m) => m.win).length;
+  const lines = input.matches
+    .map(
+      (m) =>
+        `- ${m.championName} ${m.position}: ${m.win ? "W" : "L"} ${m.kda} | ${m.cspm.toFixed(1)} CS/m | VS ${m.visionScore} | ${m.durationMin.toFixed(0)}min`
+    )
+    .join("\n");
+
+  const systemPrompt = `Eres un coach profesional de League of Legends. Analizas TENDENCIAS, no partidas individuales. Identifica el patrón principal que explica los resultados (winrate, comportamiento, errores recurrentes, fortalezas) y da 2-3 acciones concretas para subir LP. Máximo 250 palabras. Idioma: ${input.language === "en" ? "English" : "Español"}.`;
+
+  const userPrompt = `Analiza la TENDENCIA de mis últimas ${input.matches.length} partidas:
+
+Winrate: ${wins}/${input.matches.length} (${((wins / input.matches.length) * 100).toFixed(0)}%)
+
+Partidas (más recientes primero):
+${lines}
+
+Identifica patrones (campeones que rinden mejor, roles fuertes/débiles, fugas de LP, hábitos repetidos). Responde como un coach humano: foco en el patrón principal, NO listes todo. Dame 2-3 acciones concretas.`;
+
+  const body = {
+    model: MODEL,
+    max_tokens: 700,
+    system: systemPrompt,
+    messages: [{ role: "user", content: userPrompt }],
+  };
+
+  const res = await httpFetch(ANTHROPIC_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": input.apiKey.trim(),
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true",
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`Anthropic ${res.status}`);
+  const json = (await res.json()) as {
+    content: Array<{ type: string; text?: string }>;
+  };
+  return json.content
+    .filter((c) => c.type === "text" && c.text)
+    .map((c) => c.text)
+    .join("\n");
+}
+
 export async function aiCoachAnalysis(input: AiCoachInput): Promise<string> {
   const me = input.match.participants.find((p) => p.puuid === input.myPuuid);
   if (!me) throw new Error("No participant found");

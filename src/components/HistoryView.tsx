@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { recentMatches, type MatchRow } from "../services/matchRepo";
 import type { ChampionDb } from "../types/champion";
+import { queueLabel } from "../data/queueNames";
 
 interface Props {
   db: ChampionDb;
@@ -61,7 +62,8 @@ export function HistoryView({ db, onClose }: Props) {
                 <div className="flex-1">
                   <p className="text-sm">{champ?.name ?? `#${m.championId}`}</p>
                   <p className="text-xs text-white/50">
-                    {m.position} · {Math.round(m.durationSec / 60)}min
+                    {m.position} · {queueLabel(m.queueId)} ·{" "}
+                    {Math.round(m.durationSec / 60)}min
                   </p>
                 </div>
                 <p className="text-sm text-white/80">

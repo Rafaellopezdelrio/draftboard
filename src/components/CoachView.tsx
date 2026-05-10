@@ -12,6 +12,7 @@ import type { ChampionDb } from "../types/champion";
 import { GpiRadar } from "./GpiRadar";
 import { usePrefsStore } from "../state/prefsStore";
 import { aiCoachAnalysis } from "../services/aiCoach";
+import { queueLabel } from "../data/queueNames";
 
 interface Props {
   db: ChampionDb;
@@ -26,7 +27,15 @@ export function CoachView({ db, onClose }: Props) {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [matchOptions, setMatchOptions] = useState<
-    Array<{ id: string; champion: string; win: boolean }>
+    Array<{
+      id: string;
+      championId: number;
+      champion: string;
+      iconUrl: string;
+      win: boolean;
+      queueId: number;
+      durationSec: number;
+    }>
   >([]);
   const showGpi = usePrefsStore((s) => s.prefs.coachShowGpi);
   const aiEnabled = usePrefsStore((s) => s.prefs.aiCoachEnabled);
@@ -39,11 +48,18 @@ export function CoachView({ db, onClose }: Props) {
   useEffect(() => {
     recentMatches(20).then((rows) => {
       setMatchOptions(
-        rows.map((r) => ({
-          id: r.matchId,
-          champion: db.champions[String(r.championId)]?.name ?? `#${r.championId}`,
-          win: r.win,
-        }))
+        rows.map((r) => {
+          const c = db.champions[String(r.championId)];
+          return {
+            id: r.matchId,
+            championId: r.championId,
+            champion: c?.name ?? `#${r.championId}`,
+            iconUrl: c?.iconUrl ?? "",
+            win: r.win,
+            queueId: r.queueId,
+            durationSec: r.durationSec,
+          };
+        })
       );
       if (rows[0]) setMatchId(rows[0].matchId);
     });
@@ -120,19 +136,37 @@ export function CoachView({ db, onClose }: Props) {
         className="bg-bg-elev border border-border-subtle rounded-lg p-4 w-[820px] max-h-[85vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-baseline justify-between mb-3">
+        <div className="flex items-center justify-between mb-3 gap-3">
           <h2 className="text-lg font-semibold text-accent">Coach</h2>
-          <select
-            value={matchId ?? ""}
-            onChange={(e) => setMatchId(e.target.value)}
-            className="bg-bg text-white text-sm px-2 py-1 rounded border border-border-subtle"
-          >
-            {matchOptions.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.win ? "✓" : "✗"} {m.champion}
-              </option>
-            ))}
-          </select>
+          <div className="flex-1 grid grid-cols-3 gap-1 max-h-32 overflow-y-auto">
+            {matchOptions.map((m) => {
+              const selected = m.id === matchId;
+              return (
+                <button
+                  key={m.id}
+                  onClick={() => setMatchId(m.id)}
+                  className={`flex items-center gap-2 p-1 rounded text-left text-xs ${
+                    selected
+                      ? "bg-accent/20 border border-accent"
+                      : "border border-border-subtle hover:bg-bg-card"
+                  }`}
+                  title={`${m.champion} · ${queueLabel(m.queueId)} · ${Math.round(m.durationSec / 60)}min`}
+                >
+                  {m.iconUrl && (
+                    <img src={m.iconUrl} alt={m.champion} className="w-7 h-7 rounded" />
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-white">{m.champion}</p>
+                    <p
+                      className={`truncate ${m.win ? "text-good" : "text-bad"}`}
+                    >
+                      {m.win ? "W" : "L"} · {queueLabel(m.queueId)}
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {loading && <p className="text-white/60">Analizando partida...</p>}
@@ -141,7 +175,8 @@ export function CoachView({ db, onClose }: Props) {
         {!loading && !err && matchFull && me && (
           <div className="overflow-y-auto space-y-3">
             <div className="text-xs text-white/50">
-              {Math.round(matchFull.durationSec / 60)}min · queue {matchFull.queueId}
+              {Math.round(matchFull.durationSec / 60)}min ·{" "}
+              {queueLabel(matchFull.queueId)}
             </div>
             {gpi && showGpi && (
               <div className="bg-bg-card border border-border-subtle rounded p-3">

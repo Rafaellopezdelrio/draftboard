@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import "./App.css";
 import { loadChampionDb } from "./services/championDb";
 import { useDraftStore } from "./state/draftStore";
@@ -8,18 +8,38 @@ import { DraftBoard } from "./components/DraftBoard";
 import { SuggestionPanel } from "./components/SuggestionPanel";
 import { CompAnalysis } from "./components/CompAnalysis";
 import { useLcuSync } from "./state/lcuSync";
-import { SettingsView } from "./components/SettingsView";
-import { HistoryView } from "./components/HistoryView";
-import { CoachView } from "./components/CoachView";
 import { EnemyScoutPanel } from "./components/EnemyScoutPanel";
-import { TrendsView } from "./components/TrendsView";
 import { BuildPanel } from "./components/BuildPanel";
 import { DraftWinrateBadge } from "./components/DraftWinrateBadge";
-import { PreferencesView } from "./components/PreferencesView";
 import { OwnMasteriesPanel } from "./components/OwnMasteriesPanel";
 import { PhaseTimer } from "./components/PhaseTimer";
+import { Toaster } from "./components/Toaster";
+
+// Lazy-load all modals — only fetched when opened, keeps initial bundle smaller.
+const SettingsView = lazy(() =>
+  import("./components/SettingsView").then((m) => ({ default: m.SettingsView }))
+);
+const HistoryView = lazy(() =>
+  import("./components/HistoryView").then((m) => ({ default: m.HistoryView }))
+);
+const CoachView = lazy(() =>
+  import("./components/CoachView").then((m) => ({ default: m.CoachView }))
+);
+const TrendsView = lazy(() =>
+  import("./components/TrendsView").then((m) => ({ default: m.TrendsView }))
+);
+const PreferencesView = lazy(() =>
+  import("./components/PreferencesView").then((m) => ({
+    default: m.PreferencesView,
+  }))
+);
+const OnboardingView = lazy(() =>
+  import("./components/OnboardingView").then((m) => ({
+    default: m.OnboardingView,
+  }))
+);
 import { BanSuggestionsPanel } from "./components/BanSuggestionsPanel";
-import { OnboardingView } from "./components/OnboardingView";
+import { MatchupTipsPanel } from "./components/MatchupTipsPanel";
 import { lcuMasteries } from "./services/lcuPersonalData";
 import { predictDraftWinrate } from "./engine/draftWinrateEngine";
 import { personalStatsByChampion } from "./services/matchRepo";
@@ -231,6 +251,7 @@ function App() {
               db={db}
               championKey={buildChampionKey}
               role={myRole}
+              enemyKeys={enemyKeys}
             />
           )}
           <BanSuggestionsPanel
@@ -242,6 +263,7 @@ function App() {
           {prefs.showCompAnalysis && (
             <CompAnalysis db={db} allyKeys={allyKeys} />
           )}
+          <MatchupTipsPanel db={db} enemyKeys={enemyKeys} />
           {prefs.showEnemyScout && (
             <EnemyScoutPanel
               db={db}
@@ -257,16 +279,21 @@ function App() {
         </div>
       </div>
 
-      {showSettings && <SettingsView onClose={() => setShowSettings(false)} />}
-      {showHistory && (
-        <HistoryView db={db} onClose={() => setShowHistory(false)} />
-      )}
-      {showCoach && <CoachView db={db} onClose={() => setShowCoach(false)} />}
-      {showTrends && <TrendsView onClose={() => setShowTrends(false)} />}
-      {showPrefs && <PreferencesView onClose={() => setShowPrefs(false)} />}
-      {!prefs.onboardingDone && (
-        <OnboardingView onClose={() => usePrefsStore.getState().set("onboardingDone", true)} />
-      )}
+      <Toaster />
+      <Suspense fallback={null}>
+        {showSettings && <SettingsView onClose={() => setShowSettings(false)} />}
+        {showHistory && (
+          <HistoryView db={db} onClose={() => setShowHistory(false)} />
+        )}
+        {showCoach && <CoachView db={db} onClose={() => setShowCoach(false)} />}
+        {showTrends && <TrendsView db={db} onClose={() => setShowTrends(false)} />}
+        {showPrefs && <PreferencesView onClose={() => setShowPrefs(false)} />}
+        {!prefs.onboardingDone && (
+          <OnboardingView
+            onClose={() => usePrefsStore.getState().set("onboardingDone", true)}
+          />
+        )}
+      </Suspense>
     </main>
   );
 }

@@ -4,6 +4,7 @@ import { getSummonerById } from "../services/lcuService";
 import { scoutPlayer, type ScoutResult } from "../services/enemyScout";
 import { loadSettings } from "../services/settingsRepo";
 import { usePrefsStore } from "../state/prefsStore";
+import { toast } from "./Toaster";
 
 interface Props {
   db: ChampionDb;
@@ -52,6 +53,26 @@ export function EnemyScoutPanel({
         try {
           const r = await scoutPlayer(cfg, lcuSum.puuid, champId);
           setScouts((s) => ({ ...s, [sid]: r }));
+          if (notifyHot && r.hotStreak) {
+            const champName = champId
+              ? db.champions[String(champId)]?.name
+              : null;
+            toast(
+              `🔥 Enemigo en racha (${r.rank ?? "?"}) ${champName ? `con ${champName}` : ""}`,
+              { severity: "warn", ttlMs: 6000 }
+            );
+          }
+          if (
+            notifyHot &&
+            r.pickedChampionMastery &&
+            r.pickedChampionMastery.points > 200000
+          ) {
+            const c = db.champions[String(r.pickedChampionMastery.championId)];
+            toast(`🎯 One-trick: ${c?.name} (${Math.round(r.pickedChampionMastery.points / 1000)}k pts)`, {
+              severity: "warn",
+              ttlMs: 7000,
+            });
+          }
         } catch {
           setScouts((s) => ({ ...s, [sid]: "error" }));
         }
