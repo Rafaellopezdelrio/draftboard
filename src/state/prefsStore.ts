@@ -46,6 +46,11 @@ export interface Preferences {
 
   // Voice
   voiceCoachEnabled: boolean;
+
+  // Meta source: where the suggestion engine pulls tier/winrates from.
+  // "proplay" = LCK/LEC/LCS/LPL games, "soloq" = Master+ SoloQ, "blend" = mix.
+  metaSource: "proplay" | "soloq" | "blend";
+  proPlayDaysWindow: number; // last N days of pro games to aggregate
 }
 
 export const DEFAULT_PREFS: Preferences = {
@@ -84,6 +89,9 @@ export const DEFAULT_PREFS: Preferences = {
   onboardingDone: false,
 
   voiceCoachEnabled: false,
+
+  metaSource: "proplay",
+  proPlayDaysWindow: 30,
 };
 
 interface PrefsState {

@@ -4,6 +4,9 @@ import { loadSettings, saveSettings } from "../services/settingsRepo";
 import { getCurrentSummoner } from "../services/lcuService";
 import { syncPersonalData } from "../services/personalDataSync";
 import { clearAllMatches } from "../services/matchRepo";
+import { aggregateFromProPlay } from "../services/proPlayAggregator";
+import { loadChampionDb } from "../services/championDb";
+import { usePrefsStore } from "../state/prefsStore";
 import { aggregateFromMaster } from "../services/metaAggregator";
 import { fetchLatestPatch } from "../services/dataDragon";
 
@@ -63,16 +66,37 @@ export function SettingsView({ onClose }: Props) {
 
   async function syncMeta() {
     setBusy(true);
-    setStatus("Sincronizando meta global...");
+    setStatus("Sincronizando meta SoloQ...");
     try {
       const cfg = { apiKey, region, riotIdName, riotIdTag };
       const patch = await fetchLatestPatch();
       await aggregateFromMaster(cfg, patch, (p) =>
         setStatus(`${p.phase}: ${p.done}/${p.total}`)
       );
-      setStatus("Meta sincronizado ✓ (recarga la app para usarlo)");
+      setStatus("Meta SoloQ sincronizado ✓ (recarga la app para usarlo)");
     } catch (e) {
       setStatus(`Error: ${String(e)}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const proPlayDays = usePrefsStore((s) => s.prefs.proPlayDaysWindow);
+
+  async function syncProMeta() {
+    setBusy(true);
+    setStatus("Descargando partidas pro (LCK/LEC/LCS/LPL)...");
+    try {
+      const db = await loadChampionDb(true);
+      const patch = await fetchLatestPatch();
+      const result = await aggregateFromProPlay(db, patch, proPlayDays, (p) =>
+        setStatus(`${p.phase}: ${p.done}/${p.total}`)
+      );
+      setStatus(
+        `Pro meta sincronizado ✓ ${result.games} partidas pro · ${result.rows} entradas champ/rol. Recarga.`
+      );
+    } catch (e) {
+      setStatus(`Error pro meta: ${String(e)}`);
     } finally {
       setBusy(false);
     }
@@ -240,12 +264,22 @@ export function SettingsView({ onClose }: Props) {
             Re-sync
           </button>
           <button
+            disabled={busy}
+            onClick={syncProMeta}
+            type="button"
+            className="px-3 py-2 bg-accent/10 border border-accent/40 rounded text-accent hover:bg-accent/20 disabled:opacity-50"
+            title="Descarga últimas partidas LCK/LEC/LCS/LPL desde Leaguepedia (sin key)"
+          >
+            🏆 Sync meta PRO
+          </button>
+          <button
             disabled={busy || !apiKey}
             onClick={syncMeta}
             type="button"
             className="px-3 py-2 bg-bg-card border border-border-subtle rounded text-white/80 hover:border-accent disabled:opacity-50"
+            title="Necesita API key Riot. Agrega Master+ SoloQ"
           >
-            Sincronizar meta
+            Sync meta SoloQ
           </button>
           <button
             disabled={busy || !apiKey || !riotIdName || !riotIdTag}

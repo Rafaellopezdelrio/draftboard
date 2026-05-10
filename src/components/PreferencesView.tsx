@@ -153,6 +153,7 @@ export function PreferencesView({ onClose }: Props) {
         </div>
 
         <div className="space-y-5">
+          <MetaSourceField />
           <AnthropicKeyField />
           {SECTIONS.map((sec) => (
             <section key={sec.title}>
@@ -185,6 +186,55 @@ export function PreferencesView({ onClose }: Props) {
         </div>
       </div>
     </div>
+  );
+}
+
+function MetaSourceField() {
+  const source = usePrefsStore((s) => s.prefs.metaSource);
+  const days = usePrefsStore((s) => s.prefs.proPlayDaysWindow);
+  const set = usePrefsStore((s) => s.set);
+  return (
+    <section>
+      <h3 className="text-xs uppercase tracking-wide text-white/50 mb-2">
+        Fuente del meta tier
+      </h3>
+      <div className="space-y-2">
+        <select
+          value={source}
+          onChange={(e) =>
+            set("metaSource", e.target.value as "proplay" | "soloq" | "blend")
+          }
+          className="w-full bg-bg text-white text-sm px-3 py-2 rounded border border-border-subtle"
+        >
+          <option value="proplay">🏆 Pro play (LCK/LEC/LCS/LPL)</option>
+          <option value="soloq">SoloQ Master+ (requiere API key Riot)</option>
+          <option value="blend">Mezcla pro + SoloQ (lo mejor de ambos)</option>
+        </select>
+        <p className="text-xs text-white/60">
+          {source === "proplay" &&
+            "Usa picks/winrates de las ligas pro. Refleja el meta competitivo. Sincroniza desde ⚙."}
+          {source === "soloq" &&
+            "Master+ SoloQ. Datos masivos pero meta de SoloQ (no pro)."}
+          {source === "blend" &&
+            "Mezcla pro (alto signal) + SoloQ (alto volumen). Pondera según games."}
+        </p>
+        {source !== "soloq" && (
+          <div className="flex items-center gap-2 pt-1">
+            <label className="text-xs text-white/50">Ventana pro (días)</label>
+            <input
+              type="number"
+              min={7}
+              max={90}
+              value={days}
+              onChange={(e) =>
+                set("proPlayDaysWindow", Math.max(7, Math.min(90, Number(e.target.value))))
+              }
+              className="w-20 bg-bg text-white text-xs px-2 py-1 rounded border border-border-subtle"
+            />
+          </div>
+        )}
+      </div>
+    </section>
   );
 }
 

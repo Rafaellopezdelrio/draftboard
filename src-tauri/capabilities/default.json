@@ -19,7 +19,8 @@
         { "url": "https://api.anthropic.com/*" },
         { "url": "https://api.groq.com/*" },
         { "url": "https://generativelanguage.googleapis.com/*" },
-        { "url": "https://rsms.me/*" }
+        { "url": "https://rsms.me/*" },
+        { "url": "https://lol.fandom.com/*" }
       ]
     }
   ]

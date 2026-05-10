@@ -1,0 +1,210 @@
+// Pro-play meta aggregator. Pulls picks/bans/wins from Leaguepedia (lol.fandom.com)
+// using their public Cargo MediaWiki API. No auth required.
+//
+// Tables of interest:
+// - ScoreboardGames — one row per game, has DateTime_UTC, Patch, Tournament, etc.
+// - ScoreboardPlayers — per-player picks with Role + Champion + PlayerWin
+//
+// We filter to major regions (LCK, LEC, LCS, LPL, LCP, MSI, Worlds) and the most
+// recent N days. Aggregate to populate `meta_aggregate` (championId, position).
+
+import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
+import { getDb, isTauri } from "../db/client";
+import type { ChampionDb } from "../types/champion";
+
+function isTauriEnv(): boolean {
+  return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+}
+const httpFetch: typeof fetch = (input, init) =>
+  isTauriEnv()
+    ? (tauriFetch as unknown as typeof fetch)(input, init)
+    : fetch(input, init);
+
+const LEAGUEPEDIA_API = "https://lol.fandom.com/api.php";
+
+const MAJOR_TOURNAMENTS_LIKE = [
+  "LCK%", "LEC%", "LCS%", "LPL%", "LCP%", "LCK CL%", "LEC Winter%",
+  "Worlds%", "MSI%", "First Stand%", "EWC%",
+];
+
+interface CargoRow {
+  GameId?: string;
+  Player?: string;
+  PlayerWin?: string; // "Yes" / "No"
+  Champion?: string; // ddragon-ish name
+  Role?: string; // "Top", "Jungle", "Mid", "Bot", "Support"
+  Tournament?: string;
+  Patch?: string;
+  DateTime_UTC?: string;
+}
+
+interface CargoResponse {
+  cargoquery?: Array<{ title: CargoRow }>;
+  warnings?: unknown;
+  error?: { info?: string };
+}
+
+const ROLE_TO_POSITION: Record<string, string> = {
+  Top: "TOP",
+  Jungle: "JUNGLE",
+  Mid: "MIDDLE",
+  Bot: "BOTTOM",
+  Support: "UTILITY",
+};
+
+export interface ProAggregateProgress {
+  phase: string;
+  done: number;
+  total: number;
+}
+
+/**
+ * Pull recent pro picks (last `daysBack` days) and aggregate by champion+role.
+ * Writes into meta_aggregate with patch="proplay-<currentPatch>".
+ */
+export async function aggregateFromProPlay(
+  db: ChampionDb,
+  patch: string,
+  daysBack: number,
+  onProgress: (p: ProAggregateProgress) => void
+): Promise<{ rows: number; games: number }> {
+  if (!isTauri()) return { rows: 0, games: 0 };
+
+  // Build a champion-name → key map (Leaguepedia uses display names with spaces).
+  const nameToKey = new Map<string, string>();
+  for (const c of Object.values(db.champions)) {
+    nameToKey.set(c.name.toLowerCase(), c.key);
+    nameToKey.set(c.id.toLowerCase(), c.key);
+  }
+
+  const since = new Date(Date.now() - daysBack * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 19)
+    .replace("T", " ");
+
+  onProgress({ phase: "Buscando partidas pro recientes", done: 0, total: 1 });
+
+  // Fetch in batches of 500 (Leaguepedia limit per call)
+  const allRows: CargoRow[] = [];
+  let offset = 0;
+  const PAGE = 500;
+  const tournamentClause = MAJOR_TOURNAMENTS_LIKE.map(
+    (t) => `Tournament LIKE "${t}"`
+  ).join(" OR ");
+
+  for (let page = 0; page < 6; page++) {
+    const params = new URLSearchParams({
+      action: "cargoquery",
+      tables: "ScoreboardPlayers=SP, ScoreboardGames=SG",
+      fields: [
+        "SP.GameId",
+        "SP.Player",
+        "SP.PlayerWin",
+        "SP.Champion",
+        "SP.Role",
+        "SG.Tournament",
+        "SG.Patch",
+        "SG.DateTime_UTC",
+      ].join(","),
+      where: `(${tournamentClause}) AND SG.DateTime_UTC >= "${since}"`,
+      join_on: "SP.GameId=SG.GameId",
+      order_by: "SG.DateTime_UTC DESC",
+      limit: String(PAGE),
+      offset: String(offset),
+      format: "json",
+    });
+    onProgress({
+      phase: "Descargando datos pro",
+      done: page,
+      total: 6,
+    });
+    let resp: Response;
+    try {
+      resp = await httpFetch(`${LEAGUEPEDIA_API}?${params.toString()}`, {
+        headers: { "User-Agent": "LolDraftAdvisor/0.1" },
+      });
+    } catch {
+      break;
+    }
+    if (!resp.ok) break;
+    const json = (await resp.json()) as CargoResponse;
+    if (json.error) {
+      throw new Error(`Leaguepedia: ${json.error.info ?? "error"}`);
+    }
+    const batch = (json.cargoquery ?? []).map((x) => x.title);
+    allRows.push(...batch);
+    if (batch.length < PAGE) break;
+    offset += PAGE;
+  }
+
+  // Aggregate per (championKey, position)
+  const counts = new Map<string, { games: number; wins: number }>();
+  const games = new Set<string>();
+  for (const r of allRows) {
+    if (!r.Champion || !r.Role || !r.GameId) continue;
+    games.add(r.GameId);
+    const key = nameToKey.get(r.Champion.toLowerCase());
+    const pos = ROLE_TO_POSITION[r.Role];
+    if (!key || !pos) continue;
+    const k = `${key}|${pos}`;
+    const e = counts.get(k) ?? { games: 0, wins: 0 };
+    e.games++;
+    if (r.PlayerWin === "Yes") e.wins++;
+    counts.set(k, e);
+  }
+
+  // Write into meta_aggregate with a "proplay-" patch label so it doesn't
+  // overwrite Master+ data if both are configured.
+  onProgress({ phase: "Guardando", done: 0, total: counts.size });
+  const dbConn = await getDb();
+  const proPatch = `proplay-${patch}`;
+  await dbConn.execute("DELETE FROM meta_aggregate WHERE patch = $1", [proPatch]);
+
+  let totalGames = 0;
+  for (const v of counts.values()) totalGames += v.games;
+
+  let i = 0;
+  for (const [k, v] of counts) {
+    const [champKey, pos] = k.split("|");
+    const wr = v.games > 0 ? v.wins / v.games : 0;
+    const pickRate = totalGames > 0 ? v.games / totalGames : 0;
+    await dbConn.execute(
+      `INSERT INTO meta_aggregate (champion_id, position, games, wins, win_rate, pick_rate, ban_rate, patch, updated_ts_ms)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+      [Number(champKey), pos, v.games, v.wins, wr, pickRate, 0, proPatch, Date.now()]
+    );
+    i++;
+    if (i % 10 === 0)
+      onProgress({ phase: "Guardando", done: i, total: counts.size });
+  }
+
+  await dbConn.execute(
+    `INSERT INTO aggregation_meta (key, value) VALUES ('proplay_last_run', $1)
+     ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+    [String(Date.now())]
+  );
+  await dbConn.execute(
+    `INSERT INTO aggregation_meta (key, value) VALUES ('proplay_games', $1)
+     ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+    [String(games.size)]
+  );
+
+  onProgress({ phase: "Listo", done: counts.size, total: counts.size });
+  return { rows: counts.size, games: games.size };
+}
+
+export async function getProPlayLastRun(): Promise<{
+  ts: number | null;
+  games: number;
+}> {
+  if (!isTauri()) return { ts: null, games: 0 };
+  const db = await getDb();
+  const rows = await db.select<Array<{ key: string; value: string }>>(
+    "SELECT key, value FROM aggregation_meta WHERE key IN ('proplay_last_run', 'proplay_games')"
+  );
+  const map = new Map(rows.map((r) => [r.key, r.value]));
+  return {
+    ts: map.has("proplay_last_run") ? Number(map.get("proplay_last_run")) : null,
+    games: map.has("proplay_games") ? Number(map.get("proplay_games")) : 0,
+  };
+}
