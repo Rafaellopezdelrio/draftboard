@@ -21,7 +21,7 @@ export function DiagnosticsView({ onClose }: Props) {
     { name: "Cliente de LoL (LCU)", status: "pending" },
     { name: "Cuenta Riot (vía LCU)", status: "pending" },
     { name: "Riot API Key", status: "pending" },
-    { name: "Anthropic API Key", status: "pending" },
+    { name: "AI provider key", status: "pending" },
     { name: "Base de datos local", status: "pending" },
   ]);
 
@@ -97,20 +97,33 @@ export function DiagnosticsView({ onClose }: Props) {
 
     // 5. Anthropic
     const prefsRaw = localStorage.getItem("lol-draft-prefs");
-    let anthropicKey = "";
+    let aiKey = "";
+    let provider = "groq";
     if (prefsRaw) {
       try {
-        anthropicKey = JSON.parse(prefsRaw).anthropicApiKey ?? "";
+        const p = JSON.parse(prefsRaw);
+        provider = p.aiProvider ?? "groq";
+        aiKey =
+          provider === "groq"
+            ? p.groqApiKey
+            : provider === "gemini"
+              ? p.geminiApiKey
+              : p.anthropicApiKey;
+        aiKey = aiKey ?? "";
       } catch {}
     }
-    if (!anthropicKey) {
+    if (!aiKey) {
       next.push({
-        name: "Anthropic API Key",
+        name: "AI provider key",
         status: "warn",
-        detail: "No configurada (opcional, solo para AI Coach)",
+        detail: `No configurada (opcional, ${provider}). Groq es gratis.`,
       });
     } else {
-      next.push({ name: "Anthropic API Key", status: "ok", detail: "Configurada" });
+      next.push({
+        name: "AI provider key",
+        status: "ok",
+        detail: `Configurada (${provider})`,
+      });
     }
 
     // 6. DB

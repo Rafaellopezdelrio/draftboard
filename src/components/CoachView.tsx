@@ -39,7 +39,14 @@ export function CoachView({ db, onClose }: Props) {
   >([]);
   const showGpi = usePrefsStore((s) => s.prefs.coachShowGpi);
   const aiEnabled = usePrefsStore((s) => s.prefs.aiCoachEnabled);
-  const anthropicKey = usePrefsStore((s) => s.prefs.anthropicApiKey);
+  const aiProvider = usePrefsStore((s) => s.prefs.aiProvider);
+  const aiKey = usePrefsStore((s) =>
+    s.prefs.aiProvider === "groq"
+      ? s.prefs.groqApiKey
+      : s.prefs.aiProvider === "gemini"
+        ? s.prefs.geminiApiKey
+        : s.prefs.anthropicApiKey
+  );
   const aiLang = usePrefsStore((s) => s.prefs.aiCoachLanguage);
   const [aiResponse, setAiResponse] = useState<string>("");
   const [aiLoading, setAiLoading] = useState(false);
@@ -108,7 +115,8 @@ export function CoachView({ db, onClose }: Props) {
         ? (db.champions[String(opp.championId)]?.name ?? `#${opp.championId}`)
         : null;
       const text = await aiCoachAnalysis({
-        apiKey: anthropicKey,
+        provider: aiProvider,
+        apiKey: aiKey,
         match: matchFull,
         myPuuid: cfg.puuid,
         insights,
@@ -192,15 +200,15 @@ export function CoachView({ db, onClose }: Props) {
                   </h3>
                   <button
                     onClick={runAi}
-                    disabled={aiLoading || !anthropicKey}
+                    disabled={aiLoading || !aiKey}
                     className="text-xs px-2 py-1 bg-accent text-black rounded disabled:opacity-50"
                   >
-                    {aiLoading ? "Analizando..." : "Analizar con Claude"}
+                    {aiLoading ? "Analizando..." : "Analizar con AI"}
                   </button>
                 </div>
-                {!anthropicKey && (
+                {!aiKey && (
                   <p className="text-xs text-meh">
-                    Pega tu API key Anthropic en Prefs para usar el AI Coach.
+                    Pega tu API key ({aiProvider}) en Prefs. Groq es gratis.
                   </p>
                 )}
                 {aiErr && <p className="text-sm text-bad">{aiErr}</p>}

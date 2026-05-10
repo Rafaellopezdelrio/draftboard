@@ -32,6 +32,9 @@ export interface Preferences {
   compactMode: boolean;
 
   // AI Coach
+  aiProvider: "groq" | "anthropic" | "gemini";
+  groqApiKey: string;
+  geminiApiKey: string;
   anthropicApiKey: string;
   aiCoachEnabled: boolean;
   aiCoachLanguage: "es" | "en";
@@ -69,6 +72,9 @@ export const DEFAULT_PREFS: Preferences = {
 
   compactMode: false,
 
+  aiProvider: "groq",
+  groqApiKey: "",
+  geminiApiKey: "",
   anthropicApiKey: "",
   aiCoachEnabled: false,
   aiCoachLanguage: "es",

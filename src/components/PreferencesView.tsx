@@ -1,4 +1,9 @@
 import { usePrefsStore, type Preferences } from "../state/prefsStore";
+import {
+  PROVIDER_LABELS,
+  PROVIDER_SIGNUP_URLS,
+  type AiProvider,
+} from "../services/aiProvider";
 
 interface Props {
   onClose: () => void;
@@ -114,12 +119,12 @@ const SECTIONS: Section[] = [
     ],
   },
   {
-    title: "AI Coach (Anthropic)",
+    title: "AI Coach",
     items: [
       {
         key: "aiCoachEnabled",
-        label: "Habilitar AI Coach (requiere API key)",
-        detail: "Análisis natural de cada partida con Claude. Necesitas tu propia clave Anthropic.",
+        label: "Habilitar AI Coach",
+        detail: "Análisis natural con LLM. Por defecto Groq (gratis). Configura la key abajo.",
       },
     ],
   },
@@ -184,39 +189,90 @@ export function PreferencesView({ onClose }: Props) {
 }
 
 function AnthropicKeyField() {
-  const key = usePrefsStore((s) => s.prefs.anthropicApiKey);
+  const provider = usePrefsStore((s) => s.prefs.aiProvider);
+  const groqKey = usePrefsStore((s) => s.prefs.groqApiKey);
+  const geminiKey = usePrefsStore((s) => s.prefs.geminiApiKey);
+  const anthropicKey = usePrefsStore((s) => s.prefs.anthropicApiKey);
   const lang = usePrefsStore((s) => s.prefs.aiCoachLanguage);
   const set = usePrefsStore((s) => s.set);
+
+  const currentKey =
+    provider === "groq" ? groqKey : provider === "gemini" ? geminiKey : anthropicKey;
+  const setKey = (v: string) => {
+    if (provider === "groq") set("groqApiKey", v);
+    else if (provider === "gemini") set("geminiApiKey", v);
+    else set("anthropicApiKey", v);
+  };
+  const placeholder =
+    provider === "groq"
+      ? "gsk_..."
+      : provider === "gemini"
+        ? "AIza..."
+        : "sk-ant-...";
+
   return (
     <section>
       <h3 className="text-xs uppercase tracking-wide text-white/50 mb-2">
-        Anthropic API Key (para AI Coach)
+        AI provider
       </h3>
-      <input
-        type="password"
-        value={key}
-        onChange={(e) => set("anthropicApiKey", e.target.value)}
-        placeholder="sk-ant-..."
-        className="w-full bg-bg px-3 py-2 rounded outline-none border border-border-subtle focus:border-accent text-white text-sm"
-      />
-      <a
-        href="https://console.anthropic.com/settings/keys"
-        target="_blank"
-        rel="noreferrer"
-        className="text-xs text-accent/80 hover:text-accent"
-      >
-        Obtén tu key en console.anthropic.com →
-      </a>
-      <div className="mt-2 flex items-center gap-2">
-        <label className="text-xs text-white/50">Idioma del coach</label>
+      <div className="space-y-2">
         <select
-          value={lang}
-          onChange={(e) => set("aiCoachLanguage", e.target.value as "es" | "en")}
-          className="bg-bg text-white text-xs px-2 py-1 rounded border border-border-subtle"
+          value={provider}
+          onChange={(e) => set("aiProvider", e.target.value as AiProvider)}
+          className="w-full bg-bg text-white text-sm px-3 py-2 rounded border border-border-subtle"
         >
-          <option value="es">Español</option>
-          <option value="en">English</option>
+          {(Object.keys(PROVIDER_LABELS) as AiProvider[]).map((p) => (
+            <option key={p} value={p}>
+              {PROVIDER_LABELS[p]}
+            </option>
+          ))}
         </select>
+
+        {provider === "groq" && (
+          <p className="text-xs text-good">
+            ✓ 100% gratis. Sin tarjeta. Crea cuenta y copia la key (30s).
+          </p>
+        )}
+        {provider === "gemini" && (
+          <p className="text-xs text-good">
+            ✓ Cuota gratuita generosa. Necesita cuenta Google.
+          </p>
+        )}
+        {provider === "anthropic" && (
+          <p className="text-xs text-meh">
+            ⚠️ Pago por uso (≈ 0.005-0.03$ por respuesta). Mejor calidad.
+          </p>
+        )}
+
+        <input
+          type="password"
+          value={currentKey}
+          onChange={(e) => setKey(e.target.value)}
+          placeholder={placeholder}
+          className="w-full bg-bg px-3 py-2 rounded outline-none border border-border-subtle focus:border-accent text-white text-sm"
+        />
+        <a
+          href={PROVIDER_SIGNUP_URLS[provider]}
+          target="_blank"
+          rel="noreferrer"
+          className="text-xs text-accent/80 hover:text-accent block"
+        >
+          Obtén tu key gratis en {new URL(PROVIDER_SIGNUP_URLS[provider]).hostname} →
+        </a>
+
+        <div className="flex items-center gap-2 pt-1">
+          <label className="text-xs text-white/50">Idioma del coach</label>
+          <select
+            value={lang}
+            onChange={(e) =>
+              set("aiCoachLanguage", e.target.value as "es" | "en")
+            }
+            className="bg-bg text-white text-xs px-2 py-1 rounded border border-border-subtle"
+          >
+            <option value="es">Español</option>
+            <option value="en">English</option>
+          </select>
+        </div>
       </div>
     </section>
   );

@@ -1,20 +1,8 @@
-// Conversational AI coach — user can ask Claude anything about their gameplay.
-// Includes context: recent matches, masteries, current draft, weakest area.
+// Conversational AI coach — user can ask any AI provider about their gameplay.
 
-import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
 import type { MatchRow, ChampionPersonalStat } from "./matchRepo";
 import type { ChampionMasteryDto } from "./riotApi";
-
-function isTauri(): boolean {
-  return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
-}
-const httpFetch: typeof fetch = (input, init) =>
-  isTauri()
-    ? (tauriFetch as unknown as typeof fetch)(input, init)
-    : fetch(input, init);
-
-const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
-const MODEL = "claude-sonnet-4-6";
+import { callAi, type AiProvider } from "./aiProvider";
 
 export interface ChatMessage {
   role: "user" | "assistant";
@@ -30,45 +18,27 @@ export interface ChatContext {
 }
 
 export async function chatWithCoach(
+  provider: AiProvider,
   apiKey: string,
   history: ChatMessage[],
   context: ChatContext,
   language: "es" | "en" = "es"
 ): Promise<string> {
   const systemPrompt = buildSystem(context, language);
-
-  const body = {
-    model: MODEL,
-    max_tokens: 800,
-    system: systemPrompt,
-    messages: history.map((m) => ({ role: m.role, content: m.content })),
-  };
-
-  const res = await httpFetch(ANTHROPIC_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey.trim(),
-      "anthropic-version": "2023-06-01",
-      "anthropic-dangerous-direct-browser-access": "true",
-    },
-    body: JSON.stringify(body),
-  });
-
-  if (res.status === 401) throw new Error("API key Anthropic inválida");
-  if (res.status === 429) throw new Error("Rate limit alcanzado, espera 1 min");
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Anthropic ${res.status}: ${text.slice(0, 200)}`);
+  const lastUser = history[history.length - 1];
+  if (!lastUser || lastUser.role !== "user") {
+    throw new Error("La última mensaje debe ser del usuario");
   }
+  const priorHistory = history.slice(0, -1);
 
-  const json = (await res.json()) as {
-    content: Array<{ type: string; text?: string }>;
-  };
-  return json.content
-    .filter((c) => c.type === "text" && c.text)
-    .map((c) => c.text)
-    .join("\n");
+  return callAi({
+    provider,
+    apiKey,
+    systemPrompt,
+    userPrompt: lastUser.content,
+    history: priorHistory,
+    maxTokens: 800,
+  });
 }
 
 function buildSystem(ctx: ChatContext, lang: "es" | "en"): string {

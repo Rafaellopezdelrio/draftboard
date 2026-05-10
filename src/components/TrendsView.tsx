@@ -36,7 +36,14 @@ export function TrendsView({ db, onClose }: Props) {
   const [role, setRole] = useState<Role | "ALL">("ALL");
   const [queue, setQueue] = useState<number | "ALL">("ALL");
   const aiEnabled = usePrefsStore((s) => s.prefs.aiCoachEnabled);
-  const apiKey = usePrefsStore((s) => s.prefs.anthropicApiKey);
+  const aiProvider = usePrefsStore((s) => s.prefs.aiProvider);
+  const apiKey = usePrefsStore((s) =>
+    s.prefs.aiProvider === "groq"
+      ? s.prefs.groqApiKey
+      : s.prefs.aiProvider === "gemini"
+        ? s.prefs.geminiApiKey
+        : s.prefs.anthropicApiKey
+  );
   const aiLang = usePrefsStore((s) => s.prefs.aiCoachLanguage);
   const [aiText, setAiText] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
@@ -75,6 +82,7 @@ export function TrendsView({ db, onClose }: Props) {
         };
       });
       const text = await aiTrendsAnalysis({
+        provider: aiProvider,
         apiKey,
         matches: summary,
         language: aiLang,

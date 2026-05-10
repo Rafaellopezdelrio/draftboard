@@ -26,7 +26,14 @@ const SUGGESTED_PROMPTS = [
 ];
 
 export function AiChatView({ db, onClose }: Props) {
-  const apiKey = usePrefsStore((s) => s.prefs.anthropicApiKey);
+  const provider = usePrefsStore((s) => s.prefs.aiProvider);
+  const apiKey = usePrefsStore((s) =>
+    s.prefs.aiProvider === "groq"
+      ? s.prefs.groqApiKey
+      : s.prefs.aiProvider === "gemini"
+        ? s.prefs.geminiApiKey
+        : s.prefs.anthropicApiKey
+  );
   const lang = usePrefsStore((s) => s.prefs.aiCoachLanguage);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -69,7 +76,7 @@ export function AiChatView({ db, onClose }: Props) {
   async function send(text: string) {
     if (!text.trim() || !context || loading) return;
     if (!apiKey) {
-      setErr("Configura tu API key Anthropic en Prefs primero.");
+      setErr(`Configura tu API key (${provider}) en Prefs primero.`);
       return;
     }
     setErr(null);
@@ -78,7 +85,7 @@ export function AiChatView({ db, onClose }: Props) {
     setInput("");
     setLoading(true);
     try {
-      const reply = await chatWithCoach(apiKey, next, context, lang);
+      const reply = await chatWithCoach(provider, apiKey, next, context, lang);
       setMessages((m) => [...m, { role: "assistant", content: reply }]);
     } catch (e) {
       setErr(String(e));
@@ -185,7 +192,7 @@ export function AiChatView({ db, onClose }: Props) {
           </form>
           {!apiKey && (
             <p className="text-xs text-meh mt-1">
-              Necesitas una API key Anthropic en Prefs para chatear.
+              Necesitas una API key ({provider}) en Prefs. Groq es gratis.
             </p>
           )}
         </div>
