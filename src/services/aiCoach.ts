@@ -73,7 +73,8 @@ export async function aiCoachAnalysis(input: AiCoachInput): Promise<string> {
   const userPrompt = professionalMatchPrompt(
     analytics,
     input.insights,
-    input.language ?? "es"
+    input.language ?? "es",
+    input.rank ?? null
   );
 
   return callAi({

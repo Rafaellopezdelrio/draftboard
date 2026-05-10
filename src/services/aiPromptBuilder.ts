@@ -1,53 +1,149 @@
 // Professional-level coaching prompts. Designed to make any LLM behave like a
-// real LoL coach with a structured framework.
+// real LoL coach with a structured framework. Calibrated to elo bucket — from
+// Iron all the way to Challenger / pro.
 
 import type { ProMatchAnalytics } from "../engine/matchAnalytics";
 import type { Insight } from "../engine/coachEngine";
+
+type EloBucket =
+  | "iron-bronze"
+  | "silver"
+  | "gold-platinum"
+  | "diamond"
+  | "master-grandmaster"
+  | "challenger";
+
+interface CsBenchmark {
+  TOP: number;
+  JUNGLE: number;
+  MIDDLE: number;
+  BOTTOM: number;
+  UTILITY: number;
+}
+
+const CS10_BENCHMARKS: Record<EloBucket, CsBenchmark> = {
+  "iron-bronze":      { TOP: 50, JUNGLE: 30, MIDDLE: 55, BOTTOM: 60, UTILITY: 8 },
+  silver:             { TOP: 60, JUNGLE: 38, MIDDLE: 65, BOTTOM: 70, UTILITY: 10 },
+  "gold-platinum":    { TOP: 68, JUNGLE: 44, MIDDLE: 72, BOTTOM: 78, UTILITY: 12 },
+  diamond:            { TOP: 75, JUNGLE: 50, MIDDLE: 80, BOTTOM: 85, UTILITY: 14 },
+  "master-grandmaster":{ TOP: 80, JUNGLE: 55, MIDDLE: 85, BOTTOM: 90, UTILITY: 15 },
+  challenger:         { TOP: 85, JUNGLE: 58, MIDDLE: 88, BOTTOM: 92, UTILITY: 16 },
+};
+
+const CS14_BENCHMARKS: Record<EloBucket, CsBenchmark> = {
+  "iron-bronze":      { TOP: 75,  JUNGLE: 48, MIDDLE: 80,  BOTTOM: 90,  UTILITY: 14 },
+  silver:             { TOP: 90,  JUNGLE: 58, MIDDLE: 95,  BOTTOM: 105, UTILITY: 17 },
+  "gold-platinum":    { TOP: 100, JUNGLE: 66, MIDDLE: 108, BOTTOM: 115, UTILITY: 19 },
+  diamond:            { TOP: 110, JUNGLE: 72, MIDDLE: 118, BOTTOM: 125, UTILITY: 22 },
+  "master-grandmaster":{ TOP: 118, JUNGLE: 78, MIDDLE: 125, BOTTOM: 132, UTILITY: 24 },
+  challenger:         { TOP: 125, JUNGLE: 82, MIDDLE: 130, BOTTOM: 138, UTILITY: 26 },
+};
+
+function eloBucketFromTier(tier?: string): EloBucket {
+  if (!tier) return "diamond";
+  const t = tier.toUpperCase();
+  if (t === "IRON" || t === "BRONZE") return "iron-bronze";
+  if (t === "SILVER") return "silver";
+  if (t === "GOLD" || t === "PLATINUM" || t === "EMERALD") return "gold-platinum";
+  if (t === "DIAMOND") return "diamond";
+  if (t === "MASTER" || t === "GRANDMASTER") return "master-grandmaster";
+  if (t === "CHALLENGER") return "challenger";
+  return "diamond";
+}
 
 export function professionalCoachSystemPrompt(opts: {
   language: "es" | "en";
   rank?: { tier: string; division: string; lp: number } | null;
 }): string {
+  const bucket = eloBucketFromTier(opts.rank?.tier);
   const rankStr = opts.rank
     ? `${opts.rank.tier} ${opts.rank.division} ${opts.rank.lp}LP`
-    : "elo desconocido";
+    : "elo desconocido (asume Diamond)";
   const lang = opts.language === "en" ? "English" : "Spanish";
 
-  return `You are an elite professional League of Legends coach with deep knowledge of:
-- Wave management (slow push, fast push, freeze, reset)
-- Macro decision-making (objective trades, side lane priority, vision setup)
-- Micro mechanics (last-hitting, trading patterns, animation cancels, kiting)
-- Champion-specific power spikes and matchup dynamics
-- Jungle pathing, gank patterns, counter-jungling
-- Vision control (pink ward placement timing, deep wards before objectives)
-- Recall timings and item shopping efficiency
-- Summoner spell tracking
-- Side selection and team-fight positioning
+  const tierPersona = personaForBucket(bucket);
+
+  return `${tierPersona}
 
 The user's current rank: ${rankStr}.
 
-Coaching framework — ALWAYS follow this structure:
+YOUR DOMAIN EXPERTISE:
+- Wave management: slow push (3+ caster minions ahead), fast push (kill all), freeze (enemy wave > yours by 4 melee), reset wave timing for back, crash wave under tower.
+- Macro priority: prio for objective = which lane has wave control + closer to objective + longer recall cooldown enemy.
+- Jungle pathing: full clear vs 3-camp gank, scuttle prio = drake side, smite tracking, vertical jungle invades.
+- Vision: deep wards 90s before objective spawn, control ward in tribush before push, sweep enemy wards with oracle on tank/sup.
+- Trades: short trade with cooldowns up, long trade only with item advantage, all-in only with kill threshold.
+- Recalls: optimal recall = base+TP back, suboptimal = lose >2 waves of CS.
+- Sidelane assignment: tank/splitpusher to weakside, scaling carry to safeside, prio winning lane.
+- Summoner spell tracking: flash on cooldown 5min, ignite/heal 4min, TP cooldown.
+- Item efficiency: gold per stat, mythic timing, anti-heal vs sustain comps, MR/armor situational.
+- Animation cancels and micro patterns per champion.
+- Power spike awareness: when you and enemy hit each timing.
+- Fog of war manipulation: brushes, baron pit positioning.
+
+COACHING FRAMEWORK — ALWAYS follow this structure:
 1. ROOT CAUSE: identify the ONE main problem from the data (not symptoms).
-2. WHY: briefly explain why this caused the loss / hurt their game.
+2. WHY: briefly explain the causal chain that produced the bad outcome.
 3. ACTION: 2 specific, repeatable, measurable behaviors for next game.
 
-Hard rules:
+HARD RULES:
 - NEVER list all stats. Highlight only what matters for the diagnosis.
-- NEVER use generic advice ("play better", "ward more") — be specific ("place pink in tribush before pushing wave 4 in").
-- NEVER praise irrelevantly. If they did one thing well, mention it ONLY if it's a leverage point.
-- ALWAYS calibrate to their elo: in low elo focus on mechanics + map awareness, mid elo on macro + vision, high elo on micro decisions.
-- Reference exact numbers from data when relevant ("CS@10 was 52, target was 80" not "low CS").
-- Max 220 words. No bullet point lists for the actions — prose form.
+- NEVER use generic advice ("play better", "ward more"). Be surgical and specific.
+- Cite exact numbers from data ("CS@10 was 52, ${bucket} target is X" — use the benchmarks I provide).
+- Calibrate insight depth to elo (see persona above).
+- Max 250 words. NO bullet point lists for actions — prose form.
 - Respond in ${lang}.
-- Be direct, no fluff. Coach voice: assertive, kind, surgical.
-- If the data shows a smurf-stomp / inting opponent: acknowledge briefly but still find the user's biggest improvement opportunity.`;
+- Coach voice: assertive, kind, surgical. No fluff, no padding.
+- If data is ambiguous (e.g., one match, no clear pattern), say so honestly.
+- If user is Master+ or Challenger: skip elementary advice. Look for non-obvious decision points (objective trades, prio swaps, jungle pathing inefficiencies, micro-patterns).
+- For high-elo players: reference what the optimal play would have been ("you took herald at 14:00 but enemy mid had prio + R up; should have collapsed bot for 2-for-1").
+
+DO NOT FABRICATE: if you can't determine something from the data, say "data doesn't show this clearly" instead of guessing.`;
+}
+
+function personaForBucket(bucket: EloBucket): string {
+  switch (bucket) {
+    case "iron-bronze":
+    case "silver":
+      return `You are a patient League of Legends coach for a beginner-intermediate player. Focus on FUNDAMENTALS: last-hitting, basic trading, not dying to ganks, simple objective awareness. Don't overload them with macro — pick ONE mechanical fix at a time. Use simple language.`;
+
+    case "gold-platinum":
+      return `You are a coach for an intermediate player at the LP grind. Focus on MACRO BASICS + SOLID MECHANICS: wave management awareness, basic objective trading, pink ward placement, not throwing leads. Identify which one of (mechanics, macro, mental) is their biggest leak.`;
+
+    case "diamond":
+      return `You are a coach for a high-skill player. They have mechanics — focus on DECISION-MAKING: when to trade objectives, when to roam, when to splitpush, recall timing. Identify subtle macro mistakes and missed opportunities for tempo.`;
+
+    case "master-grandmaster":
+      return `You are an elite coach for a Master/Grandmaster player who plays SoloQ at near-pro level. They don't need fundamentals. Focus on:
+- Frame-perfect decision-making (could have W'd this fight, took herald at suboptimal timing)
+- Counter-jungling efficiency, vertical jungle setups
+- Shotcalling and tempo management
+- Winning lane harder vs specific matchup patterns
+- Side selection in mid-late game based on TP timers
+You are reviewing for someone who studies replays. Be surgical, mention exact game-state moments.`;
+
+    case "challenger":
+      return `You are an elite analyst for a Challenger / pro-tier SoloQ player. They have all fundamentals + macro + decision-making baseline. Their gaps are SUBTLE:
+- Frame-by-frame mistakes (could have flashed earlier, missed an animation cancel)
+- Inefficient jungle pathing (1 camp lost = 200 gold = item slot delay)
+- Suboptimal objective trades (took drake, gave inhib + baron setup = -EV)
+- Wave manipulation 5+ waves ahead (didn't slow push wave 14 to setup drake at 18min)
+- Missed prio swap opportunities
+- Specific matchup micro-patterns (Yasuo windwall on the wrong skill)
+Your reviews should be at the level of a pro team analyst (Hylissang, LS, MagiFelix). Reference pro-play patterns when relevant. NEVER give beginner advice. If the player did something well, only mention it if it informs the deeper insight.`;
+  }
 }
 
 export function professionalMatchPrompt(
   a: ProMatchAnalytics,
   insights: Insight[],
-  language: "es" | "en"
+  language: "es" | "en",
+  rank?: { tier: string; division: string; lp: number } | null
 ): string {
+  const bucket = eloBucketFromTier(rank?.tier);
+  const cs10Target = CS10_BENCHMARKS[bucket][a.position as keyof CsBenchmark] ?? 70;
+  const cs14Target = CS14_BENCHMARKS[bucket][a.position as keyof CsBenchmark] ?? 100;
+
   const fmtTime = (ms: number | null) =>
     ms == null ? "—" : `${(ms / 1000 / 60).toFixed(1)}min`;
 
@@ -63,92 +159,72 @@ export function professionalMatchPrompt(
     .map((p) => `${p.championName}(${p.position})`)
     .join(", ");
 
-  const csTarget = csTargetByRole(a.position);
-  const csGap = csTarget - a.cs10;
+  const objTrades = a.objectiveTrades
+    .map((o) => {
+      const min = (o.timestamp / 1000 / 60).toFixed(1);
+      return `${min}min ${o.objective} ${o.takenByMyTeam ? "MIO" : "ENEMIGO"} (state: csΔ ${o.myCsDeltaAtTime > 0 ? "+" : ""}${o.myCsDeltaAtTime}, goldΔ ${o.myGoldDeltaAtTime > 0 ? "+" : ""}${o.myGoldDeltaAtTime})`;
+    })
+    .join("\n");
 
-  return `Analiza esta partida y dame el ROOT CAUSE + 2 acciones específicas.
+  const jungleBlock =
+    a.position === "JUNGLE"
+      ? `\nJUNGLA:\n- Camps clear @10: ${a.jungleCs10}\n- Camps clear @15: ${a.jungleCs15}\n- Camps/min: ${a.campsPerMinute.toFixed(1)} (target ${bucket}: ~4.0+)`
+      : "";
+
+  return `Analiza esta partida con tu framework. ROOT CAUSE → WHY → 2 ACCIONES ESPECÍFICAS.
 
 PARTIDA:
 - ${a.win ? "VICTORIA" : "DERROTA"} en ${a.durationMin.toFixed(0)}min · queue ${a.queueId}
-- Yo: ${a.myChampionName} ${a.position} → KDA combat final tras la partida
+- Yo: ${a.myChampionName} ${a.position}
 - Vs lane: ${a.laneOpponentChampionName ?? "?"}
 - Mi equipo: ${myComp}
 - Equipo enemigo: ${enemyComp}
+- Elo bucket: ${bucket}
 
-LANE PHASE (CRÍTICO):
-- CS@10: ${a.cs10} (target ${a.position}: ${csTarget}, gap ${csGap > 0 ? "-" + csGap : "+" + Math.abs(csGap)})
-- CS@14: ${a.cs14}
-- Gold@10: ${a.goldAt10}, Gold@15: ${a.goldAt15}
-- Level@10: ${a.level10}, Level@14: ${a.level14}
-- CS lead vs rival lane @14: ${a.csLeadAt14 > 0 ? "+" : ""}${a.csLeadAt14}
-- Gold lead vs rival @15: ${a.goldLeadAt15 > 0 ? "+" : ""}${a.goldLeadAt15}
+LANE PHASE (con benchmarks ${bucket}):
+- CS@5: ${a.cs5} | CS@10: ${a.cs10} (target ${cs10Target}, gap ${a.cs10 - cs10Target}) | CS@14: ${a.cs14} (target ${cs14Target}, gap ${a.cs14 - cs14Target}) | CS@20: ${a.cs20}
+- Gold@5: ${a.goldAt5} | Gold@10: ${a.goldAt10} | Gold@15: ${a.goldAt15} | Gold@20: ${a.goldAt20}
+- Level@5: ${a.level5} | @10: ${a.level10} | @14: ${a.level14} | @20: ${a.level20}
+
+DIFFS VS RIVAL DE LANE (clave para análisis de alto elo):
+- CS diff @10: ${a.csDiffAt10 > 0 ? "+" : ""}${a.csDiffAt10}
+- CS diff @14: ${a.csDiffAt14 > 0 ? "+" : ""}${a.csDiffAt14}
+- CS diff @20: ${a.csDiffAt20 > 0 ? "+" : ""}${a.csDiffAt20}
+- Gold diff @10: ${a.goldDiffAt10 > 0 ? "+" : ""}${a.goldDiffAt10}
+- Gold diff @15: ${a.goldDiffAt15 > 0 ? "+" : ""}${a.goldDiffAt15}
+- Gold diff @20: ${a.goldDiffAt20 > 0 ? "+" : ""}${a.goldDiffAt20}
+- XP diff @10: ${a.xpDiffAt10 > 0 ? "+" : ""}${a.xpDiffAt10}
 - Kills personales antes min 10: ${a.killsBy10}
 
-MUERTES:
-- Total muertes antes min 10: ${a.deathsBy10}
-- Muertes antes min 5: ${a.deathsAt5}
-- Solo deaths (sin asistencia enemiga): ${a.soloDeaths}
+MUERTES DESGLOSADAS:
+- Total antes min 10: ${a.deathsBy10} | antes min 5: ${a.deathsAt5}
+- Solo deaths (sin ayuda enemiga): ${a.soloDeaths}
 - Death streak más larga: ${a.longestDeathStreak}
-- Lugares donde moriste: ${a.deathLocations.slice(0, 5).join(", ") || "n/a"}
+- Lugares: ${a.deathLocations.slice(0, 6).join(", ") || "n/a"}
 
-OBJETIVOS:
-- Drakes mi equipo / enemigo: ${a.drakesByMyTeam}/${a.drakesByEnemy}
-- Barons: ${a.baronsByMyTeam}/${a.baronsByEnemy}
-- Primer drake: ${fmtTime(a.firstDragonTime)}
-- Primer herald: ${fmtTime(a.firstHeraldTime)}
-- Primer baron: ${fmtTime(a.firstBaronTime)}
-- Primera torre fue de mi equipo: ${a.firstTowerByMyTeam}
+OBJETIVOS Y TRADES:
+- Drakes mi/enemy: ${a.drakesByMyTeam}/${a.drakesByEnemy}
+- Barons mi/enemy: ${a.baronsByMyTeam}/${a.baronsByEnemy}
+- Primer drake: ${fmtTime(a.firstDragonTime)} | Herald: ${fmtTime(a.firstHeraldTime)} | Baron: ${fmtTime(a.firstBaronTime)}
+- Primera torre fue mía: ${a.firstTowerByMyTeam}
+- Trades de objetivos:
+${objTrades || "  (ninguno)"}
 
 VISIÓN:
-- Vision/min: ${a.visionScorePerMin.toFixed(2)}
-- Control wards comprados: ${a.controlWardsBought}
-- Wards enemigos destruidos: ${a.wardsKilled}
-- Pinks colocados antes min 10: ${a.pinksByMin10}
+- Vision/min: ${a.visionScorePerMin.toFixed(2)} | Control wards: ${a.controlWardsBought} | Wards enemigos destruidos: ${a.wardsKilled} | Pinks antes min 10: ${a.pinksByMin10}
 
-COMBATE / ECONOMÍA:
-- Damage por gold gastado: ${a.damagePerGold.toFixed(2)} (target ${dpgTarget(a.position).toFixed(1)})
+COMBATE:
+- Damage por gold: ${a.damagePerGold.toFixed(2)}
 - Kill participation: ${(a.killParticipation * 100).toFixed(0)}%
-- Damage share equipo: ${(a.damageShare * 100).toFixed(0)}%
-- Damage tomado share: ${(a.damageTakenShare * 100).toFixed(0)}%
-- Tuvo Stopwatch/Zhonya: ${a.hadStopwatch} · QSS: ${a.hadQss}
+- Damage share: ${(a.damageShare * 100).toFixed(0)}%
+- Damage taken share: ${(a.damageTakenShare * 100).toFixed(0)}%
+- Tuvo Stopwatch/Zhonya: ${a.hadStopwatch} | QSS: ${a.hadQss}
 - Items completados: ${a.itemsPurchasedCount}
-- Primer item completado: ${fmtTime(a.firstItemTime)}
+- Primer ítem completado: ${fmtTime(a.firstItemTime)}
+${jungleBlock}
 
 REGLAS HEURÍSTICAS DETECTADAS:
-${insightsBlock || "ninguna"}
+${insightsBlock || "ninguna relevante"}
 
-Sigue el framework: ROOT CAUSE → WHY → 2 ACCIONES ESPECÍFICAS. ${language === "en" ? "Respond in English." : "Responde en español."}`;
-}
-
-function csTargetByRole(role: string): number {
-  switch (role) {
-    case "TOP":
-      return 75;
-    case "JUNGLE":
-      return 55;
-    case "MIDDLE":
-      return 80;
-    case "BOTTOM":
-      return 85;
-    case "UTILITY":
-      return 15;
-    default:
-      return 70;
-  }
-}
-
-function dpgTarget(role: string): number {
-  switch (role) {
-    case "BOTTOM":
-    case "MIDDLE":
-      return 1.4;
-    case "JUNGLE":
-      return 1.1;
-    case "TOP":
-      return 1.0;
-    case "UTILITY":
-      return 0.5;
-    default:
-      return 1.0;
-  }
+Aplica el framework. Si soy ${bucket}, NO me digas obviedades — busca el patrón real. ${language === "en" ? "Respond in English." : "Responde en español."}`;
 }

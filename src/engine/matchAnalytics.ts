@@ -4,14 +4,29 @@
 import type { MatchFull, MatchTimeline } from "../services/riotApi";
 
 export interface ProMatchAnalytics {
-  // Lane phase metrics
+  // Lane phase metrics — multi-frame for trend analysis
+  cs5: number;
   cs10: number;
   cs14: number;
+  cs20: number;
+  goldAt5: number;
   goldAt10: number;
   goldAt15: number;
+  goldAt20: number;
   xpAt10: number;
+  level5: number;
   level10: number;
   level14: number;
+  level20: number;
+
+  // Diffs vs lane opponent at key timestamps (key for high-elo analysis)
+  csDiffAt10: number;
+  csDiffAt14: number;
+  csDiffAt20: number;
+  goldDiffAt10: number;
+  goldDiffAt15: number;
+  goldDiffAt20: number;
+  xpDiffAt10: number;
 
   // Death analysis
   deathsBy10: number;
@@ -73,6 +88,23 @@ export interface ProMatchAnalytics {
   // Comp
   enemyTeamComposition: { championId: number; championName: string; position: string }[];
   myTeamComposition: { championId: number; championName: string; position: string }[];
+
+  // Objective trade efficiency
+  objectiveTrades: ObjectiveTrade[];
+
+  // Jungle-specific (only if position=JUNGLE)
+  jungleCs10: number;
+  jungleCs15: number;
+  campsPerMinute: number;
+}
+
+export interface ObjectiveTrade {
+  objective: "DRAGON" | "BARON" | "RIFTHERALD";
+  takenByMyTeam: boolean;
+  timestamp: number;
+  // What was the rest of the map doing? (CS diff, level diff at that moment)
+  myCsDeltaAtTime: number; // me vs lane opponent
+  myGoldDeltaAtTime: number;
 }
 
 const STOPWATCH_IDS = new Set([2419, 2420, 3157, 3193]);
@@ -101,13 +133,17 @@ export function buildProAnalytics(
   const frame14 = findFrameAt(timeline, 14);
   const frame15 = findFrameAt(timeline, 15);
 
-  void frame5;
+  const frame20 = findFrameAt(timeline, 20);
+  const me5 = frame5?.participantFrames[String(myPid)];
   const me10 = frame10?.participantFrames[String(myPid)];
   const me14 = frame14?.participantFrames[String(myPid)];
   const me15 = frame15?.participantFrames[String(myPid)];
+  const me20 = frame20?.participantFrames[String(myPid)];
 
+  const enemy10 = enemyPid && frame10?.participantFrames[String(enemyPid)];
   const enemy14 = enemyPid && frame14?.participantFrames[String(enemyPid)];
   const enemy15 = enemyPid && frame15?.participantFrames[String(enemyPid)];
+  const enemy20 = enemyPid && frame20?.participantFrames[String(enemyPid)];
 
   const cs = (f: { minionsKilled: number; jungleMinionsKilled: number } | undefined) =>
     f ? f.minionsKilled + f.jungleMinionsKilled : 0;
@@ -137,6 +173,25 @@ export function buildProAnalytics(
   let curKillStreak = 0;
   let lastEventBeforeDeath: "kill" | "death" | "recall" | null = null;
   let recallsBeforeDeath = 0;
+
+  const objectiveTrades: ObjectiveTrade[] = [];
+
+  // Helper: snapshot diff vs lane opponent at a given timestamp
+  const snapshotDiff = (timestampMs: number) => {
+    const f = timeline.frames.find((fr) => fr.timestamp >= timestampMs) ?? null;
+    if (!f) return { csDelta: 0, goldDelta: 0 };
+    const myF = f.participantFrames[String(myPid)];
+    const enemyF = enemyPid ? f.participantFrames[String(enemyPid)] : null;
+    if (!myF) return { csDelta: 0, goldDelta: 0 };
+    const myCs = myF.minionsKilled + myF.jungleMinionsKilled;
+    const enemyCs = enemyF
+      ? enemyF.minionsKilled + enemyF.jungleMinionsKilled
+      : 0;
+    return {
+      csDelta: myCs - enemyCs,
+      goldDelta: myF.totalGold - (enemyF?.totalGold ?? 0),
+    };
+  };
 
   for (const f of timeline.frames) {
     for (const ev of f.events) {
@@ -172,18 +227,40 @@ export function buildProAnalytics(
           const e = ev as Extract<typeof ev, { type: "ELITE_MONSTER_KILL" }>;
           const killerTeam = e.killerId > 5 ? 200 : 100;
           const isMine = killerTeam === myTeamId;
+          const snap = snapshotDiff(ev.timestamp);
           if (e.monsterType === "DRAGON") {
             if (firstDragonTime === null) firstDragonTime = ev.timestamp;
             if (isMine) drakesByMy++;
             else drakesByEnemy++;
+            objectiveTrades.push({
+              objective: "DRAGON",
+              takenByMyTeam: isMine,
+              timestamp: ev.timestamp,
+              myCsDeltaAtTime: snap.csDelta,
+              myGoldDeltaAtTime: snap.goldDelta,
+            });
           }
           if (e.monsterType === "BARON_NASHOR") {
             if (firstBaronTime === null) firstBaronTime = ev.timestamp;
             if (isMine) baronsByMy++;
             else baronsByEnemy++;
+            objectiveTrades.push({
+              objective: "BARON",
+              takenByMyTeam: isMine,
+              timestamp: ev.timestamp,
+              myCsDeltaAtTime: snap.csDelta,
+              myGoldDeltaAtTime: snap.goldDelta,
+            });
           }
-          if (e.monsterType === "RIFTHERALD" && firstHeraldTime === null) {
-            firstHeraldTime = ev.timestamp;
+          if (e.monsterType === "RIFTHERALD") {
+            if (firstHeraldTime === null) firstHeraldTime = ev.timestamp;
+            objectiveTrades.push({
+              objective: "RIFTHERALD",
+              takenByMyTeam: isMine,
+              timestamp: ev.timestamp,
+              myCsDeltaAtTime: snap.csDelta,
+              myGoldDeltaAtTime: snap.goldDelta,
+            });
           }
           break;
         }
@@ -221,13 +298,27 @@ export function buildProAnalytics(
   const itemSet = new Set(me.items);
 
   return {
+    cs5: cs(me5),
     cs10: cs(me10),
     cs14: cs(me14),
+    cs20: cs(me20),
+    goldAt5: me5?.totalGold ?? 0,
     goldAt10: me10?.totalGold ?? 0,
     goldAt15: me15?.totalGold ?? 0,
+    goldAt20: me20?.totalGold ?? 0,
     xpAt10: me10?.xp ?? 0,
+    level5: me5?.level ?? 0,
     level10: me10?.level ?? 0,
     level14: me14?.level ?? 0,
+    level20: me20?.level ?? 0,
+
+    csDiffAt10: cs(me10) - cs(enemy10 || undefined),
+    csDiffAt14: cs(me14) - cs(enemy14 || undefined),
+    csDiffAt20: cs(me20) - cs(enemy20 || undefined),
+    goldDiffAt10: (me10?.totalGold ?? 0) - (enemy10 ? enemy10.totalGold : 0),
+    goldDiffAt15: (me15?.totalGold ?? 0) - (enemy15 ? enemy15.totalGold : 0),
+    goldDiffAt20: (me20?.totalGold ?? 0) - (enemy20 ? enemy20.totalGold : 0),
+    xpDiffAt10: (me10?.xp ?? 0) - (enemy10 ? enemy10.xp : 0),
 
     deathsBy10,
     deathsAt5,
@@ -295,6 +386,13 @@ export function buildProAnalytics(
       championName: championNamesById.get(p.championId) ?? `#${p.championId}`,
       position: p.position,
     })),
+
+    objectiveTrades,
+
+    jungleCs10: me10?.jungleMinionsKilled ?? 0,
+    jungleCs15: me15?.jungleMinionsKilled ?? 0,
+    campsPerMinute:
+      minutes > 0 ? (me15?.jungleMinionsKilled ?? 0) / Math.min(15, minutes) : 0,
   };
 }
 
