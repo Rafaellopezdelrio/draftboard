@@ -54,16 +54,23 @@ interface LcuMatchHistoryResponse {
 }
 
 export async function lcuRecentMatches(
-  count = 20
+  count = 50
 ): Promise<MatchSummary[]> {
   const meRes = await lcuGet<{ puuid: string }>(
     "/lol-summoner/v1/current-summoner"
   );
   if (!meRes?.puuid) return [];
 
-  const data = await lcuGet<LcuMatchHistoryResponse>(
-    `/lol-match-history/v1/products/lol/current-summoner/matches?begIndex=0&endIndex=${count}`
+  // Try the puuid-based endpoint first — this is more reliable and not cached.
+  let data = await lcuGet<LcuMatchHistoryResponse>(
+    `/lol-match-history/v1/products/lol/${meRes.puuid}/matches?begIndex=0&endIndex=${count}`
   );
+  // Fallback to the legacy current-summoner endpoint if the puuid one fails.
+  if (!data?.games?.games) {
+    data = await lcuGet<LcuMatchHistoryResponse>(
+      `/lol-match-history/v1/products/lol/current-summoner/matches?begIndex=0&endIndex=${count}`
+    );
+  }
   if (!data?.games?.games) return [];
 
   const out: MatchSummary[] = [];

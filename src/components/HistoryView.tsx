@@ -42,11 +42,14 @@ export function HistoryView({ db, onClose }: Props) {
   }, []);
 
   const filtered = useMemo(() => {
+    const now = Date.now();
+    const ninetyDaysAgo = now - 90 * 24 * 60 * 60 * 1000;
     return matches.filter((m) => {
-      // Hide noise: customs, very short games (remakes/dodges), tutorials
+      // Hide noise: customs, very short games (remakes/dodges), tutorials, very old
       if (hideNoise) {
         if (!isRelevantQueue(m.queueId)) return false;
         if (m.durationSec < 5 * 60) return false; // remake/dodge
+        if (m.gameEndTimestampMs < ninetyDaysAgo) return false; // older than 90 days
       }
       // Queue filter
       const tab = QUEUE_TABS.find((t) => t.value === queueTab);
@@ -64,8 +67,9 @@ export function HistoryView({ db, onClose }: Props) {
     });
   }, [matches, queueTab, roleFilter, championFilter, db, hideNoise]);
 
+  const ninetyDaysAgo = Date.now() - 90 * 24 * 60 * 60 * 1000;
   const hiddenCount = matches.length - matches.filter((m) =>
-    isRelevantQueue(m.queueId) && m.durationSec >= 5 * 60
+    isRelevantQueue(m.queueId) && m.durationSec >= 5 * 60 && m.gameEndTimestampMs >= ninetyDaysAgo
   ).length;
 
   const wins = filtered.filter((m) => m.win).length;
