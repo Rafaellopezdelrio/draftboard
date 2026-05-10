@@ -30,7 +30,7 @@ export function ChampionPicker({
       onClick={onClose}
     >
       <div
-        className="bg-bg-elev border border-border-subtle rounded-lg p-4 w-[640px] max-h-[80vh] flex flex-col"
+        className="animate-[scaleIn_180ms_ease-out] bg-bg-elev border border-border-subtle rounded-lg p-4 w-[640px] max-h-[80vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         <input

@@ -15,7 +15,9 @@
       "allow": [
         { "url": "https://*.api.riotgames.com/*" },
         { "url": "https://ddragon.leagueoflegends.com/*" },
-        { "url": "https://raw.communitydragon.org/*" }
+        { "url": "https://raw.communitydragon.org/*" },
+        { "url": "https://api.anthropic.com/*" },
+        { "url": "https://rsms.me/*" }
       ]
     }
   ]

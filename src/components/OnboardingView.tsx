@@ -61,7 +61,7 @@ export function OnboardingView({ onClose }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center">
-      <div className="bg-bg-elev border border-border-subtle rounded-lg p-6 w-[520px] space-y-4">
+      <div className="animate-[scaleIn_180ms_ease-out] bg-bg-elev border border-border-subtle rounded-lg p-6 w-[520px] space-y-4">
         {step === "welcome" && (
           <>
             <h2 className="text-2xl font-bold text-accent">

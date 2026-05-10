@@ -57,10 +57,17 @@ export function BuildPanel({ db, championKey, role, enemyKeys = [] }: Props) {
   const noData = builds.length === 0 && !runes && !skills;
 
   return (
-    <div className="space-y-3">
+    <div
+      className="relative space-y-3 p-3 rounded-lg overflow-hidden border border-border-subtle"
+      style={{
+        backgroundImage: `linear-gradient(180deg, rgba(11,14,20,0.7) 0%, rgba(11,14,20,0.95) 70%), url(${champ.splashUrl})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center 20%",
+      }}
+    >
       <div className="flex items-center gap-2">
         <img src={champ.iconUrl} alt={champ.name} className="w-8 h-8 rounded" />
-        <h3 className="text-sm uppercase tracking-wide text-white/50">
+        <h3 className="text-sm uppercase tracking-wide text-white/70">
           Build · {champ.name}
         </h3>
       </div>
