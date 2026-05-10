@@ -5,6 +5,7 @@ import {
   getMatchFull,
   getMatchTimeline,
   type MatchFull,
+  type MatchTimeline,
 } from "../services/riotApi";
 import { recentMatches } from "../services/matchRepo";
 import { loadSettings } from "../services/settingsRepo";
@@ -13,6 +14,7 @@ import { GpiRadar } from "./GpiRadar";
 import { usePrefsStore } from "../state/prefsStore";
 import { aiCoachAnalysis } from "../services/aiCoach";
 import { queueLabel } from "../data/queueNames";
+import { lcuRank } from "../services/lcuPersonalData";
 
 interface Props {
   db: ChampionDb;
@@ -22,6 +24,7 @@ interface Props {
 export function CoachView({ db, onClose }: Props) {
   const [matchId, setMatchId] = useState<string | null>(null);
   const [matchFull, setMatchFull] = useState<MatchFull | null>(null);
+  const [matchTimeline, setMatchTimeline] = useState<MatchTimeline | null>(null);
   const [insights, setInsights] = useState<Insight[]>([]);
   const [gpi, setGpi] = useState<GpiScore | null>(null);
   const [loading, setLoading] = useState(false);
@@ -87,6 +90,7 @@ export function CoachView({ db, onClose }: Props) {
           getMatchTimeline(cfg, matchId),
         ]);
         setMatchFull(full);
+        setMatchTimeline(timeline);
         setInsights(analyzeMatch({ match: full, timeline, myPuuid: cfg.puuid }));
         setGpi(computeGpi(full, cfg.puuid));
       } catch (e) {
@@ -98,7 +102,7 @@ export function CoachView({ db, onClose }: Props) {
   }, [matchId]);
 
   async function runAi() {
-    if (!matchFull) return;
+    if (!matchFull || !matchTimeline) return;
     const cfg = await loadSettings();
     if (!cfg?.puuid) return;
     const me = matchFull.participants.find((p) => p.puuid === cfg.puuid);
@@ -114,15 +118,25 @@ export function CoachView({ db, onClose }: Props) {
       const oppName = opp
         ? (db.champions[String(opp.championId)]?.name ?? `#${opp.championId}`)
         : null;
+      const championNamesById = new Map<number, string>();
+      for (const c of Object.values(db.champions)) {
+        championNamesById.set(Number(c.key), c.name);
+      }
+      const rank = await lcuRank();
       const text = await aiCoachAnalysis({
         provider: aiProvider,
         apiKey: aiKey,
         match: matchFull,
+        timeline: matchTimeline,
         myPuuid: cfg.puuid,
         insights,
         gpi,
         championName: myChampName,
         opponentChampionName: oppName,
+        championNamesById,
+        rank: rank
+          ? { tier: rank.tier, division: rank.division, lp: rank.leaguePoints }
+          : null,
         language: aiLang,
       });
       setAiResponse(text);

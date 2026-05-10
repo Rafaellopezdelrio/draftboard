@@ -4,19 +4,26 @@
 
 import type { Insight } from "../engine/coachEngine";
 import type { GpiScore } from "../engine/gpiEngine";
-import type { MatchFull } from "./riotApi";
+import type { MatchFull, MatchTimeline } from "./riotApi";
 import { callAi, type AiProvider } from "./aiProvider";
+import { buildProAnalytics } from "../engine/matchAnalytics";
+import {
+  professionalCoachSystemPrompt,
+  professionalMatchPrompt,
+} from "./aiPromptBuilder";
 
 export interface AiCoachInput {
   provider: AiProvider;
   apiKey: string;
   match: MatchFull;
+  timeline: MatchTimeline;
   myPuuid: string;
   insights: Insight[];
   gpi: GpiScore | null;
   championName: string;
   opponentChampionName: string | null;
-  recentTrendSummary?: string;
+  championNamesById: Map<number, string>;
+  rank?: { tier: string; division: string; lp: number } | null;
   language?: "es" | "en";
 }
 
@@ -51,60 +58,30 @@ export interface LessonPlanInput {
 }
 
 export async function aiCoachAnalysis(input: AiCoachInput): Promise<string> {
-  const me = input.match.participants.find((p) => p.puuid === input.myPuuid);
-  if (!me) throw new Error("No participant found");
-
-  const myTeam = input.match.participants.filter((p) => p.teamId === me.teamId);
-  const enemyTeam = input.match.participants.filter(
-    (p) => p.teamId !== me.teamId
+  const analytics = buildProAnalytics(
+    input.match,
+    input.timeline,
+    input.myPuuid,
+    input.championNamesById
   );
-  const minutes = (input.match.durationSec / 60).toFixed(1);
-  const cspm = (me.cs / Number(minutes)).toFixed(1);
-  const teamKills = myTeam.reduce((a, p) => a + p.kills, 0);
-  const teamDmg = myTeam.reduce(
-    (a, p) => a + p.totalDamageDealtToChampions,
-    0
+  if (!analytics) throw new Error("No participant found");
+
+  const systemPrompt = professionalCoachSystemPrompt({
+    language: input.language ?? "es",
+    rank: input.rank ?? null,
+  });
+  const userPrompt = professionalMatchPrompt(
+    analytics,
+    input.insights,
+    input.language ?? "es"
   );
-  const kp = teamKills > 0 ? ((me.kills + me.assists) / teamKills) * 100 : 0;
-  const dmgShare = teamDmg > 0 ? (me.totalDamageDealtToChampions / teamDmg) * 100 : 0;
-  const vspm = (me.visionScore / Number(minutes)).toFixed(2);
-
-  const insightsSummary = input.insights
-    .map((i) => `[${i.severity}] ${i.title}: ${i.detail}`)
-    .join("\n");
-
-  const gpiSummary = input.gpi
-    ? `GPI total ${input.gpi.total}/100 — farm ${input.gpi.categories.farming}, vision ${input.gpi.categories.vision}, agresión ${input.gpi.categories.aggression}, supervivencia ${input.gpi.categories.survivability}, objetivos ${input.gpi.categories.objectives}, versatilidad ${input.gpi.categories.versatility}`
-    : "";
-
-  const systemPrompt = `Eres un coach profesional de League of Legends, conciso y directo. Hablas como un coach humano: sin repetir cifras innecesariamente, identificando el patrón principal y dando 2-3 acciones concretas. Nunca uses listas largas. Máximo 200 palabras. Idioma: ${input.language === "en" ? "English" : "Español"}.`;
-
-  const userPrompt = `Analiza esta partida de un jugador y dime las 2-3 cosas más importantes a mejorar.
-
-DATOS:
-- Campeón: ${input.championName} (${me.position})
-- Rival en lane: ${input.opponentChampionName ?? "?"}
-- Resultado: ${me.win ? "VICTORIA" : "DERROTA"} en ${minutes}min
-- KDA: ${me.kills}/${me.deaths}/${me.assists}
-- CS: ${me.cs} (${cspm}/min)
-- Vision score: ${me.visionScore} (${vspm}/min), control wards: ${me.controlWardsBought}
-- Kill participation: ${kp.toFixed(0)}%
-- Damage share: ${dmgShare.toFixed(0)}%
-- Oro: ${me.goldEarned}
-- Equipo enemigo: ${enemyTeam.map((p) => `${p.position}`).join(", ")}
-
-${gpiSummary ? `\nGPI: ${gpiSummary}\n` : ""}
-${insightsSummary ? `\nReglas heurísticas detectaron:\n${insightsSummary}\n` : ""}
-${input.recentTrendSummary ? `\nContexto últimas partidas: ${input.recentTrendSummary}\n` : ""}
-
-Responde como un coach humano: identifica el patrón principal del problema (no listes todo), explica POR QUÉ pasó, y da 2-3 acciones concretas que pueda hacer en su próxima partida. Sin emojis, sin listas largas, máximo 200 palabras.`;
 
   return callAi({
     provider: input.provider,
     apiKey: input.apiKey,
     systemPrompt,
     userPrompt,
-    maxTokens: 600,
+    maxTokens: 700,
   });
 }
 
