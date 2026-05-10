@@ -138,25 +138,29 @@ export async function personalMatchupsByRole(
   minGames = 2
 ): Promise<PersonalMatchupStat[]> {
   if (!isTauri()) return [];
-  const db = await getDb();
-  const rows = await db.select<
-    Array<{ opponent_champion_id: number; games: number; wins: number }>
-  >(
-    `SELECT opponent_champion_id, COUNT(*) as games, SUM(win) as wins
-     FROM matches
-     WHERE position = $1 AND opponent_champion_id > 0
-     GROUP BY opponent_champion_id
-     HAVING games >= $2
-     ORDER BY (CAST(wins AS REAL) / games) ASC, games DESC`,
-    [position, minGames]
-  );
-  return rows.map((r) => ({
-    position,
-    opponentChampionId: r.opponent_champion_id,
-    games: r.games,
-    wins: r.wins,
-    winRate: r.games > 0 ? r.wins / r.games : 0,
-  }));
+  try {
+    const db = await getDb();
+    const rows = await db.select<
+      Array<{ opponent_champion_id: number; games: number; wins: number }>
+    >(
+      `SELECT opponent_champion_id, COUNT(*) as games, SUM(win) as wins
+       FROM matches
+       WHERE position = $1 AND opponent_champion_id > 0
+       GROUP BY opponent_champion_id
+       HAVING games >= $2
+       ORDER BY (CAST(wins AS REAL) / games) ASC, games DESC`,
+      [position, minGames]
+    );
+    return rows.map((r) => ({
+      position,
+      opponentChampionId: r.opponent_champion_id,
+      games: r.games,
+      wins: r.wins,
+      winRate: r.games > 0 ? r.wins / r.games : 0,
+    }));
+  } catch {
+    return []; // opponent_champion_id column may not exist on old DBs
+  }
 }
 
 export interface PersonalChampionRoleStat extends ChampionPersonalStat {

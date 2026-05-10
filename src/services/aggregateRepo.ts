@@ -3,53 +3,61 @@ import type { CounterEntry, MetaTier, Role } from "../types/champion";
 
 export async function loadAggregatedMeta(patch: string): Promise<MetaTier[]> {
   if (!isTauri()) return [];
-  const db = await getDb();
-  const rows = await db.select<
-    Array<{
-      champion_id: number;
-      position: string;
-      win_rate: number;
-      pick_rate: number;
-      ban_rate: number;
-    }>
-  >(
-    "SELECT champion_id, position, win_rate, pick_rate, ban_rate FROM meta_aggregate WHERE patch = $1",
-    [patch]
-  );
-  return rows.map((r) => ({
-    championKey: String(r.champion_id),
-    role: r.position as Role,
-    tier: winrateToTier(r.win_rate),
-    winRate: r.win_rate,
-    pickRate: r.pick_rate,
-    banRate: r.ban_rate,
-  }));
+  try {
+    const db = await getDb();
+    const rows = await db.select<
+      Array<{
+        champion_id: number;
+        position: string;
+        win_rate: number;
+        pick_rate: number;
+        ban_rate: number;
+      }>
+    >(
+      "SELECT champion_id, position, win_rate, pick_rate, ban_rate FROM meta_aggregate WHERE patch = $1",
+      [patch]
+    );
+    return rows.map((r) => ({
+      championKey: String(r.champion_id),
+      role: r.position as Role,
+      tier: winrateToTier(r.win_rate),
+      winRate: r.win_rate,
+      pickRate: r.pick_rate,
+      banRate: r.ban_rate,
+    }));
+  } catch {
+    return []; // table doesn't exist yet (pre-migration v2)
+  }
 }
 
 export async function loadAggregatedCounters(
   patch: string
 ): Promise<CounterEntry[]> {
   if (!isTauri()) return [];
-  const db = await getDb();
-  const rows = await db.select<
-    Array<{
-      champion_id: number;
-      vs_champion_id: number;
-      position: string;
-      win_rate: number;
-      games: number;
-    }>
-  >(
-    "SELECT champion_id, vs_champion_id, position, win_rate, games FROM counter_aggregate WHERE patch = $1",
-    [patch]
-  );
-  return rows.map((r) => ({
-    championKey: String(r.champion_id),
-    vsChampionKey: String(r.vs_champion_id),
-    role: r.position as Role,
-    winRate: r.win_rate,
-    sampleSize: r.games,
-  }));
+  try {
+    const db = await getDb();
+    const rows = await db.select<
+      Array<{
+        champion_id: number;
+        vs_champion_id: number;
+        position: string;
+        win_rate: number;
+        games: number;
+      }>
+    >(
+      "SELECT champion_id, vs_champion_id, position, win_rate, games FROM counter_aggregate WHERE patch = $1",
+      [patch]
+    );
+    return rows.map((r) => ({
+      championKey: String(r.champion_id),
+      vsChampionKey: String(r.vs_champion_id),
+      role: r.position as Role,
+      winRate: r.win_rate,
+      sampleSize: r.games,
+    }));
+  } catch {
+    return []; // table doesn't exist yet
+  }
 }
 
 export interface BuildAgg {
@@ -66,6 +74,7 @@ export async function loadAggregatedBuilds(
   position: string
 ): Promise<BuildAgg[]> {
   if (!isTauri()) return [];
+  try {
   const db = await getDb();
   const rows = await db.select<
     Array<{
@@ -88,6 +97,9 @@ export async function loadAggregatedBuilds(
     games: r.games,
     wins: r.wins,
   }));
+  } catch {
+    return [];
+  }
 }
 
 export interface RuneAgg {
@@ -107,6 +119,7 @@ export async function loadAggregatedRunes(
   position: string
 ): Promise<RuneAgg | null> {
   if (!isTauri()) return null;
+  try {
   const db = await getDb();
   const rows = await db.select<
     Array<{
@@ -137,6 +150,9 @@ export async function loadAggregatedRunes(
     games: r.games,
     wins: r.wins,
   };
+  } catch {
+    return null;
+  }
 }
 
 export interface SkillOrderAgg {
@@ -152,6 +168,7 @@ export async function loadAggregatedSkillOrder(
   position: string
 ): Promise<SkillOrderAgg | null> {
   if (!isTauri()) return null;
+  try {
   const db = await getDb();
   const rows = await db.select<
     Array<{ first_three: string; max_order: string; games: number; wins: number }>
@@ -169,6 +186,9 @@ export async function loadAggregatedSkillOrder(
     games: r.games,
     wins: r.wins,
   };
+  } catch {
+    return null;
+  }
 }
 
 export async function getLastAggregationTimestamp(): Promise<number | null> {
