@@ -5,6 +5,7 @@ import { scoutPlayer, type ScoutResult } from "../services/enemyScout";
 import { loadSettings } from "../services/settingsRepo";
 import { usePrefsStore } from "../state/prefsStore";
 import { toast } from "./Toaster";
+import { voiceCoach } from "../services/voiceCoach";
 
 interface Props {
   db: ChampionDb;
@@ -60,6 +61,10 @@ export function EnemyScoutPanel({
             toast(
               `🔥 Enemigo en racha (${r.rank ?? "?"}) ${champName ? `con ${champName}` : ""}`,
               { severity: "warn", ttlMs: 6000 }
+            );
+            voiceCoach.speak(
+              `Cuidado, enemigo en racha${champName ? ` con ${champName}` : ""}`,
+              `hot-${sid}`
             );
           }
           if (

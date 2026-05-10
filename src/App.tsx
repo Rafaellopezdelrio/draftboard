@@ -43,10 +43,23 @@ const DiagnosticsView = lazy(() =>
     default: m.DiagnosticsView,
   }))
 );
+const AiChatView = lazy(() =>
+  import("./components/AiChatView").then((m) => ({ default: m.AiChatView }))
+);
+const DataPrivacyView = lazy(() =>
+  import("./components/DataPrivacyView").then((m) => ({
+    default: m.DataPrivacyView,
+  }))
+);
 import { BanSuggestionsPanel } from "./components/BanSuggestionsPanel";
 import { MatchupTipsPanel } from "./components/MatchupTipsPanel";
 import { ChampionPoolPanel } from "./components/ChampionPoolPanel";
 import { InGameTimers } from "./components/InGameTimers";
+import { PlaystylePanel } from "./components/PlaystylePanel";
+import { TradeSuggestionPanel } from "./components/TradeSuggestionPanel";
+import { CommandPalette, type Command } from "./components/CommandPalette";
+import { useEscape, useGlobalShortcut } from "./hooks/useKeyboardShortcuts";
+import { voiceCoach } from "./services/voiceCoach";
 import { lcuMasteries, lcuRank } from "./services/lcuPersonalData";
 import { useScheduledJobs } from "./state/scheduledJobs";
 import { useGamePhase } from "./state/inGameDetection";
@@ -83,12 +96,41 @@ function App() {
   const [showTrends, setShowTrends] = useState(false);
   const [showPrefs, setShowPrefs] = useState(false);
   const [showDiag, setShowDiag] = useState(false);
+  const [showChat, setShowChat] = useState(false);
+  const [showPrivacy, setShowPrivacy] = useState(false);
+  const [showPalette, setShowPalette] = useState(false);
   const [personalStats, setPersonalStats] = useState<ChampionPersonalStat[]>([]);
   const [masteries, setMasteries] = useState<ChampionMasteryDto[]>([]);
   const gamePhase = useGamePhase();
 
   useAutoActions({ db });
   useScheduledJobs();
+
+  // Voice coach init
+  useEffect(() => {
+    voiceCoach.init();
+  }, []);
+  useEffect(() => {
+    voiceCoach.setEnabled(prefs.voiceCoachEnabled);
+    voiceCoach.setLanguage(prefs.aiCoachLanguage);
+  }, [prefs.voiceCoachEnabled, prefs.aiCoachLanguage]);
+
+  // Ctrl+K to open command palette
+  useGlobalShortcut({ key: "k", ctrl: true }, () => setShowPalette(true));
+
+  // Esc closes palette
+  useEscape(() => setShowPalette(false), showPalette);
+
+  const commands: Command[] = [
+    { id: "coach", label: "Abrir Coach (post-game)", action: () => setShowCoach(true) },
+    { id: "chat", label: "Hablar con AI Coach", action: () => setShowChat(true) },
+    { id: "trends", label: "Ver tendencias", action: () => setShowTrends(true) },
+    { id: "history", label: "Historial", action: () => setShowHistory(true) },
+    { id: "prefs", label: "Preferencias", action: () => setShowPrefs(true) },
+    { id: "diag", label: "Diagnóstico de conexión", action: () => setShowDiag(true) },
+    { id: "privacy", label: "Mis datos / privacidad", action: () => setShowPrivacy(true) },
+    { id: "settings", label: "Configuración Riot", action: () => setShowSettings(true) },
+  ];
 
   useEffect(() => {
     loadPrefs();
@@ -206,6 +248,13 @@ function App() {
           {prefs.liveTimer && <PhaseTimer />}
           <span className="text-xs text-white/40">Patch {db.patch}</span>
           <button
+            onClick={() => setShowChat(true)}
+            className="px-2 py-1 text-xs bg-accent/10 border border-accent/40 rounded hover:bg-accent/20 text-accent"
+            title="Habla con AI Coach"
+          >
+            🤖 AI
+          </button>
+          <button
             onClick={() => setShowCoach(true)}
             className="px-2 py-1 text-xs bg-bg-elev border border-border-subtle rounded hover:border-accent text-white/80"
           >
@@ -268,6 +317,14 @@ function App() {
           {prefs.showDraftWinrate && draftPrediction && (
             <DraftWinrateBadge pred={draftPrediction} />
           )}
+          <TradeSuggestionPanel
+            db={db}
+            myRole={myRole}
+            myCurrentPick={myChampionLocked ?? myChampionIntent}
+            allyKeys={allyKeys}
+            enemyKeys={enemyKeys}
+            bannedKeys={bannedKeys}
+          />
           {prefs.showSuggestions && (
             <SuggestionPanel suggestions={suggestions} />
           )}
@@ -296,6 +353,7 @@ function App() {
               enemyChampionIds={enemyChampionIds}
             />
           )}
+          <PlaystylePanel />
           <ChampionPoolPanel db={db} masteries={masteries} />
           <OwnMasteriesPanel
             db={db}
@@ -315,12 +373,22 @@ function App() {
         {showTrends && <TrendsView db={db} onClose={() => setShowTrends(false)} />}
         {showPrefs && <PreferencesView onClose={() => setShowPrefs(false)} />}
         {showDiag && <DiagnosticsView onClose={() => setShowDiag(false)} />}
+        {showChat && <AiChatView db={db} onClose={() => setShowChat(false)} />}
+        {showPrivacy && (
+          <DataPrivacyView onClose={() => setShowPrivacy(false)} />
+        )}
         {!prefs.onboardingDone && (
           <OnboardingView
             onClose={() => usePrefsStore.getState().set("onboardingDone", true)}
           />
         )}
       </Suspense>
+      {showPalette && (
+        <CommandPalette
+          commands={commands}
+          onClose={() => setShowPalette(false)}
+        />
+      )}
     </main>
   );
 }

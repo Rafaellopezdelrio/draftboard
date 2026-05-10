@@ -40,6 +40,9 @@ export interface Preferences {
   safeMode: boolean;
   beginnerMode: boolean;
   onboardingDone: boolean;
+
+  // Voice
+  voiceCoachEnabled: boolean;
 }
 
 export const DEFAULT_PREFS: Preferences = {
@@ -73,6 +76,8 @@ export const DEFAULT_PREFS: Preferences = {
   safeMode: false,
   beginnerMode: false,
   onboardingDone: false,
+
+  voiceCoachEnabled: false,
 };
 
 interface PrefsState {

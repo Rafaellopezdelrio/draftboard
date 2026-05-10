@@ -95,6 +95,70 @@ Identifica patrones (campeones que rinden mejor, roles fuertes/débiles, fugas d
     .join("\n");
 }
 
+export interface LessonPlanInput {
+  apiKey: string;
+  weakestArea: string | null;
+  archetype: string;
+  recentMatches: Array<{
+    championName: string;
+    position: string;
+    win: boolean;
+    kda: string;
+  }>;
+  language?: "es" | "en";
+}
+
+export async function aiLessonPlan(input: LessonPlanInput): Promise<string> {
+  const lines = input.recentMatches
+    .slice(0, 10)
+    .map(
+      (m) =>
+        `- ${m.championName} ${m.position}: ${m.win ? "W" : "L"} ${m.kda}`
+    )
+    .join("\n");
+
+  const systemPrompt = `Eres un coach pro de League of Legends. Diseñas planes de mejora de 7 días personalizados. El plan debe ser CONCRETO: cada día = 1 objetivo específico + 1 ejercicio medible. Total max 350 palabras. ${input.language === "en" ? "Respond in English." : "Responde en español."}`;
+
+  const userPrompt = `Crea un plan de práctica de 7 días para mí.
+
+Mi estilo: ${input.archetype}
+Mi mayor problema: ${input.weakestArea ?? "no identificado"}
+
+Mis últimas partidas:
+${lines}
+
+Para cada día:
+- Objetivo específico (medible)
+- Ejercicio concreto (ej. "20 min en práctica solo last-hits hasta CS@10 = 80")
+- Cómo verificar que mejoraste
+
+Sé específico y accionable. No uses listas con bullets dentro de cada día — texto fluido por día.`;
+
+  const body = {
+    model: MODEL,
+    max_tokens: 900,
+    system: systemPrompt,
+    messages: [{ role: "user", content: userPrompt }],
+  };
+
+  const res = await httpFetch(ANTHROPIC_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": input.apiKey.trim(),
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true",
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`Anthropic ${res.status}`);
+  const json = (await res.json()) as { content: Array<{ type: string; text?: string }> };
+  return json.content
+    .filter((c) => c.type === "text" && c.text)
+    .map((c) => c.text)
+    .join("\n");
+}
+
 export async function aiCoachAnalysis(input: AiCoachInput): Promise<string> {
   const me = input.match.participants.find((p) => p.puuid === input.myPuuid);
   if (!me) throw new Error("No participant found");

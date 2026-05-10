@@ -104,6 +104,16 @@ const SECTIONS: Section[] = [
     items: [{ key: "compactMode", label: "Modo compacto (paneles más densos)" }],
   },
   {
+    title: "Coach por voz",
+    items: [
+      {
+        key: "voiceCoachEnabled",
+        label: "Anuncios de voz en draft",
+        detail: "TTS del navegador anuncia bans recomendados, picks fuertes y enemigos en racha.",
+      },
+    ],
+  },
+  {
     title: "AI Coach (Anthropic)",
     items: [
       {
