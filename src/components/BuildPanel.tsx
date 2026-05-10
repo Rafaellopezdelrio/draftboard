@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import {
   loadAggregatedBuilds,
   loadAggregatedRunes,
@@ -14,6 +14,7 @@ import {
   suggestBuildAdaptations,
   type BuildAdaptation,
 } from "../engine/adaptiveBuildEngine";
+import { PowerSpikesBars } from "./PowerSpikesBars";
 
 interface Props {
   db: ChampionDb;
@@ -24,7 +25,7 @@ interface Props {
 
 const SKILL_LABEL = ["", "Q", "W", "E"];
 
-export function BuildPanel({ db, championKey, role, enemyKeys = [] }: Props) {
+function BuildPanelInner({ db, championKey, role, enemyKeys = [] }: Props) {
   const [builds, setBuilds] = useState<BuildAgg[]>([]);
   const [runes, setRunes] = useState<RuneAgg | null>(null);
   const [skills, setSkills] = useState<SkillOrderAgg | null>(null);
@@ -77,6 +78,8 @@ export function BuildPanel({ db, championKey, role, enemyKeys = [] }: Props) {
           Sin datos agregados aún. Sincroniza el meta en ⚙ para verlos.
         </p>
       )}
+
+      <PowerSpikesBars championId={champ.id} />
 
       {builds.length > 0 && (
         <div>
@@ -200,3 +203,5 @@ function PerkIcon({ id, small = false }: { id: number; small?: boolean }) {
     />
   );
 }
+
+export const BuildPanel = memo(BuildPanelInner);

@@ -38,9 +38,19 @@ const OnboardingView = lazy(() =>
     default: m.OnboardingView,
   }))
 );
+const DiagnosticsView = lazy(() =>
+  import("./components/DiagnosticsView").then((m) => ({
+    default: m.DiagnosticsView,
+  }))
+);
 import { BanSuggestionsPanel } from "./components/BanSuggestionsPanel";
 import { MatchupTipsPanel } from "./components/MatchupTipsPanel";
-import { lcuMasteries } from "./services/lcuPersonalData";
+import { ChampionPoolPanel } from "./components/ChampionPoolPanel";
+import { InGameTimers } from "./components/InGameTimers";
+import { lcuMasteries, lcuRank } from "./services/lcuPersonalData";
+import { useScheduledJobs } from "./state/scheduledJobs";
+import { useGamePhase } from "./state/inGameDetection";
+import { setCoachEloBucket } from "./engine/coachEngine";
 import { predictDraftWinrate } from "./engine/draftWinrateEngine";
 import { personalStatsByChampion } from "./services/matchRepo";
 import { loadSettings } from "./services/settingsRepo";
@@ -72,27 +82,33 @@ function App() {
   const [showCoach, setShowCoach] = useState(false);
   const [showTrends, setShowTrends] = useState(false);
   const [showPrefs, setShowPrefs] = useState(false);
+  const [showDiag, setShowDiag] = useState(false);
   const [personalStats, setPersonalStats] = useState<ChampionPersonalStat[]>([]);
   const [masteries, setMasteries] = useState<ChampionMasteryDto[]>([]);
+  const gamePhase = useGamePhase();
 
   useAutoActions({ db });
+  useScheduledJobs();
 
   useEffect(() => {
     loadPrefs();
   }, [loadPrefs]);
 
   // Try LCU first for masteries (no key needed); fall back to Riot API.
+  // Also pull the user's rank to calibrate coach benchmarks to their actual elo.
   useEffect(() => {
     (async () => {
       const fromLcu = await lcuMasteries();
       if (fromLcu.length > 0) {
         setMasteries(fromLcu);
-        return;
+      } else {
+        const cfg = await loadSettings();
+        if (cfg?.puuid && cfg.apiKey) {
+          getTopMasteries(cfg, cfg.puuid, 20).then(setMasteries).catch(() => {});
+        }
       }
-      const cfg = await loadSettings();
-      if (cfg?.puuid && cfg.apiKey) {
-        getTopMasteries(cfg, cfg.puuid, 20).then(setMasteries).catch(() => {});
-      }
+      const rank = await lcuRank();
+      if (rank) setCoachEloBucket(rank.tier);
     })();
   }, [lcuStatus.connected]);
 
@@ -215,6 +231,13 @@ function App() {
             Prefs
           </button>
           <button
+            onClick={() => setShowDiag(true)}
+            className="px-2 py-1 text-xs bg-bg-elev border border-border-subtle rounded hover:border-accent text-white/80"
+            title="Diagnóstico"
+          >
+            Diag
+          </button>
+          <button
             onClick={() => setShowSettings(true)}
             className="px-2 py-1 text-xs bg-bg-elev border border-border-subtle rounded hover:border-accent text-white/80"
           >
@@ -236,6 +259,8 @@ function App() {
           </select>
         </div>
       </header>
+
+      {gamePhase.phase === "InProgress" && <InGameTimers />}
 
       <div className="grid grid-cols-[2fr_320px] gap-4">
         <DraftBoard db={db} lcuConnected={lcuStatus.connected} />
@@ -271,6 +296,7 @@ function App() {
               enemyChampionIds={enemyChampionIds}
             />
           )}
+          <ChampionPoolPanel db={db} masteries={masteries} />
           <OwnMasteriesPanel
             db={db}
             masteries={masteries}
@@ -288,6 +314,7 @@ function App() {
         {showCoach && <CoachView db={db} onClose={() => setShowCoach(false)} />}
         {showTrends && <TrendsView db={db} onClose={() => setShowTrends(false)} />}
         {showPrefs && <PreferencesView onClose={() => setShowPrefs(false)} />}
+        {showDiag && <DiagnosticsView onClose={() => setShowDiag(false)} />}
         {!prefs.onboardingDone && (
           <OnboardingView
             onClose={() => usePrefsStore.getState().set("onboardingDone", true)}

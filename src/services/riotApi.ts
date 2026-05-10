@@ -82,13 +82,23 @@ class RateLimiter {
 // Personal-key default: 100 req / 2 min
 const limiter = new RateLimiter(95, 120_000);
 
-async function api<T>(url: string, key: string): Promise<T> {
+async function api<T>(url: string, key: string, attempt = 0): Promise<T> {
   await limiter.take();
-  const res = await httpFetch(url, { headers: { "X-Riot-Token": key.trim() } });
+  let res: Response;
+  try {
+    res = await httpFetch(url, { headers: { "X-Riot-Token": key.trim() } });
+  } catch (e) {
+    // Network-level error — retry up to 3 times with exponential backoff
+    if (attempt < 3) {
+      await new Promise((r) => setTimeout(r, 500 * 2 ** attempt));
+      return api(url, key, attempt + 1);
+    }
+    throw new Error(`Sin conexión a Riot API: ${String(e).slice(0, 100)}`);
+  }
   if (res.status === 429) {
     const retry = parseInt(res.headers.get("Retry-After") ?? "5", 10);
     await new Promise((r) => setTimeout(r, retry * 1000));
-    return api(url, key);
+    return api(url, key, attempt);
   }
   if (res.status === 401 || res.status === 403) {
     throw new Error(
@@ -97,6 +107,11 @@ async function api<T>(url: string, key: string): Promise<T> {
   }
   if (res.status === 404) {
     throw new Error(`Riot ID no encontrado en la región seleccionada.`);
+  }
+  if (res.status >= 500 && attempt < 3) {
+    // Server error — Riot occasionally has 503s, retry
+    await new Promise((r) => setTimeout(r, 1000 * 2 ** attempt));
+    return api(url, key, attempt + 1);
   }
   if (!res.ok) throw new Error(`Riot API ${res.status}: ${url}`);
   return res.json() as Promise<T>;
