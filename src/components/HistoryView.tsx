@@ -16,7 +16,7 @@ const QUEUE_TABS: Array<{ value: QueueFilter; label: string; ids?: number[] }> =
   { value: 420, label: "SoloQ", ids: [420] },
   { value: 440, label: "Flex", ids: [440] },
   { value: "NORMAL", label: "Normal", ids: [400, 430, 490] },
-  { value: 450, label: "ARAM", ids: [450] },
+  { value: 450, label: "ARAM", ids: [450, 720, 1300, 1900, 6000] },
   { value: "ALL", label: "Todas" },
 ];
 
