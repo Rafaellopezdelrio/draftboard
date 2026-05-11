@@ -29,7 +29,13 @@ const QUEUE_OPTIONS: Array<{ value: number | "ALL"; label: string }> = [
   { value: 440, label: "Ranked Flex" },
   { value: 400, label: "Normal Draft" },
   { value: 430, label: "Normal Blind" },
+  { value: 490, label: "Quickplay" },
   { value: 450, label: "ARAM" },
+  { value: 6000, label: "ARAM Chaos" },
+  { value: 1700, label: "Arena" },
+  { value: 900, label: "URF" },
+  { value: 1300, label: "Nexus Blitz" },
+  { value: 1400, label: "Spellbook" },
 ];
 
 export function TrendsView({ db, onClose }: Props) {

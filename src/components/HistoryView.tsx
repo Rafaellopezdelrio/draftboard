@@ -9,14 +9,22 @@ interface Props {
   onClose: () => void;
 }
 
-type QueueFilter = "ALL" | "RANKED" | "NORMAL" | "ARAM" | number;
+type QueueFilter = "ALL" | "RANKED" | "NORMAL" | "ARAM" | "ROTATION" | number;
 
+// Queue families. Each label maps to multiple queue IDs.
+// Source: https://static.developer.riotgames.com/docs/lol/queues.json
 const QUEUE_TABS: Array<{ value: QueueFilter; label: string; ids?: number[] }> = [
+  // Ranked SR
   { value: "RANKED", label: "Ranked", ids: [420, 440] },
   { value: 420, label: "SoloQ", ids: [420] },
   { value: 440, label: "Flex", ids: [440] },
+  // Normal SR
   { value: "NORMAL", label: "Normal", ids: [400, 430, 490] },
-  { value: 450, label: "ARAM", ids: [450, 720, 1300, 1900, 6000] },
+  // ARAM (Howling Abyss only)
+  { value: "ARAM", label: "ARAM", ids: [450, 720, 6000] },
+  // Special / rotating game modes
+  { value: "ROTATION", label: "Rotación", ids: [900, 1020, 1300, 1400, 1700, 1900] },
+  { value: 1700, label: "Arena", ids: [1700] },
   { value: "ALL", label: "Todas" },
 ];
 
