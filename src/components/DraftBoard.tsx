@@ -48,10 +48,10 @@ export function DraftBoard({ db, lcuConnected = false }: Props) {
       />
 
       {!lcuConnected && (
-        <div className="col-span-2 flex justify-end">
+        <div className="col-span-2 flex justify-center">
           <button
             onClick={reset}
-            className="text-xs text-white/40 hover:text-white/80 px-2 py-1 rounded transition"
+            className="text-sm text-white/60 hover:text-white px-4 py-1.5 rounded-md border border-border-subtle hover:border-accent/60 bg-bg-card/40 transition"
           >
             Reiniciar draft
           </button>
