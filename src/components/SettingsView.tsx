@@ -50,10 +50,29 @@ export function SettingsView({ onClose }: Props) {
   }, []);
 
   async function resyncAll() {
-    if (!confirm("Esto borra todas tus partidas guardadas y vuelve a descargar las 20 más recientes. ¿Seguir?")) return;
+    if (!confirm("Esto borra todas tus partidas guardadas y vuelve a descargar. ¿Seguir?")) return;
     setBusy(true);
-    setStatus("Borrando partidas viejas...");
+    setStatus("Guardando configuración...");
     try {
+      // Save current input values FIRST so sync uses the latest API key.
+      // If user just regenerated the key but didn't click "Guardar", resync
+      // would otherwise use the stale key from DB.
+      if (apiKey && riotIdName && riotIdTag) {
+        try {
+          const cfg = { apiKey, region, riotIdName, riotIdTag };
+          const account = await getAccount(cfg);
+          setPuuid(account.puuid);
+          await saveSettings({ ...cfg, puuid: account.puuid });
+        } catch (e) {
+          setStatus(`Error validando key: ${String(e)}`);
+          setBusy(false);
+          return;
+        }
+      } else if (apiKey) {
+        // API key changed but no Riot ID — just save the key
+        await saveSettings({ apiKey, region, riotIdName, riotIdTag, puuid });
+      }
+      setStatus("Borrando partidas viejas...");
       await clearAllMatches();
       const result = await syncPersonalData((p) =>
         setStatus(`${p.source}: ${p.message ?? `${p.done}/${p.total}`}`)
@@ -186,14 +205,21 @@ export function SettingsView({ onClose }: Props) {
                 placeholder="RGAPI-..."
                 className="w-full bg-bg px-3 py-2 rounded outline-none border border-border-subtle focus:border-accent text-white"
               />
-              <a
-                href="https://developer.riotgames.com/"
-                target="_blank"
-                className="text-xs text-accent/80 hover:text-accent"
-                rel="noreferrer"
-              >
-                Obtén tu key en developer.riotgames.com →
-              </a>
+              <div className="flex items-center justify-between gap-2">
+                <a
+                  href="https://developer.riotgames.com/"
+                  target="_blank"
+                  className="text-xs text-accent/80 hover:text-accent"
+                  rel="noreferrer"
+                >
+                  Obtén tu key en developer.riotgames.com →
+                </a>
+                {apiKey && (
+                  <span className="text-xs text-meh">
+                    ⚠️ Las dev keys caducan cada 24h
+                  </span>
+                )}
+              </div>
             </Field>
           </div>
         </details>
