@@ -32,12 +32,14 @@ interface SuggestParams {
   limit?: number;
 }
 
-const W_COUNTER = 0.3;
-const W_SYNERGY = 0.2;
-const W_META = 0.2;
-const W_ARCHETYPE = 0.1;
-const W_PERSONAL = 0.15;
-const W_MASTERY = 0.05;
+// Engine weights — re-balanced so champion mastery + personal winrate
+// have real impact (was 0.05/0.15 → too weak to surface mains).
+const W_COUNTER = 0.20;
+const W_SYNERGY = 0.10;
+const W_META = 0.20;
+const W_ARCHETYPE = 0.10;
+const W_PERSONAL = 0.20;
+const W_MASTERY = 0.20;
 
 export function suggest({
   db,
@@ -103,8 +105,9 @@ function scoreChampion(c: Champion, ctx: ScoreCtx): ScoredSuggestion {
     W_MASTERY * mastery;
 
   const reasons: string[] = [];
+  if (mastery >= 0.95) reasons.push(`tu main`);
+  else if (mastery > 0.75) reasons.push(`lo dominas`);
   if (personal > 0.6) reasons.push(`tu winrate ${(personal * 100).toFixed(0)}%`);
-  if (mastery > 0.7) reasons.push(`lo dominas`);
   if (counter > 0.55) reasons.push(`countra a enemigos`);
   if (synergy > 0.55) reasons.push(`sinergia con tu equipo`);
   if (meta > 0.55) reasons.push(`fuerte en el meta`);
@@ -136,11 +139,17 @@ function masteryScore(
   masteryById: Map<number, ChampionMasteryDto>
 ): number {
   const m = masteryById.get(championId);
-  if (!m) return 0.3;
-  if (m.championLevel >= 7) return 1;
-  if (m.championLevel >= 5) return 0.8;
-  if (m.championLevel >= 3) return 0.6;
-  return 0.4;
+  if (!m) return 0.2; // unknown champion → low signal (was 0.3, slightly more punishing)
+  // Combine level + points. M7+ with 100k+ = top one-trick territory.
+  let score = 0.4;
+  if (m.championLevel >= 10) score = 1.0;
+  else if (m.championLevel >= 7) score = 0.85;
+  else if (m.championLevel >= 5) score = 0.7;
+  else if (m.championLevel >= 3) score = 0.55;
+  // Bonus for high points (one-trick)
+  if (m.championPoints >= 200000) score = Math.min(1.0, score + 0.1);
+  else if (m.championPoints >= 100000) score = Math.min(1.0, score + 0.05);
+  return score;
 }
 
 function synergyScore(
