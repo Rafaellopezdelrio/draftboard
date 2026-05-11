@@ -32,23 +32,39 @@ export interface SyncResult {
 }
 
 /**
- * Pulls personal data with sensible fallbacks:
- * 1. If client open: LCU (no key required)
- * 2. Else if Riot API key saved: Riot API
- * 3. Else: nothing (user sees onboarding)
+ * Pulls personal data with sensible priorities:
+ * 1. If Riot API key configured: use Riot API (always fresh, authoritative,
+ *    has reliable teamPosition for modern season data).
+ * 2. Else if client open: use LCU (no key needed but may return stale cache).
+ * 3. Else: nothing (user sees onboarding).
+ *
+ * This order matters — LCU's local cache can be days out of date if the
+ * user hasn't opened their match history tab in the client. Riot API is the
+ * source of truth.
  */
 export async function syncPersonalData(
   onProgress: (p: SyncProgress) => void = () => {}
 ): Promise<SyncResult> {
-  // Try LCU first
-  const lcuMatchesResult = await tryLcuSync(onProgress);
-  if (lcuMatchesResult) return lcuMatchesResult;
-
-  // Fall back to Riot API
   const cfg = await loadSettings();
+
+  // 1. Prefer Riot API when key is available
   if (cfg?.apiKey && cfg.puuid) {
-    return riotApiSync(cfg, onProgress);
+    try {
+      return await riotApiSync(cfg, onProgress);
+    } catch (e) {
+      onProgress({
+        source: "Riot API",
+        done: 0,
+        total: 0,
+        message: `Riot API falló (${String(e).slice(0, 60)}), probando LCU...`,
+      });
+      // Fall through to LCU
+    }
   }
+
+  // 2. Try LCU
+  const lcuResult = await tryLcuSync(onProgress);
+  if (lcuResult) return lcuResult;
 
   onProgress({ source: "none", done: 0, total: 0, message: "No data source available" });
   return { matches: 0, masteries: 0, rank: null, source: "none" };
@@ -94,7 +110,7 @@ async function riotApiSync(
   onProgress: (p: SyncProgress) => void
 ): Promise<SyncResult> {
   onProgress({ source: "Riot API", done: 0, total: 1, message: "Listando partidas..." });
-  const ids = await getRecentMatchIds(cfg, cfg.puuid!, 20);
+  const ids = await getRecentMatchIds(cfg, cfg.puuid!, 50);
   const known = await existingMatchIds();
   const todo = ids.filter((id) => !known.has(id));
   let saved = 0;
