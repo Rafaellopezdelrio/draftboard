@@ -172,7 +172,7 @@ export function SettingsView({ onClose }: Props) {
       onClick={onClose}
     >
       <div
-        className="animate-[scaleIn_180ms_ease-out] bg-bg-elev border border-border-subtle rounded-lg p-6 w-[520px] space-y-3 max-h-[85vh] overflow-y-auto"
+        className="animate-[scaleIn_180ms_ease-out] glass border border-border-strong rounded-lg p-6 w-[520px] space-y-3 max-h-[85vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="text-lg font-semibold text-accent">Configuración</h2>

@@ -109,7 +109,7 @@ export function TrendsView({ db, onClose }: Props) {
       onClick={onClose}
     >
       <div
-        className="animate-[scaleIn_180ms_ease-out] bg-bg-elev border border-border-subtle rounded-lg p-4 w-[680px] max-h-[85vh] flex flex-col"
+        className="animate-[scaleIn_180ms_ease-out] glass border border-border-strong rounded-lg p-4 w-[680px] max-h-[85vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-baseline justify-between mb-3">

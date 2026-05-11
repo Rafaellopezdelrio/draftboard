@@ -101,7 +101,7 @@ export function HistoryView({ db, onClose }: Props) {
       onClick={onClose}
     >
       <div
-        className="animate-[scaleIn_180ms_ease-out] bg-bg-elev border border-border-subtle rounded-lg w-[820px] max-h-[88vh] flex flex-col"
+        className="animate-[scaleIn_180ms_ease-out] glass border border-border-strong rounded-lg w-[820px] max-h-[88vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}

@@ -45,7 +45,7 @@ export function ChampionPicker({
       onClick={onClose}
     >
       <div
-        className="animate-[scaleIn_180ms_ease-out] bg-bg-elev border border-border-subtle rounded-lg p-4 w-[680px] max-h-[80vh] flex flex-col"
+        className="animate-[scaleIn_180ms_ease-out] glass border border-border-strong rounded-lg p-4 w-[680px] max-h-[80vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex gap-2 mb-3">

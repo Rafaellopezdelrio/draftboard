@@ -28,7 +28,7 @@ export function CommandPalette({ commands, onClose }: Props) {
       onClick={onClose}
     >
       <div
-        className="animate-[scaleIn_180ms_ease-out] bg-bg-elev border border-border-subtle rounded-lg w-[520px] overflow-hidden"
+        className="animate-[scaleIn_180ms_ease-out] glass border border-border-strong rounded-lg w-[520px] overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         <input

@@ -102,7 +102,7 @@ export function AiChatView({ db, onClose }: Props) {
       onClick={onClose}
     >
       <div
-        className="animate-[scaleIn_180ms_ease-out] bg-bg-elev border border-border-subtle rounded-lg w-[680px] h-[80vh] flex flex-col"
+        className="animate-[scaleIn_180ms_ease-out] glass border border-border-strong rounded-lg w-[680px] h-[80vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-baseline justify-between p-4 border-b border-border-subtle">

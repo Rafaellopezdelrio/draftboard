@@ -14,6 +14,18 @@ import { DraftWinrateBadge } from "./components/DraftWinrateBadge";
 import { OwnMasteriesPanel } from "./components/OwnMasteriesPanel";
 import { PhaseTimer } from "./components/PhaseTimer";
 import { Toaster } from "./components/Toaster";
+import { Logo } from "./components/ui/Logo";
+import {
+  Sparkles,
+  GraduationCap,
+  TrendingUp,
+  History,
+  Activity,
+  SlidersHorizontal,
+  Wifi,
+  WifiOff,
+  Cog,
+} from "lucide-react";
 
 // Lazy-load all modals — only fetched when opened, keeps initial bundle smaller.
 const SettingsView = lazy(() =>
@@ -236,62 +248,39 @@ function App() {
 
   return (
     <main className="min-h-full p-4 space-y-4">
-      <header className="flex items-center justify-between flex-wrap gap-2">
-        <h1 className="text-xl font-bold text-accent">LoL Draft Advisor</h1>
-        <div className="flex items-center gap-2 flex-wrap">
-          <span
-            className={`text-xs px-2 py-1 rounded ${lcuStatus.connected ? "bg-good/20 text-good" : "bg-white/5 text-white/50"}`}
-            title={lcuStatus.reason ?? ""}
-          >
-            {lcuStatus.connected ? "Cliente conectado" : "Modo manual"}
-          </span>
-          {prefs.liveTimer && <PhaseTimer />}
-          <span className="text-xs text-white/40">Patch {db.patch}</span>
-          <button
-            onClick={() => setShowChat(true)}
-            className="px-2 py-1 text-xs bg-accent/10 border border-accent/40 rounded hover:bg-accent/20 text-accent"
-            title="Habla con AI Coach"
-          >
-            🤖 AI
-          </button>
-          <button
-            onClick={() => setShowCoach(true)}
-            className="px-2 py-1 text-xs bg-bg-elev border border-border-subtle rounded hover:border-accent text-white/80"
-          >
-            Coach
-          </button>
-          <button
-            onClick={() => setShowTrends(true)}
-            className="px-2 py-1 text-xs bg-bg-elev border border-border-subtle rounded hover:border-accent text-white/80"
-          >
-            Trends
-          </button>
-          <button
-            onClick={() => setShowHistory(true)}
-            className="px-2 py-1 text-xs bg-bg-elev border border-border-subtle rounded hover:border-accent text-white/80"
-          >
-            Historial
-          </button>
-          <button
-            onClick={() => setShowPrefs(true)}
-            className="px-2 py-1 text-xs bg-bg-elev border border-border-subtle rounded hover:border-accent text-white/80"
-            title="Preferencias"
-          >
-            Prefs
-          </button>
-          <button
-            onClick={() => setShowDiag(true)}
-            className="px-2 py-1 text-xs bg-bg-elev border border-border-subtle rounded hover:border-accent text-white/80"
-            title="Diagnóstico"
-          >
-            Diag
-          </button>
-          <button
-            onClick={() => setShowSettings(true)}
-            className="px-2 py-1 text-xs bg-bg-elev border border-border-subtle rounded hover:border-accent text-white/80"
-          >
-            ⚙
-          </button>
+      <header className="glass border border-border-subtle rounded-xl px-4 py-3 flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-center gap-4">
+          <Logo />
+          <div className="flex items-center gap-2">
+            <span
+              className={`inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded-md font-medium ${
+                lcuStatus.connected
+                  ? "bg-good/15 text-good ring-1 ring-good/40"
+                  : "bg-white/5 text-white/50 ring-1 ring-white/10"
+              }`}
+              title={lcuStatus.reason ?? ""}
+            >
+              {lcuStatus.connected ? (
+                <Wifi className="w-3 h-3" />
+              ) : (
+                <WifiOff className="w-3 h-3" />
+              )}
+              {lcuStatus.connected ? "Cliente conectado" : "Modo manual"}
+            </span>
+            {prefs.liveTimer && <PhaseTimer />}
+            <span className="text-[10px] uppercase tracking-widest text-white/40 font-medium">
+              Patch {db.patch}
+            </span>
+          </div>
+        </div>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <HeaderBtn onClick={() => setShowChat(true)} primary icon={<Sparkles className="w-3.5 h-3.5" />} label="AI Coach" />
+          <HeaderBtn onClick={() => setShowCoach(true)} icon={<GraduationCap className="w-3.5 h-3.5" />} label="Coach" />
+          <HeaderBtn onClick={() => setShowTrends(true)} icon={<TrendingUp className="w-3.5 h-3.5" />} label="Trends" />
+          <HeaderBtn onClick={() => setShowHistory(true)} icon={<History className="w-3.5 h-3.5" />} label="Historial" />
+          <HeaderBtn onClick={() => setShowPrefs(true)} icon={<SlidersHorizontal className="w-3.5 h-3.5" />} label="Prefs" />
+          <HeaderBtn onClick={() => setShowDiag(true)} icon={<Activity className="w-3.5 h-3.5" />} label="Diag" />
+          <HeaderBtn onClick={() => setShowSettings(true)} icon={<Cog className="w-3.5 h-3.5" />} label="" title="Configuración" />
           <select
             value={myRole ?? ""}
             onChange={(e) =>
@@ -394,6 +383,27 @@ function App() {
         />
       )}
     </main>
+  );
+}
+
+interface HeaderBtnProps {
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+  primary?: boolean;
+  title?: string;
+}
+
+function HeaderBtn({ onClick, icon, label, primary, title }: HeaderBtnProps) {
+  const base = "inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs rounded-md transition";
+  const styles = primary
+    ? "bg-gradient-to-br from-accent-soft/20 to-accent/15 text-accent ring-1 ring-accent/40 hover:ring-accent hover:from-accent-soft/30"
+    : "bg-bg-elev/60 text-white/75 ring-1 ring-border-subtle hover:ring-accent/60 hover:text-white";
+  return (
+    <button onClick={onClick} className={`${base} ${styles}`} title={title ?? label}>
+      {icon}
+      {label && <span className="font-medium">{label}</span>}
+    </button>
   );
 }
 
