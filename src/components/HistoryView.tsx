@@ -22,9 +22,10 @@ const QUEUE_TABS: Array<{ value: QueueFilter; label: string; ids?: number[] }> =
   { value: "NORMAL", label: "Normal", ids: [400, 430, 490] },
   // ARAM (Howling Abyss only)
   { value: "ARAM", label: "ARAM", ids: [450, 720, 6000] },
-  // Special / rotating game modes
-  { value: "ROTATION", label: "Rotación", ids: [900, 1020, 1300, 1400, 1700, 1900] },
+  // Arena (permanent 2v2v2v2 mode, separate tab)
   { value: 1700, label: "Arena", ids: [1700] },
+  // Rotating event modes only (URF / OFA / Nexus Blitz / Spellbook)
+  { value: "ROTATION", label: "Rotación", ids: [900, 1020, 1300, 1400, 1900] },
   { value: "ALL", label: "Todas" },
 ];
 
