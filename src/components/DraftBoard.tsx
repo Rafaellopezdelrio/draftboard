@@ -48,12 +48,14 @@ export function DraftBoard({ db, lcuConnected = false }: Props) {
       />
 
       {!lcuConnected && (
-        <button
-          onClick={reset}
-          className="col-span-2 bg-bg-card text-white/70 hover:text-white py-2 rounded text-sm border border-border-subtle"
-        >
-          Reiniciar draft
-        </button>
+        <div className="col-span-2 flex justify-end">
+          <button
+            onClick={reset}
+            className="text-xs text-white/40 hover:text-white/80 px-2 py-1 rounded transition"
+          >
+            Reiniciar draft
+          </button>
+        </div>
       )}
 
       {picker && (
