@@ -96,13 +96,26 @@ function scoreChampion(c: Champion, ctx: ScoreCtx): ScoredSuggestion {
   const personal = personalScore(champIdNum, ctx.personalById);
   const mastery = masteryScore(champIdNum, ctx.masteryById);
 
-  const score =
+  let score =
     W_COUNTER * counter +
     W_SYNERGY * synergy +
     W_META * meta +
     W_ARCHETYPE * archetype +
     W_PERSONAL * personal +
     W_MASTERY * mastery;
+
+  // "Main dominance" boost: a true one-trick (M10+ AND 100k+ pts AND personal WR≥50% if known)
+  // gets a flat +12% bump so it ranks above generic S-tier meta picks. This reflects
+  // what the user expects: "if I main this champion, suggest it first".
+  const masteryEntry = ctx.masteryById.get(Number(c.key));
+  const isOneTrick = masteryEntry &&
+    masteryEntry.championLevel >= 10 &&
+    masteryEntry.championPoints >= 100000;
+  const personalEntry = ctx.personalById.get(Number(c.key));
+  const personalNotBad = !personalEntry || personalEntry.winRate >= 0.45;
+  if (isOneTrick && personalNotBad) {
+    score += 0.12;
+  }
 
   const reasons: string[] = [];
   if (mastery >= 0.95) reasons.push(`tu main`);
