@@ -1,4 +1,5 @@
 import { usePrefsStore, type Preferences } from "../state/prefsStore";
+import { useEscape } from "../hooks/useKeyboardShortcuts";
 import {
   PROVIDER_LABELS,
   PROVIDER_SIGNUP_URLS,
@@ -131,6 +132,7 @@ const SECTIONS: Section[] = [
 ];
 
 export function PreferencesView({ onClose }: Props) {
+  useEscape(onClose);
   const { prefs, set, reset } = usePrefsStore();
 
   return (

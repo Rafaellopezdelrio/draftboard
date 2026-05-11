@@ -61,17 +61,32 @@ export async function lcuRecentMatches(
   );
   if (!meRes?.puuid) return [];
 
-  // Try the puuid-based endpoint first — this is more reliable and not cached.
-  let data = await lcuGet<LcuMatchHistoryResponse>(
-    `/lol-match-history/v1/products/lol/${meRes.puuid}/matches?begIndex=0&endIndex=${count}`
-  );
-  // Fallback to the legacy current-summoner endpoint if the puuid one fails.
-  if (!data?.games?.games) {
-    data = await lcuGet<LcuMatchHistoryResponse>(
+  // Try BOTH endpoints and merge — sometimes one returns more than the other.
+  const [a, b] = await Promise.all([
+    lcuGet<LcuMatchHistoryResponse>(
+      `/lol-match-history/v1/products/lol/${meRes.puuid}/matches?begIndex=0&endIndex=${count}`
+    ),
+    lcuGet<LcuMatchHistoryResponse>(
       `/lol-match-history/v1/products/lol/current-summoner/matches?begIndex=0&endIndex=${count}`
-    );
+    ),
+  ]);
+
+  const merged = new Map<number, NonNullable<LcuMatchHistoryResponse["games"]>["games"][number]>();
+  for (const r of [a, b]) {
+    if (!r?.games?.games) continue;
+    for (const g of r.games.games) {
+      if (!merged.has(g.gameId)) merged.set(g.gameId, g);
+    }
   }
-  if (!data?.games?.games) return [];
+  if (merged.size === 0) return [];
+
+  // Synthesize a fake response shape so the rest of the code below works
+  const data: LcuMatchHistoryResponse = {
+    games: { games: Array.from(merged.values()) },
+  };
+
+  // Sort by gameCreation desc to ensure newest first
+  data.games.games.sort((x, y) => y.gameCreation - x.gameCreation);
 
   const out: MatchSummary[] = [];
   for (const g of data.games.games) {

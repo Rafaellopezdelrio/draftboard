@@ -7,6 +7,7 @@ import {
 import type { ChampionDb, Role } from "../types/champion";
 import { usePrefsStore } from "../state/prefsStore";
 import { aiTrendsAnalysis } from "../services/aiCoach";
+import { useEscape } from "../hooks/useKeyboardShortcuts";
 
 interface Props {
   db: ChampionDb;
@@ -32,6 +33,7 @@ const QUEUE_OPTIONS: Array<{ value: number | "ALL"; label: string }> = [
 ];
 
 export function TrendsView({ db, onClose }: Props) {
+  useEscape(onClose);
   const [matches, setMatches] = useState<MatchRow[]>([]);
   const [role, setRole] = useState<Role | "ALL">("ALL");
   const [queue, setQueue] = useState<number | "ALL">("ALL");

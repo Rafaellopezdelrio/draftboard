@@ -3,6 +3,7 @@ import { getAccount, type Region } from "../services/riotApi";
 import { loadSettings, saveSettings } from "../services/settingsRepo";
 import { getCurrentSummoner } from "../services/lcuService";
 import { syncPersonalData } from "../services/personalDataSync";
+import { useEscape } from "../hooks/useKeyboardShortcuts";
 import { clearAllMatches } from "../services/matchRepo";
 import { aggregateFromProPlay } from "../services/proPlayAggregator";
 import { loadChampionDb } from "../services/championDb";
@@ -28,6 +29,7 @@ interface Props {
 }
 
 export function SettingsView({ onClose }: Props) {
+  useEscape(onClose);
   const [apiKey, setApiKey] = useState("");
   const [region, setRegion] = useState<Region>("euw1");
   const [riotIdName, setRiotIdName] = useState("");

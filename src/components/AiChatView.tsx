@@ -10,6 +10,7 @@ import {
   recentMatches,
 } from "../services/matchRepo";
 import { lcuMasteries, lcuRank } from "../services/lcuPersonalData";
+import { useEscape } from "../hooks/useKeyboardShortcuts";
 import type { ChampionDb } from "../types/champion";
 
 interface Props {
@@ -26,6 +27,7 @@ const SUGGESTED_PROMPTS = [
 ];
 
 export function AiChatView({ db, onClose }: Props) {
+  useEscape(onClose);
   const provider = usePrefsStore((s) => s.prefs.aiProvider);
   const apiKey = usePrefsStore((s) =>
     s.prefs.aiProvider === "groq"

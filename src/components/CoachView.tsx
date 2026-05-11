@@ -15,6 +15,7 @@ import { usePrefsStore } from "../state/prefsStore";
 import { aiCoachAnalysis } from "../services/aiCoach";
 import { queueLabel } from "../data/queueNames";
 import { lcuRank } from "../services/lcuPersonalData";
+import { useEscape } from "../hooks/useKeyboardShortcuts";
 
 interface Props {
   db: ChampionDb;
@@ -22,6 +23,7 @@ interface Props {
 }
 
 export function CoachView({ db, onClose }: Props) {
+  useEscape(onClose);
   const [matchId, setMatchId] = useState<string | null>(null);
   const [matchFull, setMatchFull] = useState<MatchFull | null>(null);
   const [matchTimeline, setMatchTimeline] = useState<MatchTimeline | null>(null);
