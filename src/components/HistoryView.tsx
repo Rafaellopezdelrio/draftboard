@@ -3,6 +3,9 @@ import { recentMatches, type MatchRow } from "../services/matchRepo";
 import type { ChampionDb, Role } from "../types/champion";
 import { queueLabel, isRelevantQueue } from "../data/queueNames";
 import { useEscape } from "../hooks/useKeyboardShortcuts";
+import { Tabs } from "./ui/Tabs";
+import { StatCard } from "./ui/StatCard";
+import { Flame, Snowflake, Search } from "lucide-react";
 
 interface Props {
   db: ChampionDb;
@@ -105,52 +108,45 @@ export function HistoryView({ db, onClose }: Props) {
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="px-4 pt-4 pb-3 border-b border-border-subtle">
-          <div className="flex items-baseline justify-between mb-3">
-            <h2 className="text-lg font-semibold text-accent">Historial</h2>
-            <input
-              value={championFilter}
-              onChange={(e) => setChampionFilter(e.target.value)}
-              placeholder="Filtrar por campeón..."
-              className="bg-bg px-3 py-1 text-sm rounded border border-border-subtle focus:border-accent text-white outline-none w-44"
-            />
+        <div className="px-5 pt-5 pb-2 border-b border-border-subtle">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-xl font-bold gold-text">Historial</h2>
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-white/40" />
+              <input
+                value={championFilter}
+                onChange={(e) => setChampionFilter(e.target.value)}
+                placeholder="Filtrar por campeón..."
+                className="bg-bg-elev/60 pl-8 pr-3 py-1.5 text-sm rounded-md ring-1 ring-border-subtle focus:ring-accent text-white outline-none w-52 transition"
+              />
+            </div>
           </div>
 
-          {/* Queue tabs */}
-          <div className="flex gap-1 mb-2">
-            {QUEUE_TABS.map((t) => (
-              <button
-                key={String(t.value)}
-                onClick={() => setQueueTab(t.value)}
-                className={`px-3 py-1 text-xs rounded border ${
-                  queueTab === t.value
-                    ? "border-accent bg-accent/15 text-accent"
-                    : "border-border-subtle text-white/70 hover:border-white/30"
-                }`}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
+          {/* Queue tabs (underline style) */}
+          <Tabs
+            tabs={QUEUE_TABS.map((t) => ({ value: t.value, label: t.label }))}
+            active={queueTab}
+            onChange={setQueueTab}
+          />
 
           {/* Role filter + noise toggle */}
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center justify-between gap-2 mt-2">
             <div className="flex gap-1 flex-wrap">
               {ROLE_TABS.map((r) => (
                 <button
                   key={r.value}
                   onClick={() => setRoleFilter(r.value)}
-                  className={`px-3 py-1 text-xs rounded border ${
+                  className={`px-2.5 py-1 text-[11px] uppercase tracking-wide rounded-md transition ${
                     roleFilter === r.value
-                      ? "border-accent/60 bg-accent/10 text-accent"
-                      : "border-border-subtle text-white/60 hover:border-white/30"
+                      ? "bg-accent/15 text-accent ring-1 ring-accent/40"
+                      : "text-white/55 hover:text-white/85"
                   }`}
                 >
                   {r.label}
                 </button>
               ))}
             </div>
-            <label className="flex items-center gap-1.5 text-xs text-white/60 cursor-pointer whitespace-nowrap">
+            <label className="flex items-center gap-1.5 text-[11px] text-white/60 cursor-pointer whitespace-nowrap">
               <input
                 type="checkbox"
                 checked={hideNoise}
@@ -166,23 +162,33 @@ export function HistoryView({ db, onClose }: Props) {
         </div>
 
         {/* Stats summary */}
-        <div className="px-4 py-2 grid grid-cols-4 gap-2 text-center bg-bg-card/50 border-b border-border-subtle">
-          <Stat label="Partidas" value={String(filtered.length)} />
-          <Stat
-            label="Winrate"
+        <div className="px-4 py-3 grid grid-cols-4 gap-2 bg-bg-card/30 border-b border-border-subtle">
+          <StatCard value={filtered.length} label="Partidas" />
+          <StatCard
             value={`${winRate.toFixed(0)}%`}
-            color={winRate >= 55 ? "good" : winRate >= 45 ? "neutral" : "bad"}
+            label="Winrate"
+            color={winRate >= 55 ? "good" : winRate >= 45 ? "default" : "bad"}
           />
-          <Stat label="KDA medio" value={avgKda.toFixed(2)} />
-          <Stat label="CS/min" value={avgCs.toFixed(1)} />
+          <StatCard value={avgKda.toFixed(2)} label="KDA medio" />
+          <StatCard value={avgCs.toFixed(1)} label="CS/min" />
         </div>
 
         {streakInfo && (
           <div
-            className={`px-4 py-2 text-xs ${streakInfo.win ? "text-good bg-good/5" : "text-bad bg-bad/5"} border-b border-border-subtle`}
+            className={`px-5 py-2 text-xs flex items-center gap-2 ${
+              streakInfo.win ? "text-good bg-good/5" : "text-bad bg-bad/5"
+            } border-b border-border-subtle`}
           >
-            {streakInfo.win ? "🔥 Racha victorias" : "❄️ Racha derrotas"}:{" "}
-            {streakInfo.count} consecutivas
+            {streakInfo.win ? (
+              <Flame className="w-3.5 h-3.5" />
+            ) : (
+              <Snowflake className="w-3.5 h-3.5" />
+            )}
+            <span className="font-medium">
+              Racha {streakInfo.win ? "victorias" : "derrotas"}:
+            </span>
+            <span className="font-bold tabular-nums">{streakInfo.count}</span>
+            <span>consecutivas</span>
           </div>
         )}
 
@@ -208,31 +214,6 @@ export function HistoryView({ db, onClose }: Props) {
   );
 }
 
-function Stat({
-  label,
-  value,
-  color = "neutral",
-}: {
-  label: string;
-  value: string;
-  color?: "good" | "neutral" | "bad";
-}) {
-  const c =
-    color === "good"
-      ? "text-good"
-      : color === "bad"
-        ? "text-bad"
-        : "text-white";
-  return (
-    <div>
-      <p className={`text-base font-semibold ${c}`}>{value}</p>
-      <p className="text-[10px] uppercase text-white/50 tracking-wide">
-        {label}
-      </p>
-    </div>
-  );
-}
-
 function MatchRowCard({ db, m }: { db: ChampionDb; m: MatchRow }) {
   const champ = db.champions[String(m.championId)];
   const opp = m.opponentChampionId
@@ -245,39 +226,50 @@ function MatchRowCard({ db, m }: { db: ChampionDb; m: MatchRow }) {
 
   return (
     <div
-      className={`flex items-center gap-3 p-2 rounded border ${m.win ? "border-good/40 bg-good/5" : "border-bad/40 bg-bad/5"}`}
+      className={`flex items-center gap-3 p-2 rounded-md ring-1 ${m.win ? "ring-good/30 bg-good/5 hover:bg-good/10" : "ring-bad/30 bg-bad/5 hover:bg-bad/10"} transition`}
     >
       <div
-        className={`w-1 h-12 rounded ${m.win ? "bg-good" : "bg-bad"}`}
+        className={`w-1 h-12 rounded-full ${m.win ? "bg-good" : "bg-bad"}`}
         aria-hidden
       />
       {champ && (
-        <img src={champ.iconUrl} alt={champ.name} className="w-12 h-12 rounded" />
+        <img
+          src={champ.iconUrl}
+          alt={champ.name}
+          className="w-12 h-12 rounded ring-1 ring-border-subtle"
+        />
       )}
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-white truncate">
           {champ?.name ?? `#${m.championId}`}
           {opp && (
-            <span className="text-white/50 text-xs">  vs {opp.name}</span>
+            <span className="text-white/45 text-xs ml-1">vs {opp.name}</span>
           )}
         </p>
-        <p className="text-xs text-white/50">
-          {m.position || "—"} · {queueLabel(m.queueId)} ·{" "}
-          {Math.round(m.durationSec / 60)}min · {ago}
+        <p className="text-xs text-white/50 truncate">
+          <span className="uppercase tracking-wide">{m.position || "—"}</span>
+          {" · "}
+          {queueLabel(m.queueId)} · {Math.round(m.durationSec / 60)}min · {ago}
         </p>
       </div>
       <div className="text-right">
-        <p className="text-sm text-white/80">
+        <p className="text-sm text-white/85 tabular-nums font-medium">
           {m.kills}/{m.deaths}/{m.assists}{" "}
-          <span className="text-white/50 text-xs">({kda})</span>
+          <span className="text-white/45 text-xs">({kda})</span>
         </p>
-        <p className="text-xs text-white/50">{cspm} CS/min · {m.cs} CS</p>
+        <p className="text-[11px] text-white/50 tabular-nums">
+          {cspm} cs/min · {m.cs} CS
+        </p>
       </div>
-      <p
-        className={`text-xs font-bold ml-2 ${m.win ? "text-good" : "text-bad"}`}
+      <span
+        className={`text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded ml-1 ${
+          m.win
+            ? "bg-good/15 text-good ring-1 ring-good/40"
+            : "bg-bad/15 text-bad ring-1 ring-bad/40"
+        }`}
       >
-        {m.win ? "W" : "L"}
-      </p>
+        {m.win ? "Win" : "Loss"}
+      </span>
     </div>
   );
 }

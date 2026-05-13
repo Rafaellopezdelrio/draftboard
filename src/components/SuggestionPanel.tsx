@@ -2,6 +2,7 @@ import { memo } from "react";
 import type { ScoredSuggestion } from "../engine/suggestionEngine";
 import { usePrefsStore } from "../state/prefsStore";
 import { CountUp } from "./ui/CountUp";
+import { GradeBadge } from "./ui/GradeBadge";
 import { Crown, Sword, Heart, Trophy, AlertTriangle } from "lucide-react";
 
 interface Props {
@@ -95,12 +96,10 @@ function PickHero({ suggestion: s, beginner }: { suggestion: ScoredSuggestion; b
             {s.reasons.slice(0, 2).join(" · ") || "pick sólido"}
           </p>
         </div>
-        <div className="text-right">
-          <p className="text-3xl font-bold gold-text leading-none">
+        <div className="flex flex-col items-center gap-1">
+          <GradeBadge score={s.score} size="lg" />
+          <p className="text-[10px] tabular-nums font-semibold text-white/60 leading-none">
             <CountUp value={s.score * 100} />
-          </p>
-          <p className="text-[9px] uppercase tracking-widest text-white/40 mt-1">
-            score
           </p>
         </div>
       </div>
@@ -133,9 +132,7 @@ function PickRow({ suggestion: s, beginner }: { suggestion: ScoredSuggestion; be
           {s.reasons[0] ?? "pick decente"}
         </p>
       </div>
-      <span className="text-sm font-semibold text-white/70 tabular-nums">
-        {(s.score * 100).toFixed(0)}
-      </span>
+      <GradeBadge score={s.score} size="sm" />
       {beginner && <BreakdownBars s={s} compact />}
     </div>
   );
