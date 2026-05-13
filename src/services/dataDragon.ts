@@ -65,6 +65,61 @@ function inferRoles(tags: string[]): Role[] {
   return roles.size ? Array.from(roles) : ["MIDDLE"];
 }
 
+export interface ChampionDetail {
+  id: string;
+  name: string;
+  title: string;
+  lore: string;
+  tags: string[];
+  passive: { name: string; description: string };
+  spells: Array<{
+    id: string;
+    name: string;
+    description: string;
+    cooldown: number[];
+    cost: number[];
+    range: number[];
+    image: { full: string };
+  }>;
+  info: { attack: number; defense: number; magic: number; difficulty: number };
+}
+
+interface DDragonChampionDetailResponse {
+  data: Record<string, ChampionDetail>;
+}
+
+const DETAIL_CACHE = new Map<string, ChampionDetail>();
+
+export async function fetchChampionDetail(
+  patch: string,
+  championId: string,
+  locale = "es_ES"
+): Promise<ChampionDetail | null> {
+  const cacheKey = `${patch}:${championId}`;
+  const hit = DETAIL_CACHE.get(cacheKey);
+  if (hit) return hit;
+  const url = `https://ddragon.leagueoflegends.com/cdn/${patch}/data/${locale}/champion/${championId}.json`;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) {
+      // Fallback to en_US if Spanish not available for this champion
+      const fallbackUrl = `https://ddragon.leagueoflegends.com/cdn/${patch}/data/en_US/champion/${championId}.json`;
+      const fb = await fetch(fallbackUrl);
+      if (!fb.ok) return null;
+      const j = (await fb.json()) as DDragonChampionDetailResponse;
+      const detail = j.data[championId];
+      if (detail) DETAIL_CACHE.set(cacheKey, detail);
+      return detail ?? null;
+    }
+    const j = (await res.json()) as DDragonChampionDetailResponse;
+    const detail = j.data[championId];
+    if (detail) DETAIL_CACHE.set(cacheKey, detail);
+    return detail ?? null;
+  } catch {
+    return null;
+  }
+}
+
 function inferArchetypes(tags: string[]): import("../types/champion").Archetype[] {
   const out: import("../types/champion").Archetype[] = [];
   if (tags.includes("Tank")) out.push("frontline", "engage");

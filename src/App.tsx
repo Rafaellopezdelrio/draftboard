@@ -25,6 +25,8 @@ import {
   Wifi,
   WifiOff,
   Cog,
+  Trophy,
+  UserSearch,
 } from "lucide-react";
 
 // Lazy-load all modals — only fetched when opened, keeps initial bundle smaller.
@@ -61,6 +63,19 @@ const AiChatView = lazy(() =>
 const DataPrivacyView = lazy(() =>
   import("./components/DataPrivacyView").then((m) => ({
     default: m.DataPrivacyView,
+  }))
+);
+const TierListView = lazy(() =>
+  import("./components/TierListView").then((m) => ({ default: m.TierListView }))
+);
+const ChampionGuideView = lazy(() =>
+  import("./components/ChampionGuideView").then((m) => ({
+    default: m.ChampionGuideView,
+  }))
+);
+const SummonerLookupView = lazy(() =>
+  import("./components/SummonerLookupView").then((m) => ({
+    default: m.SummonerLookupView,
   }))
 );
 import { BanSuggestionsPanel } from "./components/BanSuggestionsPanel";
@@ -111,6 +126,9 @@ function App() {
   const [showChat, setShowChat] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showPalette, setShowPalette] = useState(false);
+  const [showTierList, setShowTierList] = useState(false);
+  const [showLookup, setShowLookup] = useState(false);
+  const [guideChampionKey, setGuideChampionKey] = useState<string | null>(null);
   const [personalStats, setPersonalStats] = useState<ChampionPersonalStat[]>([]);
   const [masteries, setMasteries] = useState<ChampionMasteryDto[]>([]);
   const gamePhase = useGamePhase();
@@ -134,6 +152,8 @@ function App() {
   useEscape(() => setShowPalette(false), showPalette);
 
   const commands: Command[] = [
+    { id: "tier", label: "Tier List", action: () => setShowTierList(true) },
+    { id: "lookup", label: "Buscar jugador (Riot ID)", action: () => setShowLookup(true) },
     { id: "coach", label: "Abrir Coach (post-game)", action: () => setShowCoach(true) },
     { id: "chat", label: "Hablar con AI Coach", action: () => setShowChat(true) },
     { id: "trends", label: "Ver tendencias", action: () => setShowTrends(true) },
@@ -275,6 +295,8 @@ function App() {
         </div>
         <div className="flex items-center gap-1.5 flex-wrap">
           <HeaderBtn onClick={() => setShowChat(true)} primary icon={<Sparkles className="w-3.5 h-3.5" />} label="AI Coach" />
+          <HeaderBtn onClick={() => setShowTierList(true)} icon={<Trophy className="w-3.5 h-3.5" />} label="Tier List" />
+          <HeaderBtn onClick={() => setShowLookup(true)} icon={<UserSearch className="w-3.5 h-3.5" />} label="Buscar" />
           <HeaderBtn onClick={() => setShowCoach(true)} icon={<GraduationCap className="w-3.5 h-3.5" />} label="Coach" />
           <HeaderBtn onClick={() => setShowTrends(true)} icon={<TrendingUp className="w-3.5 h-3.5" />} label="Trends" />
           <HeaderBtn onClick={() => setShowHistory(true)} icon={<History className="w-3.5 h-3.5" />} label="Historial" />
@@ -369,6 +391,26 @@ function App() {
         {showChat && <AiChatView db={db} onClose={() => setShowChat(false)} />}
         {showPrivacy && (
           <DataPrivacyView onClose={() => setShowPrivacy(false)} />
+        )}
+        {showTierList && (
+          <TierListView
+            db={db}
+            onClose={() => setShowTierList(false)}
+            onSelectChampion={(k) => {
+              setShowTierList(false);
+              setGuideChampionKey(k);
+            }}
+          />
+        )}
+        {showLookup && (
+          <SummonerLookupView db={db} onClose={() => setShowLookup(false)} />
+        )}
+        {guideChampionKey && (
+          <ChampionGuideView
+            db={db}
+            championKey={guideChampionKey}
+            onClose={() => setGuideChampionKey(null)}
+          />
         )}
         {!prefs.onboardingDone && (
           <OnboardingView
