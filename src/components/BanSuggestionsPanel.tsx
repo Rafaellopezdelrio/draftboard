@@ -5,6 +5,8 @@ import {
   type PersonalMatchupStat,
 } from "../services/matchRepo";
 import { suggestBans, type BanSuggestion } from "../engine/banEngine";
+import { Panel, PanelHeader } from "./ui/Panel";
+import { Ban } from "lucide-react";
 
 interface Props {
   db: ChampionDb;
@@ -31,12 +33,12 @@ export function BanSuggestionsPanel({
 
   if (!role) {
     return (
-      <div className="space-y-2">
-        <h3 className="text-sm uppercase tracking-wide text-white/50">
-          Bans sugeridos
-        </h3>
-        <p className="text-xs text-white/40">Selecciona tu rol para ver bans.</p>
-      </div>
+      <Panel padding="sm">
+        <PanelHeader icon={<Ban className="w-3 h-3" />} title="Bans sugeridos" />
+        <p className="text-[11px] text-white/40 italic">
+          Selecciona tu rol para ver bans.
+        </p>
+      </Panel>
     );
   }
 
@@ -50,43 +52,58 @@ export function BanSuggestionsPanel({
   });
 
   return (
-    <div className="space-y-2">
-      <h3 className="text-sm uppercase tracking-wide text-white/50">
-        Bans sugeridos · {role}
-      </h3>
+    <Panel padding="sm">
+      <PanelHeader
+        icon={<Ban className="w-3 h-3" />}
+        title="Bans sugeridos"
+        subtitle={role}
+      />
       {suggestions.length === 0 ? (
-        <p className="text-xs text-white/40">
+        <p className="text-[11px] text-white/40 italic">
           Sin datos suficientes en {role} aún.
         </p>
       ) : (
-        suggestions.map((s) => <BanCard key={s.championKey} s={s} />)
+        <div className="space-y-1.5">
+          {suggestions.map((s) => (
+            <BanCard key={s.championKey} s={s} />
+          ))}
+        </div>
       )}
-    </div>
+    </Panel>
   );
 }
 
 function BanCard({ s }: { s: BanSuggestion }) {
   const colors = {
-    high: "border-bad/60 bg-bad/10",
-    medium: "border-meh/60 bg-meh/10",
-    low: "border-border-subtle bg-bg-card",
+    high: "ring-bad/50 bg-bad/5",
+    medium: "ring-meh/50 bg-meh/5",
+    low: "ring-border-subtle bg-bg-card/50",
   };
   const tagColors = {
-    personal: "text-bad",
-    global: "text-meh",
-    blend: "text-accent",
+    personal: "bg-bad/15 text-bad ring-bad/30",
+    global: "bg-meh/15 text-meh ring-meh/30",
+    blend: "bg-accent/15 text-accent ring-accent/30",
   };
   return (
-    <div className={`flex items-center gap-2 p-2 rounded border ${colors[s.severity]}`}>
-      <img src={s.iconUrl} alt={s.championName} className="w-9 h-9 rounded grayscale" />
+    <div
+      className={`flex items-center gap-2 p-2 rounded ring-1 ${colors[s.severity]}`}
+    >
+      <div className="relative">
+        <img
+          src={s.iconUrl}
+          alt={s.championName}
+          className="w-8 h-8 rounded grayscale"
+        />
+        <Ban className="absolute inset-0 m-auto w-4 h-4 text-bad/80 opacity-90" />
+      </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm text-white">{s.championName}</p>
-        <p className="text-xs text-white/70">{s.reason}</p>
+        <p className="text-xs text-white font-medium truncate">{s.championName}</p>
+        <p className="text-[11px] text-white/65 truncate">{s.reason}</p>
       </div>
       <span
-        className={`text-[10px] uppercase ${tagColors[s.source]} font-medium`}
+        className={`text-[9px] uppercase tracking-widest font-bold px-1.5 py-0.5 rounded ring-1 ${tagColors[s.source]}`}
       >
-        {s.source === "personal" ? "tu" : "meta"}
+        {s.source === "personal" ? "tú" : "meta"}
       </span>
     </div>
   );

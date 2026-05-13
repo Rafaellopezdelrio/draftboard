@@ -11,6 +11,8 @@ import {
   analyzeChampionPool,
   type ChampionPoolInsight,
 } from "../engine/championPoolEngine";
+import { Panel, PanelHeader } from "./ui/Panel";
+import { Layers } from "lucide-react";
 
 interface Props {
   db: ChampionDb;
@@ -35,34 +37,32 @@ export function ChampionPoolPanel({ db, masteries }: Props) {
   if (insights.length === 0) return null;
 
   return (
-    <div className="space-y-2">
-      <h3 className="text-sm uppercase tracking-wide text-white/50">
-        Tu pool
-      </h3>
+    <Panel padding="sm">
+      <PanelHeader icon={<Layers className="w-3 h-3" />} title="Tu pool" />
       <div className="space-y-1">
         {insights.map((ins, i) => {
           const c = db.champions[String(ins.championId)];
           if (!c) return null;
           const colors = {
-            good: "border-good/40 bg-good/10",
-            warn: "border-meh/40 bg-meh/10",
-            bad: "border-bad/40 bg-bad/10",
-            info: "border-border-subtle bg-bg-card",
+            good: "ring-good/30 bg-good/5",
+            warn: "ring-meh/30 bg-meh/5",
+            bad: "ring-bad/30 bg-bad/5",
+            info: "ring-border-subtle bg-bg-card/60",
           };
           return (
             <div
               key={i}
-              className={`flex items-center gap-2 p-2 rounded border text-xs ${colors[ins.severity]}`}
+              className={`flex items-center gap-2 p-2 rounded ring-1 text-xs ${colors[ins.severity]}`}
             >
               <img src={c.iconUrl} alt={c.name} className="w-7 h-7 rounded" />
-              <div className="flex-1">
-                <p className="text-white font-medium">{c.name}</p>
-                <p className="text-white/70">{ins.message}</p>
+              <div className="flex-1 min-w-0">
+                <p className="text-white font-medium truncate">{c.name}</p>
+                <p className="text-white/65 text-[11px] truncate">{ins.message}</p>
               </div>
             </div>
           );
         })}
       </div>
-    </div>
+    </Panel>
   );
 }

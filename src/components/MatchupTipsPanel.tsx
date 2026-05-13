@@ -2,6 +2,8 @@ import { useMemo } from "react";
 import type { ChampionDb } from "../types/champion";
 import { getMatchupTips } from "../data/matchupTips";
 import { usePrefsStore } from "../state/prefsStore";
+import { Panel, PanelHeader } from "./ui/Panel";
+import { Lightbulb } from "lucide-react";
 
 interface Props {
   db: ChampionDb;
@@ -18,23 +20,29 @@ export function MatchupTipsPanel({ db, enemyKeys }: Props) {
   const tips = getMatchupTips(undefined, enemyKeys, idToName);
   if (tips.length === 0) return null;
 
-  // Show top 3 unless beginner mode (then show all)
   const visible = beginner ? tips : tips.slice(0, 3);
 
   return (
-    <div className="space-y-2">
-      <h3 className="text-sm uppercase tracking-wide text-white/50">
-        Tips de matchup
-      </h3>
-      {visible.map((t, i) => (
-        <div
-          key={i}
-          className="p-2 rounded bg-bg-card border border-border-subtle"
-        >
-          <p className="text-xs uppercase text-accent">vs {t.versus}</p>
-          <p className="text-sm text-white/85">{t.tip}</p>
-        </div>
-      ))}
-    </div>
+    <Panel padding="sm">
+      <PanelHeader
+        icon={<Lightbulb className="w-3 h-3" />}
+        title="Tips de matchup"
+      />
+      <div className="space-y-1.5">
+        {visible.map((t, i) => (
+          <div
+            key={i}
+            className="p-2 rounded ring-1 ring-border-subtle bg-bg-card/60"
+          >
+            <p className="text-[10px] uppercase tracking-widest text-accent font-semibold">
+              vs {t.versus}
+            </p>
+            <p className="text-xs text-white/85 mt-0.5 leading-relaxed">
+              {t.tip}
+            </p>
+          </div>
+        ))}
+      </div>
+    </Panel>
   );
 }

@@ -6,6 +6,9 @@ import { loadSettings } from "../services/settingsRepo";
 import { usePrefsStore } from "../state/prefsStore";
 import { toast } from "./Toaster";
 import { voiceCoach } from "../services/voiceCoach";
+import { Panel, PanelHeader } from "./ui/Panel";
+import { RankBadge } from "./ui/RankBadge";
+import { Eye, Flame, Snowflake, Crown, Target, AlertTriangle } from "lucide-react";
 
 interface Props {
   db: ChampionDb;
@@ -87,36 +90,45 @@ export function EnemyScoutPanel({
 
   if (enemySummonerIds.every((s) => s <= 0)) return null;
 
+  const filledCount = enemySummonerIds.filter((s) => s > 0).length;
+
   return (
-    <div className="space-y-2">
-      <h3 className="text-sm uppercase tracking-wide text-white/50">
-        Scout enemigos
-      </h3>
-      {enemySummonerIds.map((sid, i) => {
-        if (sid <= 0)
-          return (
-            <p key={i} className="text-xs text-white/30">
-              Slot {i + 1} vacío
-            </p>
-          );
-        const r = scouts[sid];
-        if (r === "loading" || !r)
-          return (
-            <p key={sid} className="text-xs text-white/40">
-              Scout slot {i + 1}...
-            </p>
-          );
-        if (r === "error")
-          return (
-            <p key={sid} className="text-xs text-bad">
-              Slot {i + 1}: sin datos
-            </p>
-          );
-        return (
-          <ScoutCard key={sid} db={db} r={r} highlightHot={notifyHot} />
-        );
-      })}
-    </div>
+    <Panel padding="sm">
+      <PanelHeader
+        icon={<Eye className="w-3 h-3" />}
+        title="Scout enemigos"
+        action={
+          <span className="text-[10px] tabular-nums text-white/40">
+            {filledCount}/5
+          </span>
+        }
+      />
+      <div className="space-y-1.5">
+        {enemySummonerIds.map((sid, i) => {
+          if (sid <= 0)
+            return (
+              <p key={i} className="text-[11px] text-white/25 italic px-1">
+                Slot {i + 1} vacío
+              </p>
+            );
+          const r = scouts[sid];
+          if (r === "loading" || !r)
+            return (
+              <div key={sid} className="text-[11px] text-white/40 px-1 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-accent/40 animate-pulse" />
+                Scout slot {i + 1}...
+              </div>
+            );
+          if (r === "error")
+            return (
+              <p key={sid} className="text-[11px] text-bad px-1">
+                Slot {i + 1}: sin datos
+              </p>
+            );
+          return <ScoutCard key={sid} db={db} r={r} highlightHot={notifyHot} />;
+        })}
+      </div>
+    </Panel>
   );
 }
 
@@ -143,48 +155,63 @@ function ScoutCard({
   const isMain = pm && r.mainChampionId === pm.championId;
   const oneTrick = pm && pm.points > 200000;
 
+  // Extract tier from rank string like "GOLD II"
+  const rankParts = r.rank?.split(" ") ?? [];
+  const tier = rankParts[0];
+  const division = rankParts[1];
+
   return (
-    <div className="p-2 rounded border border-border-subtle bg-bg-card">
+    <div className="p-2 rounded-md ring-1 ring-border-subtle bg-bg-card/60 hover:bg-bg-card transition">
       <div className="flex items-center gap-2">
-        {main && (
+        {main ? (
           <img
             src={main.iconUrl}
             alt={main.name}
-            className="w-9 h-9 rounded"
+            className="w-9 h-9 rounded ring-1 ring-border-strong"
             title={`Main: ${main.name}`}
           />
+        ) : (
+          <div className="w-9 h-9 rounded bg-bg-elev" />
         )}
-        <div className="flex-1 min-w-0">
-          <p className="text-sm text-white truncate">
-            {r.rank ? `${r.rank} · ${r.lp}LP` : "Sin rango"}
-          </p>
-          <p className="text-xs text-white/60">
-            {recent ? `Spam: ${recent.name}` : "—"}
-          </p>
+        <div className="flex-1 min-w-0 space-y-0.5">
+          <RankBadge tier={tier} division={division} lp={r.lp ?? undefined} size="sm" />
+          {recent && (
+            <p className="text-[11px] text-white/60 truncate">
+              Spam: <span className="text-white/80">{recent.name}</span>
+            </p>
+          )}
         </div>
         <div className="text-right">
-          <p className={`text-sm font-bold ${wrColor}`}>{wr.toFixed(0)}%</p>
-          <p className="text-xs text-white/40">
-            {r.recentWins}W {r.recentLosses}L
+          <p className={`text-sm font-bold tabular-nums ${wrColor}`}>
+            {wr.toFixed(0)}%
+          </p>
+          <p className="text-[10px] text-white/40 tabular-nums">
+            {r.recentWins}W·{r.recentLosses}L
           </p>
         </div>
       </div>
 
       {pickedChamp && pm && (
-        <div className="mt-2 flex items-center gap-2 text-xs">
-          <img src={pickedChamp.iconUrl} alt="" className="w-5 h-5 rounded" />
-          <span className="text-white/70">
-            Maestría {pm.level} ({Math.round(pm.points / 1000)}k pts)
+        <div className="mt-1.5 flex items-center gap-1.5 text-[11px]">
+          <img src={pickedChamp.iconUrl} alt="" className="w-4 h-4 rounded" />
+          <span className="text-white/65">
+            M{pm.level} · {Math.round(pm.points / 1000)}k
           </span>
-          {isMain && <span className="text-bad font-medium">⚠️ es su main</span>}
+          {isMain && (
+            <span className="inline-flex items-center gap-0.5 text-bad font-medium">
+              <Crown className="w-3 h-3" /> main
+            </span>
+          )}
           {oneTrick && (
-            <span className="text-bad font-medium">🎯 one-trick</span>
+            <span className="inline-flex items-center gap-0.5 text-bad font-medium">
+              <Target className="w-3 h-3" /> one-trick
+            </span>
           )}
         </div>
       )}
 
       {r.topMasteries.length > 0 && (
-        <div className="flex gap-1 mt-2">
+        <div className="flex gap-1 mt-1.5">
           {r.topMasteries.slice(0, 5).map((m) => {
             const c = db.champions[String(m.championId)];
             return (
@@ -193,7 +220,7 @@ function ScoutCard({
                 src={c?.iconUrl}
                 alt={c?.name}
                 title={`${c?.name} · M${m.level} · ${Math.round(m.points / 1000)}k`}
-                className="w-5 h-5 rounded opacity-80"
+                className="w-5 h-5 rounded opacity-70 hover:opacity-100 transition"
               />
             );
           })}
@@ -201,12 +228,25 @@ function ScoutCard({
       )}
 
       {(r.hotStreak || r.coldStreak) && highlightHot && (
-        <p
-          className={`text-xs mt-1 ${r.hotStreak ? "text-bad" : "text-good"}`}
+        <div
+          className={`flex items-center gap-1 text-[11px] mt-1.5 font-medium ${
+            r.hotStreak ? "text-bad" : "text-good"
+          }`}
         >
-          {r.hotStreak ? "🔥 En racha" : "❄️ En coldstreak"}
-        </p>
+          {r.hotStreak ? (
+            <>
+              <Flame className="w-3 h-3" /> en racha
+            </>
+          ) : (
+            <>
+              <Snowflake className="w-3 h-3" /> coldstreak
+            </>
+          )}
+        </div>
       )}
     </div>
   );
 }
+
+// keep AlertTriangle import used (referenced in toast warnings elsewhere)
+void AlertTriangle;

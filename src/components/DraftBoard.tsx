@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { ChampionDb } from "../types/champion";
 import { useDraftStore, type Side } from "../state/draftStore";
 import { ChampionPicker } from "./ChampionPicker";
+import { Plus, Ban, Shield, Swords, RotateCcw } from "lucide-react";
 
 interface Props {
   db: ChampionDb;
@@ -24,8 +25,10 @@ export function DraftBoard({ db, lcuConnected = false }: Props) {
     ...bans.enemy,
   ].filter((x): x is string => Boolean(x));
 
+  const hasAnyPick = ally.some((s) => s.championKey) || enemy.some((s) => s.championKey) || bans.ally.length > 0 || bans.enemy.length > 0;
+
   return (
-    <div className="grid grid-cols-2 gap-4">
+    <div className="grid grid-cols-2 gap-3">
       <SideColumn
         title="Tu equipo"
         side="ally"
@@ -47,12 +50,13 @@ export function DraftBoard({ db, lcuConnected = false }: Props) {
         onBanClick={(i) => setPicker({ kind: "ban", side: "enemy", index: i })}
       />
 
-      {!lcuConnected && (
-        <div className="col-span-2 flex justify-center">
+      {!lcuConnected && hasAnyPick && (
+        <div className="col-span-2 flex justify-center pt-1">
           <button
             onClick={reset}
-            className="text-sm text-white/60 hover:text-white px-4 py-1.5 rounded-md border border-border-subtle hover:border-accent/60 bg-bg-card/40 transition"
+            className="inline-flex items-center gap-1.5 text-xs text-white/55 hover:text-white px-3 py-1.5 rounded-md ring-1 ring-border-subtle hover:ring-bad/50 hover:bg-bad/5 transition"
           >
+            <RotateCcw className="w-3 h-3" />
             Reiniciar draft
           </button>
         </div>
@@ -86,16 +90,31 @@ interface SideColumnProps {
 
 function SideColumn({
   title,
+  side,
   slots,
   bans,
   db,
   onPickClick,
   onBanClick,
 }: SideColumnProps) {
+  const isAlly = side === "ally";
+  const accentRing = isAlly ? "ring-accent/30" : "ring-bad/30";
+  const accentText = isAlly ? "text-accent" : "text-bad";
   return (
     <div className="space-y-2">
-      <h3 className="text-sm uppercase tracking-wide text-white/50">{title}</h3>
-      <div className="flex gap-1">
+      <div className="flex items-center gap-1.5 px-1">
+        {isAlly ? (
+          <Shield className={`w-3.5 h-3.5 ${accentText}`} />
+        ) : (
+          <Swords className={`w-3.5 h-3.5 ${accentText}`} />
+        )}
+        <h3 className={`text-[11px] uppercase tracking-widest font-semibold ${accentText}`}>
+          {title}
+        </h3>
+      </div>
+
+      {/* Bans row */}
+      <div className="flex gap-1 px-1">
         {Array.from({ length: 5 }).map((_, i) => {
           const key = bans[i];
           const champ = key ? db.champions[key] : null;
@@ -103,38 +122,66 @@ function SideColumn({
             <button
               key={i}
               onClick={() => onBanClick(i)}
-              className="w-8 h-8 rounded-full bg-bg-card border border-border-subtle overflow-hidden grayscale opacity-70 hover:opacity-100"
+              className="relative w-7 h-7 rounded-full bg-bg-card ring-1 ring-border-subtle overflow-hidden hover:ring-bad/60 transition"
               title={champ?.name ?? `Ban ${i + 1}`}
             >
               {champ ? (
-                <img src={champ.iconUrl} alt={champ.name} className="w-full h-full" />
+                <>
+                  <img
+                    src={champ.iconUrl}
+                    alt={champ.name}
+                    className="w-full h-full grayscale opacity-70"
+                  />
+                  <Ban className="absolute inset-0 m-auto w-3.5 h-3.5 text-bad/90" />
+                </>
               ) : (
-                <span className="text-xs text-white/30">✕</span>
+                <Ban className="w-3 h-3 text-white/20 m-auto" />
               )}
             </button>
           );
         })}
       </div>
-      <div className="space-y-2">
+
+      {/* Pick slots */}
+      <div className="space-y-1.5">
         {slots.map((slot) => {
           const champ = slot.championKey ? db.champions[slot.championKey] : null;
           return (
             <button
               key={slot.index}
               onClick={() => onPickClick(slot.index)}
-              className="w-full flex items-center gap-3 bg-bg-card hover:bg-bg-elev border border-border-subtle rounded p-2 transition"
+              className={`w-full flex items-center gap-2.5 bg-bg-card/60 hover:bg-bg-card ring-1 ${
+                champ ? accentRing : "ring-border-subtle"
+              } hover:ring-accent/50 rounded-md p-2 transition group`}
             >
-              <div className="w-12 h-12 rounded bg-bg overflow-hidden border border-border-subtle">
-                {champ && (
-                  <img src={champ.iconUrl} alt={champ.name} className="w-full h-full" />
+              <div className="w-11 h-11 rounded bg-bg-elev overflow-hidden ring-1 ring-border-subtle group-hover:ring-accent/40 flex items-center justify-center transition">
+                {champ ? (
+                  <img
+                    src={champ.iconUrl}
+                    alt={champ.name}
+                    className="w-full h-full"
+                  />
+                ) : (
+                  <Plus className="w-4 h-4 text-white/25" />
                 )}
               </div>
-              <div className="text-left flex-1">
-                <p className="text-sm text-white">
-                  {champ ? champ.name : `Slot ${slot.index + 1}`}
-                </p>
-                {champ && (
-                  <p className="text-xs text-white/50">{champ.title}</p>
+              <div className="text-left flex-1 min-w-0">
+                {champ ? (
+                  <>
+                    <p className="text-sm text-white font-medium truncate">
+                      {champ.name}
+                    </p>
+                    <p className="text-[11px] text-white/50 truncate">
+                      {champ.title}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm text-white/40 italic">Slot vacío</p>
+                    <p className="text-[10px] text-white/25 uppercase tracking-widest">
+                      pickear · {slot.index + 1}
+                    </p>
+                  </>
                 )}
               </div>
             </button>

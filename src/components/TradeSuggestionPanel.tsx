@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import type { ChampionDb, Role } from "../types/champion";
 import { suggestTrade } from "../engine/tradeEngine";
+import { ArrowLeftRight, ChevronRight } from "lucide-react";
 
 interface Props {
   db: ChampionDb;
@@ -37,27 +38,30 @@ export function TradeSuggestionPanel({
   if (!current) return null;
 
   return (
-    <div className="p-3 rounded border border-meh/60 bg-meh/10">
-      <p className="text-xs uppercase text-meh tracking-wide mb-2">
-        💡 Sugerencia de trade
-      </p>
+    <div className="p-3 rounded-lg ring-1 ring-meh/50 bg-gradient-to-br from-meh/10 to-bg-elev/30">
+      <div className="flex items-center gap-1.5 mb-2">
+        <ArrowLeftRight className="w-3.5 h-3.5 text-meh" />
+        <p className="text-[10px] uppercase tracking-widest font-semibold text-meh">
+          Sugerencia de trade
+        </p>
+      </div>
       <div className="flex items-center gap-2">
         <img
           src={current.iconUrl}
           alt={current.name}
-          className="w-9 h-9 rounded grayscale opacity-70"
+          className="w-9 h-9 rounded grayscale opacity-60"
         />
-        <span className="text-white/60">→</span>
+        <ChevronRight className="w-4 h-4 text-meh/70" />
         <img
           src={trade.proposedIcon}
           alt={trade.proposedName}
-          className="w-10 h-10 rounded ring-2 ring-meh"
+          className="w-11 h-11 rounded ring-2 ring-meh shadow-lg"
         />
-        <div className="flex-1">
-          <p className="text-sm text-white">
-            Cambia a <strong>{trade.proposedName}</strong>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm text-white font-medium truncate">
+            Cambia a <span className="gold-text font-bold">{trade.proposedName}</span>
           </p>
-          <p className="text-xs text-white/70">
+          <p className="text-[11px] text-white/70 truncate">
             +{(trade.scoreDelta * 100).toFixed(0)}% mejor · {trade.reason}
           </p>
         </div>
