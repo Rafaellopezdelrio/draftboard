@@ -78,6 +78,11 @@ const SummonerLookupView = lazy(() =>
     default: m.SummonerLookupView,
   }))
 );
+const ProPlayersView = lazy(() =>
+  import("./components/ProPlayersView").then((m) => ({
+    default: m.ProPlayersView,
+  }))
+);
 import { BanSuggestionsPanel } from "./components/BanSuggestionsPanel";
 import { MatchupTipsPanel } from "./components/MatchupTipsPanel";
 import { ChampionPoolPanel } from "./components/ChampionPoolPanel";
@@ -128,6 +133,7 @@ function App() {
   const [showPalette, setShowPalette] = useState(false);
   const [showTierList, setShowTierList] = useState(false);
   const [showLookup, setShowLookup] = useState(false);
+  const [showProPlayers, setShowProPlayers] = useState(false);
   const [guideChampionKey, setGuideChampionKey] = useState<string | null>(null);
   const [personalStats, setPersonalStats] = useState<ChampionPersonalStat[]>([]);
   const [masteries, setMasteries] = useState<ChampionMasteryDto[]>([]);
@@ -154,6 +160,7 @@ function App() {
   const commands: Command[] = [
     { id: "tier", label: "Tier List", action: () => setShowTierList(true) },
     { id: "lookup", label: "Buscar jugador (Riot ID)", action: () => setShowLookup(true) },
+    { id: "pro", label: "Pro Players (LCK / LEC / LCS)", action: () => setShowProPlayers(true) },
     { id: "coach", label: "Abrir Coach (post-game)", action: () => setShowCoach(true) },
     { id: "chat", label: "Hablar con AI Coach", action: () => setShowChat(true) },
     { id: "trends", label: "Ver tendencias", action: () => setShowTrends(true) },
@@ -404,6 +411,9 @@ function App() {
         )}
         {showLookup && (
           <SummonerLookupView db={db} onClose={() => setShowLookup(false)} />
+        )}
+        {showProPlayers && (
+          <ProPlayersView db={db} onClose={() => setShowProPlayers(false)} />
         )}
         {guideChampionKey && (
           <ChampionGuideView
