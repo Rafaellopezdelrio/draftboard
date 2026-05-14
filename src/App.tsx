@@ -87,6 +87,7 @@ import { BanSuggestionsPanel } from "./components/BanSuggestionsPanel";
 import { MatchupTipsPanel } from "./components/MatchupTipsPanel";
 import { ChampionPoolPanel } from "./components/ChampionPoolPanel";
 import { InGameTimers } from "./components/InGameTimers";
+import { PatchImpactPanel } from "./components/PatchImpactPanel";
 import { PlaystylePanel } from "./components/PlaystylePanel";
 import { TradeSuggestionPanel } from "./components/TradeSuggestionPanel";
 import { CommandPalette, type Command } from "./components/CommandPalette";
@@ -376,6 +377,7 @@ function App() {
             />
           )}
           <PlaystylePanel />
+          <PatchImpactPanel db={db} masteries={masteries} />
           <ChampionPoolPanel db={db} masteries={masteries} />
           <OwnMasteriesPanel
             db={db}
