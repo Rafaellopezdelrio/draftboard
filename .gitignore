@@ -22,3 +22,22 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Tauri Rust build artifacts
+src-tauri/target/
+src-tauri/Cargo.lock
+
+# Local secrets / app data
+*.db
+*.db-shm
+*.db-wal
+
+# Cloudflare worker node_modules (has its own repo)
+cloudflare-worker/node_modules/
+cloudflare-worker/.wrangler/
+
+# Vite cache
+.vite/
+
+# OS
+Thumbs.db
