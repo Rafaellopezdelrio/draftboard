@@ -32,8 +32,16 @@ export async function loadSettings(): Promise<StoredSettings | null> {
 }
 
 export async function saveSettings(s: StoredSettings): Promise<void> {
+  // Sanitize: strip whitespace from text fields. A trailing newline in the
+  // API key is the #1 cause of mysterious 401 "invalid key" errors.
+  const clean: StoredSettings = {
+    ...s,
+    apiKey: s.apiKey.trim(),
+    riotIdName: s.riotIdName.trim(),
+    riotIdTag: s.riotIdTag.trim(),
+  };
   if (!isTauri()) {
-    localStorage.setItem("riot-config", JSON.stringify(s));
+    localStorage.setItem("riot-config", JSON.stringify(clean));
     return;
   }
   const db = await getDb();
@@ -46,6 +54,6 @@ export async function saveSettings(s: StoredSettings): Promise<void> {
        riot_id_name = excluded.riot_id_name,
        riot_id_tag = excluded.riot_id_tag,
        puuid = excluded.puuid`,
-    [s.apiKey, s.region, s.riotIdName, s.riotIdTag, s.puuid ?? null]
+    [clean.apiKey, clean.region, clean.riotIdName, clean.riotIdTag, clean.puuid ?? null]
   );
 }

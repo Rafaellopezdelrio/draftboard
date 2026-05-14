@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getAccount, type Region } from "../services/riotApi";
+import { getAccount, getRiotProxyUrl, type Region } from "../services/riotApi";
 import { loadSettings, saveSettings } from "../services/settingsRepo";
 import { getCurrentSummoner } from "../services/lcuService";
 import { syncPersonalData } from "../services/personalDataSync";
@@ -8,7 +8,7 @@ import { clearAllMatches } from "../services/matchRepo";
 import { aggregateFromProPlay } from "../services/proPlayAggregator";
 import { loadChampionDb } from "../services/championDb";
 import { usePrefsStore } from "../state/prefsStore";
-import { aggregateFromMaster } from "../services/metaAggregator";
+import { aggregateFromMaster, aggregateMultiRegion } from "../services/metaAggregator";
 import { fetchLatestPatch } from "../services/dataDragon";
 
 const REGIONS: { value: Region; label: string }[] = [
@@ -57,19 +57,19 @@ export function SettingsView({ onClose }: Props) {
       // Save current input values FIRST so sync uses the latest API key.
       // If user just regenerated the key but didn't click "Guardar", resync
       // would otherwise use the stale key from DB.
-      if (apiKey && riotIdName && riotIdTag) {
+      const hasRiotAccess = !!apiKey || !!getRiotProxyUrl();
+      if (hasRiotAccess && riotIdName && riotIdTag) {
         try {
           const cfg = { apiKey, region, riotIdName, riotIdTag };
           const account = await getAccount(cfg);
           setPuuid(account.puuid);
           await saveSettings({ ...cfg, puuid: account.puuid });
         } catch (e) {
-          setStatus(`Error validando key: ${String(e)}`);
+          setStatus(`Error validando Riot ID: ${String(e)}`);
           setBusy(false);
           return;
         }
       } else if (apiKey) {
-        // API key changed but no Riot ID — just save the key
         await saveSettings({ apiKey, region, riotIdName, riotIdTag, puuid });
       }
       setStatus("Borrando partidas viejas...");
@@ -103,6 +103,24 @@ export function SettingsView({ onClose }: Props) {
   }
 
   const proPlayDays = usePrefsStore((s) => s.prefs.proPlayDaysWindow);
+
+  async function syncMetaMultiRegion() {
+    if (!apiKey) return;
+    setBusy(true);
+    setStatus("Multi-región KR + EUW + NA (esto tarda ~30 min)...");
+    try {
+      const cfg = { apiKey, region, riotIdName, riotIdTag };
+      const patch = await fetchLatestPatch();
+      await aggregateMultiRegion(cfg, patch, (p) =>
+        setStatus(`${p.phase}: ${p.done}/${p.total}`)
+      );
+      setStatus("Meta multi-región sincronizado ✓ (recarga la app)");
+    } catch (e) {
+      setStatus(`Error multi-región: ${String(e)}`);
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function syncProMeta() {
     setBusy(true);
@@ -144,8 +162,11 @@ export function SettingsView({ onClose }: Props) {
     setBusy(true);
     setStatus("Sincronizando...");
     try {
-      // If user provided API key, validate and save it. Otherwise sync via LCU.
-      if (apiKey && riotIdName && riotIdTag) {
+      // Validate Riot ID via Riot API (works with personal apiKey OR proxy).
+      // This refreshes the encrypted puuid in storage — critical if the user
+      // had a stale LCU-format puuid stored from earlier sessions.
+      const hasRiotAccess = !!apiKey || !!getRiotProxyUrl();
+      if (hasRiotAccess && riotIdName && riotIdTag) {
         const cfg = { apiKey, region, riotIdName, riotIdTag };
         const account = await getAccount(cfg);
         setPuuid(account.puuid);
@@ -155,7 +176,7 @@ export function SettingsView({ onClose }: Props) {
         setStatus(`${p.source}: ${p.message ?? `${p.done}/${p.total}`}`)
       );
       if (result.source === "none") {
-        setStatus("Abre el cliente de LoL y reintenta — sin LCU ni API key no puedo sincronizar");
+        setStatus("Abre el cliente de LoL y reintenta — sin LCU ni proxy/key no puedo sincronizar");
       } else {
         setStatus(`Listo ✓ (${result.matches} partidas vía ${result.source})`);
       }
@@ -177,6 +198,8 @@ export function SettingsView({ onClose }: Props) {
       >
         <h2 className="text-lg font-semibold text-accent">Configuración</h2>
 
+        <ProxyOrLcuStatusBanner />
+
         <div className="bg-bg-card border border-good/30 rounded p-3 text-xs text-white/80">
           <p className="font-medium text-good mb-1">
             ✓ Modo automático (recomendado)
@@ -184,6 +207,12 @@ export function SettingsView({ onClose }: Props) {
           <p>
             Con el cliente de LoL abierto, la app detecta tu cuenta y partidas
             automáticamente. No necesitas hacer nada más.
+          </p>
+          <p className="mt-1.5 text-white/55">
+            ¿Quieres scout enemigo, lookup de jugadores y meta multi-región sin
+            renovar key cada 24h? Configura un{" "}
+            <strong className="text-accent">proxy Cloudflare</strong> en
+            Preferencias (gratis, 5 min).
           </p>
         </div>
 
@@ -201,10 +230,21 @@ export function SettingsView({ onClose }: Props) {
               <input
                 type="password"
                 value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
+                onChange={(e) => setApiKey(e.target.value.trim())}
+                onPaste={(e) => {
+                  // Strip whitespace/newlines from pasted content
+                  e.preventDefault();
+                  const pasted = e.clipboardData.getData("text").trim();
+                  setApiKey(pasted);
+                }}
                 placeholder="RGAPI-..."
                 className="w-full bg-bg px-3 py-2 rounded outline-none border border-border-subtle focus:border-accent text-white"
               />
+              {apiKey && !apiKey.startsWith("RGAPI-") && (
+                <p className="text-[11px] text-bad mt-1">
+                  ⚠️ Las keys Riot empiezan por <code>RGAPI-</code>. Verifica que copiaste la correcta (no la de Groq).
+                </p>
+              )}
               <div className="flex items-center justify-between gap-2">
                 <a
                   href="https://developer.riotgames.com/"
@@ -243,6 +283,7 @@ export function SettingsView({ onClose }: Props) {
             <input
               value={riotIdName}
               onChange={(e) => setRiotIdName(e.target.value)}
+              onBlur={(e) => setRiotIdName(e.target.value.trim())}
               placeholder="Faker"
               className="flex-1 bg-bg px-3 py-2 rounded border border-border-subtle text-white"
             />
@@ -250,6 +291,7 @@ export function SettingsView({ onClose }: Props) {
             <input
               value={riotIdTag}
               onChange={(e) => setRiotIdTag(e.target.value)}
+              onBlur={(e) => setRiotIdTag(e.target.value.trim())}
               placeholder="KR1"
               className="w-24 bg-bg px-3 py-2 rounded border border-border-subtle text-white"
             />
@@ -310,6 +352,15 @@ export function SettingsView({ onClose }: Props) {
             Sync meta SoloQ
           </button>
           <button
+            disabled={busy || !apiKey}
+            onClick={syncMetaMultiRegion}
+            type="button"
+            className="px-3 py-2 bg-bg-card border border-purple-400/40 rounded text-purple-300 hover:bg-purple-400/10 disabled:opacity-50"
+            title="KR + EUW + NA. Tarda ~30 min, máxima calidad de datos"
+          >
+            🌍 Multi-región
+          </button>
+          <button
             disabled={busy || !apiKey || !riotIdName || !riotIdTag}
             onClick={handleSaveAndSync}
             className="px-4 py-2 bg-accent text-black font-medium rounded disabled:opacity-50"
@@ -320,6 +371,32 @@ export function SettingsView({ onClose }: Props) {
       </div>
     </div>
   );
+}
+
+function ProxyOrLcuStatusBanner() {
+  const proxyUrl = usePrefsStore((s) => s.prefs.riotProxyUrl);
+  if (proxyUrl.trim().length === 0) return null;
+  return (
+    <div className="bg-bg-card border border-purple-400/40 rounded p-3 text-xs text-white/85">
+      <p className="font-medium text-purple-300 mb-1">
+        🌟 Modo proxy premium activo
+      </p>
+      <p>
+        Las features que necesitan Riot API funcionan sin que tú configures key.
+        El proxy <code className="text-accent">{shortUrl(proxyUrl)}</code> se
+        encarga.
+      </p>
+    </div>
+  );
+}
+
+function shortUrl(u: string): string {
+  try {
+    const url = new URL(u);
+    return url.host;
+  } catch {
+    return u;
+  }
 }
 
 function Field({

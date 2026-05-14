@@ -4,7 +4,7 @@ import { useState } from "react";
 import {
   getAccountByRiotId,
   getSummonerByPuuid,
-  getLeagueEntriesBySummoner,
+  getLeagueEntriesByPuuid,
   getTopMasteries,
   getRecentMatchIds,
   getMatchFull,
@@ -64,9 +64,12 @@ export function SummonerLookupView({ db, onClose }: Props) {
         getTopMasteries(cfg, account.puuid, 7).catch(() => []),
         getRecentMatchIds(cfg, account.puuid, 5).catch(() => []),
       ]);
-      const leagueEntries = summoner
-        ? await getLeagueEntriesBySummoner(cfg, summoner.id).catch(() => [])
-        : [];
+      // Use puuid-based endpoint — Riot is phasing out the by-summoner one
+      // and it returns empty for many regions/accounts now.
+      const leagueEntries = await getLeagueEntriesByPuuid(
+        cfg,
+        account.puuid
+      ).catch(() => []);
       const soloq =
         leagueEntries.find((e) => e.queueType === "RANKED_SOLO_5x5") ?? null;
 

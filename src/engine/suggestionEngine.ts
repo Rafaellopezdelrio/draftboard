@@ -59,7 +59,7 @@ export function suggest({
   for (const m of masteries) masteryById.set(m.championId, m);
 
   const candidates = Object.values(db.champions).filter(
-    (c) => !taken.has(c.key) && (role === null || c.roles.includes(role))
+    (c) => !taken.has(c.key) && (role === null || isPlayableInRole(c, role, db))
   );
 
   const scored = candidates.map((c) => scoreChampion(c, {
@@ -136,6 +136,24 @@ function scoreChampion(c: Champion, ctx: ScoreCtx): ScoredSuggestion {
     reasons,
     color,
   };
+}
+
+/**
+ * Strict role check using real meta playrate when available, falling back
+ * to tag-based inference. Fixes "Lee Sin appears as mid candidate" because
+ * his Assassin tag was loosely mapping to MIDDLE.
+ *
+ * Threshold: 0.3% pickRate. Anything below = noise / off-meta one-game flex.
+ */
+function isPlayableInRole(c: Champion, role: Role, db: ChampionDb): boolean {
+  // 1) Authoritative source: meta data (synced from pro/SoloQ aggregator)
+  const champEntries = db.meta.filter((m) => m.championKey === c.key);
+  if (champEntries.length > 0) {
+    const inRole = champEntries.find((m) => m.role === role);
+    return !!inRole && (inRole.pickRate ?? 0) >= 0.003;
+  }
+  // 2) No meta data yet → fall back to tag inference (loose but better than nothing)
+  return c.roles.includes(role);
 }
 
 function personalScore(

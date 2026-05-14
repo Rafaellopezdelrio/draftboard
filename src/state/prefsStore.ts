@@ -51,6 +51,11 @@ export interface Preferences {
   // "proplay" = LCK/LEC/LCS/LPL games, "soloq" = Master+ SoloQ, "blend" = mix.
   metaSource: "proplay" | "soloq" | "blend";
   proPlayDaysWindow: number; // last N days of pro games to aggregate
+
+  // Riot proxy URL — when set, app routes Riot API calls through this URL
+  // instead of api.riotgames.com directly. Lets the user use a hosted proxy
+  // that holds a production key, eliminating the need for a personal dev key.
+  riotProxyUrl: string;
 }
 
 export const DEFAULT_PREFS: Preferences = {
@@ -92,6 +97,14 @@ export const DEFAULT_PREFS: Preferences = {
 
   metaSource: "proplay",
   proPlayDaysWindow: 30,
+
+  // Default proxy URL — Draftboard's hosted Cloudflare Worker. New installs
+  // get premium mode automatically: no API key needed, the worker holds the
+  // production Riot key server-side. Power users can override this in Prefs
+  // (e.g. point to their own self-hosted proxy or set "" for direct mode with
+  // their own dev key).
+  riotProxyUrl:
+    "https://draftboard-riot-proxy.rafael-lopez-serrano-99.workers.dev",
 };
 
 interface PrefsState {

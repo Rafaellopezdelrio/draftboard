@@ -97,7 +97,17 @@ export async function subscribeStatus(
     cb({ connected: false, reason: "running in browser" });
     return () => {};
   }
+  // 1) Subscribe FIRST so we don't miss events arriving between calls.
   const unlisten = await listen<LcuStatus>("lcu:status", (e) => cb(e.payload));
+  // 2) Then ask for the current cached status — the watcher only emits on
+  // change, so after HMR / late mount the frontend needs to seed itself.
+  try {
+    const current = await invoke<LcuStatus>("lcu_status");
+    cb(current);
+  } catch {
+    // command not available (older binary, etc.) — listener will catch the
+    // next change.
+  }
   return unlisten;
 }
 

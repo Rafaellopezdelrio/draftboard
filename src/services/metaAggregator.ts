@@ -6,9 +6,14 @@ import {
   getRecentMatchIds,
   getPuuidBySummonerId,
   type RiotConfig,
+  type Region,
   type MatchFull,
   type MatchTimeline,
 } from "./riotApi";
+
+// Regions to pull from when "multi-region" mode is enabled. Combines KR, EUW, NA
+// for a balanced global meta sample (KR=tactical, EUW=micro, NA=mixed).
+export const MULTI_REGIONS: Region[] = ["kr", "euw1", "na1"];
 
 export interface AggregateProgress {
   phase: string;
@@ -16,8 +21,51 @@ export interface AggregateProgress {
   total: number;
 }
 
-const SAMPLE_SUMMONERS = 20;
-const MATCHES_PER_SUMMONER = 5;
+// Aggregation parameters — bigger sample = better signal, slower sync.
+// Tuned for ~10-15 min full sync respecting Riot rate limits (100req/2min).
+// Bigger sample → tier list more closely matches op.gg / u.gg.
+// 150 × 10 = 1500 matches × 10 participants each = up to 15k champion-role
+// data points per sync (with dedup ~3-5k after Riot's overlap cleaning).
+const SAMPLE_SUMMONERS = 150;
+const MATCHES_PER_SUMMONER = 10;
+
+/**
+ * Multi-region aggregation: runs aggregateFromMaster across KR + EUW + NA
+ * sequentially (rate-limit friendly) and merges results under a single patch
+ * label "global-<patch>".
+ */
+export async function aggregateMultiRegion(
+  baseCfg: RiotConfig,
+  patch: string,
+  onProgress: (p: AggregateProgress) => void
+): Promise<void> {
+  for (let i = 0; i < MULTI_REGIONS.length; i++) {
+    const region = MULTI_REGIONS[i];
+    onProgress({
+      phase: `Región ${region.toUpperCase()} (${i + 1}/${MULTI_REGIONS.length})`,
+      done: 0,
+      total: 1,
+    });
+    try {
+      const cfg: RiotConfig = { ...baseCfg, region };
+      await aggregateFromMaster(cfg, `${patch}-${region}`, (p) =>
+        onProgress({
+          phase: `${region.toUpperCase()}: ${p.phase}`,
+          done: p.done,
+          total: p.total,
+        })
+      );
+    } catch (e) {
+      // Continue with next region if one fails (likely rate limit)
+      onProgress({
+        phase: `Región ${region} falló: ${String(e).slice(0, 60)}`,
+        done: 0,
+        total: 1,
+      });
+    }
+  }
+  onProgress({ phase: "Multi-región completado", done: 1, total: 1 });
+}
 
 /**
  * Downloads a sample of Master+ ranked solo matches and aggregates them into:

@@ -39,6 +39,18 @@ pub fn run() {
             sql: include_str!("../../src/db/schema_v4.sql"),
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 5,
+            description: "ai memory + lesson plans + ai guides",
+            sql: include_str!("../../src/db/schema_v5.sql"),
+            kind: MigrationKind::Up,
+        },
+        Migration {
+            version: 6,
+            description: "ai matchup tips cache",
+            sql: include_str!("../../src/db/schema_v6.sql"),
+            kind: MigrationKind::Up,
+        },
     ];
 
     tauri::Builder::default()

@@ -118,23 +118,50 @@ export async function aggregateFromProPlay(
       done: page,
       total: 6,
     });
-    let resp: Response;
-    try {
-      resp = await httpFetch(`${LEAGUEPEDIA_API}?${params.toString()}`, {
-        headers: { "User-Agent": "LolDraftAdvisor/0.1" },
-      });
-    } catch {
+    // Throttle: Leaguepedia (Fandom) rate-limits aggressive scraping. Wait
+    // ~2s between pages and retry with exponential backoff on 429.
+    let resp: Response | null = null;
+    for (let attempt = 0; attempt < 4; attempt++) {
+      try {
+        resp = await httpFetch(`${LEAGUEPEDIA_API}?${params.toString()}`, {
+          headers: { "User-Agent": "Draftboard/0.2 (contact: rafael.lopez.serrano.99@gmail.com)" },
+        });
+      } catch {
+        resp = null;
+      }
+      if (resp && resp.ok) break;
+      if (resp && resp.status === 429) {
+        const wait = (2 ** attempt) * 3000; // 3s, 6s, 12s, 24s
+        onProgress({
+          phase: `Rate-limited por Leaguepedia, esperando ${wait / 1000}s...`,
+          done: page,
+          total: 6,
+        });
+        await new Promise((r) => setTimeout(r, wait));
+        continue;
+      }
       break;
     }
-    if (!resp.ok) break;
+    if (!resp || !resp.ok) break;
     const json = (await resp.json()) as CargoResponse;
     if (json.error) {
+      // Soft-fail on rate limit so user sees partial data rather than total fail
+      if (/rate limit/i.test(json.error.info ?? "")) {
+        onProgress({
+          phase: `Leaguepedia rate-limited — usando ${allRows.length} partidas descargadas hasta ahora`,
+          done: page,
+          total: 6,
+        });
+        break;
+      }
       throw new Error(`Leaguepedia: ${json.error.info ?? "error"}`);
     }
     const batch = (json.cargoquery ?? []).map((x) => x.title);
     allRows.push(...batch);
     if (batch.length < PAGE) break;
     offset += PAGE;
+    // Inter-page delay — be polite to Fandom
+    await new Promise((r) => setTimeout(r, 1500));
   }
 
   // Aggregate per (championKey, position)

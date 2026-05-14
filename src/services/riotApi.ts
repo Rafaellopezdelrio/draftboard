@@ -82,18 +82,49 @@ class RateLimiter {
 // Personal-key default: 100 req / 2 min
 const limiter = new RateLimiter(95, 120_000);
 
+// If a proxy is configured, all Riot calls go through it instead of directly
+// to api.riotgames.com. The proxy injects the production key server-side so
+// the user never needs their own dev key.
+let proxyUrl: string | null = null;
+
+export function setRiotProxyUrl(url: string | null): void {
+  proxyUrl = url && url.trim().length > 0 ? url.trim().replace(/\/$/, "") : null;
+}
+
+export function getRiotProxyUrl(): string | null {
+  return proxyUrl;
+}
+
+/**
+ * Rewrites a direct Riot URL into the proxy form.
+ *   https://euw1.api.riotgames.com/lol/...  →  <proxy>/api/euw1/lol/...
+ *   https://europe.api.riotgames.com/riot/... →  <proxy>/api/europe/riot/...
+ */
+function maybeProxify(url: string): string {
+  if (!proxyUrl) return url;
+  const m = url.match(/^https:\/\/([^.]+)\.api\.riotgames\.com(\/.*)$/);
+  if (!m) return url;
+  return `${proxyUrl}/api/${m[1]}${m[2]}`;
+}
+
 async function api<T>(url: string, key: string, attempt = 0): Promise<T> {
   await limiter.take();
+  const finalUrl = maybeProxify(url);
+  // When using the proxy, the X-Riot-Token header is injected server-side.
+  // The local key (if any) becomes optional — proxy mode means key can be empty.
+  const headers: Record<string, string> = proxyUrl
+    ? {}
+    : { "X-Riot-Token": key.trim() };
   let res: Response;
   try {
-    res = await httpFetch(url, { headers: { "X-Riot-Token": key.trim() } });
+    res = await httpFetch(finalUrl, { headers });
   } catch (e) {
     // Network-level error — retry up to 3 times with exponential backoff
     if (attempt < 3) {
       await new Promise((r) => setTimeout(r, 500 * 2 ** attempt));
       return api(url, key, attempt + 1);
     }
-    throw new Error(`Sin conexión a Riot API: ${String(e).slice(0, 100)}`);
+    throw new Error(`Sin conexión a ${proxyUrl ? "proxy" : "Riot API"}: ${String(e).slice(0, 100)}`);
   }
   if (res.status === 429) {
     const retry = parseInt(res.headers.get("Retry-After") ?? "5", 10);
@@ -187,6 +218,65 @@ export async function getLeagueEntriesBySummoner(
     `https://${cfg.region}.api.riotgames.com/lol/league/v4/entries/by-summoner/${summonerId}`,
     cfg.apiKey
   );
+}
+
+/**
+ * Newer endpoint (Riot pushed by-puuid in 2024). More reliable than
+ * by-summoner because the summonerId field is being phased out for some
+ * regions/accounts. Prefer this one.
+ */
+export async function getLeagueEntriesByPuuid(
+  cfg: RiotConfig,
+  puuid: string
+): Promise<LeagueEntryDto[]> {
+  return api(
+    `https://${cfg.region}.api.riotgames.com/lol/league/v4/entries/by-puuid/${puuid}`,
+    cfg.apiKey
+  );
+}
+
+// ----- Spectator V5 (live game) -----
+
+export interface CurrentGameParticipant {
+  puuid: string;
+  championId: number;
+  teamId: number;
+  summonerId?: string;
+  riotId?: string;
+  spell1Id: number;
+  spell2Id: number;
+  perks?: { perkIds: number[]; perkStyle: number; perkSubStyle: number };
+}
+
+export interface CurrentGameInfo {
+  gameId: number;
+  gameStartTime: number;
+  gameLength: number;
+  gameMode: string;
+  gameType: string;
+  gameQueueConfigId: number;
+  mapId: number;
+  participants: CurrentGameParticipant[];
+}
+
+/**
+ * Fetches the live game (if the player is currently in a match).
+ * Returns null if not in game (404).
+ */
+export async function getCurrentGameByPuuid(
+  cfg: RiotConfig,
+  puuid: string
+): Promise<CurrentGameInfo | null> {
+  try {
+    return await api<CurrentGameInfo>(
+      `https://${cfg.region}.api.riotgames.com/lol/spectator/v5/active-games/by-summoner/${puuid}`,
+      cfg.apiKey
+    );
+  } catch (e) {
+    const msg = String(e);
+    if (msg.includes("404") || msg.includes("no encontrado")) return null;
+    throw e;
+  }
 }
 
 export interface ChampionMasteryDto {

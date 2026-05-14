@@ -1,0 +1,230 @@
+import { describe, it, expect } from "vitest";
+import { suggest } from "./suggestionEngine";
+import type { Champion, ChampionDb, MetaTier, Role } from "../types/champion";
+import type { ChampionMasteryDto } from "../services/riotApi";
+import type { ChampionPersonalStat } from "../services/matchRepo";
+
+function champ(
+  key: string,
+  name: string,
+  roles: Role[],
+  opts: Partial<Champion> = {}
+): Champion {
+  return {
+    id: name.replace(/\s/g, ""),
+    key,
+    name,
+    title: "",
+    iconUrl: "",
+    splashUrl: "",
+    tags: [],
+    roles,
+    archetypes: [],
+    ...opts,
+  };
+}
+
+function meta(
+  championKey: string,
+  role: Role,
+  pickRate = 0.05,
+  tier: MetaTier["tier"] = "B"
+): MetaTier {
+  return {
+    championKey,
+    role,
+    tier,
+    winRate: 0.51,
+    pickRate,
+    banRate: 0,
+  };
+}
+
+const LEE_KEY = "64";
+const ZED_KEY = "238";
+const YASUO_KEY = "157";
+const ORIANNA_KEY = "61";
+
+function mkDb(metaEntries: MetaTier[] = []): ChampionDb {
+  return {
+    patch: "16.10",
+    champions: {
+      [LEE_KEY]: champ(LEE_KEY, "Lee Sin", ["TOP", "JUNGLE", "MIDDLE"]), // tag-inferred (loose)
+      [ZED_KEY]: champ(ZED_KEY, "Zed", ["JUNGLE", "MIDDLE"]),
+      [YASUO_KEY]: champ(YASUO_KEY, "Yasuo", ["MIDDLE", "BOTTOM"]),
+      [ORIANNA_KEY]: champ(ORIANNA_KEY, "Orianna", ["MIDDLE", "UTILITY"]),
+    },
+    counters: [],
+    meta: metaEntries,
+    fetchedAt: Date.now(),
+  };
+}
+
+function masteryEntry(
+  championId: number,
+  level = 10,
+  points = 150000
+): ChampionMasteryDto {
+  return {
+    championId,
+    championLevel: level,
+    championPoints: points,
+    lastPlayTime: Date.now(),
+  };
+}
+
+function personalEntry(
+  championId: number,
+  winRate = 0.55,
+  games = 10
+): ChampionPersonalStat {
+  return {
+    championId,
+    games,
+    wins: Math.round(games * winRate),
+    winRate,
+  };
+}
+
+describe("suggestionEngine", () => {
+  it("role filter (strict via meta data): Lee Sin one-trick does NOT appear in MIDDLE when meta says he's jungle-only", () => {
+    // Meta data declares: Lee Sin only plays JUNGLE (no MIDDLE row)
+    const db = mkDb([
+      meta(LEE_KEY, "JUNGLE", 0.15),
+      meta(ZED_KEY, "MIDDLE", 0.1),
+      meta(YASUO_KEY, "MIDDLE", 0.1),
+      meta(ORIANNA_KEY, "MIDDLE", 0.1),
+    ]);
+    const result = suggest({
+      db,
+      role: "MIDDLE",
+      allyKeys: [],
+      enemyKeys: [],
+      bannedKeys: [],
+      masteries: [masteryEntry(Number(LEE_KEY))], // mega Lee Sin main
+    });
+    const keys = result.map((s) => s.champion.key);
+    expect(keys).not.toContain(LEE_KEY); // critical: Lee Sin must NOT be a mid suggestion
+    expect(keys).toContain(ZED_KEY);
+    expect(keys).toContain(YASUO_KEY);
+  });
+
+  it("role filter (no meta data): falls back to tag-inferred roles", () => {
+    const db = mkDb([]); // no meta synced yet
+    const result = suggest({
+      db,
+      role: "MIDDLE",
+      allyKeys: [],
+      enemyKeys: [],
+      bannedKeys: [],
+    });
+    const keys = result.map((s) => s.champion.key);
+    // With no meta data, Lee Sin's loose tag-roles include MIDDLE → he passes filter
+    expect(keys).toContain(LEE_KEY);
+  });
+
+  it("low-playrate champions (under 0.3%) excluded from role suggestions", () => {
+    const db = mkDb([
+      meta(LEE_KEY, "MIDDLE", 0.001), // 0.1% pickrate — should be filtered
+      meta(ZED_KEY, "MIDDLE", 0.1),
+    ]);
+    const result = suggest({
+      db,
+      role: "MIDDLE",
+      allyKeys: [],
+      enemyKeys: [],
+      bannedKeys: [],
+    });
+    const keys = result.map((s) => s.champion.key);
+    expect(keys).not.toContain(LEE_KEY);
+    expect(keys).toContain(ZED_KEY);
+  });
+
+  it("excludes already picked/banned champions", () => {
+    const db = mkDb([
+      meta(ZED_KEY, "MIDDLE"),
+      meta(YASUO_KEY, "MIDDLE"),
+      meta(ORIANNA_KEY, "MIDDLE"),
+    ]);
+    const result = suggest({
+      db,
+      role: "MIDDLE",
+      allyKeys: [ZED_KEY],
+      enemyKeys: [YASUO_KEY],
+      bannedKeys: [ORIANNA_KEY],
+    });
+    const keys = result.map((s) => s.champion.key);
+    expect(keys).not.toContain(ZED_KEY);
+    expect(keys).not.toContain(YASUO_KEY);
+    expect(keys).not.toContain(ORIANNA_KEY);
+  });
+
+  it("mastery + main dominance bumps one-tricks above generic S-tier", () => {
+    const db = mkDb([
+      meta(ZED_KEY, "MIDDLE", 0.1, "S"), // S-tier meta
+      meta(YASUO_KEY, "MIDDLE", 0.1, "B"),
+    ]);
+    const result = suggest({
+      db,
+      role: "MIDDLE",
+      allyKeys: [],
+      enemyKeys: [],
+      bannedKeys: [],
+      masteries: [masteryEntry(Number(YASUO_KEY), 11, 200000)], // Yasuo one-trick
+      personalStats: [personalEntry(Number(YASUO_KEY), 0.6)],
+    });
+    // Yasuo one-trick (B-tier) should outrank generic S-tier Zed thanks to mastery + bonus
+    expect(result[0].champion.key).toBe(YASUO_KEY);
+  });
+
+  it("role=null returns top picks across all roles", () => {
+    const db = mkDb([
+      meta(ZED_KEY, "MIDDLE", 0.1, "S"),
+      meta(YASUO_KEY, "MIDDLE", 0.1),
+      meta(LEE_KEY, "JUNGLE", 0.1),
+    ]);
+    const result = suggest({
+      db,
+      role: null,
+      allyKeys: [],
+      enemyKeys: [],
+      bannedKeys: [],
+    });
+    expect(result.length).toBeGreaterThan(0);
+    // No champions filtered by role
+    const keys = result.map((s) => s.champion.key);
+    expect(keys).toContain(LEE_KEY);
+  });
+
+  it("limit parameter respected", () => {
+    const db = mkDb([
+      meta(ZED_KEY, "MIDDLE"),
+      meta(YASUO_KEY, "MIDDLE"),
+      meta(ORIANNA_KEY, "MIDDLE"),
+    ]);
+    const result = suggest({
+      db,
+      role: "MIDDLE",
+      allyKeys: [],
+      enemyKeys: [],
+      bannedKeys: [],
+      limit: 2,
+    });
+    expect(result.length).toBeLessThanOrEqual(2);
+  });
+
+  it("reasons include 'tu main' for very high mastery", () => {
+    const db = mkDb([meta(YASUO_KEY, "MIDDLE")]);
+    const result = suggest({
+      db,
+      role: "MIDDLE",
+      allyKeys: [],
+      enemyKeys: [],
+      bannedKeys: [],
+      masteries: [masteryEntry(Number(YASUO_KEY), 11, 250000)],
+    });
+    const yasuo = result.find((s) => s.champion.key === YASUO_KEY);
+    expect(yasuo).toBeDefined();
+    expect(yasuo!.reasons.some((r) => r.includes("tu main"))).toBe(true);
+  });
+});

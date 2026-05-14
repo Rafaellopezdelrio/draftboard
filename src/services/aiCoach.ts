@@ -11,6 +11,8 @@ import {
   professionalCoachSystemPrompt,
   professionalMatchPrompt,
 } from "./aiPromptBuilder";
+import { buildMemoryContext, saveMemory } from "./aiMemory";
+import { saveLessonPlan } from "./lessonPlanRepo";
 
 export interface AiCoachInput {
   provider: AiProvider;
@@ -66,10 +68,14 @@ export async function aiCoachAnalysis(input: AiCoachInput): Promise<string> {
   );
   if (!analytics) throw new Error("No participant found");
 
-  const systemPrompt = professionalCoachSystemPrompt({
+  // Inject persistent memory so AI references past observations
+  const memoryContext = await buildMemoryContext(8);
+  const baseSystem = professionalCoachSystemPrompt({
     language: input.language ?? "es",
     rank: input.rank ?? null,
   });
+  const systemPrompt = baseSystem + memoryContext;
+
   const userPrompt = professionalMatchPrompt(
     analytics,
     input.insights,
@@ -77,13 +83,28 @@ export async function aiCoachAnalysis(input: AiCoachInput): Promise<string> {
     input.rank ?? null
   );
 
-  return callAi({
+  const response = await callAi({
     provider: input.provider,
     apiKey: input.apiKey,
     systemPrompt,
     userPrompt,
     maxTokens: 700,
   });
+
+  // Auto-extract and save the main insight as memory for future sessions
+  // (heuristic: first sentence of the response as the primary observation)
+  const firstInsight = response.split(/[.!?]/)[0]?.trim().slice(0, 240);
+  if (firstInsight) {
+    await saveMemory({
+      kind: "advice",
+      category: input.insights[0]?.category,
+      content: firstInsight,
+      matchId: input.match.matchId,
+      championId: analytics.myChampionId,
+    });
+  }
+
+  return response;
 }
 
 export async function aiTrendsAnalysis(input: AiTrendsInput): Promise<string> {
@@ -144,11 +165,27 @@ Para cada día:
 
 Sé específico y accionable. No uses listas con bullets dentro de cada día — texto fluido por día.`;
 
-  return callAi({
+  const text = await callAi({
     provider: input.provider,
     apiKey: input.apiKey,
     systemPrompt,
     userPrompt,
     maxTokens: 900,
   });
+
+  // Persist for the user to revisit
+  await saveLessonPlan({
+    createdTsMs: Date.now(),
+    weakestArea: input.weakestArea,
+    archetype: input.archetype,
+    planText: text,
+    completed: false,
+  });
+  await saveMemory({
+    kind: "goal",
+    category: input.weakestArea ?? undefined,
+    content: `Plan de 7 días generado: foco en ${input.weakestArea ?? "mejora general"}`,
+  });
+
+  return text;
 }

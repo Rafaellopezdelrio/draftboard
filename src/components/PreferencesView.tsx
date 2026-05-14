@@ -155,6 +155,7 @@ export function PreferencesView({ onClose }: Props) {
         </div>
 
         <div className="space-y-5">
+          <RiotProxyField />
           <MetaSourceField />
           <AnthropicKeyField />
           {SECTIONS.map((sec) => (
@@ -188,6 +189,48 @@ export function PreferencesView({ onClose }: Props) {
         </div>
       </div>
     </div>
+  );
+}
+
+function RiotProxyField() {
+  const proxyUrl = usePrefsStore((s) => s.prefs.riotProxyUrl);
+  const set = usePrefsStore((s) => s.set);
+  const active = proxyUrl.trim().length > 0;
+  return (
+    <section>
+      <h3 className="text-xs uppercase tracking-wide text-white/50 mb-2 flex items-center gap-2">
+        <span>Riot API — modo premium (proxy)</span>
+        {active && (
+          <span className="text-[9px] uppercase tracking-widest text-good bg-good/15 px-1.5 py-0.5 rounded">
+            ✓ activo
+          </span>
+        )}
+      </h3>
+      <div className="space-y-2">
+        <input
+          type="text"
+          value={proxyUrl}
+          onChange={(e) => set("riotProxyUrl", e.target.value.trim())}
+          placeholder="https://draftboard-riot-proxy.tu-cuenta.workers.dev"
+          className="w-full bg-bg text-white text-sm px-3 py-2 rounded border border-border-subtle focus:border-accent outline-none font-mono"
+        />
+        <p className="text-xs text-white/60 leading-relaxed">
+          {active ? (
+            <>
+              <span className="text-good">✓</span> Usando proxy. No necesitas tu propia
+              API key Riot. Más rápido (caché en edge) y la key nunca caduca.
+            </>
+          ) : (
+            <>
+              Pega aquí la URL de tu Cloudflare Worker para evitar tener que
+              renovar la dev key cada 24h. Ver{" "}
+              <code className="text-accent">cloudflare-worker/README.md</code> en el
+              repo para deployar (gratis, ~5 min).
+            </>
+          )}
+        </p>
+      </div>
+    </section>
   );
 }
 
@@ -246,7 +289,11 @@ function AnthropicKeyField() {
   const geminiKey = usePrefsStore((s) => s.prefs.geminiApiKey);
   const anthropicKey = usePrefsStore((s) => s.prefs.anthropicApiKey);
   const lang = usePrefsStore((s) => s.prefs.aiCoachLanguage);
+  const proxyUrl = usePrefsStore((s) => s.prefs.riotProxyUrl);
   const set = usePrefsStore((s) => s.set);
+  // When proxy active AND provider is Groq, the user does NOT need their own key
+  // — the proxy injects the shared production key.
+  const proxyHandlesIt = provider === "groq" && proxyUrl.trim().length > 0;
 
   const currentKey =
     provider === "groq" ? groqKey : provider === "gemini" ? geminiKey : anthropicKey;
@@ -280,37 +327,48 @@ function AnthropicKeyField() {
           ))}
         </select>
 
-        {provider === "groq" && (
-          <p className="text-xs text-good">
-            ✓ 100% gratis. Sin tarjeta. Crea cuenta y copia la key (30s).
+        {proxyHandlesIt ? (
+          <p className="text-xs text-good bg-good/10 border border-good/30 rounded p-2">
+            ✓ AI Coach activo automáticamente vía proxy. No necesitas configurar
+            nada. (Power users: pega tu propia key abajo para usar tu propia cuota.)
           </p>
-        )}
-        {provider === "gemini" && (
-          <p className="text-xs text-good">
-            ✓ Cuota gratuita generosa. Necesita cuenta Google.
-          </p>
-        )}
-        {provider === "anthropic" && (
-          <p className="text-xs text-meh">
-            ⚠️ Pago por uso (≈ 0.005-0.03$ por respuesta). Mejor calidad.
-          </p>
+        ) : (
+          <>
+            {provider === "groq" && (
+              <p className="text-xs text-good">
+                ✓ 100% gratis. Sin tarjeta. Crea cuenta y copia la key (30s).
+              </p>
+            )}
+            {provider === "gemini" && (
+              <p className="text-xs text-good">
+                ✓ Cuota gratuita generosa. Necesita cuenta Google.
+              </p>
+            )}
+            {provider === "anthropic" && (
+              <p className="text-xs text-meh">
+                ⚠️ Pago por uso (≈ 0.005-0.03$ por respuesta). Mejor calidad.
+              </p>
+            )}
+          </>
         )}
 
         <input
           type="password"
           value={currentKey}
           onChange={(e) => setKey(e.target.value)}
-          placeholder={placeholder}
+          placeholder={proxyHandlesIt ? "opcional — proxy ya inyecta key compartida" : placeholder}
           className="w-full bg-bg px-3 py-2 rounded outline-none border border-border-subtle focus:border-accent text-white text-sm"
         />
-        <a
-          href={PROVIDER_SIGNUP_URLS[provider]}
-          target="_blank"
-          rel="noreferrer"
-          className="text-xs text-accent/80 hover:text-accent block"
-        >
-          Obtén tu key gratis en {new URL(PROVIDER_SIGNUP_URLS[provider]).hostname} →
-        </a>
+        {!proxyHandlesIt && (
+          <a
+            href={PROVIDER_SIGNUP_URLS[provider]}
+            target="_blank"
+            rel="noreferrer"
+            className="text-xs text-accent/80 hover:text-accent block"
+          >
+            Obtén tu key gratis en {new URL(PROVIDER_SIGNUP_URLS[provider]).hostname} →
+          </a>
+        )}
 
         <div className="flex items-center gap-2 pt-1">
           <label className="text-xs text-white/50">Idioma del coach</label>

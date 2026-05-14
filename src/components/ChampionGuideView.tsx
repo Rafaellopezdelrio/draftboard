@@ -13,6 +13,8 @@ import { TierBadge } from "./ui/TierBadge";
 import { PowerSpikesBars } from "./PowerSpikesBars";
 import { BuildPanel } from "./BuildPanel";
 import { getMatchupTips } from "../data/matchupTips";
+import { generateChampionGuide, getCachedGuide } from "../services/aiChampionGuide";
+import { usePrefsStore } from "../state/prefsStore";
 import {
   Sparkles,
   Swords,
@@ -21,6 +23,7 @@ import {
   Mountain,
   Lightbulb,
   Info,
+  Bot,
 } from "lucide-react";
 import type { Role } from "../types/champion";
 
@@ -30,7 +33,7 @@ interface Props {
   onClose: () => void;
 }
 
-type Tab = "overview" | "abilities" | "build" | "tips";
+type Tab = "overview" | "abilities" | "build" | "tips" | "ai";
 
 const ROLE_LIKE: Role[] = ["TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY"];
 
@@ -138,6 +141,7 @@ export function ChampionGuideView({ db, championKey, onClose }: Props) {
               { value: "abilities", label: "Habilidades", icon: <Wand2 className="w-3 h-3" /> },
               { value: "build", label: "Build & runas", icon: <Mountain className="w-3 h-3" /> },
               { value: "tips", label: "Tips", icon: <Lightbulb className="w-3 h-3" /> },
+              { value: "ai", label: "Guía AI", icon: <Bot className="w-3 h-3" /> },
             ]}
             active={tab}
             onChange={setTab}
@@ -169,6 +173,15 @@ export function ChampionGuideView({ db, championKey, onClose }: Props) {
 
           {!loading && tab === "tips" && (
             <TipsTab db={db} championKey={championKey} championId={champ.id} />
+          )}
+
+          {!loading && tab === "ai" && (
+            <AiGuideTab
+              championId={Number(champ.key)}
+              championName={champ.name}
+              role={selectedRole}
+              patch={db.patch}
+            />
           )}
         </div>
       </div>
@@ -385,6 +398,135 @@ function TipsTab({
         </Panel>
       )}
     </div>
+  );
+}
+
+function AiGuideTab({
+  championId,
+  championName,
+  role,
+  patch,
+}: {
+  championId: number;
+  championName: string;
+  role: Role;
+  patch: string;
+}) {
+  const provider = usePrefsStore((s) => s.prefs.aiProvider);
+  const apiKey = usePrefsStore((s) =>
+    s.prefs.aiProvider === "groq"
+      ? s.prefs.groqApiKey
+      : s.prefs.aiProvider === "gemini"
+        ? s.prefs.geminiApiKey
+        : s.prefs.anthropicApiKey
+  );
+  const lang = usePrefsStore((s) => s.prefs.aiCoachLanguage);
+
+  const [text, setText] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [cached, setCached] = useState(false);
+
+  useEffect(() => {
+    setText("");
+    setErr(null);
+    setCached(false);
+    getCachedGuide(championId, patch).then((g) => {
+      if (g) {
+        setText(g.guideText);
+        setCached(true);
+      }
+    });
+  }, [championId, patch]);
+
+  async function generate(force = false) {
+    if (!apiKey) {
+      setErr(`Configura API key (${provider}) en Prefs`);
+      return;
+    }
+    setErr(null);
+    setLoading(true);
+    try {
+      const t = await generateChampionGuide({
+        provider,
+        apiKey,
+        championId,
+        championName,
+        role,
+        patch,
+        language: lang,
+        force,
+      });
+      setText(t);
+      setCached(true);
+    } catch (e) {
+      setErr(String(e));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <Panel padding="sm">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <Bot className="w-3.5 h-3.5 text-accent" />
+          <p className="text-[10px] uppercase tracking-widest text-accent font-semibold">
+            Guía AI · {role} · {patch}
+          </p>
+        </div>
+        {cached && (
+          <span className="text-[9px] uppercase tracking-widest text-good">
+            cacheado
+          </span>
+        )}
+      </div>
+
+      {!text && !loading && (
+        <>
+          <p className="text-xs text-white/65 mb-2">
+            Genera una guía AI para {championName} en {role} adaptada al parche actual.
+            Se cachea: la próxima vez será instantánea.
+          </p>
+          <button
+            onClick={() => generate(false)}
+            disabled={!apiKey}
+            className="px-3 py-1.5 bg-accent text-black font-medium rounded-md text-xs disabled:opacity-50 inline-flex items-center gap-1.5"
+          >
+            <Sparkles className="w-3 h-3" />
+            Generar guía AI
+          </button>
+          {!apiKey && (
+            <p className="text-[10px] text-meh mt-2">
+              Necesitas API key ({provider}) en Prefs. Groq es gratis.
+            </p>
+          )}
+        </>
+      )}
+
+      {loading && (
+        <p className="text-white/50 text-xs text-center py-6">
+          Generando guía profesional...
+        </p>
+      )}
+
+      {err && <p className="text-xs text-bad">{err}</p>}
+
+      {text && (
+        <>
+          <p className="text-xs text-white/85 whitespace-pre-wrap leading-relaxed">
+            {text}
+          </p>
+          <button
+            onClick={() => generate(true)}
+            disabled={loading || !apiKey}
+            className="mt-3 text-[10px] text-white/45 hover:text-accent uppercase tracking-widest"
+          >
+            regenerar
+          </button>
+        </>
+      )}
+    </Panel>
   );
 }
 

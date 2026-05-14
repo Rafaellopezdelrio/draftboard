@@ -27,6 +27,8 @@ import {
   Cog,
   Trophy,
   UserSearch,
+  Calendar,
+  Radio,
 } from "lucide-react";
 
 // Lazy-load all modals — only fetched when opened, keeps initial bundle smaller.
@@ -83,6 +85,16 @@ const ProPlayersView = lazy(() =>
     default: m.ProPlayersView,
   }))
 );
+const LessonPlanView = lazy(() =>
+  import("./components/LessonPlanView").then((m) => ({
+    default: m.LessonPlanView,
+  }))
+);
+const LiveGameView = lazy(() =>
+  import("./components/LiveGameView").then((m) => ({
+    default: m.LiveGameView,
+  }))
+);
 import { BanSuggestionsPanel } from "./components/BanSuggestionsPanel";
 import { MatchupTipsPanel } from "./components/MatchupTipsPanel";
 import { ChampionPoolPanel } from "./components/ChampionPoolPanel";
@@ -91,6 +103,7 @@ import { PatchImpactPanel } from "./components/PatchImpactPanel";
 import { PlaystylePanel } from "./components/PlaystylePanel";
 import { TradeSuggestionPanel } from "./components/TradeSuggestionPanel";
 import { CommandPalette, type Command } from "./components/CommandPalette";
+import { HeaderMenu } from "./components/ui/HeaderMenu";
 import { useEscape, useGlobalShortcut } from "./hooks/useKeyboardShortcuts";
 import { voiceCoach } from "./services/voiceCoach";
 import { lcuMasteries, lcuRank } from "./services/lcuPersonalData";
@@ -100,7 +113,7 @@ import { setCoachEloBucket } from "./engine/coachEngine";
 import { predictDraftWinrate } from "./engine/draftWinrateEngine";
 import { personalStatsByChampion } from "./services/matchRepo";
 import { loadSettings } from "./services/settingsRepo";
-import { getTopMasteries, type ChampionMasteryDto } from "./services/riotApi";
+import { getTopMasteries, setRiotProxyUrl, type ChampionMasteryDto } from "./services/riotApi";
 import type { ChampionPersonalStat } from "./services/matchRepo";
 import { usePrefsStore } from "./state/prefsStore";
 import { useAutoActions } from "./state/autoActions";
@@ -135,6 +148,8 @@ function App() {
   const [showTierList, setShowTierList] = useState(false);
   const [showLookup, setShowLookup] = useState(false);
   const [showProPlayers, setShowProPlayers] = useState(false);
+  const [showLessonPlan, setShowLessonPlan] = useState(false);
+  const [showLiveGame, setShowLiveGame] = useState(false);
   const [guideChampionKey, setGuideChampionKey] = useState<string | null>(null);
   const [personalStats, setPersonalStats] = useState<ChampionPersonalStat[]>([]);
   const [masteries, setMasteries] = useState<ChampionMasteryDto[]>([]);
@@ -163,6 +178,8 @@ function App() {
     { id: "lookup", label: "Buscar jugador (Riot ID)", action: () => setShowLookup(true) },
     { id: "pro", label: "Pro Players (LCK / LEC / LCS)", action: () => setShowProPlayers(true) },
     { id: "coach", label: "Abrir Coach (post-game)", action: () => setShowCoach(true) },
+    { id: "lesson", label: "Plan de mejora 7 días", action: () => setShowLessonPlan(true) },
+    { id: "live", label: "Partida en directo (live)", action: () => setShowLiveGame(true) },
     { id: "chat", label: "Hablar con AI Coach", action: () => setShowChat(true) },
     { id: "trends", label: "Ver tendencias", action: () => setShowTrends(true) },
     { id: "history", label: "Historial", action: () => setShowHistory(true) },
@@ -175,6 +192,12 @@ function App() {
   useEffect(() => {
     loadPrefs();
   }, [loadPrefs]);
+
+  // Sync Riot proxy URL into the API client whenever prefs change. Lets the
+  // user toggle proxy mode without restarting the app.
+  useEffect(() => {
+    setRiotProxyUrl(prefs.riotProxyUrl || null);
+  }, [prefs.riotProxyUrl]);
 
   // Try LCU first for masteries (no key needed); fall back to Riot API.
   // Also pull the user's rank to calibrate coach benchmarks to their actual elo.
@@ -280,21 +303,23 @@ function App() {
         <div className="flex items-center gap-4">
           <Logo />
           <div className="flex items-center gap-2">
-            <span
-              className={`inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded-md font-medium ${
-                lcuStatus.connected
-                  ? "bg-good/15 text-good ring-1 ring-good/40"
-                  : "bg-white/5 text-white/50 ring-1 ring-white/10"
-              }`}
-              title={lcuStatus.reason ?? ""}
-            >
-              {lcuStatus.connected ? (
+            {lcuStatus.connected ? (
+              <span
+                className="inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded-md font-medium bg-good/15 text-good ring-1 ring-good/40"
+                title="Cliente de LoL detectado"
+              >
                 <Wifi className="w-3 h-3" />
-              ) : (
+                Conectado
+              </span>
+            ) : (
+              <span
+                className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-white/35"
+                title={lcuStatus.reason ?? "Esperando que abras el cliente de LoL"}
+              >
                 <WifiOff className="w-3 h-3" />
-              )}
-              {lcuStatus.connected ? "Cliente conectado" : "Modo manual"}
-            </span>
+                Esperando cliente
+              </span>
+            )}
             {prefs.liveTimer && <PhaseTimer />}
             <span className="text-[10px] uppercase tracking-widest text-white/40 font-medium">
               Patch {db.patch}
@@ -305,12 +330,26 @@ function App() {
           <HeaderBtn onClick={() => setShowChat(true)} primary icon={<Sparkles className="w-3.5 h-3.5" />} label="AI Coach" />
           <HeaderBtn onClick={() => setShowTierList(true)} icon={<Trophy className="w-3.5 h-3.5" />} label="Tier List" />
           <HeaderBtn onClick={() => setShowLookup(true)} icon={<UserSearch className="w-3.5 h-3.5" />} label="Buscar" />
-          <HeaderBtn onClick={() => setShowCoach(true)} icon={<GraduationCap className="w-3.5 h-3.5" />} label="Coach" />
-          <HeaderBtn onClick={() => setShowTrends(true)} icon={<TrendingUp className="w-3.5 h-3.5" />} label="Trends" />
-          <HeaderBtn onClick={() => setShowHistory(true)} icon={<History className="w-3.5 h-3.5" />} label="Historial" />
-          <HeaderBtn onClick={() => setShowPrefs(true)} icon={<SlidersHorizontal className="w-3.5 h-3.5" />} label="Prefs" />
-          <HeaderBtn onClick={() => setShowDiag(true)} icon={<Activity className="w-3.5 h-3.5" />} label="Diag" />
-          <HeaderBtn onClick={() => setShowSettings(true)} icon={<Cog className="w-3.5 h-3.5" />} label="" title="Configuración" />
+          <HeaderBtn onClick={() => setShowLiveGame(true)} icon={<Radio className="w-3.5 h-3.5" />} label="Live" />
+          <HeaderMenu
+            label="Mi juego"
+            icon={<GraduationCap className="w-3.5 h-3.5" />}
+            items={[
+              { label: "Coach post-partida", icon: <GraduationCap className="w-3.5 h-3.5" />, onClick: () => setShowCoach(true) },
+              { label: "Tendencias", icon: <TrendingUp className="w-3.5 h-3.5" />, onClick: () => setShowTrends(true) },
+              { label: "Historial", icon: <History className="w-3.5 h-3.5" />, onClick: () => setShowHistory(true) },
+              { label: "Plan 7 días", icon: <Calendar className="w-3.5 h-3.5" />, onClick: () => setShowLessonPlan(true) },
+            ]}
+          />
+          <HeaderMenu
+            label="Ajustes"
+            icon={<Cog className="w-3.5 h-3.5" />}
+            items={[
+              { label: "Preferencias", icon: <SlidersHorizontal className="w-3.5 h-3.5" />, onClick: () => setShowPrefs(true) },
+              { label: "Configuración Riot", icon: <Cog className="w-3.5 h-3.5" />, onClick: () => setShowSettings(true) },
+              { label: "Diagnóstico", icon: <Activity className="w-3.5 h-3.5" />, onClick: () => setShowDiag(true) },
+            ]}
+          />
           <select
             value={myRole ?? ""}
             onChange={(e) =>
@@ -368,7 +407,12 @@ function App() {
           {prefs.showCompAnalysis && (
             <CompAnalysis db={db} allyKeys={allyKeys} />
           )}
-          <MatchupTipsPanel db={db} enemyKeys={enemyKeys} />
+          <MatchupTipsPanel
+            db={db}
+            enemyKeys={enemyKeys}
+            myChampionKey={buildChampionKey}
+            myRole={myRole}
+          />
           {prefs.showEnemyScout && (
             <EnemyScoutPanel
               db={db}
@@ -416,6 +460,12 @@ function App() {
         )}
         {showProPlayers && (
           <ProPlayersView db={db} onClose={() => setShowProPlayers(false)} />
+        )}
+        {showLessonPlan && (
+          <LessonPlanView db={db} onClose={() => setShowLessonPlan(false)} />
+        )}
+        {showLiveGame && (
+          <LiveGameView db={db} onClose={() => setShowLiveGame(false)} />
         )}
         {guideChampionKey && (
           <ChampionGuideView

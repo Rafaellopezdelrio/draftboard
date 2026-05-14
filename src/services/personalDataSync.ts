@@ -12,6 +12,7 @@ import {
   getRecentMatchIds,
   getMatch,
   getTopMasteries,
+  getRiotProxyUrl,
   type ChampionMasteryDto,
   type RiotConfig,
 } from "./riotApi";
@@ -47,8 +48,9 @@ export async function syncPersonalData(
 ): Promise<SyncResult> {
   const cfg = await loadSettings();
 
-  // 1. Prefer Riot API when key is available
-  if (cfg?.apiKey && cfg.puuid) {
+  // 1. Prefer Riot API when key OR proxy is available + we know the puuid
+  const hasRiotAccess = !!cfg?.apiKey || !!getRiotProxyUrl();
+  if (hasRiotAccess && cfg?.puuid) {
     try {
       return await riotApiSync(cfg, onProgress);
     } catch (e) {

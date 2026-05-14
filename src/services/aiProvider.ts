@@ -2,6 +2,7 @@
 // Falls back to Anthropic (paid, best quality) or Google Gemini (free tier).
 
 import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
+import { getRiotProxyUrl } from "./riotApi";
 
 function isTauri(): boolean {
   return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
@@ -48,6 +49,12 @@ export const PROVIDER_SIGNUP_URLS: Record<AiProvider, string> = {
 };
 
 export async function callAi(p: AiCallParams): Promise<string> {
+  // Groq via proxy: works WITHOUT user-supplied key. Proxy injects the
+  // shared production Groq key (CF secret). This is the "casual user" path.
+  const proxyUrl = getRiotProxyUrl();
+  if (p.provider === "groq" && proxyUrl) {
+    return callGroqViaProxy(p, proxyUrl);
+  }
   if (!p.apiKey?.trim()) {
     throw new Error(
       `Necesitas una API key de ${PROVIDER_LABELS[p.provider]}. Configúrala en Prefs.`
@@ -61,6 +68,32 @@ export async function callAi(p: AiCallParams): Promise<string> {
     case "gemini":
       return callGemini(p);
   }
+}
+
+async function callGroqViaProxy(p: AiCallParams, proxyUrl: string): Promise<string> {
+  const messages = [
+    { role: "system", content: p.systemPrompt },
+    ...(p.history ?? []),
+    { role: "user", content: p.userPrompt },
+  ];
+  const res = await httpFetch(`${proxyUrl}/groq/openai/v1/chat/completions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: MODELS.groq,
+      max_tokens: p.maxTokens ?? 700,
+      messages,
+    }),
+  });
+  if (res.status === 429) throw new Error("Demasiadas peticiones, espera 1 min");
+  if (!res.ok)
+    throw new Error(
+      `AI Coach (${res.status}): ${(await res.text()).slice(0, 200)}`
+    );
+  const json = (await res.json()) as {
+    choices: Array<{ message: { content: string } }>;
+  };
+  return json.choices[0]?.message?.content ?? "";
 }
 
 async function callOpenAiCompatible(p: AiCallParams): Promise<string> {

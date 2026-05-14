@@ -56,11 +56,17 @@ pub fn spawn_watcher(app: AppHandle) {
 }
 
 async fn try_connect(app: &AppHandle) -> Result<()> {
-    let lf = read_lockfile()?;
+    let lf = read_lockfile().map_err(|e| {
+        eprintln!("[LCU] read_lockfile failed: {}", e);
+        e
+    })?;
+    eprintln!("[LCU] lockfile OK port={} password=({} chars)", lf.port, lf.password.len());
+
     let auth = format!("riot:{}", lf.password);
     let auth_b64 = B64.encode(auth.as_bytes());
 
     let url = format!("wss://127.0.0.1:{}/", lf.port);
+    eprintln!("[LCU] connecting to {}", url);
     let mut req = url.into_client_request()?;
     req.headers_mut()
         .insert("Authorization", format!("Basic {}", auth_b64).parse()?);
@@ -68,7 +74,6 @@ async fn try_connect(app: &AppHandle) -> Result<()> {
     // The LCU uses a self-signed cert. Disable verification only against localhost.
     let tls = rustls_dangerous_config()?;
     let connector = Connector::Rustls(std::sync::Arc::new(tls));
-
     let (mut stream, _) = tokio_tungstenite::connect_async_tls_with_config(
         req,
         None,
@@ -76,8 +81,12 @@ async fn try_connect(app: &AppHandle) -> Result<()> {
         Some(connector),
     )
     .await
-    .context("LCU websocket connect")?;
+    .map_err(|e| {
+        eprintln!("[LCU] websocket connect failed: {}", e);
+        anyhow!("LCU websocket connect: {}", e)
+    })?;
 
+    eprintln!("[LCU] WebSocket connected ✓");
     update_status(app, true, None).await;
 
     // Subscribe to champion select session updates.
@@ -137,8 +146,22 @@ fn read_lockfile() -> Result<Lockfile> {
 
 fn lockfile_candidates() -> Vec<PathBuf> {
     let mut out = Vec::new();
-    // Common Windows install paths
-    let drives = ["C", "D", "E", "F"];
+
+    // Step 1: Auto-detect from running LeagueClient.exe process. This is the
+    // most reliable: works for ANY install path the user picked.
+    if let Some(path) = detect_lol_install_from_process() {
+        out.push(path.join("lockfile"));
+    }
+
+    // Step 2: Read Riot's installs config (works even when client not running)
+    if let Some(paths) = detect_lol_installs_from_config() {
+        for p in paths {
+            out.push(p.join("lockfile"));
+        }
+    }
+
+    // Step 3: Fallback hardcoded common paths (covers users with weird env)
+    let drives = ["C", "D", "E", "F", "G"];
     for d in drives {
         out.push(PathBuf::from(format!(
             "{}:\\Riot Games\\League of Legends\\lockfile",
@@ -154,6 +177,55 @@ fn lockfile_candidates() -> Vec<PathBuf> {
         )));
     }
     out
+}
+
+/// Walk running processes looking for LeagueClient.exe; return its folder.
+fn detect_lol_install_from_process() -> Option<PathBuf> {
+    use sysinfo::{ProcessRefreshKind, RefreshKind, System};
+    let sys = System::new_with_specifics(
+        RefreshKind::new().with_processes(ProcessRefreshKind::everything()),
+    );
+    for (_, proc) in sys.processes() {
+        let name = proc.name().to_string_lossy();
+        if name.eq_ignore_ascii_case("LeagueClient.exe") {
+            if let Some(exe) = proc.exe() {
+                if let Some(dir) = exe.parent() {
+                    return Some(dir.to_path_buf());
+                }
+            }
+        }
+    }
+    None
+}
+
+/// Read RiotClientInstalls.json (maintained by Riot Client) to find LoL paths.
+/// Works even when League client isn't running.
+fn detect_lol_installs_from_config() -> Option<Vec<PathBuf>> {
+    let candidates = [
+        PathBuf::from(std::env::var("PROGRAMDATA").ok()?)
+            .join("Riot Games")
+            .join("RiotClientInstalls.json"),
+        PathBuf::from(std::env::var("LOCALAPPDATA").ok()?)
+            .join("Riot Games")
+            .join("RiotClientInstalls.json"),
+    ];
+    for path in candidates {
+        if let Ok(content) = std::fs::read_to_string(&path) {
+            if let Ok(val) = serde_json::from_str::<Value>(&content) {
+                let mut out = Vec::new();
+                if let Some(map) = val.get("associated_client").and_then(|v| v.as_object()) {
+                    for key in map.keys() {
+                        // Keys are install paths like "C:/Riot Games/League of Legends/"
+                        out.push(PathBuf::from(key.replace('/', "\\")));
+                    }
+                }
+                if !out.is_empty() {
+                    return Some(out);
+                }
+            }
+        }
+    }
+    None
 }
 
 fn rustls_dangerous_config() -> Result<rustls::ClientConfig> {

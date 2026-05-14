@@ -134,7 +134,7 @@ export async function lcuRecentMatches(
  *
  * Returns "" (empty) if signals contradict — better empty than wrong.
  */
-function inferPosition(
+export function inferPosition(
   p: LcuMatchHistoryResponse["games"]["games"][number]["participants"][number],
   queueId: number
 ): string {

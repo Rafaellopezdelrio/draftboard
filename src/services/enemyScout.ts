@@ -2,7 +2,7 @@ import {
   getMatchFull,
   getRecentMatchIds,
   getSummonerByPuuid,
-  getLeagueEntriesBySummoner,
+  getLeagueEntriesByPuuid,
   getTopMasteries,
   type RiotConfig,
 } from "./riotApi";
@@ -49,18 +49,17 @@ export async function scoutPlayer(
   let rank: string | null = null;
   let lp: number | null = null;
   let hotStreak = false;
-  if (summoner) {
-    try {
-      const entries = await getLeagueEntriesBySummoner(cfg, summoner.id);
-      const soloq = entries.find((e) => e.queueType === "RANKED_SOLO_5x5");
-      if (soloq) {
-        rank = `${soloq.tier} ${soloq.rank}`;
-        lp = soloq.leaguePoints;
-        hotStreak = soloq.hotStreak;
-      }
-    } catch {
-      // ignore
+  try {
+    // Use puuid endpoint — by-summoner is being phased out
+    const entries = await getLeagueEntriesByPuuid(cfg, puuid);
+    const soloq = entries.find((e) => e.queueType === "RANKED_SOLO_5x5");
+    if (soloq) {
+      rank = `${soloq.tier} ${soloq.rank}`;
+      lp = soloq.leaguePoints;
+      hotStreak = soloq.hotStreak;
     }
+  } catch {
+    // ignore
   }
 
   const champCount = new Map<number, { games: number; wins: number }>();
