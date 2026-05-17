@@ -1,6 +1,6 @@
 // Champion guide modal — abilities, info, builds, runes, power spikes, matchups.
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactElement, type ReactNode } from "react";
 import type { ChampionDb } from "../types/champion";
 import {
   fetchChampionDetail,
@@ -331,6 +331,26 @@ function AbilitiesTab({ detail, patch }: { detail: ChampionDetail; patch: string
   );
 }
 
+// UI strings for TipsTab. Kept inline because they're tiny and only used
+// here — promoting them to a full i18n system would be over-engineering
+// until we have more bilingual surfaces.
+const TIPS_I18N = {
+  es: {
+    tipsHeader: "Tips para jugarlo bien",
+    tipLearn: "Aprende sus combos básicos en práctica antes de SoloQ",
+    tipSpike: "Identifica el power spike (revisa tab Resumen)",
+    tipBuild: "Mira las builds por rol en tab Build & runas",
+    whenFacing: "Cuando lo enfrentas",
+  },
+  en: {
+    tipsHeader: "Tips to play it well",
+    tipLearn: "Learn the basic combos in practice tool before SoloQ",
+    tipSpike: "Identify the power spikes (check the Summary tab)",
+    tipBuild: "See builds per role in the Build & runes tab",
+    whenFacing: "When you face them",
+  },
+};
+
 function TipsTab({
   db,
   championKey,
@@ -341,6 +361,8 @@ function TipsTab({
   championId: string;
 }) {
   void championKey;
+  const lang = usePrefsStore((s) => s.prefs.aiCoachLanguage);
+  const t = lang === "en" ? TIPS_I18N.en : TIPS_I18N.es;
   // Use matchup tips as inverse — what enemies say about playing vs me
   const idToName = new Map<string, string>();
   for (const c of Object.values(db.champions)) idToName.set(c.key, c.id);
@@ -350,13 +372,10 @@ function TipsTab({
   );
   const ourName = ourEntry?.[1].name ?? "";
 
-  // Simplified: just show generic tips by querying matchup data structure
-  const enemies = Object.values(db.champions).slice(0, 0); // placeholder
-  void enemies;
-
-  // Show tips ABOUT this champion when you face them (curated DB has tips by enemy name)
-  const tipsForThisChamp = getMatchupTips(undefined, [championKey], idToName);
-  const tipsAboutEnemies = tipsForThisChamp.filter((t) => t.versus === ourName);
+  // Show tips ABOUT this champion when you face them. Same lang used as
+  // the UI strings — the curated DB has parallel arrays for es/en.
+  const tipsForThisChamp = getMatchupTips(undefined, [championKey], idToName, lang);
+  const tipsAboutEnemies = tipsForThisChamp.filter((tip) => tip.versus === ourName);
 
   return (
     <div className="space-y-2">
@@ -364,21 +383,21 @@ function TipsTab({
         <div className="flex items-center gap-2 mb-2">
           <Sparkles className="w-3.5 h-3.5 text-accent" />
           <p className="text-[10px] uppercase tracking-widest text-accent font-semibold">
-            Tips para jugarlo bien
+            {t.tipsHeader}
           </p>
         </div>
         <ul className="space-y-1.5 text-xs text-white/75">
           <li className="flex gap-2">
             <Swords className="w-3 h-3 text-bad shrink-0 mt-0.5" />
-            <span>Aprende sus combos básicos en práctica antes de SoloQ</span>
+            <span>{t.tipLearn}</span>
           </li>
           <li className="flex gap-2">
             <ShieldCheck className="w-3 h-3 text-good shrink-0 mt-0.5" />
-            <span>Identifica el power spike (revisa tab Resumen)</span>
+            <span>{t.tipSpike}</span>
           </li>
           <li className="flex gap-2">
             <Mountain className="w-3 h-3 text-accent shrink-0 mt-0.5" />
-            <span>Mira las builds por rol en tab Build & runas</span>
+            <span>{t.tipBuild}</span>
           </li>
         </ul>
       </Panel>
@@ -386,7 +405,7 @@ function TipsTab({
       {tipsAboutEnemies.length > 0 && (
         <Panel padding="sm">
           <p className="text-[10px] uppercase tracking-widest text-white/45 font-semibold mb-2">
-            Cuando lo enfrentas
+            {t.whenFacing}
           </p>
           <div className="space-y-1.5">
             {tipsAboutEnemies.map((t, i) => (
@@ -514,9 +533,9 @@ function AiGuideTab({
 
       {text && (
         <>
-          <p className="text-xs text-white/85 whitespace-pre-wrap leading-relaxed">
-            {text}
-          </p>
+          <div className="text-xs text-white/85 leading-relaxed space-y-1.5">
+            <Markdown source={text} />
+          </div>
           <button
             onClick={() => generate(true)}
             disabled={loading || !apiKey}
@@ -530,9 +549,152 @@ function AiGuideTab({
   );
 }
 
+/**
+ * Strict HTML sanitizer for Data Dragon ability descriptions.
+ *
+ * Data Dragon is a trusted Riot CDN, but defense-in-depth: if Riot's CDN
+ * ever serves malicious content (compromise, MITM, dev mistake), we don't
+ * want it to run scripts in our Tauri webview.
+ *
+ * Allowlist approach: drop EVERYTHING that isn't a known-safe formatting tag.
+ */
 function stripHtml(html: string): string {
-  // Allow <br> and basic formatting; remove dangerous tags
-  return html
-    .replace(/<style[^>]*>.*?<\/style>/gs, "")
-    .replace(/<script[^>]*>.*?<\/script>/gs, "");
+  // 1. Remove entire dangerous blocks (scripts, styles, iframes, etc.)
+  let out = html.replace(
+    /<(script|style|iframe|object|embed|link|meta|form|input|button|svg)[^>]*>.*?<\/\1>/gis,
+    ""
+  );
+  // 2. Remove self-closing dangerous tags
+  out = out.replace(
+    /<(script|iframe|object|embed|link|meta|input|img)\b[^>]*\/?>/gi,
+    ""
+  );
+  // 3. Strip ALL event handlers (onclick, onerror, onmouseover, etc.)
+  out = out.replace(/\son\w+\s*=\s*(["'])[^"']*\1/gi, "");
+  out = out.replace(/\son\w+\s*=\s*[^\s>]+/gi, "");
+  // 4. Strip javascript:/data: URLs in attributes
+  out = out.replace(/\s(href|src|action)\s*=\s*(["'])\s*(javascript|data|vbscript)\s*:[^"']*\2/gi, "");
+  // 5. Whitelist: keep only specific tags, strip everything else but keep text
+  const ALLOWED = /^(br|b|strong|i|em|span|font|color|small|p|ul|li)$/i;
+  out = out.replace(/<\/?([a-z][a-z0-9]*)\b[^>]*>/gi, (match, tag) => {
+    return ALLOWED.test(tag) ? match : "";
+  });
+  return out;
+}
+
+// Exported so unit tests can import it
+export const __testOnly_stripHtml = stripHtml;
+
+/**
+ * Tiny markdown renderer for LLM output. Supports:
+ *   - `## heading` and `# heading`
+ *   - `**bold**`
+ *   - `_italic_` and `*italic*` (whole-word boundaries — won't eat
+ *     `snake_case_words`)
+ *   - bullet lists starting with `- ` or `* `
+ *   - paragraphs separated by blank lines
+ *
+ * Why not pull in react-markdown: it's ~50kB gzipped for what we use here.
+ * We control the LLM output prompt so we know the surface area is small.
+ */
+function Markdown({ source }: { source: string }) {
+  const blocks: ReactElement[] = [];
+  const lines = source.split(/\r?\n/);
+  let listBuffer: string[] = [];
+  let paraBuffer: string[] = [];
+  let idx = 0;
+
+  const flushPara = () => {
+    if (paraBuffer.length === 0) return;
+    const text = paraBuffer.join(" ");
+    blocks.push(
+      <p key={`p-${idx++}`} className="leading-relaxed">
+        {renderInline(text)}
+      </p>
+    );
+    paraBuffer = [];
+  };
+  const flushList = () => {
+    if (listBuffer.length === 0) return;
+    blocks.push(
+      <ul key={`ul-${idx++}`} className="list-disc list-inside space-y-0.5 pl-1">
+        {listBuffer.map((it, i) => (
+          <li key={i}>{renderInline(it)}</li>
+        ))}
+      </ul>
+    );
+    listBuffer = [];
+  };
+
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line) {
+      flushPara();
+      flushList();
+      continue;
+    }
+    // Headers
+    const h = line.match(/^(#{1,4})\s+(.+)$/);
+    if (h) {
+      flushPara();
+      flushList();
+      const level = h[1].length;
+      const cls =
+        level <= 2
+          ? "text-[11px] uppercase tracking-widest text-accent font-semibold mt-2"
+          : "text-[10px] uppercase tracking-wide text-white/70 font-semibold mt-1";
+      blocks.push(
+        <p key={`h-${idx++}`} className={cls}>
+          {renderInline(h[2])}
+        </p>
+      );
+      continue;
+    }
+    // Bullet
+    const bullet = line.match(/^[-*]\s+(.+)$/);
+    if (bullet) {
+      flushPara();
+      listBuffer.push(bullet[1]);
+      continue;
+    }
+    // Numbered list — treat as paragraph with the number kept
+    paraBuffer.push(line);
+  }
+  flushPara();
+  flushList();
+  return <>{blocks}</>;
+}
+
+/**
+ * Inline markdown: **bold**, _italic_, *italic*. Splits the string into
+ * a list of strings and React nodes. Order matters: bold first (longer
+ * delimiter) so it doesn't get eaten by the italic pass.
+ */
+function renderInline(text: string): ReactNode {
+  const parts: ReactNode[] = [];
+  const re = /(\*\*[^*]+\*\*)|(\b_[^_\n]+_\b)|(\*[^*\n]+\*)/g;
+  let last = 0;
+  let m: RegExpExecArray | null;
+  let i = 0;
+  while ((m = re.exec(text)) !== null) {
+    if (m.index > last) parts.push(text.slice(last, m.index));
+    const tok = m[0];
+    if (tok.startsWith("**")) {
+      parts.push(
+        <strong key={`b-${i++}`} className="text-white font-semibold">
+          {tok.slice(2, -2)}
+        </strong>
+      );
+    } else {
+      // italic from _x_ or *x*
+      parts.push(
+        <em key={`i-${i++}`} className="text-accent/90 not-italic font-medium">
+          {tok.slice(1, -1)}
+        </em>
+      );
+    }
+    last = m.index + tok.length;
+  }
+  if (last < text.length) parts.push(text.slice(last));
+  return parts;
 }

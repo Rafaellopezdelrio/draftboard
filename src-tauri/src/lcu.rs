@@ -402,6 +402,105 @@ pub async fn lcu_get_json(path: String) -> Result<serde_json::Value, String> {
     fetch_lcu_json(&path).await.map_err(|e| e.to_string())
 }
 
+// ============================================================================
+// Riot Live Client Data API (localhost:2999)
+// ============================================================================
+// Separate from the LCU because it's a DIFFERENT API: while you're in a real
+// game, Riot exposes an HTTP server on port 2999 with current match data.
+// Used by every overlay tool out there (Blitz, Mobalytics, Porofessor in-game,
+// OBS LoL plugins, etc). Officially documented and read-only.
+//
+// Same self-signed-cert situation as the LCU, so we reuse rustls_dangerous_config.
+// Different port + no auth header needed (it's localhost-only).
+//
+// Endpoint: https://127.0.0.1:2999/liveclientdata/allgamedata
+// Returns: { activePlayer, allPlayers[], events: { Events[] }, gameData }
+
+#[tauri::command]
+pub async fn live_client_all_game_data() -> Result<serde_json::Value, String> {
+    fetch_live_client_json("/liveclientdata/allgamedata")
+        .await
+        .map_err(|e| e.to_string())
+}
+
+async fn fetch_live_client_json(path: &str) -> Result<serde_json::Value> {
+    let tls = rustls_dangerous_config()?;
+    // Short timeouts: if we're not in a game the connection refuses immediately,
+    // so a 1s connect timeout is plenty. The 4s read timeout covers the slow
+    // initial response when a game JUST started and the API is warming up.
+    let client = reqwest::Client::builder()
+        .use_preconfigured_tls(tls)
+        .timeout(Duration::from_secs(4))
+        .connect_timeout(Duration::from_secs(1))
+        .build()?;
+
+    let url = format!("https://127.0.0.1:2999{}", path);
+    let resp = client.get(&url).send().await?;
+    if !resp.status().is_success() {
+        return Err(anyhow!("live client returned {}", resp.status()));
+    }
+    let value: serde_json::Value = resp.json().await?;
+    Ok(value)
+}
+
+/// Apply two summoner spells to the local player's pick in champ select.
+///
+/// The LCU exposes spells through PATCH on
+/// `/lol-champ-select/v1/session/my-selection` with `spell1Id` / `spell2Id`.
+/// Riot's IDs are: 4=Flash, 14=Ignite, 11=Smite, 12=Teleport, 7=Heal,
+/// 3=Exhaust, 1=Cleanse, 6=Ghost, 21=Barrier.
+///
+/// Returns Ok even if champ select is over or the player isn't in champ
+/// select — fail-soft so an auto-apply on hover doesn't spam errors when
+/// the user is just hovering outside a real lobby. Hard errors (lockfile
+/// missing, network) still bubble up.
+#[tauri::command]
+pub async fn lcu_apply_summoner_spells(spell1: u32, spell2: u32) -> Result<bool, String> {
+    apply_summoner_spells(spell1, spell2)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+async fn apply_summoner_spells(spell1: u32, spell2: u32) -> Result<bool> {
+    let lf = read_lockfile()?;
+    let auth = format!("riot:{}", lf.password);
+    let auth_b64 = B64.encode(auth.as_bytes());
+
+    let tls = rustls_dangerous_config()?;
+    let client = reqwest::Client::builder()
+        .use_preconfigured_tls(tls)
+        .timeout(Duration::from_secs(5))
+        .connect_timeout(Duration::from_secs(2))
+        .build()?;
+
+    let base = format!("https://127.0.0.1:{}", lf.port);
+    let body = serde_json::json!({
+        "spell1Id": spell1,
+        "spell2Id": spell2,
+    });
+
+    let resp = client
+        .patch(format!("{}/lol-champ-select/v1/session/my-selection", base))
+        .header("Authorization", format!("Basic {}", auth_b64))
+        .json(&body)
+        .send()
+        .await?;
+
+    // 204 No Content is the success path. 404 means we're not in champ
+    // select right now — return false so the caller can no-op instead of
+    // showing an error toast.
+    if resp.status().as_u16() == 404 {
+        return Ok(false);
+    }
+    if !resp.status().is_success() {
+        return Err(anyhow!(
+            "apply summoner spells returned {}",
+            resp.status()
+        ));
+    }
+    Ok(true)
+}
+
 async fn fetch_lcu_json(path: &str) -> Result<serde_json::Value> {
     let lf = read_lockfile()?;
     let auth = format!("riot:{}", lf.password);

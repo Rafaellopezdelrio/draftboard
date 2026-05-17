@@ -23,12 +23,13 @@ export function MatchupTipsPanel({
   myRole,
 }: Props) {
   const beginner = usePrefsStore((s) => s.prefs.beginnerMode);
+  const panelLang = usePrefsStore((s) => s.prefs.aiCoachLanguage);
   const idToName = useMemo(() => {
     const m = new Map<string, string>();
     for (const c of Object.values(db.champions)) m.set(c.key, c.id);
     return m;
   }, [db]);
-  const tips = getMatchupTips(undefined, enemyKeys, idToName);
+  const tips = getMatchupTips(undefined, enemyKeys, idToName, panelLang);
 
   const enemyWithTip = new Set(
     tips.map((t) => {
@@ -46,7 +47,7 @@ export function MatchupTipsPanel({
     <Panel padding="sm">
       <PanelHeader
         icon={<Lightbulb className="w-3 h-3" />}
-        title="Tips de matchup"
+        title={panelLang === "en" ? "Matchup tips" : "Tips de matchup"}
       />
       <div className="space-y-1.5">
         {visible.map((t, i) => (

@@ -98,15 +98,18 @@ function SideColumn({
   onBanClick,
 }: SideColumnProps) {
   const isAlly = side === "ally";
-  const accentRing = isAlly ? "ring-accent/30" : "ring-bad/30";
-  const accentText = isAlly ? "text-accent" : "text-bad";
+  const accentRing = isAlly ? "ring-accent/30" : "ring-white/15";
+  // Less aggressive enemy header — was "text-bad" (loud red), now softer slate
+  // so the eye focuses on champion icons, not on the header chrome.
+  const accentText = isAlly ? "text-accent" : "text-white/55";
+  const iconText = isAlly ? "text-accent" : "text-bad/80";
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-1.5 px-1">
         {isAlly ? (
-          <Shield className={`w-3.5 h-3.5 ${accentText}`} />
+          <Shield className={`w-3.5 h-3.5 ${iconText}`} />
         ) : (
-          <Swords className={`w-3.5 h-3.5 ${accentText}`} />
+          <Swords className={`w-3.5 h-3.5 ${iconText}`} />
         )}
         <h3 className={`text-[11px] uppercase tracking-widest font-semibold ${accentText}`}>
           {title}
@@ -150,11 +153,19 @@ function SideColumn({
             <button
               key={slot.index}
               onClick={() => onPickClick(slot.index)}
-              className={`w-full flex items-center gap-2.5 bg-bg-card/60 hover:bg-bg-card ring-1 ${
-                champ ? accentRing : "ring-border-subtle"
-              } hover:ring-accent/50 rounded-md p-2 transition group`}
+              className={`w-full flex items-center gap-2.5 ${
+                champ
+                  ? "bg-bg-card/60 ring-1 " + accentRing + " hover:bg-bg-card"
+                  : "bg-transparent ring-1 ring-dashed ring-white/10 hover:ring-accent/40 hover:bg-bg-card/30"
+              } rounded-md p-2 transition group`}
             >
-              <div className="w-11 h-11 rounded bg-bg-elev overflow-hidden ring-1 ring-border-subtle group-hover:ring-accent/40 flex items-center justify-center transition">
+              <div
+                className={`w-11 h-11 rounded overflow-hidden ${
+                  champ
+                    ? "bg-bg-elev ring-1 ring-border-subtle"
+                    : "bg-transparent ring-1 ring-dashed ring-white/10 group-hover:ring-accent/40"
+                } flex items-center justify-center transition`}
+              >
                 {champ ? (
                   <img
                     src={champ.iconUrl}
@@ -162,7 +173,7 @@ function SideColumn({
                     className="w-full h-full"
                   />
                 ) : (
-                  <Plus className="w-4 h-4 text-white/25" />
+                  <Plus className="w-3.5 h-3.5 text-white/20 group-hover:text-accent/70 transition" />
                 )}
               </div>
               <div className="text-left flex-1 min-w-0">
@@ -176,12 +187,9 @@ function SideColumn({
                     </p>
                   </>
                 ) : (
-                  <>
-                    <p className="text-sm text-white/40 italic">Slot vacío</p>
-                    <p className="text-[10px] text-white/25 uppercase tracking-widest">
-                      pickear · {slot.index + 1}
-                    </p>
-                  </>
+                  <p className="text-[10px] text-white/25 uppercase tracking-widest">
+                    Pick {slot.index + 1}
+                  </p>
                 )}
               </div>
             </button>

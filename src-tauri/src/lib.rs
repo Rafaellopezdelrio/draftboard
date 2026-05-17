@@ -1,8 +1,8 @@
 mod lcu;
 
 use lcu::{
-    lcu_apply_runes, lcu_current_summoner, lcu_get_json, lcu_status, lcu_summoner_by_id,
-    LcuState,
+    lcu_apply_runes, lcu_apply_summoner_spells, lcu_current_summoner, lcu_get_json, lcu_status,
+    lcu_summoner_by_id, live_client_all_game_data, LcuState,
 };
 
 use tauri::menu::{Menu, MenuItem};
@@ -57,6 +57,12 @@ pub fn run() {
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_http::init())
+        // Auto-update: pulls signed manifest from our CF Worker, verifies
+        // signature against the embedded public key, downloads + replaces
+        // the binary. Frontend triggers the check via the updater plugin's
+        // JS API on app startup.
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .plugin(
             tauri_plugin_sql::Builder::default()
                 .add_migrations("sqlite:lol-draft-advisor.db", migrations)
@@ -115,7 +121,9 @@ pub fn run() {
             lcu_current_summoner,
             lcu_summoner_by_id,
             lcu_apply_runes,
-            lcu_get_json
+            lcu_apply_summoner_spells,
+            lcu_get_json,
+            live_client_all_game_data
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

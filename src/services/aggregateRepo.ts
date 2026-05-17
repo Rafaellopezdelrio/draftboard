@@ -237,17 +237,26 @@ export function computeTiersPerRole(
     }));
     scored.sort((a, b) => b.score - a.score);
 
-    // Percentile bins matching op.gg conventions:
-    //   S = top 10%, A = top 25%, B = top 65%, C = top 90%, D = bottom 10%
-    // Using direct percentile comparison avoids cumulative-rounding drift.
+    // Tier assignment: HYBRID of absolute score threshold + percentile floor.
+    //
+    // Op.gg / Mobalytics show ~10-15 S-tier champions per role because they
+    // use ABSOLUTE thresholds: every champion with composite score ≥ X is
+    // S-tier, no fixed quota. Pure percentile (top 10%) artificially caps
+    // S-tier to 2-3 champs when sample is small.
+    //
+    // We use absolute thresholds tuned to match op.gg's distribution, with
+    // a minimum-quantity safety net (top 5% guaranteed S even if scores low).
     const n = scored.length;
+    const sFloor = Math.max(1, Math.floor(n * 0.05));  // guaranteed top 5% = S
+    const aFloor = Math.max(2, Math.floor(n * 0.15));  // top 15% min = A or better
     scored.forEach((entry, idx) => {
-      const pct = idx / Math.max(1, n - 1); // 0=top, 1=bottom
+      const composite = entry.score;
       let tier: MetaTier["tier"];
-      if (pct <= 0.10) tier = "S";
-      else if (pct <= 0.25) tier = "A";
-      else if (pct <= 0.65) tier = "B";
-      else if (pct <= 0.90) tier = "C";
+      // Absolute thresholds calibrated against op.gg observed distribution.
+      if (composite >= 0.52 || idx < sFloor) tier = "S";
+      else if (composite >= 0.50 || idx < aFloor) tier = "A";
+      else if (composite >= 0.48) tier = "B";
+      else if (composite >= 0.46) tier = "C";
       else tier = "D";
 
       out.push({
@@ -270,17 +279,15 @@ function compositeScore(r: {
   ban_rate: number;
   games: number;
 }): number {
-  // Wilson lower bound for winrate (penalises small samples)
-  const z = 1.96; // 95% confidence
-  const n = r.games;
-  const p = r.win_rate;
-  const denom = 1 + (z * z) / n;
-  const wilson =
-    (p + (z * z) / (2 * n) - z * Math.sqrt((p * (1 - p) + (z * z) / (4 * n)) / n)) /
-    denom;
+  // Sample-size penalty: heavy on tiny samples, drops fast as games grow.
+  // 1/sqrt(n) shape matches statistical confidence intervals roughly:
+  //   12 games  → 0.14 penalty (kills niche off-meta picks)
+  //   100 games → 0.05 penalty (mild)
+  //   500 games → 0.022 penalty (negligible)
+  const samplePenalty = 0.5 / Math.sqrt(r.games + 1);
 
   // Presence: pick + ban rate boost (a 51% WR champ with 30% PR > 53% WR niche)
-  const presence = (r.pick_rate + r.ban_rate * 0.5) * 0.05;
+  const presence = (r.pick_rate + r.ban_rate * 0.5) * 0.1;
 
-  return wilson + presence;
+  return r.win_rate - samplePenalty + presence;
 }

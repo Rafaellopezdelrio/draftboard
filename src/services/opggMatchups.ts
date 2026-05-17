@@ -1,0 +1,141 @@
+// Full matchup grid for a champion+role — every opponent with real play
+// counts and WR. Scraped via our Cloudflare Worker from op.gg's counter
+// page, which inlines a Next.js stream that contains the complete data.
+//
+// Why this exists: op.gg's MCP only returns top 3 strong + top 3 weak
+// counters. For features like "live WR vs the actual enemy laner in your
+// draft" we need the FULL grid. This service is the entry point.
+
+import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
+import { getRiotProxyUrl } from "./riotApi";
+import type { Role } from "../types/champion";
+
+function isTauri(): boolean {
+  return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+}
+const httpFetch: typeof fetch = (input, init) =>
+  isTauri()
+    ? (tauriFetch as unknown as typeof fetch)(input, init)
+    : fetch(input, init);
+
+export interface OpggMatchup {
+  play: number;
+  win: number;
+  winRate: number;          // 0-100, as op.gg gives it
+  championKey: string;      // op.gg internal slug, e.g. "leesin"
+  championName: string;     // display name, e.g. "Lee Sin"
+  imageUrl?: string;
+}
+
+export interface OpggMatchupResponse {
+  champion: string;
+  role: string;
+  tier: string;
+  matchups: OpggMatchup[];
+  count: number;
+}
+
+const cache = new Map<string, { ts: number; data: OpggMatchup[] }>();
+const CACHE_TTL_MS = 30 * 60 * 1000;
+
+const ROLE_TO_OPGG: Record<Role, string> = {
+  TOP: "top",
+  JUNGLE: "jungle",
+  MIDDLE: "mid",
+  BOTTOM: "adc",
+  UTILITY: "support",
+};
+
+/**
+ * Fetch all matchups for `championDdId` in `role` at `tier`. Returns an
+ * empty array if the proxy is unreachable or op.gg returned nothing —
+ * never throws.
+ *
+ * @param championDdId Data Dragon ID e.g. "Aatrox", "LeeSin" — the
+ *   service lowercases it for op.gg's URL convention.
+ * @param tier op.gg tier slug, e.g. "emerald_plus", "challenger", "all".
+ */
+export async function fetchOpggMatchups(
+  championDdId: string,
+  role: Role,
+  tier: string = "emerald_plus"
+): Promise<OpggMatchup[]> {
+  const cacheKey = `${championDdId}:${role}:${tier}`;
+  const c = cache.get(cacheKey);
+  if (c && Date.now() - c.ts < CACHE_TTL_MS) return c.data;
+
+  const proxyUrl = getRiotProxyUrl();
+  if (!proxyUrl) {
+    // eslint-disable-next-line no-console
+    console.warn("[opggMatchups] no proxy configured");
+    return [];
+  }
+
+  try {
+    const url =
+      `${proxyUrl}/opgg/matchups?champion=${encodeURIComponent(championDdId.toLowerCase())}` +
+      `&role=${ROLE_TO_OPGG[role]}` +
+      `&tier=${encodeURIComponent(tier)}`;
+    const res = await httpFetch(url, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+    });
+    if (!res.ok) {
+      // eslint-disable-next-line no-console
+      console.error(`[opggMatchups] HTTP ${res.status} ${cacheKey}`);
+      return [];
+    }
+    const data = (await res.json()) as OpggMatchupResponse;
+    cache.set(cacheKey, { ts: Date.now(), data: data.matchups });
+    return data.matchups;
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error("[opggMatchups] fetch failed:", e);
+    return [];
+  }
+}
+
+/**
+ * Resolve a matchup by op.gg slug ("leesin") into the entry. Case-insensitive.
+ */
+export function findMatchup(
+  matchups: OpggMatchup[],
+  opggKey: string
+): OpggMatchup | null {
+  const lower = opggKey.toLowerCase();
+  return (
+    matchups.find((m) => m.championKey.toLowerCase() === lower) ?? null
+  );
+}
+
+/**
+ * Convert a Data Dragon champion id to op.gg's slug. Mostly lowercase,
+ * with a handful of special cases that op.gg renames (MonkeyKing→wukong,
+ * apostrophe stripping, etc).
+ */
+export function ddIdToOpggKey(ddId: string): string {
+  const lower = ddId.toLowerCase();
+  const special: Record<string, string> = {
+    monkeyking: "wukong",
+    belveth: "belveth",
+    chogath: "chogath",
+    khazix: "khazix",
+    kogmaw: "kogmaw",
+    velkoz: "velkoz",
+    reksai: "reksai",
+    drmundo: "drmundo",
+    jarvaniv: "jarvaniv",
+    missfortune: "missfortune",
+    masteryi: "masteryi",
+    aurelionsol: "aurelionsol",
+    tahmkench: "tahmkench",
+    twistedfate: "twistedfate",
+    xinzhao: "xinzhao",
+    leesin: "leesin",
+    leblanc: "leblanc",
+    kaisa: "kaisa",
+    ksante: "ksante",
+    nunu: "nunu",
+  };
+  return special[lower] ?? lower;
+}

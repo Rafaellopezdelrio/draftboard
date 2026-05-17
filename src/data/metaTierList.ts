@@ -80,7 +80,11 @@ export function buildMetaList(
       role,
       tier,
       winRate: tierToWinRate(tier),
-      pickRate: 0,
+      // Non-zero pickRate so the strict role filter in suggestionEngine
+      // accepts curated entries. Without this, the filter would reject every
+      // curated champ (because 0 < threshold) and fall back to loose tag
+      // inference — which incorrectly suggests Zilean mid, Lee Sin mid, etc.
+      pickRate: 0.05,
       banRate: 0,
     });
   }
@@ -89,6 +93,8 @@ export function buildMetaList(
 
 function tierToWinRate(t: MetaTier["tier"]): number {
   switch (t) {
+    case "S+":
+      return 0.56;
     case "S":
       return 0.54;
     case "A":

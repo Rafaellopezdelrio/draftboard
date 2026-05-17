@@ -87,6 +87,42 @@ function personalEntry(
 }
 
 describe("suggestionEngine", () => {
+  it("regression: Zilean does NOT appear in MIDDLE (authoritative role map fix)", () => {
+    // Zilean has "Mage" + "Support" Riot tags → old tag inference would put
+    // him in MIDDLE + UTILITY. The CHAMPION_ROLES authoritative map says
+    // UTILITY only.
+    const db: ChampionDb = {
+      patch: "16.10",
+      champions: {
+        "26": {
+          id: "Zilean",
+          key: "26",
+          name: "Zilean",
+          title: "",
+          iconUrl: "",
+          splashUrl: "",
+          tags: ["Support", "Mage"],
+          roles: ["MIDDLE", "UTILITY"], // loose tag inference (the bug source)
+          archetypes: [],
+        },
+        [ZED_KEY]: champ(ZED_KEY, "Zed", ["MIDDLE"]),
+      },
+      counters: [],
+      meta: [],
+      fetchedAt: 0,
+    };
+    const result = suggest({
+      db,
+      role: "MIDDLE",
+      allyKeys: [],
+      enemyKeys: [],
+      bannedKeys: [],
+    });
+    const keys = result.map((s) => s.champion.key);
+    expect(keys).not.toContain("26"); // Zilean must NOT appear in mid
+    expect(keys).toContain(ZED_KEY);
+  });
+
   it("role filter (strict via meta data): Lee Sin one-trick does NOT appear in MIDDLE when meta says he's jungle-only", () => {
     // Meta data declares: Lee Sin only plays JUNGLE (no MIDDLE row)
     const db = mkDb([
@@ -109,7 +145,7 @@ describe("suggestionEngine", () => {
     expect(keys).toContain(YASUO_KEY);
   });
 
-  it("role filter (no meta data): falls back to tag-inferred roles", () => {
+  it("role filter (no meta data): uses authoritative CHAMPION_ROLES map (Lee Sin = JUNGLE only)", () => {
     const db = mkDb([]); // no meta synced yet
     const result = suggest({
       db,
@@ -119,8 +155,9 @@ describe("suggestionEngine", () => {
       bannedKeys: [],
     });
     const keys = result.map((s) => s.champion.key);
-    // With no meta data, Lee Sin's loose tag-roles include MIDDLE → he passes filter
-    expect(keys).toContain(LEE_KEY);
+    // CHAMPION_ROLES authoritative map says LeeSin is JUNGLE only.
+    // Mid suggestions must NOT include him even without synced meta data.
+    expect(keys).not.toContain(LEE_KEY);
   });
 
   it("low-playrate champions (under 0.3%) excluded from role suggestions", () => {

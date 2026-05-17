@@ -3,7 +3,7 @@ import type { ScoredSuggestion } from "../engine/suggestionEngine";
 import { usePrefsStore } from "../state/prefsStore";
 import { CountUp } from "./ui/CountUp";
 import { GradeBadge } from "./ui/GradeBadge";
-import { Crown, Sword, Heart, Trophy, AlertTriangle } from "lucide-react";
+import { Crown, Sword, Heart, Trophy, Star } from "lucide-react";
 
 interface Props {
   suggestions: ScoredSuggestion[];
@@ -21,47 +21,87 @@ function SuggestionPanelInner({ suggestions, hasRole, hasDraft }: Props) {
       </p>
     );
   }
-  const [first, ...rest] = suggestions.slice(0, 5);
+
+  // Split into "comfort" (you've actually played these) vs "meta only"
+  // (recommended by tier list but you don't know them yet). The first
+  // group is what the user is really looking for in Top Picks — picks
+  // that are both strong AND playable for them. We only render the
+  // comfort section when there's at least one entry; otherwise the
+  // panel collapses back to the meta list as before.
+  const comfortPicks = suggestions
+    .filter((s) => s.breakdown.isComfort)
+    .slice(0, 3);
+  const usedKeys = new Set(comfortPicks.map((s) => s.champion.key));
+  const metaPicks = suggestions
+    .filter((s) => !usedKeys.has(s.champion.key))
+    .slice(0, comfortPicks.length > 0 ? 3 : 5);
+
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       <div className="flex items-baseline justify-between">
         <h3 className="text-[11px] uppercase tracking-widest text-white/40 font-semibold flex items-center gap-1.5">
           <Trophy className="w-3 h-3" />
           Top picks
+          {noContext && (
+            <span className="ml-1 text-[9px] uppercase tracking-widest text-white/30 font-normal">
+              · meta general
+            </span>
+          )}
         </h3>
-        {noContext && (
-          <span
-            className="inline-flex items-center gap-1 text-[10px] text-meh"
-            title="Genéricos del meta. Selecciona tu rol y empieza el draft para picks personalizados."
-          >
-            <AlertTriangle className="w-3 h-3" />
-            genéricos
-          </span>
-        )}
       </div>
       {noContext && (
-        <p className="text-xs text-white/50 italic mb-1">
-          Selecciona tu rol arriba para ver picks adaptados a tu pool y al draft.
+        <p className="text-[11px] text-white/40 leading-relaxed pb-1 border-b border-border-subtle/40">
+          Selecciona tu rol arriba para picks personalizados según tu pool y el
+          draft.
         </p>
       )}
 
-      {/* Pick #1 — hero card with glow */}
-      {first && <PickHero suggestion={first} beginner={beginner} />}
+      {/* Comfort section — picks the user actually knows */}
+      {comfortPicks.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-[10px] uppercase tracking-widest text-accent font-semibold flex items-center gap-1.5">
+            <Star className="w-3 h-3" />
+            Tus picks · comfort + meta
+          </p>
+          <PickHero suggestion={comfortPicks[0]} beginner={beginner} />
+          <div className="space-y-1.5">
+            {comfortPicks.slice(1).map((s) => (
+              <PickRow key={s.champion.key} suggestion={s} beginner={beginner} />
+            ))}
+          </div>
+        </div>
+      )}
 
-      {/* Picks #2-#5 compact */}
-      <div className="space-y-1.5">
-        {rest.map((s) => (
-          <PickRow key={s.champion.key} suggestion={s} beginner={beginner} />
-        ))}
-      </div>
+      {/* Meta-only section — strong picks but not in your pool */}
+      {metaPicks.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-[10px] uppercase tracking-widest text-white/35 font-semibold flex items-center gap-1.5">
+            <Trophy className="w-3 h-3" />
+            {comfortPicks.length > 0 ? "Meta puro" : "Top picks"}
+          </p>
+          {comfortPicks.length === 0 && metaPicks[0] && (
+            <PickHero suggestion={metaPicks[0]} beginner={beginner} />
+          )}
+          <div className="space-y-1.5">
+            {(comfortPicks.length === 0 ? metaPicks.slice(1) : metaPicks).map(
+              (s) => (
+                <PickRow key={s.champion.key} suggestion={s} beginner={beginner} />
+              )
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 function PickHero({ suggestion: s, beginner }: { suggestion: ScoredSuggestion; beginner: boolean }) {
   const isOneTrick = s.reasons.includes("tu main");
-  const colorRing =
-    s.color === "good"
+  const isPerfect = s.breakdown.isPerfectPick;
+  const isComfort = s.breakdown.isComfort;
+  const colorRing = isPerfect
+    ? "ring-accent"
+    : s.color === "good"
       ? "ring-good/60"
       : s.color === "meh"
         ? "ring-meh/60"
@@ -69,9 +109,24 @@ function PickHero({ suggestion: s, beginner }: { suggestion: ScoredSuggestion; b
   return (
     <div
       className={`relative p-3 rounded-lg ring-1 ${colorRing} bg-gradient-to-br from-bg-card to-bg-elev ${
-        isOneTrick ? "animate-[glowPulse_2.5s_ease-in-out_infinite]" : ""
+        isOneTrick || isPerfect ? "animate-[glowPulse_2.5s_ease-in-out_infinite]" : ""
       }`}
     >
+      {/* Top-right badges row */}
+      <div className="absolute -top-2 right-3 flex gap-1">
+        {isPerfect && (
+          <span className="bg-gradient-to-r from-accent to-yellow-300 text-black text-[9px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-full shadow-lg flex items-center gap-1">
+            <Star className="w-2.5 h-2.5 fill-current" />
+            Pick perfecto
+          </span>
+        )}
+        {!isPerfect && isComfort && !isOneTrick && (
+          <span className="bg-accent/20 text-accent text-[9px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-full ring-1 ring-accent/40">
+            Comfort
+          </span>
+        )}
+      </div>
+
       <div className="flex items-center gap-3">
         <div className="relative">
           <img
@@ -110,8 +165,11 @@ function PickHero({ suggestion: s, beginner }: { suggestion: ScoredSuggestion; b
 }
 
 function PickRow({ suggestion: s, beginner }: { suggestion: ScoredSuggestion; beginner: boolean }) {
-  const ring =
-    s.color === "good"
+  const isPerfect = s.breakdown.isPerfectPick;
+  const isComfort = s.breakdown.isComfort;
+  const ring = isPerfect
+    ? "ring-accent/60"
+    : s.color === "good"
       ? "ring-good/40"
       : s.color === "meh"
         ? "ring-meh/40"
@@ -127,7 +185,17 @@ function PickRow({ suggestion: s, beginner }: { suggestion: ScoredSuggestion; be
         className="w-10 h-10 rounded"
       />
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-white truncate">{s.champion.name}</p>
+        <div className="flex items-center gap-1.5">
+          <p className="text-sm font-medium text-white truncate">{s.champion.name}</p>
+          {isPerfect && (
+            <Star className="w-3 h-3 text-accent fill-accent shrink-0" />
+          )}
+          {!isPerfect && isComfort && (
+            <span className="text-[8px] uppercase tracking-wider text-accent/80 bg-accent/10 px-1 rounded shrink-0">
+              comfort
+            </span>
+          )}
+        </div>
         <p className="text-[11px] text-white/55 truncate">
           {s.reasons[0] ?? "pick decente"}
         </p>
@@ -139,29 +207,64 @@ function PickRow({ suggestion: s, beginner }: { suggestion: ScoredSuggestion; be
 }
 
 function BreakdownBars({ s, compact = false }: { s: ScoredSuggestion; compact?: boolean }) {
-  const bars = [
-    { label: "Counter", value: s.breakdown.counter, icon: <Sword className="w-3 h-3" /> },
-    { label: "Sinergia", value: s.breakdown.synergy, icon: <Heart className="w-3 h-3" /> },
-    { label: "Meta", value: s.breakdown.meta, icon: <Trophy className="w-3 h-3" /> },
-  ];
   if (compact) return null;
+  // `noDataFor*` flips when the engine returned the 0.5 default for that
+  // axis. Counter is 0.5 when there are no enemies in the draft yet;
+  // Synergy is 0.5 when there are no allies. We render those bars muted
+  // with "—" instead of "50" so the user doesn't misread the placeholder
+  // as a real low rating. Meta has no default fallback — always real.
+  const noDataCounter = !s.breakdown.hasEnemyData;
+  const noDataSynergy = !s.breakdown.hasAllyData;
+  const bars: Array<{
+    label: string;
+    value: number;
+    Icon: typeof Sword;
+    noData: boolean;
+    explain?: string;
+  }> = [
+    {
+      label: "Counter (cómo contraataca a los enemigos)",
+      value: s.breakdown.counter,
+      Icon: Sword,
+      noData: noDataCounter,
+      explain: "Sin enemigos en el draft",
+    },
+    {
+      label: "Sinergia (encaje con tu equipo)",
+      value: s.breakdown.synergy,
+      Icon: Heart,
+      noData: noDataSynergy,
+      explain: "Sin aliados en el draft",
+    },
+    {
+      label: "Meta (tier del parche)",
+      value: s.breakdown.meta,
+      Icon: Trophy,
+      noData: false,
+    },
+  ];
   return (
-    <div className="mt-3 grid grid-cols-3 gap-2">
-      {bars.map((b) => (
-        <div key={b.label}>
-          <div className="flex items-center gap-1 text-[10px] text-white/50 mb-0.5">
-            {b.icon}
-            <span>{b.label}</span>
-            <span className="ml-auto text-white/40">
-              {(b.value * 100).toFixed(0)}
-            </span>
+    <div className="mt-2.5 flex items-center gap-2.5 pt-2 border-t border-white/5">
+      {bars.map(({ label, value, Icon, noData, explain }) => (
+        <div
+          key={label}
+          title={noData ? `${label} — ${explain}` : label}
+          className={`flex-1 flex items-center gap-1.5 min-w-0 ${
+            noData ? "opacity-40" : ""
+          }`}
+        >
+          <Icon className="w-3 h-3 text-white/40 shrink-0" />
+          <div className="flex-1 h-[3px] rounded-full bg-white/[0.05] overflow-hidden min-w-[24px]">
+            {!noData && (
+              <div
+                className="h-full bg-gradient-to-r from-accent/50 to-accent rounded-full"
+                style={{ width: `${Math.min(100, value * 100)}%` }}
+              />
+            )}
           </div>
-          <div className="h-1 rounded-full bg-white/5 overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-accent-deep to-accent"
-              style={{ width: `${Math.min(100, b.value * 100)}%` }}
-            />
-          </div>
+          <span className="text-[10px] tabular-nums font-semibold text-white/65 shrink-0 w-5 text-right">
+            {noData ? "—" : (value * 100).toFixed(0)}
+          </span>
         </div>
       ))}
     </div>

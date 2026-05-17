@@ -55,6 +55,31 @@ export async function applyRunes(page: RunePageInput): Promise<boolean> {
   }
 }
 
+/**
+ * Apply two summoner spells to the local player's current pick in champ
+ * select. Returns `true` if the LCU accepted the change, `false` if we're
+ * not in champ select (404) or the call failed for any other reason —
+ * never throws so callers can fire-and-forget.
+ *
+ * Riot spell IDs: 4=Flash, 14=Ignite, 11=Smite, 12=Teleport, 7=Heal,
+ * 3=Exhaust, 1=Cleanse, 6=Ghost, 21=Barrier.
+ */
+export async function applySummonerSpells(
+  spell1: number,
+  spell2: number
+): Promise<boolean> {
+  if (!isTauri()) return false;
+  try {
+    const ok = await invoke<boolean>("lcu_apply_summoner_spells", {
+      spell1,
+      spell2,
+    });
+    return ok;
+  } catch {
+    return false;
+  }
+}
+
 export interface LcuStatus {
   connected: boolean;
   reason?: string | null;

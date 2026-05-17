@@ -1,6 +1,6 @@
 [package]
 name = "lol-draft-advisor-app"
-version = "0.2.0"
+version = "0.3.0"
 description = "Draftboard — Pro-level LoL draft advisor + AI coach"
 authors = ["Draftboard"]
 edition = "2021"
@@ -30,6 +30,11 @@ tauri-plugin-opener = "2"
 tauri-plugin-sql = { version = "2", features = ["sqlite"] }
 tauri-plugin-http = "2"
 tauri-plugin-window-state = "2"
+# Auto-update plugin. Reads the signed update manifest from our CF worker,
+# downloads + verifies signature, and lets the user install with a click.
+# Generate signing keys with: `npx tauri signer generate -w ~/.tauri/draftboard.key`
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "rustls-tls-native-roots"] }

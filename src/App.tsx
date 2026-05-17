@@ -96,6 +96,8 @@ const LiveGameView = lazy(() =>
   }))
 );
 import { BanSuggestionsPanel } from "./components/BanSuggestionsPanel";
+import { LiveGamePanel } from "./components/LiveGamePanel";
+import { UpdateBanner } from "./components/UpdateBanner";
 import { MatchupTipsPanel } from "./components/MatchupTipsPanel";
 import { ChampionPoolPanel } from "./components/ChampionPoolPanel";
 import { InGameTimers } from "./components/InGameTimers";
@@ -117,6 +119,7 @@ import { getTopMasteries, setRiotProxyUrl, type ChampionMasteryDto } from "./ser
 import type { ChampionPersonalStat } from "./services/matchRepo";
 import { usePrefsStore } from "./state/prefsStore";
 import { useAutoActions } from "./state/autoActions";
+import { startAutoProSync } from "./services/autoProSync";
 
 const ROLES: Role[] = ["TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY"];
 
@@ -152,6 +155,11 @@ function App() {
   const [showLiveGame, setShowLiveGame] = useState(false);
   const [guideChampionKey, setGuideChampionKey] = useState<string | null>(null);
   const [personalStats, setPersonalStats] = useState<ChampionPersonalStat[]>([]);
+  // Rank tier from LCU (e.g. "GOLD", "DIAMOND", null when unranked or
+  // the client isn't running). Passed to the suggest engine so it can
+  // boost mastery weight for unranked players who have no rank signal
+  // to anchor their meta calibration.
+  const [rankTier, setRankTier] = useState<string | null>(null);
   const [masteries, setMasteries] = useState<ChampionMasteryDto[]>([]);
   const gamePhase = useGamePhase();
 
@@ -213,7 +221,12 @@ function App() {
         }
       }
       const rank = await lcuRank();
-      if (rank) setCoachEloBucket(rank.tier);
+      if (rank) {
+        setCoachEloBucket(rank.tier);
+        setRankTier(rank.tier);
+      } else {
+        setRankTier(null);
+      }
     })();
   }, [lcuStatus.connected]);
 
@@ -225,9 +238,22 @@ function App() {
     );
   }, [myRole]);
 
+  // Wait until prefs are hydrated before loading the champion DB so the
+  // meta source selection (especially dpm.lol bracket/region/timeframe)
+  // is visible to readMetaSourcePref(). Without this gate the first load
+  // races prefsStore.load() and always falls back to op.gg defaults.
+  const prefsLoaded = usePrefsStore((s) => s.loaded);
   useEffect(() => {
-    loadChampionDb().then(setDb).catch((e) => setError(String(e)));
-  }, []);
+    if (!prefsLoaded) return;
+    loadChampionDb()
+      .then((loadedDb) => {
+        setDb(loadedDb);
+        // Auto-sync pro-play data in the background once we have champion data.
+        // Silent — fails gracefully if Leaguepedia is rate-limited.
+        startAutoProSync(loadedDb);
+      })
+      .catch((e) => setError(String(e)));
+  }, [prefsLoaded]);
 
   const allyKeys = useMemo(
     () => ally.map((s) => s.championKey).filter((x): x is string => Boolean(x)),
@@ -256,6 +282,7 @@ function App() {
       bannedKeys,
       personalStats: prefs.usePersonalStats ? personalStats : [],
       masteries: prefs.useMastery ? masteries : [],
+      rankTier,
     });
   }, [
     db,
@@ -267,6 +294,7 @@ function App() {
     masteries,
     prefs.usePersonalStats,
     prefs.useMastery,
+    rankTier,
   ]);
 
   const draftPrediction = useMemo(() => {
@@ -299,6 +327,7 @@ function App() {
 
   return (
     <main className="min-h-full p-4 space-y-4">
+      <UpdateBanner />
       <header className="glass border border-border-subtle rounded-xl px-4 py-3 flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-4">
           <Logo />
@@ -398,6 +427,9 @@ function App() {
               enemyKeys={enemyKeys}
             />
           )}
+          {/* Live game panel — only renders when a real LoL match is in
+              progress. Auto-hides between games. Polls localhost:2999. */}
+          <LiveGamePanel />
           <BanSuggestionsPanel
             db={db}
             role={myRole}
@@ -453,6 +485,7 @@ function App() {
               setShowTierList(false);
               setGuideChampionKey(k);
             }}
+            onDbUpdate={setDb}
           />
         )}
         {showLookup && (

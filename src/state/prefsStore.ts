@@ -18,6 +18,10 @@ export interface Preferences {
   autoApplyRunes: boolean;
   showRuneImportButton: boolean;
   autoApplyOnHover: boolean; // apply when intent shown
+  /** Show a button in the build panel to write recommended summoner spells. */
+  showSpellImportButton: boolean;
+  /** Auto-apply spells on lock-in (mirrors autoApplyRunes for spells). */
+  autoApplySpells: boolean;
   notifyOnEnemyHotStreak: boolean;
 
   // Coach
@@ -48,9 +52,24 @@ export interface Preferences {
   voiceCoachEnabled: boolean;
 
   // Meta source: where the suggestion engine pulls tier/winrates from.
-  // "proplay" = LCK/LEC/LCS/LPL games, "soloq" = Master+ SoloQ, "blend" = mix.
-  metaSource: "proplay" | "soloq" | "blend";
+  //   "opgg"    = live op.gg data (millions of games, broad, default)
+  //   "proplay" = LCK/LEC/LCS/LPL games (your own sync, pro-focused)
+  //   "soloq"   = Master+ SoloQ (your own sync, high elo)
+  //   "blend"   = pro + soloq combined
+  //   "dpm"     = dpm.lol bracket-filtered tier list (Iron through Challenger)
+  metaSource: "opgg" | "proplay" | "soloq" | "blend" | "dpm";
   proPlayDaysWindow: number; // last N days of pro games to aggregate
+
+  // dpm.lol-specific filters. Only meaningful when metaSource === "dpm".
+  // See src/services/dpmTierlist.ts for the full value enums.
+  dpmTier:
+    | "all" | "iron" | "bronze" | "silver" | "silver_plus" | "gold" | "gold_plus"
+    | "platinum" | "platinum_plus" | "emerald" | "emerald_plus" | "diamond"
+    | "diamond_plus" | "master" | "master_plus" | "grandmaster" | "challenger";
+  dpmPlatform:
+    | "euw1" | "kr" | "na1" | "eun1" | "br1" | "la1" | "la2" | "oc1"
+    | "tr1" | "ru" | "jp1";
+  dpmTimeframe: "7days" | "30days";
 
   // Riot proxy URL — when set, app routes Riot API calls through this URL
   // instead of api.riotgames.com directly. Lets the user use a hosted proxy
@@ -72,6 +91,8 @@ export const DEFAULT_PREFS: Preferences = {
   autoApplyRunes: false,
   showRuneImportButton: true,
   autoApplyOnHover: false,
+  showSpellImportButton: true,
+  autoApplySpells: false,
   notifyOnEnemyHotStreak: true,
 
   coachAfterMatch: true,
@@ -95,8 +116,14 @@ export const DEFAULT_PREFS: Preferences = {
 
   voiceCoachEnabled: false,
 
-  metaSource: "proplay",
+  metaSource: "opgg", // default: live op.gg data — broadest coverage, no setup
   proPlayDaysWindow: 30,
+
+  // dpm.lol defaults — emerald+ on EUW matches their own UI's default and
+  // gives the user a reasonable view immediately on first dpm switch.
+  dpmTier: "emerald_plus",
+  dpmPlatform: "euw1",
+  dpmTimeframe: "7days",
 
   // Default proxy URL — Draftboard's hosted Cloudflare Worker. New installs
   // get premium mode automatically: no API key needed, the worker holds the
@@ -119,8 +146,22 @@ export const usePrefsStore = create<PrefsState>((set, get) => ({
   prefs: DEFAULT_PREFS,
   loaded: false,
   load: async () => {
-    const loaded = await loadAll();
-    set({ prefs: { ...DEFAULT_PREFS, ...loaded }, loaded: true });
+    // ALWAYS flip `loaded` to true within ~3s, no matter what. The
+    // downstream championDb load is gated on `loaded` so a hang here
+    // (SQLite not ready, tauri plugin not initialised, anything) would
+    // leave the user staring at "Cargando datos de campeones..." forever.
+    // Better to boot with DEFAULT_PREFS than to brick the app.
+    const timeout = new Promise<Partial<Preferences>>((_, reject) =>
+      setTimeout(() => reject(new Error("prefs load timeout 3s")), 3000)
+    );
+    try {
+      const loaded = await Promise.race([loadAll(), timeout]);
+      set({ prefs: { ...DEFAULT_PREFS, ...loaded }, loaded: true });
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error("[prefs] load failed, booting with defaults:", e);
+      set({ prefs: DEFAULT_PREFS, loaded: true });
+    }
   },
   set: async (key, value) => {
     const next = { ...get().prefs, [key]: value };

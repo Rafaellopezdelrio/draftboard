@@ -10,6 +10,9 @@
     "sql:allow-load",
     "sql:allow-execute",
     "sql:allow-select",
+    "updater:default",
+    "process:default",
+    "process:allow-restart",
     {
       "identifier": "http:default",
       "allow": [
@@ -21,7 +24,11 @@
         { "url": "https://api.groq.com/*" },
         { "url": "https://generativelanguage.googleapis.com/*" },
         { "url": "https://rsms.me/*" },
-        { "url": "https://lol.fandom.com/*" }
+        { "url": "https://lol.fandom.com/*" },
+        { "url": "https://mcp-api.op.gg/*" },
+        { "url": "https://*.ingest.sentry.io/*" },
+        { "url": "https://*.ingest.us.sentry.io/*" },
+        { "url": "https://*.ingest.de.sentry.io/*" }
       ]
     }
   ]

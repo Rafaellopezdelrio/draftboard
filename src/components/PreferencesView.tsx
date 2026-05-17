@@ -86,6 +86,16 @@ const SECTIONS: Section[] = [
         danger: true,
       },
       {
+        key: "showSpellImportButton",
+        label: "Mostrar botón 'Aplicar hechizos al cliente'",
+      },
+      {
+        key: "autoApplySpells",
+        label: "Aplicar hechizos al confirmar campeón (lock-in)",
+        detail: "Sobrescribe los summoner spells con los recomendados al lockear",
+        danger: true,
+      },
+      {
         key: "notifyOnEnemyHotStreak",
         label: "Avisar si un enemigo está en racha",
       },
@@ -247,15 +257,21 @@ function MetaSourceField() {
         <select
           value={source}
           onChange={(e) =>
-            set("metaSource", e.target.value as "proplay" | "soloq" | "blend")
+            set("metaSource", e.target.value as "opgg" | "proplay" | "soloq" | "blend" | "dpm")
           }
           className="w-full bg-bg text-white text-sm px-3 py-2 rounded border border-border-subtle"
         >
-          <option value="proplay">🏆 Pro play (LCK/LEC/LCS/LPL)</option>
-          <option value="soloq">SoloQ Master+ (requiere API key Riot)</option>
-          <option value="blend">Mezcla pro + SoloQ (lo mejor de ambos)</option>
+          <option value="opgg">⚡ op.gg live (millones de partidas — default)</option>
+          <option value="dpm">🎯 dpm.lol (filtrado por tu rango — Iron → Challenger)</option>
+          <option value="proplay">🏆 Pro play (LCK/LEC/LCS/LPL) — requiere sync</option>
+          <option value="soloq">SoloQ Master+ — requiere sync + API key Riot</option>
+          <option value="blend">Mezcla pro + SoloQ — requiere sync</option>
         </select>
         <p className="text-xs text-white/60">
+          {source === "opgg" &&
+            "Datos live de op.gg via nuestro proxy. 170+ champs, sin configurar nada. Lo más completo."}
+          {source === "dpm" &&
+            "Datos live de dpm.lol filtrados por rango y región. Elige tu bracket exacto desde el botón de Tier List."}
           {source === "proplay" &&
             "Usa picks/winrates de las ligas pro. Refleja el meta competitivo. Sincroniza desde ⚙."}
           {source === "soloq" &&

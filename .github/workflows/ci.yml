@@ -27,5 +27,8 @@ jobs:
       - name: Unit + integration tests
         run: npm test
 
+      - name: Coverage gate (no regression)
+        run: npm run test:coverage
+
       - name: Build (Vite frontend only — Tauri/Rust skipped on CI)
         run: npm run build

@@ -32,12 +32,24 @@ src-tauri/Cargo.lock
 *.db-shm
 *.db-wal
 
+# Tauri signing keys — never commit. Private goes in ~/.tauri/, only the
+# .pub gets shared. We exclude both as belt-and-braces.
+*.key
+*.key.pub
+.tauri/
+.env
+.env.local
+.env.*.local
+
 # Cloudflare worker node_modules (has its own repo)
 cloudflare-worker/node_modules/
 cloudflare-worker/.wrangler/
 
 # Vite cache
 .vite/
+
+# Test coverage reports
+coverage/
 
 # OS
 Thumbs.db

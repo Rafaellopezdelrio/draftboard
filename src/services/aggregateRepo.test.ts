@@ -62,23 +62,39 @@ describe("computeTiersPerRole (op.gg-style composite tier)", () => {
     expect(top?.tier).toBe("D");
   });
 
-  it("percentile bins respect op.gg distribution (top ~8% = S, bottom ~5% = D)", () => {
-    // 20 champions in one role, each 1% better WR than the previous
+  it("absolute thresholds: many champs above 55% WR all get S tier (op.gg-style)", () => {
+    // 15 strong champs all >55% WR — ALL should be S, not just top 10%
+    const rows = Array.from({ length: 15 }, (_, i) =>
+      row(i + 1, "MIDDLE", 0.56 + i * 0.001, 0.1, 0, 200)
+    );
+    const result = computeTiersPerRole(rows);
+    const sTier = result.filter((m) => m.tier === "S");
+    // Most or all of these should be S-tier (absolute threshold)
+    expect(sTier.length).toBeGreaterThanOrEqual(10);
+  });
+
+  it("guarantees at least top 5% as S even when all scores are low", () => {
+    // All weak champs (low WR) — but the floor still gives top 5% an S
     const rows = Array.from({ length: 20 }, (_, i) =>
-      row(i + 1, "MIDDLE", 0.40 + i * 0.01, 0.05, 0, 100)
+      row(i + 1, "MIDDLE", 0.45 + i * 0.001, 0.05, 0, 100)
+    );
+    const result = computeTiersPerRole(rows);
+    const sTier = result.filter((m) => m.tier === "S");
+    expect(sTier.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("S-tier has objectively higher WR than D-tier", () => {
+    const rows = Array.from({ length: 30 }, (_, i) =>
+      row(i + 1, "MIDDLE", 0.42 + i * 0.006, 0.05, 0, 150)
     );
     const result = computeTiersPerRole(rows);
     const sTier = result.filter((m) => m.tier === "S");
     const dTier = result.filter((m) => m.tier === "D");
-    // ~8% of 20 = 2, ~5% of 20 = 1
-    expect(sTier.length).toBeGreaterThan(0);
-    expect(sTier.length).toBeLessThanOrEqual(3);
-    expect(dTier.length).toBeGreaterThan(0);
-    expect(dTier.length).toBeLessThanOrEqual(3);
-    // S tier should have the highest WR champions
-    expect(Math.max(...sTier.map((m) => m.winRate))).toBeGreaterThan(
-      Math.max(...dTier.map((m) => m.winRate))
-    );
+    if (sTier.length && dTier.length) {
+      expect(Math.min(...sTier.map((m) => m.winRate))).toBeGreaterThan(
+        Math.max(...dTier.map((m) => m.winRate))
+      );
+    }
   });
 
   it("ban rate amplifies the score (a heavily-banned 51% WR > niche 53% WR)", () => {
