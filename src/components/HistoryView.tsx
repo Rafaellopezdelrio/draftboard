@@ -9,6 +9,7 @@ import { Tabs } from "./ui/Tabs";
 import { StatCard } from "./ui/StatCard";
 import { Flame, Snowflake, Search, Inbox, Filter } from "lucide-react";
 import { EmptyState } from "./ui/EmptyState";
+import { ChampionStatsPanel } from "./ChampionStatsPanel";
 
 const TITLE_ID = "history-view-title";
 
@@ -112,6 +113,14 @@ export function HistoryView({ db, onClose }: Props) {
       filtered.length
     : 0;
   const streakInfo = computeStreak(filtered);
+  // Detect "single champion in results" — only show the
+  // ChampionStatsPanel when EVERY match in the filtered list is the
+  // same champion. Avoids noise when filter is empty / generic.
+  const singleChampionId = useMemo<number | null>(() => {
+    if (filtered.length === 0) return null;
+    const first = filtered[0].championId;
+    return filtered.every((m) => m.championId === first) ? first : null;
+  }, [filtered]);
   const dialogRef = useRef<HTMLDivElement | null>(null);
   useFocusTrap(dialogRef, true);
 
@@ -233,6 +242,16 @@ export function HistoryView({ db, onClose }: Props) {
               icon={Inbox}
               title={t("history.emptyAll")}
               detail={t("history.emptyAllDetail")}
+            />
+          )}
+          {filtered.length > 0 && singleChampionId !== null && (
+            // Only when the filter narrows to one specific champion —
+            // showing aggregate stats for "all champions" would be
+            // noise, the StatCard row above already covers it.
+            <ChampionStatsPanel
+              matches={filtered}
+              championId={singleChampionId}
+              db={db}
             />
           )}
           {filtered.length > 0 && (
