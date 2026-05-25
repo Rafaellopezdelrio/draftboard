@@ -22,6 +22,10 @@ export const WORKER_BASE_URL =
 
 export const WORKER_HEALTH_URL = `${WORKER_BASE_URL}/health`;
 export const WORKER_UPDATER_URL = `${WORKER_BASE_URL}/updater/latest.json`;
+/** Beta channel manifest. Same shape as latest.json but ships pre-release
+ * builds for opt-in testers. Worker serves whichever the request asks
+ * for; the app picks via `prefs.updateChannel`. */
+export const WORKER_UPDATER_BETA_URL = `${WORKER_BASE_URL}/updater/beta.json`;
 
 /** Polling cadences. Lower = more responsive, higher CPU + cache churn. */
 export const POLL_INTERVALS_MS = {

@@ -59,6 +59,13 @@ export interface Preferences {
    * practice, or vice versa. Default: es. */
   uiLocale: "es" | "en";
 
+  /** Auto-update release channel. "stable" = official tagged releases
+   * only (slow, vetted). "beta" = pre-release builds opt-in for early
+   * testing (faster but rough edges). The updater check at boot reads
+   * this and points at a different manifest URL per channel. Default
+   * "stable" — beta is opt-in. */
+  updateChannel: "stable" | "beta";
+
   // AI Coach
   aiProvider: "groq" | "anthropic" | "gemini";
   groqApiKey: string;
@@ -167,6 +174,7 @@ export const DEFAULT_PREFS: Preferences = {
   compactMode: false,
 
   uiLocale: "es",
+  updateChannel: "stable",
 
   aiProvider: "groq",
   groqApiKey: "",

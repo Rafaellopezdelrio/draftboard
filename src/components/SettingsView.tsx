@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useFocusTrap } from "../hooks/useFocusTrap";
 
 const SETTINGS_TITLE_ID = "settings-view-title";
@@ -35,6 +36,7 @@ interface Props {
 }
 
 export function SettingsView({ onClose }: Props) {
+  const { t } = useTranslation();
   useEscape(onClose);
   const [apiKey, setApiKey] = useState("");
   const [region, setRegion] = useState<Region>("euw1");
@@ -214,7 +216,7 @@ export function SettingsView({ onClose }: Props) {
         className="animate-[scaleIn_180ms_ease-out] glass border border-border-strong rounded-lg p-6 w-[520px] space-y-3 max-h-[85vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 id={SETTINGS_TITLE_ID} className="text-lg font-semibold text-accent">Configuración</h2>
+        <h2 id={SETTINGS_TITLE_ID} className="text-lg font-semibold text-accent">{t("settings.title")}</h2>
 
         <ProxyOrLcuStatusBanner />
 
@@ -287,6 +289,13 @@ export function SettingsView({ onClose }: Props) {
 
         <Field label="Idioma / Language">
           <LocalePicker />
+        </Field>
+
+        <Field
+          label="Canal de actualizaciones"
+          hint="Stable = releases oficiales solo. Beta = pre-releases para early testers (más bugs, features nuevas antes). Por defecto Stable."
+        >
+          <UpdateChannelPicker />
         </Field>
 
         <Field
@@ -411,6 +420,29 @@ export function SettingsView({ onClose }: Props) {
         />
       )}
     </div>
+  );
+}
+
+/** Update channel picker. Stable (default) = vetted releases only.
+ * Beta = opt-in to pre-release builds for early access (may have bugs).
+ * appUpdater reads `prefs.updateChannel` on every check + selects the
+ * matching manifest URL — flipping this triggers a new check on next
+ * mount of useUpdateCheck. */
+function UpdateChannelPicker() {
+  const channel = usePrefsStore((s) => s.prefs.updateChannel);
+  const setPref = usePrefsStore((s) => s.set);
+  return (
+    <select
+      value={channel}
+      onChange={(e) =>
+        setPref("updateChannel", e.target.value as "stable" | "beta")
+      }
+      aria-label="Canal de actualizaciones"
+      className="w-full bg-bg px-3 py-2 rounded border border-border-subtle text-white"
+    >
+      <option value="stable">Stable (recomendado)</option>
+      <option value="beta">Beta (acceso anticipado)</option>
+    </select>
   );
 }
 

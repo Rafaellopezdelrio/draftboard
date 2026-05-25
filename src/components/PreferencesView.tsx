@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Search, X } from "lucide-react";
 import { usePrefsStore, type Preferences } from "../state/prefsStore";
 import { useEscape } from "../hooks/useKeyboardShortcuts";
@@ -279,6 +280,7 @@ function matchesQuery(item: { label: string; detail?: string }, q: string): bool
 }
 
 export function PreferencesView({ onClose }: Props) {
+  const { t } = useTranslation();
   useEscape(onClose);
   const { prefs, set, reset } = usePrefsStore();
   const [query, setQuery] = useState("");
@@ -331,7 +333,7 @@ export function PreferencesView({ onClose }: Props) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-baseline justify-between mb-3">
-          <h2 id={PREFS_TITLE_ID} className="text-lg font-semibold text-accent">Preferencias</h2>
+          <h2 id={PREFS_TITLE_ID} className="text-lg font-semibold text-accent">{t("preferences.title")}</h2>
           <button
             onClick={() => setConfirmReset(true)}
             className="text-xs text-white/50 hover:text-bad"

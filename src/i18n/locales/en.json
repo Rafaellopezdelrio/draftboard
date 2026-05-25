@@ -34,7 +34,31 @@
   "settings": {
     "title": "Settings",
     "language": "Language",
-    "languageHint": "Language of the Draftboard interface"
+    "languageHint": "Language of the Draftboard interface",
+    "updateChannel": "Update channel",
+    "updateChannelHint": "Stable = official releases only. Beta = pre-releases for early testers."
+  },
+  "preferences": {
+    "title": "Preferences",
+    "resetAll": "Reset all",
+    "searchPlaceholder": "Search preference..."
+  },
+  "dataPrivacy": {
+    "title": "Your data",
+    "matchesCount": "{{count}} matches saved"
+  },
+  "about": {
+    "title": "About Draftboard",
+    "viewChangelog": "See what's new",
+    "checkUpdates": "Check for updates",
+    "openLogs": "Open logs folder",
+    "reportIssue": "Report an issue"
+  },
+  "diagnostics": {
+    "title": "Diagnostics",
+    "running": "Running checks...",
+    "copyReport": "Copy report",
+    "rerun": "Re-run"
   },
   "errors": {
     "generic": "Something broke",
