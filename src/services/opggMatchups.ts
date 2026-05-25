@@ -9,6 +9,9 @@
 import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
 import { getRiotProxyUrl } from "./riotApi";
 import type { Role } from "../types/champion";
+import { withRetry, RateLimitError, throwIfRateLimited } from "./retry";
+import { trackFetch } from "./breadcrumbs";
+import { emitFetchFailure } from "./fetchNotify";
 
 function isTauri(): boolean {
   return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
@@ -71,26 +74,43 @@ export async function fetchOpggMatchups(
     return [];
   }
 
+  const url =
+    `${proxyUrl}/opgg/matchups?champion=${encodeURIComponent(championDdId.toLowerCase())}` +
+    `&role=${ROLE_TO_OPGG[role]}` +
+    `&tier=${encodeURIComponent(tier)}`;
   try {
-    const url =
-      `${proxyUrl}/opgg/matchups?champion=${encodeURIComponent(championDdId.toLowerCase())}` +
-      `&role=${ROLE_TO_OPGG[role]}` +
-      `&tier=${encodeURIComponent(tier)}`;
-    const res = await httpFetch(url, {
-      method: "GET",
-      headers: { Accept: "application/json" },
-    });
-    if (!res.ok) {
-      // eslint-disable-next-line no-console
-      console.error(`[opggMatchups] HTTP ${res.status} ${cacheKey}`);
-      return [];
-    }
-    const data = (await res.json()) as OpggMatchupResponse;
+    // Worker scrapes op.gg's counter page (Next.js streaming chunk).
+    // Cold-start 5xx happens; 4xx (bad champ slug) doesn't retry.
+    const data = await withRetry(
+      async () => {
+        const res = await httpFetch(url, {
+          method: "GET",
+          headers: { Accept: "application/json" },
+        });
+        throwIfRateLimited(res, url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        trackFetch(url, "ok");
+        return (await res.json()) as OpggMatchupResponse;
+      },
+      {
+        attempts: 3,
+        baseDelayMs: 500,
+        // Allow 429 retries via RateLimitError + Retry-After. Other 4xx
+        // are non-retriable.
+        shouldRetry: (err) => {
+          if (err instanceof RateLimitError) return true;
+          return !String((err as Error)?.message ?? "").match(/HTTP 4\d\d/);
+        },
+        onRetry: (e, n) =>
+          trackFetch(url, "fail", `attempt ${n}: ${String(e).slice(0, 80)}`),
+      }
+    );
     cache.set(cacheKey, { ts: Date.now(), data: data.matchups });
     return data.matchups;
   } catch (e) {
     // eslint-disable-next-line no-console
-    console.error("[opggMatchups] fetch failed:", e);
+    console.error("[opggMatchups] fetch failed after retries:", e);
+    emitFetchFailure("op.gg matchups", e);
     return [];
   }
 }

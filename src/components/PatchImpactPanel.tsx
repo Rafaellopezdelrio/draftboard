@@ -1,10 +1,11 @@
 // Shows the user which of their mains were affected by the latest patch.
 
-import { useEffect, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import type { ChampionDb } from "../types/champion";
 import type { ChampionMasteryDto } from "../services/riotApi";
 import { getLatestPatchSummary, type PatchChange } from "../services/patchNotes";
 import { Panel, PanelHeader } from "./ui/Panel";
+import { displayPatch } from "../data/patchDisplay";
 import { TrendingUp, TrendingDown, RefreshCw, ArrowRightLeft, FileText } from "lucide-react";
 
 interface Props {
@@ -21,7 +22,7 @@ interface Affected {
   isMain: boolean;
 }
 
-export function PatchImpactPanel({ db, masteries }: Props) {
+function PatchImpactPanelInner({ db, masteries }: Props) {
   const [affected, setAffected] = useState<Affected[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -72,7 +73,7 @@ export function PatchImpactPanel({ db, masteries }: Props) {
       <PanelHeader
         icon={<FileText className="w-3 h-3" />}
         title="Patch impact"
-        subtitle={db.patch}
+        subtitle={displayPatch(db.patch)}
       />
       <div className="space-y-1.5">
         {affected.map((a) => (
@@ -138,3 +139,7 @@ function ImpactCard({ affected: a }: { affected: Affected }) {
     </div>
   );
 }
+
+/** Memoised — masteries and db come from App's state. Only re-render
+ * when those change, not on every prefs/draft tick. */
+export const PatchImpactPanel = memo(PatchImpactPanelInner);

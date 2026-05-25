@@ -1,11 +1,16 @@
-import { useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { recentMatches, type MatchRow } from "../services/matchRepo";
 import type { ChampionDb, Role } from "../types/champion";
 import { queueLabel, isRelevantQueue } from "../data/queueNames";
 import { useEscape } from "../hooks/useKeyboardShortcuts";
+import { useFocusTrap } from "../hooks/useFocusTrap";
 import { Tabs } from "./ui/Tabs";
 import { StatCard } from "./ui/StatCard";
-import { Flame, Snowflake, Search } from "lucide-react";
+import { Flame, Snowflake, Search, Inbox, Filter } from "lucide-react";
+import { EmptyState } from "./ui/EmptyState";
+
+const TITLE_ID = "history-view-title";
 
 interface Props {
   db: ChampionDb;
@@ -24,7 +29,7 @@ const QUEUE_TABS: Array<{ value: QueueFilter; label: string; ids?: number[] }> =
   // Normal SR
   { value: "NORMAL", label: "Normal", ids: [400, 430, 490] },
   // ARAM (Howling Abyss only)
-  { value: "ARAM", label: "ARAM", ids: [450, 720, 6000] },
+  { value: "ARAM", label: "ARAM", ids: [450, 720] },
   // Arena (permanent 2v2v2v2 mode, separate tab)
   { value: 1700, label: "Arena", ids: [1700] },
   // Rotating event modes only (URF / OFA / Nexus Blitz / Spellbook)
@@ -42,10 +47,20 @@ const ROLE_TABS: Array<{ value: Role | "ALL"; label: string }> = [
 ];
 
 export function HistoryView({ db, onClose }: Props) {
+  const { t } = useTranslation();
   const [matches, setMatches] = useState<MatchRow[]>([]);
   const [queueTab, setQueueTab] = useState<QueueFilter>("RANKED");
   const [roleFilter, setRoleFilter] = useState<Role | "ALL">("ALL");
-  const [championFilter, setChampionFilter] = useState<string>("");
+  // Raw input value (immediate UI) + debounced value (drives filter).
+  // Without debounce every keystroke filters all matches synchronously
+  // — fast for <100 matches, noticeable for 1000+ players. 120ms feels
+  // instant but coalesces fast typing into a single filter pass.
+  const [championFilterRaw, setChampionFilter] = useState<string>("");
+  const [championFilter, setChampionFilterDebounced] = useState<string>("");
+  useEffect(() => {
+    const t = setTimeout(() => setChampionFilterDebounced(championFilterRaw), 120);
+    return () => clearTimeout(t);
+  }, [championFilterRaw]);
   const [hideNoise, setHideNoise] = useState<boolean>(true);
   useEscape(onClose);
 
@@ -97,26 +112,32 @@ export function HistoryView({ db, onClose }: Props) {
       filtered.length
     : 0;
   const streakInfo = computeStreak(filtered);
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(dialogRef, true);
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={TITLE_ID}
       className="fixed inset-0 z-40 bg-black/70 flex items-center justify-center"
       onClick={onClose}
     >
       <div
+        ref={dialogRef}
         className="animate-[scaleIn_180ms_ease-out] glass border border-border-strong rounded-lg w-[820px] max-h-[88vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="px-5 pt-5 pb-2 border-b border-border-subtle">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-xl font-bold gold-text">Historial</h2>
+            <h2 id={TITLE_ID} className="text-xl font-bold gold-text">{t("history.title")}</h2>
             <div className="relative">
               <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-white/40" />
               <input
-                value={championFilter}
+                value={championFilterRaw}
                 onChange={(e) => setChampionFilter(e.target.value)}
-                placeholder="Filtrar por campeón..."
+                placeholder={t("history.filterByChampion")}
                 className="bg-bg-elev/60 pl-8 pr-3 py-1.5 text-sm rounded-md ring-1 ring-border-subtle focus:ring-accent text-white outline-none w-52 transition"
               />
             </div>
@@ -131,10 +152,16 @@ export function HistoryView({ db, onClose }: Props) {
 
           {/* Role filter + noise toggle */}
           <div className="flex items-center justify-between gap-2 mt-2">
-            <div className="flex gap-1 flex-wrap">
+            <div
+              role="tablist"
+              aria-label="Filtrar por rol"
+              className="flex gap-1 flex-wrap"
+            >
               {ROLE_TABS.map((r) => (
                 <button
                   key={r.value}
+                  role="tab"
+                  aria-selected={roleFilter === r.value}
                   onClick={() => setRoleFilter(r.value)}
                   className={`px-2.5 py-1 text-[11px] uppercase tracking-wide rounded-md transition ${
                     roleFilter === r.value
@@ -163,14 +190,14 @@ export function HistoryView({ db, onClose }: Props) {
 
         {/* Stats summary */}
         <div className="px-4 py-3 grid grid-cols-4 gap-2 bg-bg-card/30 border-b border-border-subtle">
-          <StatCard value={filtered.length} label="Partidas" />
+          <StatCard value={filtered.length} label={t("history.matches")} />
           <StatCard
             value={`${winRate.toFixed(0)}%`}
-            label="Winrate"
+            label={t("history.winrate")}
             color={winRate >= 55 ? "good" : winRate >= 45 ? "default" : "bad"}
           />
-          <StatCard value={avgKda.toFixed(2)} label="KDA medio" />
-          <StatCard value={avgCs.toFixed(1)} label="CS/min" />
+          <StatCard value={avgKda.toFixed(2)} label={t("history.avgKda")} />
+          <StatCard value={avgCs.toFixed(1)} label={t("history.csPerMin")} />
         </div>
 
         {streakInfo && (
@@ -185,36 +212,52 @@ export function HistoryView({ db, onClose }: Props) {
               <Snowflake className="w-3.5 h-3.5" />
             )}
             <span className="font-medium">
-              Racha {streakInfo.win ? "victorias" : "derrotas"}:
+              {streakInfo.win ? t("history.winStreak") : t("history.loseStreak")}:
             </span>
             <span className="font-bold tabular-nums">{streakInfo.count}</span>
-            <span>consecutivas</span>
+            <span>{t("history.streakSuffix")}</span>
           </div>
         )}
 
         {/* Matches list */}
         <div className="overflow-y-auto p-3 space-y-1">
           {filtered.length === 0 && matches.length > 0 && (
-            <p className="text-white/50 text-center py-8 text-sm">
-              Sin partidas con estos filtros.
-            </p>
+            <EmptyState
+              icon={Filter}
+              title={t("history.emptyFilters")}
+              detail={t("history.emptyFiltersDetail")}
+            />
           )}
           {matches.length === 0 && (
-            <p className="text-white/50 text-center py-8 text-sm">
-              Sin partidas aún. Abre el cliente de LoL o configura tu Riot ID en
-              ⚙️.
-            </p>
+            <EmptyState
+              icon={Inbox}
+              title={t("history.emptyAll")}
+              detail={t("history.emptyAllDetail")}
+            />
           )}
-          {filtered.map((m) => (
-            <MatchRowCard key={m.matchId} db={db} m={m} />
-          ))}
+          {filtered.length > 0 && (
+            <ul
+              role="list"
+              aria-label={`Partidas (${filtered.length})`}
+              className="space-y-1 list-none p-0 m-0"
+            >
+              {filtered.map((m) => (
+                <li key={m.matchId} role="listitem">
+                  <MatchRowCard db={db} m={m} />
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </div>
     </div>
   );
 }
 
-function MatchRowCard({ db, m }: { db: ChampionDb; m: MatchRow }) {
+// Memoised so filter changes (queue/role) don't re-render every row;
+// only rows whose `m` ref changes get re-rendered. The `db` prop is
+// stable across the session so identity check is enough.
+const MatchRowCard = memo(function MatchRowCard({ db, m }: { db: ChampionDb; m: MatchRow }) {
   const champ = db.champions[String(m.championId)];
   const opp = m.opponentChampionId
     ? db.champions[String(m.opponentChampionId)]
@@ -272,7 +315,7 @@ function MatchRowCard({ db, m }: { db: ChampionDb; m: MatchRow }) {
       </span>
     </div>
   );
-}
+});
 
 function computeStreak(matches: MatchRow[]): { win: boolean; count: number } | null {
   if (matches.length === 0) return null;

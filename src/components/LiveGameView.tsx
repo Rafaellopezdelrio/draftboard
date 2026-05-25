@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import type { ChampionDb } from "../types/champion";
 import {
   getCurrentGameByPuuid,
+  getRiotProxyUrl,
   type CurrentGameInfo,
   type CurrentGameParticipant,
 } from "../services/riotApi";
@@ -30,8 +31,16 @@ export function LiveGameView({ db, onClose }: Props) {
     setErr(null);
     try {
       const cfg = await loadSettings();
-      if (!cfg?.apiKey || !cfg.puuid) {
-        setErr("Necesitas configurar tu API key Riot + PUUID en Configuración.");
+      const usingProxy = !!getRiotProxyUrl();
+      // PUUID always required (identifies WHICH user to query). API key
+      // only needed in direct mode — proxy injects it server-side.
+      if (!cfg?.puuid) {
+        setErr("Necesitas configurar tu Riot ID en Configuración para detectar tu partida.");
+        setLoading(false);
+        return;
+      }
+      if (!usingProxy && !cfg.apiKey) {
+        setErr("Necesitas configurar tu Riot API Key en Configuración (o un proxy).");
         setLoading(false);
         return;
       }

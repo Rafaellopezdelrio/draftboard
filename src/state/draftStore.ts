@@ -43,7 +43,7 @@ const emptySlots = (side: Side): DraftSlot[] =>
     role: null,
   }));
 
-export const useDraftStore = create<DraftState>((set) => ({
+export const useDraftStore = create<DraftState>((set, get) => ({
   ally: emptySlots("ally"),
   enemy: emptySlots("enemy"),
   bans: { ally: [], enemy: [] },
@@ -54,29 +54,69 @@ export const useDraftStore = create<DraftState>((set) => ({
   myChampionLocked: null,
   phase: null,
   timerSec: null,
-  setEnemySummonerIds: (ids) => set({ enemySummonerIds: ids }),
-  setLocalSelection: (cellId, intent, locked) =>
-    set({ myCellId: cellId, myChampionIntent: intent, myChampionLocked: locked }),
-  setPhase: (phase, timerSec) => set({ phase, timerSec }),
-  setPick: (side, index, championKey) =>
+  // Idempotency guards on every setter. LCU sync fires applySession()
+  // on every WebSocket frame (~5-20Hz during champ select) and calls
+  // setPick/setBan for 10 slots each time. Without guards, every frame
+  // creates a new array + notifies every subscriber → re-render storm
+  // across DraftBoard, SuggestionPanel, BanSuggestionsPanel, etc, even
+  // when nothing actually changed.
+  setEnemySummonerIds: (ids) => {
+    const cur = get().enemySummonerIds;
+    if (cur.length === ids.length && cur.every((v, i) => v === ids[i])) return;
+    set({ enemySummonerIds: ids });
+  },
+  setLocalSelection: (cellId, intent, locked) => {
+    const s = get();
+    if (
+      s.myCellId === cellId &&
+      s.myChampionIntent === intent &&
+      s.myChampionLocked === locked
+    )
+      return;
+    set({ myCellId: cellId, myChampionIntent: intent, myChampionLocked: locked });
+  },
+  setPhase: (phase, timerSec) => {
+    const s = get();
+    if (s.phase === phase && s.timerSec === timerSec) return;
+    set({ phase, timerSec });
+  },
+  setPick: (side, index, championKey) => {
+    const slot = get()[side][index];
+    if (slot?.championKey === championKey) return;
     set((s) => {
       const slots = [...s[side]];
       slots[index] = { ...slots[index], championKey };
       return { [side]: slots } as Partial<DraftState>;
-    }),
-  setRoleForSlot: (side, index, role) =>
+    });
+  },
+  setRoleForSlot: (side, index, role) => {
+    const slot = get()[side][index];
+    if (slot?.role === role) return;
     set((s) => {
       const slots = [...s[side]];
       slots[index] = { ...slots[index], role };
       return { [side]: slots } as Partial<DraftState>;
-    }),
-  setMyRole: (role) => set({ myRole: role }),
-  setBan: (side, index, championKey) =>
+    });
+  },
+  setMyRole: (role) => {
+    if (get().myRole === role) return;
+    set({ myRole: role });
+  },
+  setBan: (side, index, championKey) => {
+    // Compare INDEX EXISTENCE explicitly so the very first setBan
+    // (where bans[side] is an empty array, slot undefined) still writes
+    // even when championKey is null (which coerces to ""). Otherwise the
+    // initial empty-array shape would never get filled in.
+    const arr = get().bans[side];
+    const incoming = championKey ?? "";
+    const hasIndex = index < arr.length;
+    if (hasIndex && arr[index] === incoming) return;
     set((s) => {
-      const arr = [...s.bans[side]];
-      arr[index] = championKey ?? "";
-      return { bans: { ...s.bans, [side]: arr } };
-    }),
+      const next = [...s.bans[side]];
+      next[index] = incoming;
+      return { bans: { ...s.bans, [side]: next } };
+    });
+  },
   reset: () =>
     set({
       ally: emptySlots("ally"),

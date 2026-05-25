@@ -28,10 +28,15 @@ interface LcuMatchHistoryResponse {
       gameCreation: number;
       queueId: number;
       participants: Array<{
+        participantId?: number;
         championId: number;
         teamId: number;
         spell1Id?: number;
         spell2Id?: number;
+        // Newer LCU schemas (post-2024) include puuid directly on the
+        // participant object — older schemas only expose it through
+        // participantIdentities. Fallback path uses this when available.
+        puuid?: string;
         stats: {
           win: boolean;
           kills: number;
@@ -90,11 +95,22 @@ export async function lcuRecentMatches(
 
   const out: MatchSummary[] = [];
   for (const g of data.games.games) {
-    const myPid = g.participantIdentities.find(
-      (p) => p.player.puuid === meRes.puuid
-    )?.participantId;
-    if (!myPid) continue;
-    const me = g.participants[myPid - 1];
+    // Primary path: look up participantId via participantIdentities[].puuid.
+    // ARAM (especially CHAOS-team games) sometimes returns this array
+    // empty or with missing puuids — fall back to scanning participants
+    // directly (newer LCU schemas include puuid inline on the participant).
+    let me: (typeof g.participants)[number] | undefined;
+    const idEntry = g.participantIdentities?.find(
+      (p) => p.player?.puuid === meRes.puuid
+    );
+    if (idEntry?.participantId) {
+      me = g.participants.find((p) => p.participantId === idEntry.participantId)
+        ?? g.participants[idEntry.participantId - 1];
+    }
+    if (!me) {
+      // Fallback: newer LCU embeds puuid on the participant itself.
+      me = g.participants.find((p) => p.puuid === meRes.puuid);
+    }
     if (!me) continue;
 
     const myPosition = inferPosition(me, g.queueId);

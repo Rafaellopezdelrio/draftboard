@@ -1,0 +1,90 @@
+{
+  "app": {
+    "title": "Draftboard",
+    "subtitle": "Pro-level LoL draft advisor"
+  },
+  "footer": {
+    "versionTitle": "See what's new in this version",
+    "disclaimer": "Not endorsed by Riot Games · LoL © Riot Games, Inc."
+  },
+  "health": {
+    "ok": "OK",
+    "okDetail": "Connection and backend OK. Data up to date.",
+    "degraded": "Degraded",
+    "degradedDetail": "Recent failure in {{source}}. Some panels may show cached data.",
+    "offline": "Offline",
+    "offlineDetail": "Your PC has lost internet connection. The app still uses cached data.",
+    "backendDown": "Backend down",
+    "backendDownDetail": "Draftboard's backend isn't responding. Limited functionality until it returns."
+  },
+  "common": {
+    "retry": "Retry",
+    "close": "Close",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "loading": "Loading...",
+    "search": "Search",
+    "settings": "Settings",
+    "ok": "OK",
+    "yes": "Yes",
+    "no": "No",
+    "confirm": "Confirm"
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "languageHint": "Language of the Draftboard interface"
+  },
+  "errors": {
+    "generic": "Something broke",
+    "genericDetail": "The app encountered an unexpected error. The report has been sent automatically (no personal data) so we can fix it. If you can describe what you were doing when it happened, that helps a lot.",
+    "technicalDetails": "Technical details",
+    "copyToClipboard": "Copy error to clipboard",
+    "copied": "Copied",
+    "tellUs": "Tell us what happened"
+  },
+  "patch": {
+    "newDetectedTitle": "New patch {{patch}} detected",
+    "newDetectedDetail": "Reload the app to update tier-list, builds and matchups.",
+    "reload": "Reload"
+  },
+  "championPicker": {
+    "title": "Select champion",
+    "searchPlaceholder": "Search champion...",
+    "searchAriaLabel": "Search champion",
+    "listAriaLabel": "Available champions",
+    "filterByRoleAria": "Filter by role",
+    "noResults": "No results",
+    "roles": {
+      "all": "All",
+      "top": "Top",
+      "jungle": "Jungle",
+      "middle": "Mid",
+      "bottom": "ADC",
+      "utility": "Support"
+    }
+  },
+  "history": {
+    "title": "History",
+    "filterByChampion": "Filter by champion...",
+    "matches": "Matches",
+    "winrate": "Winrate",
+    "avgKda": "Avg KDA",
+    "csPerMin": "CS/min",
+    "winStreak": "Win streak",
+    "loseStreak": "Lose streak",
+    "streakSuffix": "in a row",
+    "emptyFilters": "No matches with these filters",
+    "emptyFiltersDetail": "Change role, queue or search to see more results.",
+    "emptyAll": "No matches yet",
+    "emptyAllDetail": "Open the LoL client to auto-detect, or add your Riot ID in Settings ⚙️."
+  },
+  "viewBoundary": {
+    "title": "Something broke in this view",
+    "subtitle": "{{view}} · the rest of the app keeps working",
+    "errorPrefix": "Error:",
+    "description": "The error was reported automatically. You can retry — if it fails again, close the view and try something else.",
+    "copy": "Copy"
+  }
+}

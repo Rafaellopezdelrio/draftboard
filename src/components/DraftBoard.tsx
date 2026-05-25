@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 import type { ChampionDb } from "../types/champion";
 import { useDraftStore, type Side } from "../state/draftStore";
 import { ChampionPicker } from "./ChampionPicker";
@@ -17,15 +17,46 @@ export function DraftBoard({ db, lcuConnected = false }: Props) {
     | null
   >(null);
 
-  const champList = Object.values(db.champions);
-  const allTaken = [
-    ...ally.map((s) => s.championKey),
-    ...enemy.map((s) => s.championKey),
-    ...bans.ally,
-    ...bans.enemy,
-  ].filter((x): x is string => Boolean(x));
+  // Memoise the champion list — Object.values() returns a NEW array every
+  // render, which makes ChampionPicker's diffing think the prop changed
+  // and triggers its expensive grid re-render on every keystroke.
+  const champList = useMemo(() => Object.values(db.champions), [db.champions]);
 
-  const hasAnyPick = ally.some((s) => s.championKey) || enemy.some((s) => s.championKey) || bans.ally.length > 0 || bans.enemy.length > 0;
+  // Memoise the "already taken" set. Recomputed only when picks/bans change;
+  // ChampionPicker uses this to grey-out unavailable champions.
+  const allTaken = useMemo(
+    () =>
+      [
+        ...ally.map((s) => s.championKey),
+        ...enemy.map((s) => s.championKey),
+        ...bans.ally,
+        ...bans.enemy,
+      ].filter((x): x is string => Boolean(x)),
+    [ally, enemy, bans.ally, bans.enemy]
+  );
+
+  const hasAnyPick = useMemo(
+    () =>
+      ally.some((s) => s.championKey) ||
+      enemy.some((s) => s.championKey) ||
+      bans.ally.length > 0 ||
+      bans.enemy.length > 0,
+    [ally, enemy, bans.ally, bans.enemy]
+  );
+
+  // Stable callbacks for the picker — prevents SideColumn from re-rendering
+  // each parent render. Inline arrow fns create a new ref every time and
+  // bypass React.memo on the child.
+  const openPick = useCallback(
+    (side: Side, index: number) =>
+      setPicker({ kind: "pick", side, index }),
+    []
+  );
+  const openBan = useCallback(
+    (side: Side, index: number) =>
+      setPicker({ kind: "ban", side, index }),
+    []
+  );
 
   return (
     <div className="grid grid-cols-2 gap-3">
@@ -35,8 +66,8 @@ export function DraftBoard({ db, lcuConnected = false }: Props) {
         slots={ally}
         bans={bans.ally}
         db={db}
-        onPickClick={(i) => setPicker({ kind: "pick", side: "ally", index: i })}
-        onBanClick={(i) => setPicker({ kind: "ban", side: "ally", index: i })}
+        onPickClick={(i) => openPick("ally", i)}
+        onBanClick={(i) => openBan("ally", i)}
       />
       <SideColumn
         title="Enemigos"
@@ -44,10 +75,8 @@ export function DraftBoard({ db, lcuConnected = false }: Props) {
         slots={enemy}
         bans={bans.enemy}
         db={db}
-        onPickClick={(i) =>
-          setPicker({ kind: "pick", side: "enemy", index: i })
-        }
-        onBanClick={(i) => setPicker({ kind: "ban", side: "enemy", index: i })}
+        onPickClick={(i) => openPick("enemy", i)}
+        onBanClick={(i) => openBan("enemy", i)}
       />
 
       {!lcuConnected && hasAnyPick && (

@@ -1,0 +1,90 @@
+{
+  "app": {
+    "title": "Draftboard",
+    "subtitle": "Pro-level LoL draft advisor"
+  },
+  "footer": {
+    "versionTitle": "Ver novedades de esta versión",
+    "disclaimer": "No endorsado por Riot Games · LoL © Riot Games, Inc."
+  },
+  "health": {
+    "ok": "OK",
+    "okDetail": "Conexión y backend OK. Datos al día.",
+    "degraded": "Degradado",
+    "degradedDetail": "Fallo reciente en {{source}}. Algunos paneles pueden mostrar datos en caché.",
+    "offline": "Sin conexión",
+    "offlineDetail": "Tu PC ha perdido la conexión a internet. La app sigue usando datos en caché.",
+    "backendDown": "Backend caído",
+    "backendDownDetail": "El backend de Draftboard no responde. Funcionalidad limitada hasta que vuelva."
+  },
+  "common": {
+    "retry": "Reintentar",
+    "close": "Cerrar",
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "delete": "Borrar",
+    "loading": "Cargando...",
+    "search": "Buscar",
+    "settings": "Configuración",
+    "ok": "OK",
+    "yes": "Sí",
+    "no": "No",
+    "confirm": "Confirmar"
+  },
+  "settings": {
+    "title": "Configuración",
+    "language": "Idioma",
+    "languageHint": "Idioma de la interfaz de Draftboard"
+  },
+  "errors": {
+    "generic": "Algo se rompió",
+    "genericDetail": "La app encontró un error inesperado. El reporte se ha enviado automáticamente (sin datos personales) para que lo arreglemos. Si puedes describir qué hacías cuando pasó, nos ayuda muchísimo.",
+    "technicalDetails": "Detalles técnicos",
+    "copyToClipboard": "Copiar error al portapapeles",
+    "copied": "Copiado",
+    "tellUs": "Contarnos qué pasó"
+  },
+  "patch": {
+    "newDetectedTitle": "Nuevo parche {{patch}} detectado",
+    "newDetectedDetail": "Recarga la app para actualizar tier-list, builds y matchups.",
+    "reload": "Recargar"
+  },
+  "championPicker": {
+    "title": "Seleccionar campeón",
+    "searchPlaceholder": "Buscar campeón...",
+    "searchAriaLabel": "Buscar campeón",
+    "listAriaLabel": "Campeones disponibles",
+    "filterByRoleAria": "Filtrar por rol",
+    "noResults": "Sin resultados",
+    "roles": {
+      "all": "Todos",
+      "top": "Top",
+      "jungle": "Jungla",
+      "middle": "Mid",
+      "bottom": "ADC",
+      "utility": "Sup"
+    }
+  },
+  "history": {
+    "title": "Historial",
+    "filterByChampion": "Filtrar por campeón...",
+    "matches": "Partidas",
+    "winrate": "Winrate",
+    "avgKda": "KDA medio",
+    "csPerMin": "CS/min",
+    "winStreak": "Racha victorias",
+    "loseStreak": "Racha derrotas",
+    "streakSuffix": "consecutivas",
+    "emptyFilters": "Sin partidas con estos filtros",
+    "emptyFiltersDetail": "Cambia el rol, la cola o la búsqueda para ver más resultados.",
+    "emptyAll": "Sin partidas aún",
+    "emptyAllDetail": "Abre el cliente de LoL para detectarte automáticamente, o añade tu Riot ID en Configuración ⚙️."
+  },
+  "viewBoundary": {
+    "title": "Algo se rompió en esta vista",
+    "subtitle": "{{view}} · el resto de la app sigue funcionando",
+    "errorPrefix": "Error:",
+    "description": "El error se reportó automáticamente. Puedes reintentar — si vuelve a fallar, cierra la vista y prueba otra cosa.",
+    "copy": "Copiar"
+  }
+}

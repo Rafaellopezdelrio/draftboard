@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: [main]
 
+# Cancel in-flight runs on same ref when new commit lands. Saves CI
+# minutes on rapid pushes — only the latest commit needs to pass.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     name: TypeScript + Vitest
@@ -32,3 +38,9 @@ jobs:
 
       - name: Build (Vite frontend only — Tauri/Rust skipped on CI)
         run: npm run build
+
+      # Bundle size budget. Fails if any chunk crosses HARD_FAIL_KB
+      # (see scripts/bundle-check.mjs). Catches regressions from new
+      # deps or accidental large imports before they ship.
+      - name: Bundle size budget
+        run: npm run bundle-check

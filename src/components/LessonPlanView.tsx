@@ -15,10 +15,16 @@ import {
 import { detectWeakestArea } from "../engine/trendsEngine";
 import { usePrefsStore } from "../state/prefsStore";
 import { useEscape } from "../hooks/useKeyboardShortcuts";
+import { useFocusTrap } from "../hooks/useFocusTrap";
+import { useRef } from "react";
+import { Skeleton } from "./ui/Skeleton";
+
+const LESSONPLAN_TITLE_ID = "lessonplan-view-title";
 import type { ChampionDb } from "../types/champion";
 import { Tabs } from "./ui/Tabs";
 import { Panel } from "./ui/Panel";
-import { Sparkles, Calendar, Check, Target } from "lucide-react";
+import { Sparkles, Calendar, Check, Target, BookOpen } from "lucide-react";
+import { EmptyState } from "./ui/EmptyState";
 
 interface Props {
   db: ChampionDb;
@@ -92,19 +98,26 @@ export function LessonPlanView({ db, onClose }: Props) {
     }
   }
 
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(dialogRef, true);
+
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={LESSONPLAN_TITLE_ID}
       className="fixed inset-0 z-40 bg-black/70 flex items-center justify-center"
       onClick={onClose}
     >
       <div
+        ref={dialogRef}
         className="animate-[scaleIn_180ms_ease-out] glass border border-border-strong rounded-lg w-[680px] max-h-[88vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-5 pt-5 pb-2 border-b border-border-subtle">
           <div className="flex items-center gap-2 mb-3">
             <Calendar className="w-5 h-5 text-accent" />
-            <h2 className="text-xl font-bold gold-text">Plan de mejora 7 días</h2>
+            <h2 id={LESSONPLAN_TITLE_ID} className="text-xl font-bold gold-text">Plan de mejora 7 días</h2>
           </div>
           <Tabs<Tab>
             tabs={[
@@ -145,9 +158,21 @@ export function LessonPlanView({ db, onClose }: Props) {
                 </Panel>
               )}
               {loading && (
-                <p className="text-white/50 text-sm text-center py-8">
-                  Diseñando tu plan personalizado...
-                </p>
+                // 7-day plan skeleton: title bar + 7 day-blocks (each
+                // with day header + 2-3 task lines). Mirrors the final
+                // layout so the screen doesn't reflow when copy arrives.
+                <div className="space-y-3" aria-busy="true" aria-live="polite">
+                  <Skeleton className="h-4 w-48" />
+                  {Array.from({ length: 7 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className="p-3 rounded border border-border-subtle space-y-2"
+                    >
+                      <Skeleton className="h-3 w-24" />
+                      <Skeleton rows={2} gap="tight" className="h-2 w-full" />
+                    </div>
+                  ))}
+                </div>
               )}
               {err && (
                 <Panel padding="sm">
@@ -176,9 +201,11 @@ export function LessonPlanView({ db, onClose }: Props) {
           {tab === "history" && (
             <div className="space-y-2">
               {past.length === 0 && (
-                <p className="text-white/50 text-sm text-center py-8">
-                  Aún no has generado planes. Crea uno en "Generar nuevo".
-                </p>
+                <EmptyState
+                  icon={BookOpen}
+                  title="Sin planes generados"
+                  detail='Crea tu primer plan de 7 días en la pestaña "Generar nuevo".'
+                />
               )}
               {past.map((p) => (
                 <Panel key={p.id} padding="sm">

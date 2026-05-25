@@ -1,12 +1,15 @@
-// Patch notes service — fetches Riot's official patch notes feed and detects
-// which champions were buffed/nerfed/reworked.
+// Patch notes service — fetches Riot's official patch notes feed via our
+// CF Worker proxy (primary), with Leaguepedia as fallback.
 //
-// Riot publishes a JSON feed of patch articles at:
-//   https://www.leagueoflegends.com/page-data/.../patch-notes/page-data.json
-// but it's unstable. As a fallback we use a curated mini-DB the user can
-// update each patch (or the AI can summarize patch text into structured form).
+// Worker endpoint `/riot/patch-notes?patch=X.Y` scrapes the official page
+// and returns structured changes. Leaguepedia (`lol.fandom.com/api.php`)
+// is a backup when Riot's page format changes; its data is sparser but
+// at least exposes patch metadata.
 
 import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
+import { getRiotProxyUrl } from "./riotApi";
+import { withRetry, RateLimitError, throwIfRateLimited } from "./retry";
+import { trackFetch } from "./breadcrumbs";
 
 function isTauri(): boolean {
   return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
@@ -54,18 +57,81 @@ export async function getLatestPatchSummary(
     // ignore
   }
 
-  // Try fetching from a community-curated source.
-  // Note: Riot does not expose a stable structured patch-notes API.
-  // We attempt the lol.fandom.com (Leaguepedia) data via Cargo, which has
-  // patch info per champion. As a baseline we return an empty changes list
-  // until a real source is wired.
-  const summary: PatchSummary = await fetchFromLeaguepedia(patch);
+  // Primary: our worker scrapes Riot's official patch notes page.
+  let summary = await fetchFromRiotProxy(patch);
+  // Fallback: Leaguepedia Cargo. Works for older patches but rarely has
+  // the same level of structured detail as Riot's own page.
+  if (!summary || summary.changes.length === 0) {
+    summary = await fetchFromLeaguepedia(patch);
+  }
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(summary));
   } catch {
     // ignore quota
   }
   return summary;
+}
+
+/**
+ * Primary source: our CF worker (which scrapes Riot's official patch
+ * notes page). Returns null if the proxy is unreachable so the fallback
+ * Leaguepedia path can run.
+ */
+async function fetchFromRiotProxy(patch: string): Promise<PatchSummary | null> {
+  const proxyUrl = getRiotProxyUrl();
+  if (!proxyUrl) return null;
+  // Normalise DDragon's "X.Y.Z" build version to the "X.Y" form Riot
+  // uses on their patch notes URL. Worker also accepts X.Y.Z now but
+  // we strip client-side too so the cache key is consistent.
+  const normalised = patch.split(".").slice(0, 2).join(".");
+  const url = `${proxyUrl}/riot/patch-notes?patch=${encodeURIComponent(normalised)}`;
+  try {
+    // Worker scrapes Riot's patch notes page — transient 5xx from cold
+    // starts / origin restarts are common. Retry 3x; 4xx (patch not
+    // indexed yet) doesn't retry since waiting won't fix it.
+    const data = await withRetry(
+      async () => {
+        const res = await httpFetch(url, { headers: { Accept: "application/json" } });
+        throwIfRateLimited(res, url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        trackFetch(url, "ok");
+        return (await res.json()) as {
+          patch: string;
+          url?: string;
+          changes: Array<{
+            championName: string;
+            championId: string;
+            type: PatchChange["type"];
+            details: string[];
+          }>;
+        };
+      },
+      {
+        attempts: 3,
+        baseDelayMs: 500,
+        // Allow 429 retries via RateLimitError + Retry-After. Other 4xx
+        // are non-retriable (patch index missing, won't be there next try).
+        shouldRetry: (err) => {
+          if (err instanceof RateLimitError) return true;
+          return !String((err as Error)?.message ?? "").match(/HTTP 4\d\d/);
+        },
+        onRetry: (e, n) =>
+          trackFetch(url, "fail", `attempt ${n}: ${String(e).slice(0, 80)}`),
+      }
+    );
+    return {
+      patch: data.patch,
+      url: data.url,
+      changes: data.changes.map((c) => ({
+        championId: c.championId,
+        type: c.type,
+        details: c.details,
+      })),
+      fetchedAt: Date.now(),
+    };
+  } catch {
+    return null;
+  }
 }
 
 async function fetchFromLeaguepedia(patch: string): Promise<PatchSummary> {

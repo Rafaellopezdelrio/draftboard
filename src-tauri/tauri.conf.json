@@ -12,11 +12,29 @@
   "app": {
     "windows": [
       {
+        "label": "main",
         "title": "Draftboard — LoL Draft Advisor",
         "width": 1280,
         "height": 800,
         "minWidth": 960,
         "minHeight": 600
+      },
+      {
+        "label": "overlay",
+        "title": "Draftboard Overlay",
+        "url": "index.html?overlay=1",
+        "width": 320,
+        "height": 340,
+        "x": 30,
+        "y": 80,
+        "visible": false,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "focus": false,
+        "resizable": true,
+        "shadow": false
       }
     ],
     "security": {

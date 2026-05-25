@@ -1,0 +1,41 @@
+MIT License
+
+Copyright (c) 2026 Draftboard / Rafael López Serrano
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+THIRD-PARTY NOTICES
+
+Draftboard uses third-party services and data sources, each governed by their
+own terms:
+
+  - Riot Games API + League Client API: subject to Riot's "Legal Jibber Jabber"
+    https://www.riotgames.com/en/legal — Draftboard is not endorsed by Riot
+    Games and does not reflect the views or opinions of Riot Games.
+  - Data Dragon (Riot CDN): static champion/item/spell data, free use under
+    Riot's developer policy.
+  - op.gg, dpm.lol, u.gg, leaguepedia: public aggregated win-rate and pro-play
+    data, accessed via documented public endpoints or HTML scraping with
+    polite rate-limiting.
+  - Anthropic, Groq, Google Gemini: optional AI coach providers — user supplies
+    their own API key, requests routed directly from their machine.
+
+LEAGUE OF LEGENDS is a trademark of Riot Games, Inc.

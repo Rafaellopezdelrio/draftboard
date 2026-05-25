@@ -8,6 +8,9 @@
 import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
 import type { MetaTier, Role } from "../types/champion";
 import { getRiotProxyUrl } from "./riotApi";
+import { withRetry, RateLimitError, throwIfRateLimited } from "./retry";
+import { trackFetch } from "./breadcrumbs";
+import { emitFetchFailure } from "./fetchNotify";
 
 function isTauri(): boolean {
   return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
@@ -58,17 +61,40 @@ export async function fetchOpggMetaAllRoles(
     console.warn("[opgg] no proxy configured — skipping tier list fetch");
     return [];
   }
+  const url = `${proxyUrl}/opgg/tierlist`;
   try {
-    const res = await httpFetch(`${proxyUrl}/opgg/tierlist`, {
-      method: "GET",
-      headers: { Accept: "application/json" },
-    });
-    if (!res.ok) {
-      // eslint-disable-next-line no-console
-      console.error("[opgg] proxy HTTP error:", res.status);
-      return [];
-    }
-    const data = (await res.json()) as OpggTierListResponse;
+    // Retry 3x with exp backoff — Cloudflare workers can briefly 5xx
+    // during cold starts or origin restarts. A single bad attempt would
+    // empty the entire tier-list panel; the wrapped call gives us three
+    // honest tries before falling back to the next meta source.
+    const data = await withRetry(
+      async () => {
+        const res = await httpFetch(url, {
+          method: "GET",
+          headers: { Accept: "application/json" },
+        });
+        // Rate-limit: throwIfRateLimited reads Retry-After + throws
+        // RateLimitError so withRetry honours the server's hint instead
+        // of exp backoff.
+        throwIfRateLimited(res, url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        trackFetch(url, "ok");
+        return (await res.json()) as OpggTierListResponse;
+      },
+      {
+        attempts: 3,
+        baseDelayMs: 500,
+        // Don't retry on 4xx EXCEPT 429 (which is handled above via
+        // RateLimitError + Retry-After respect). Other 4xx are programmer
+        // errors (bad params), not flake, so we surface them immediately.
+        shouldRetry: (err) => {
+          if (err instanceof RateLimitError) return true;
+          return !String((err as Error)?.message ?? "").match(/HTTP 4\d\d/);
+        },
+        onRetry: (e, n) =>
+          trackFetch(url, "fail", `attempt ${n}: ${String(e).slice(0, 80)}`),
+      }
+    );
     const result: MetaTier[] = [];
     let unknownCount = 0;
     for (const laneKey of Object.keys(LANE_TO_ROLE) as Array<keyof OpggTierListResponse>) {
@@ -98,6 +124,10 @@ export async function fetchOpggMetaAllRoles(
   } catch (e) {
     // eslint-disable-next-line no-console
     console.error("[opgg] fetch failed:", e);
+    // Notify the UI so the user sees a toast instead of a silently empty
+    // tier list panel. emitFetchFailure throttles per-source so an
+    // outage doesn't spam toasts.
+    emitFetchFailure("op.gg meta", e);
     return [];
   }
 }

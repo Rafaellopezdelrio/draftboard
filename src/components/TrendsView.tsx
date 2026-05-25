@@ -8,6 +8,8 @@ import type { ChampionDb, Role } from "../types/champion";
 import { usePrefsStore } from "../state/prefsStore";
 import { aiTrendsAnalysis } from "../services/aiCoach";
 import { useEscape } from "../hooks/useKeyboardShortcuts";
+import { EmptyState } from "./ui/EmptyState";
+import { TrendingUp } from "lucide-react";
 
 interface Props {
   db: ChampionDb;
@@ -180,9 +182,11 @@ export function TrendsView({ db, onClose }: Props) {
         )}
 
         {trends.length === 0 ? (
-          <p className="text-white/50 text-center py-4">
-            Necesitas al menos 6 partidas con estos filtros para ver tendencias.
-          </p>
+          <EmptyState
+            icon={TrendingUp}
+            title="Aún no hay tendencias"
+            detail="Necesitas al menos 6 partidas con los filtros actuales. Sigue jugando y vuelve."
+          />
         ) : (
           <div className="space-y-2 overflow-y-auto">
             {trends.map((t, i) => (

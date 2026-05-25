@@ -13,6 +13,9 @@
 
 import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
 import { getRiotProxyUrl } from "./riotApi";
+import { withRetry, RateLimitError, throwIfRateLimited } from "./retry";
+import { trackFetch } from "./breadcrumbs";
+import { emitFetchFailure } from "./fetchNotify";
 import type { Role } from "../types/champion";
 
 function isTauri(): boolean {
@@ -137,25 +140,42 @@ export async function fetchOpggBuild(
     role === "BOTTOM" ? "ADC" :
     "SUPPORT";
 
+  const url = `${proxyUrl}/opgg/build?champion=${encodeURIComponent(
+    championName.toUpperCase()
+  )}&role=${opggPosition}`;
   try {
-    const url = `${proxyUrl}/opgg/build?champion=${encodeURIComponent(
-      championName.toUpperCase()
-    )}&role=${opggPosition}`;
-    const res = await httpFetch(url, {
-      method: "GET",
-      headers: { Accept: "application/json" },
-    });
-    if (!res.ok) {
-      // eslint-disable-next-line no-console
-      console.error(`[opggBuilds] HTTP ${res.status} for ${cacheKey}`);
-      return null;
-    }
-    const data = (await res.json()) as OpggBuild;
+    // Cold start + dual-request (default + spells) on worker can flake.
+    // 4xx aborts retry (bad champion name / role).
+    const data = await withRetry(
+      async () => {
+        const res = await httpFetch(url, {
+          method: "GET",
+          headers: { Accept: "application/json" },
+        });
+        throwIfRateLimited(res, url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        trackFetch(url, "ok");
+        return (await res.json()) as OpggBuild;
+      },
+      {
+        attempts: 3,
+        baseDelayMs: 500,
+        // Allow 429 retries (handled via RateLimitError + Retry-After).
+        // Other 4xx are non-retriable programmer errors.
+        shouldRetry: (err) => {
+          if (err instanceof RateLimitError) return true;
+          return !String((err as Error)?.message ?? "").match(/HTTP 4\d\d/);
+        },
+        onRetry: (e, n) =>
+          trackFetch(url, "fail", `attempt ${n}: ${String(e).slice(0, 80)}`),
+      }
+    );
     cache.set(cacheKey, { ts: Date.now(), data });
     return data;
   } catch (e) {
     // eslint-disable-next-line no-console
-    console.error("[opggBuilds] fetch failed:", e);
+    console.error("[opggBuilds] fetch failed after retries:", e);
+    emitFetchFailure("op.gg builds", e);
     return null;
   }
 }

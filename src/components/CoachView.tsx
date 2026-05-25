@@ -16,6 +16,11 @@ import { aiCoachAnalysis } from "../services/aiCoach";
 import { queueLabel } from "../data/queueNames";
 import { lcuRank } from "../services/lcuPersonalData";
 import { useEscape } from "../hooks/useKeyboardShortcuts";
+import { useFocusTrap } from "../hooks/useFocusTrap";
+import { useRef } from "react";
+import { Skeleton, SkeletonRow } from "./ui/Skeleton";
+
+const COACH_TITLE_ID = "coach-view-title";
 
 interface Props {
   db: ChampionDb;
@@ -150,18 +155,24 @@ export function CoachView({ db, onClose }: Props) {
   }
 
   const me = matchFull?.participants.find((p) => p.puuid && true);
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(dialogRef, true);
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={COACH_TITLE_ID}
       className="fixed inset-0 z-40 bg-black/70 flex items-center justify-center"
       onClick={onClose}
     >
       <div
+        ref={dialogRef}
         className="animate-[scaleIn_180ms_ease-out] glass border border-border-strong rounded-lg p-4 w-[820px] max-h-[85vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-3 gap-3">
-          <h2 className="text-lg font-semibold text-accent">Coach</h2>
+          <h2 id={COACH_TITLE_ID} className="text-lg font-semibold text-accent">Coach</h2>
           <div className="flex-1 grid grid-cols-3 gap-1 max-h-32 overflow-y-auto">
             {matchOptions.map((m) => {
               const selected = m.id === matchId;
@@ -193,7 +204,25 @@ export function CoachView({ db, onClose }: Props) {
           </div>
         </div>
 
-        {loading && <p className="text-white/60">Analizando partida...</p>}
+        {loading && (
+          // Layout-stable skeleton mirroring real coach result shape:
+          // 2 KPI rows + 3-line summary + bullet list. Less jumpy than
+          // a single "Analizando..." line that's instantly replaced by
+          // a tall report.
+          <div className="space-y-3" aria-busy="true" aria-live="polite">
+            <div className="grid grid-cols-3 gap-2">
+              <Skeleton className="h-16 w-full" />
+              <Skeleton className="h-16 w-full" />
+              <Skeleton className="h-16 w-full" />
+            </div>
+            <Skeleton rows={3} className="h-3 w-full" />
+            <div className="space-y-2 mt-2">
+              <SkeletonRow />
+              <SkeletonRow />
+              <SkeletonRow />
+            </div>
+          </div>
+        )}
         {err && <p className="text-bad">{err}</p>}
 
         {!loading && !err && matchFull && me && (

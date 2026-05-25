@@ -13,6 +13,15 @@
     "updater:default",
     "process:default",
     "process:allow-restart",
+    "autostart:default",
+    "autostart:allow-enable",
+    "autostart:allow-disable",
+    "autostart:allow-is-enabled",
+    "log:default",
+    "dialog:default",
+    "dialog:allow-save",
+    "dialog:allow-open",
+    "fs:default",
     {
       "identifier": "http:default",
       "allow": [

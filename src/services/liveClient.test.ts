@@ -5,7 +5,84 @@ vi.mock("@tauri-apps/api/core", () => ({
   invoke: (...args: unknown[]) => mockInvoke(...args),
 }));
 
-import { fetchLiveGameSnapshot } from "./liveClient";
+import {
+  fetchLiveGameSnapshot,
+  findMyPlayer,
+  type LiveGameActivePlayer,
+  type LiveGamePlayer,
+} from "./liveClient";
+
+const mkPlayer = (over: Partial<LiveGamePlayer>): LiveGamePlayer => ({
+  championName: "Lux",
+  isBot: false,
+  isDead: false,
+  level: 1,
+  position: "",
+  rawChampionName: "",
+  scores: { assists: 0, creepScore: 0, deaths: 0, kills: 0, wardScore: 0 },
+  skinID: 0,
+  summonerName: "",
+  summonerSpells: {
+    summonerSpellOne: { displayName: "Flash", rawDescription: "" },
+    summonerSpellTwo: { displayName: "Ignite", rawDescription: "" },
+  },
+  team: "ORDER",
+  items: [],
+  ...over,
+});
+
+describe("findMyPlayer — robust local-player matching across Riot ID shapes", () => {
+  it("matches when both sides use plain summonerName", () => {
+    const active = { summonerName: "Rafa", currentGold: 0, level: 1 } as LiveGameActivePlayer;
+    const all = [
+      mkPlayer({ summonerName: "Foe", team: "ORDER" }),
+      mkPlayer({ summonerName: "Rafa", team: "CHAOS" }),
+    ];
+    expect(findMyPlayer(active, all)?.team).toBe("CHAOS");
+  });
+
+  it("matches when active has gameName but allPlayers entries use gameName#tag", () => {
+    const active = {
+      summonerName: "Rafa",
+      riotIdGameName: "Rafa",
+      currentGold: 0,
+      level: 1,
+    } as LiveGameActivePlayer;
+    const all = [
+      mkPlayer({ summonerName: "Rafa#EUW", riotIdGameName: "Rafa", riotIdTagLine: "EUW", team: "CHAOS" }),
+      mkPlayer({ summonerName: "Other#NA", riotIdGameName: "Other", riotIdTagLine: "NA", team: "ORDER" }),
+    ];
+    expect(findMyPlayer(active, all)?.team).toBe("CHAOS");
+  });
+
+  it("matches via riotIdGameName when summonerName fields disagree (ARAM CHAOS bug)", () => {
+    const active = {
+      summonerName: "Rafa#EUW",
+      riotIdGameName: "Rafa",
+      riotIdTagLine: "EUW",
+      currentGold: 0,
+      level: 1,
+    } as LiveGameActivePlayer;
+    const all = [
+      mkPlayer({ summonerName: "", riotIdGameName: "Rafa", riotIdTagLine: "EUW", team: "CHAOS" }),
+      mkPlayer({ summonerName: "", riotIdGameName: "Mate", riotIdTagLine: "EUW", team: "CHAOS" }),
+    ];
+    expect(findMyPlayer(active, all)?.team).toBe("CHAOS");
+  });
+
+  it("returns null when no match exists", () => {
+    const active = { summonerName: "Ghost", currentGold: 0, level: 1 } as LiveGameActivePlayer;
+    const all = [mkPlayer({ summonerName: "Other" })];
+    expect(findMyPlayer(active, all)).toBeNull();
+  });
+
+  it("handles whitespace & case differences", () => {
+    const active = { summonerName: "RAFA LOPEZ", currentGold: 0, level: 1 } as LiveGameActivePlayer;
+    const all = [mkPlayer({ summonerName: "rafalopez", team: "CHAOS" })];
+    expect(findMyPlayer(active, all)?.team).toBe("CHAOS");
+  });
+});
+
 
 describe("liveClient.fetchLiveGameSnapshot", () => {
   beforeEach(() => {

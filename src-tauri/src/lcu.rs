@@ -41,25 +41,35 @@ impl Default for LcuState {
 
 pub fn spawn_watcher(app: AppHandle) {
     tauri::async_runtime::spawn(async move {
+        // Backoff so we don't hammer the filesystem when LoL isn't
+        // running. Fast reconnect (3s) keeps the user's lock-in flow
+        // responsive AFTER LoL launches; slower (10s) baseline before
+        // they launch keeps the idle CPU near zero.
         loop {
-            match try_connect(&app).await {
+            let lockfile_existed = match try_connect(&app).await {
                 Ok(()) => {
                     update_status(&app, false, Some("disconnected".into())).await;
+                    true
                 }
                 Err(e) => {
+                    let was_present = !e.to_string().contains("lockfile not found");
                     update_status(&app, false, Some(e.to_string())).await;
+                    was_present
                 }
-            }
-            sleep(Duration::from_secs(3)).await;
+            };
+            let delay_secs = if lockfile_existed { 3 } else { 10 };
+            sleep(Duration::from_secs(delay_secs)).await;
         }
     });
 }
 
 async fn try_connect(app: &AppHandle) -> Result<()> {
-    let lf = read_lockfile().map_err(|e| {
-        eprintln!("[LCU] read_lockfile failed: {}", e);
-        e
-    })?;
+    // No eprintln on lockfile-missing — that's the expected steady state
+    // while LoL is closed. Previously every 3s a "[LCU] read_lockfile
+    // failed: ..." line spammed stderr + the log file, costing disk
+    // I/O and bloating logs. The watcher loop already broadcasts the
+    // disconnected status to the frontend; no log needed.
+    let lf = read_lockfile()?;
     eprintln!("[LCU] lockfile OK port={} password=({} chars)", lf.port, lf.password.len());
 
     let auth = format!("riot:{}", lf.password);
@@ -96,6 +106,17 @@ async fn try_connect(app: &AppHandle) -> Result<()> {
     ]))?;
     stream.send(Message::Text(sub.into())).await?;
 
+    // Bootstrap: the WebSocket only fires when the session CHANGES.
+    // If the user is already in champ select when Draftboard launches,
+    // we'd never see them until the next state transition. Do an initial
+    // REST GET to seed the frontend immediately. Failure is fine — we
+    // just rely on the websocket from that point.
+    if let Ok(initial) = fetch_lcu_json("/lol-champ-select/v1/session").await {
+        if initial.is_object() {
+            let _ = app.emit("lcu:champ-select", &initial);
+        }
+    }
+
     while let Some(msg) = stream.next().await {
         let msg = match msg {
             Ok(m) => m,
@@ -103,8 +124,24 @@ async fn try_connect(app: &AppHandle) -> Result<()> {
         };
         if let Message::Text(txt) = msg {
             if let Ok(val) = serde_json::from_str::<Value>(&txt) {
-                if let Some(payload) = val.get(2) {
-                    let _ = app.emit("lcu:champ-select", payload);
+                // LCU websocket payload shape: `[8, "OnJsonApiEvent_<topic>",
+                // { eventType: "Create"|"Update"|"Delete", uri, data }]`.
+                // We need `.data` for the actual session — emitting the
+                // wrapper means the frontend reads `eventType.myTeam` which
+                // is undefined and the champion select detection silently
+                // fails (this was the bug behind "Draftboard didn't detect
+                // my champ pick").
+                if let Some(envelope) = val.get(2) {
+                    // LCU sends `eventType: "Delete"` with `data: null` when
+                    // the user leaves champ select. Emitting `null` made the
+                    // frontend listener access `.myTeam` on null and silently
+                    // halt — picks would freeze on the last known state.
+                    // Only emit when `data` is an actual object.
+                    if let Some(data) = envelope.get("data") {
+                        if data.is_object() {
+                            let _ = app.emit("lcu:champ-select", data);
+                        }
+                    }
                 }
             }
         }
@@ -441,6 +478,142 @@ async fn fetch_live_client_json(path: &str) -> Result<serde_json::Value> {
     }
     let value: serde_json::Value = resp.json().await?;
     Ok(value)
+}
+
+/// Push a recommended item set to the LCU so it shows up in the in-game
+/// shop's left sidebar. The user can click an item once and a full
+/// build path expands.
+///
+/// LCU endpoint: PUT /lol-item-sets/v1/item-sets/{summonerId}/sets
+/// Body shape per Riot's spec:
+///   {
+///     "accountId": <summonerId>,
+///     "itemSets": [{
+///       "uid": "...",            // unique-ish, we generate from champion+role
+///       "title": "...",
+///       "associatedChampions": [<championId>],
+///       "associatedMaps": [11, 12],
+///       "blocks": [
+///         { "type": "Starter", "items": [{"id":"1054","count":1}] },
+///         { "type": "Core",    "items": [...] },
+///         { "type": "Situational", "items": [...] }
+///       ]
+///     }, ...]
+///   }
+///
+/// Fail-soft: if we can't reach the LCU (client closed), return false
+/// without raising. Caller can show a "open LoL client first" hint.
+
+#[derive(Debug, serde::Deserialize)]
+pub struct ItemSetInput {
+    #[serde(rename = "championId")]
+    pub champion_id: u32,
+    pub title: String,
+    pub blocks: Vec<ItemSetBlock>,
+}
+
+#[derive(Debug, serde::Deserialize)]
+pub struct ItemSetBlock {
+    /// Block label: "Starter" | "Core" | "Situational" | etc. — free text.
+    #[serde(rename = "type")]
+    pub block_type: String,
+    pub items: Vec<ItemSetItem>,
+}
+
+#[derive(Debug, serde::Deserialize)]
+pub struct ItemSetItem {
+    /// Riot item id (will be stringified for the LCU body).
+    pub id: u32,
+    #[serde(default = "default_one")]
+    pub count: u32,
+}
+fn default_one() -> u32 { 1 }
+
+#[tauri::command]
+pub async fn lcu_push_item_set(set: ItemSetInput) -> Result<bool, String> {
+    push_item_set(set).await.map_err(|e| e.to_string())
+}
+
+async fn push_item_set(set: ItemSetInput) -> Result<bool> {
+    let lf = read_lockfile()?;
+    let auth = format!("riot:{}", lf.password);
+    let auth_b64 = B64.encode(auth.as_bytes());
+
+    let tls = rustls_dangerous_config()?;
+    let client = reqwest::Client::builder()
+        .use_preconfigured_tls(tls)
+        .timeout(Duration::from_secs(5))
+        .connect_timeout(Duration::from_secs(2))
+        .build()?;
+    let base = format!("https://127.0.0.1:{}", lf.port);
+
+    // Resolve the current summoner so we can scope the item set to them.
+    let me: serde_json::Value = client
+        .get(format!("{}/lol-summoner/v1/current-summoner", base))
+        .header("Authorization", format!("Basic {}", auth_b64))
+        .send()
+        .await?
+        .json()
+        .await?;
+    let summoner_id = me.get("summonerId").and_then(|v| v.as_u64());
+    if summoner_id.is_none() {
+        return Ok(false); // not logged in to client
+    }
+    let summoner_id = summoner_id.unwrap();
+
+    // Build the body Riot expects. Items in the `items` array carry their
+    // id as a STRING (their schema is loose — strings everywhere).
+    let blocks: Vec<serde_json::Value> = set
+        .blocks
+        .iter()
+        .map(|b| {
+            serde_json::json!({
+                "type": b.block_type,
+                "items": b.items.iter().map(|it| serde_json::json!({
+                    "id": it.id.to_string(),
+                    "count": it.count,
+                })).collect::<Vec<_>>(),
+            })
+        })
+        .collect();
+
+    let uid = format!("draftboard-{}-{}", set.champion_id, summoner_id);
+    let body = serde_json::json!({
+        "accountId": summoner_id,
+        "itemSets": [{
+            "uid": uid,
+            "title": set.title,
+            "associatedChampions": [set.champion_id],
+            "associatedMaps": [11, 12], // SR + ARAM
+            "blocks": blocks,
+            "mode": "any",
+            "type": "custom",
+            "map": "any",
+            "priority": false,
+            "sortrank": 1,
+            "preferredItemSlots": [],
+            "startedFrom": "Imported",
+            "isGlobalForChampions": true,
+        }]
+    });
+
+    let resp = client
+        .put(format!(
+            "{}/lol-item-sets/v1/item-sets/{}/sets",
+            base, summoner_id
+        ))
+        .header("Authorization", format!("Basic {}", auth_b64))
+        .json(&body)
+        .send()
+        .await?;
+    if resp.status().as_u16() == 404 {
+        // Not in a state where sets can be written (login screen, etc).
+        return Ok(false);
+    }
+    if !resp.status().is_success() {
+        return Err(anyhow!("push item set returned {}", resp.status()));
+    }
+    Ok(true)
 }
 
 /// Apply two summoner spells to the local player's pick in champ select.

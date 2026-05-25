@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, useMemo } from "react";
 import type { ScoredSuggestion } from "../engine/suggestionEngine";
 import { usePrefsStore } from "../state/prefsStore";
 import { CountUp } from "./ui/CountUp";
@@ -23,18 +23,17 @@ function SuggestionPanelInner({ suggestions, hasRole, hasDraft }: Props) {
   }
 
   // Split into "comfort" (you've actually played these) vs "meta only"
-  // (recommended by tier list but you don't know them yet). The first
-  // group is what the user is really looking for in Top Picks — picks
-  // that are both strong AND playable for them. We only render the
-  // comfort section when there's at least one entry; otherwise the
-  // panel collapses back to the meta list as before.
-  const comfortPicks = suggestions
-    .filter((s) => s.breakdown.isComfort)
-    .slice(0, 3);
-  const usedKeys = new Set(comfortPicks.map((s) => s.champion.key));
-  const metaPicks = suggestions
-    .filter((s) => !usedKeys.has(s.champion.key))
-    .slice(0, comfortPicks.length > 0 ? 3 : 5);
+  // (recommended by tier list but you don't know them yet). Memoised so
+  // re-renders triggered by unrelated prefs (e.g. beginnerMode toggle
+  // elsewhere) don't re-filter+slice the suggestions array.
+  const { comfortPicks, metaPicks } = useMemo(() => {
+    const comfort = suggestions.filter((s) => s.breakdown.isComfort).slice(0, 3);
+    const usedKeys = new Set(comfort.map((s) => s.champion.key));
+    const meta = suggestions
+      .filter((s) => !usedKeys.has(s.champion.key))
+      .slice(0, comfort.length > 0 ? 3 : 5);
+    return { comfortPicks: comfort, metaPicks: meta };
+  }, [suggestions]);
 
   return (
     <div className="space-y-3">

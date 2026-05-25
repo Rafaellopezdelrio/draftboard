@@ -88,16 +88,20 @@ html, body, #root {
   }
 }
 
-/* Premium utilities */
+/* Premium utilities.
+ *
+ * CRITICAL perf: backdrop-filter blur on a Tauri webview (especially
+ * over an always-topmost transparent window) forces DWM to recomposite
+ * continuously, costing 20-40% sustained GPU/CPU. We swap the true
+ * blur for a higher-opacity solid background — visually similar on
+ * solid backgrounds (modals over the dark app), and we lose almost
+ * nothing perceptual since we have no live behind-window content to
+ * reveal anyway. */
 .glass {
-  background: rgba(17, 21, 31, 0.85);
-  backdrop-filter: blur(12px) saturate(140%);
-  -webkit-backdrop-filter: blur(12px) saturate(140%);
+  background: rgba(17, 21, 31, 0.95);
 }
 .glass-strong {
-  background: rgba(7, 9, 15, 0.7);
-  backdrop-filter: blur(20px) saturate(160%);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  background: rgba(7, 9, 15, 0.97);
 }
 .gold-gradient {
   background: linear-gradient(135deg, #f0e6d2 0%, #c89b3c 50%, #785a28 100%);

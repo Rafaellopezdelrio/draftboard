@@ -278,6 +278,18 @@ function readCache(): ChampionDb | null {
   }
 }
 
+/**
+ * Public escape hatch: return whatever cached ChampionDb we have, ignoring
+ * the freshness check. App.tsx uses this when `loadChampionDb()` fails
+ * (CF Worker down, DDragon unreachable, offline) so the user can still
+ * use the app with last-known data instead of being stuck on an error
+ * screen. The age-warning UI compares cached.fetchedAt vs now to inform
+ * the user "data is N hours old".
+ */
+export function readChampionDbCacheUnsafe(): ChampionDb | null {
+  return readCache();
+}
+
 function writeCache(db: ChampionDb) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(db));

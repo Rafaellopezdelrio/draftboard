@@ -13,10 +13,9 @@ describe("isRelevantQueue", () => {
     expect(isRelevantQueue(490)).toBe(true); // Quickplay
   });
 
-  it("accepts ARAM (all valid IDs)", () => {
-    expect(isRelevantQueue(450)).toBe(true); // ARAM
+  it("accepts ARAM variants", () => {
+    expect(isRelevantQueue(450)).toBe(true); // Howling Abyss ARAM
     expect(isRelevantQueue(720)).toBe(true); // ARAM Clash
-    expect(isRelevantQueue(6000)).toBe(true); // ARAM Chaos
   });
 
   it("accepts permanent Arena", () => {
@@ -63,10 +62,12 @@ describe("queueLabel", () => {
 });
 
 describe("RELEVANT_QUEUE_IDS", () => {
-  it("includes all 3 ARAM variants", () => {
+  it("includes the real ARAM queue IDs (450 + 720)", () => {
     expect(RELEVANT_QUEUE_IDS.has(450)).toBe(true);
     expect(RELEVANT_QUEUE_IDS.has(720)).toBe(true);
-    expect(RELEVANT_QUEUE_IDS.has(6000)).toBe(true);
+    // 6000 was previously mislabeled "ARAM Chaos" — CHAOS is a TEAM side,
+    // not a separate queue. Removed.
+    expect(RELEVANT_QUEUE_IDS.has(6000)).toBe(false);
   });
 
   it("does NOT include Brawl (deprecated)", () => {

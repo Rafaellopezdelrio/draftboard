@@ -1,4 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useFocusTrap } from "../hooks/useFocusTrap";
+
+const SETTINGS_TITLE_ID = "settings-view-title";
 import { getAccount, getRiotProxyUrl, type Region } from "../services/riotApi";
 import { loadSettings, saveSettings } from "../services/settingsRepo";
 import { getCurrentSummoner } from "../services/lcuService";
@@ -10,6 +13,9 @@ import { loadChampionDb } from "../services/championDb";
 import { usePrefsStore } from "../state/prefsStore";
 import { aggregateFromMaster, aggregateMultiRegion } from "../services/metaAggregator";
 import { fetchLatestPatch } from "../services/dataDragon";
+import { ConfirmDialog } from "./ui/ConfirmDialog";
+import { LOCALE_LABELS, SUPPORTED_LOCALES, type UiLocale } from "../i18n";
+import { HelpTip } from "./ui/HelpTip";
 
 const REGIONS: { value: Region; label: string }[] = [
   { value: "euw1", label: "EU West" },
@@ -37,6 +43,7 @@ export function SettingsView({ onClose }: Props) {
   const [puuid, setPuuid] = useState<string | undefined>();
   const [status, setStatus] = useState<string>("");
   const [busy, setBusy] = useState(false);
+  const [confirmResync, setConfirmResync] = useState(false);
 
   useEffect(() => {
     loadSettings().then((s) => {
@@ -49,8 +56,12 @@ export function SettingsView({ onClose }: Props) {
     });
   }, []);
 
+  function requestResync() {
+    setConfirmResync(true);
+  }
+
   async function resyncAll() {
-    if (!confirm("Esto borra todas tus partidas guardadas y vuelve a descargar. ¿Seguir?")) return;
+    setConfirmResync(false);
     setBusy(true);
     setStatus("Guardando configuración...");
     try {
@@ -187,16 +198,23 @@ export function SettingsView({ onClose }: Props) {
     }
   }
 
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(dialogRef, true);
+
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={SETTINGS_TITLE_ID}
       className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center"
       onClick={onClose}
     >
       <div
+        ref={dialogRef}
         className="animate-[scaleIn_180ms_ease-out] glass border border-border-strong rounded-lg p-6 w-[520px] space-y-3 max-h-[85vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-lg font-semibold text-accent">Configuración</h2>
+        <h2 id={SETTINGS_TITLE_ID} className="text-lg font-semibold text-accent">Configuración</h2>
 
         <ProxyOrLcuStatusBanner />
 
@@ -226,7 +244,10 @@ export function SettingsView({ onClose }: Props) {
               global del meta, y para usar la app sin tener el cliente abierto.
             </p>
 
-            <Field label="Riot API Key (opcional)">
+            <Field
+              label="Riot API Key (opcional)"
+              hint="Solo necesaria si NO usas el proxy. Las dev keys caducan en 24h. Las personal application keys (PAK) duran ~1 año."
+            >
               <input
                 type="password"
                 value={apiKey}
@@ -264,7 +285,14 @@ export function SettingsView({ onClose }: Props) {
           </div>
         </details>
 
-        <Field label="Región">
+        <Field label="Idioma / Language">
+          <LocalePicker />
+        </Field>
+
+        <Field
+          label="Región"
+          hint="Servidor de Riot donde está tu cuenta. EUW para Europa Occidental, NA para Norteamérica, KR para Corea, etc. Determina dónde se buscan tus matches."
+        >
           <select
             value={region}
             onChange={(e) => setRegion(e.target.value as Region)}
@@ -278,7 +306,10 @@ export function SettingsView({ onClose }: Props) {
           </select>
         </Field>
 
-        <Field label="Riot ID">
+        <Field
+          label="Riot ID"
+          hint="Tu nombre completo Riot: Faker#KR1, NombreDeInvocador#EUW, etc. El número/letras tras # es el tag. Lo encuentras en cliente LoL → arriba derecha del perfil."
+        >
           <div className="flex gap-2">
             <input
               value={riotIdName}
@@ -326,7 +357,7 @@ export function SettingsView({ onClose }: Props) {
           </button>
           <button
             disabled={busy}
-            onClick={resyncAll}
+            onClick={requestResync}
             type="button"
             className="px-3 py-2 bg-bg-card border border-bad/40 rounded text-bad/90 hover:border-bad disabled:opacity-50"
             title="Borra y vuelve a descargar tus partidas (útil tras actualizar la app)"
@@ -369,7 +400,40 @@ export function SettingsView({ onClose }: Props) {
           </button>
         </div>
       </div>
+      {confirmResync && (
+        <ConfirmDialog
+          title="¿Resincronizar todo?"
+          message="Esto borra todas tus partidas guardadas localmente y vuelve a descargar el historial desde Riot. Tu cuenta de Riot no se toca. Puede tardar unos minutos."
+          confirmLabel="Resincronizar"
+          destructive
+          onConfirm={resyncAll}
+          onCancel={() => setConfirmResync(false)}
+        />
+      )}
     </div>
+  );
+}
+
+/** Locale picker. Reads + writes prefs.uiLocale; the App.tsx effect
+ * watches that pref and calls setUiLocale on i18next. Keeping the
+ * picker dumb means future locale additions only need a new entry in
+ * SUPPORTED_LOCALES — no UI changes here. */
+function LocalePicker() {
+  const uiLocale = usePrefsStore((s) => s.prefs.uiLocale);
+  const setPref = usePrefsStore((s) => s.set);
+  return (
+    <select
+      value={uiLocale}
+      onChange={(e) => setPref("uiLocale", e.target.value as UiLocale)}
+      aria-label="Idioma de la interfaz"
+      className="w-full bg-bg px-3 py-2 rounded border border-border-subtle text-white"
+    >
+      {SUPPORTED_LOCALES.map((loc) => (
+        <option key={loc} value={loc}>
+          {LOCALE_LABELS[loc]}
+        </option>
+      ))}
+    </select>
   );
 }
 
@@ -402,14 +466,20 @@ function shortUrl(u: string): string {
 function Field({
   label,
   children,
+  hint,
 }: {
   label: string;
   children: React.ReactNode;
+  /** Optional inline help — rendered as a (?) icon next to the label.
+   * Use for technical fields where the input semantics aren't obvious
+   * from the label alone (region codes, API key formats, etc). */
+  hint?: string;
 }) {
   return (
     <div className="space-y-1">
-      <label className="text-xs uppercase tracking-wide text-white/50">
+      <label className="text-xs uppercase tracking-wide text-white/50 flex items-center">
         {label}
+        {hint && <HelpTip hint={hint} />}
       </label>
       {children}
     </div>

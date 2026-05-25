@@ -22,6 +22,24 @@ export interface Preferences {
   showSpellImportButton: boolean;
   /** Auto-apply spells on lock-in (mirrors autoApplyRunes for spells). */
   autoApplySpells: boolean;
+  /**
+   * Auto-push a recommended item set to the LCU on lock-in so it shows
+   * up directly in the in-game shop. Non-destructive — Riot keeps the
+   * user's other sets, this is just an extra one we add.
+   */
+  autoApplyItemSet: boolean;
+  /**
+   * Show the transparent in-game overlay window (corner widget with timer,
+   * scores, drake/baron ETAs). Off → only the embedded panel inside the
+   * main Draftboard window. ON by default — it's the killer feature.
+   */
+  showInGameOverlay: boolean;
+  /**
+   * Last patch the user has acknowledged (dismissed the "patch nuevo"
+   * banner). Compared against the live DDragon patch each launch — when
+   * different, the banner shows. Empty string = first launch / never seen.
+   */
+  lastSeenPatch: string;
   notifyOnEnemyHotStreak: boolean;
 
   // Coach
@@ -35,6 +53,12 @@ export interface Preferences {
   // UI
   compactMode: boolean;
 
+  /** UI locale for the Draftboard interface (Spanish / English). Distinct
+   * from `aiCoachLanguage` — that one controls what the AI coach replies
+   * in. A user might want Spanish UI + English AI for translation
+   * practice, or vice versa. Default: es. */
+  uiLocale: "es" | "en";
+
   // AI Coach
   aiProvider: "groq" | "anthropic" | "gemini";
   groqApiKey: string;
@@ -47,6 +71,42 @@ export interface Preferences {
   safeMode: boolean;
   beginnerMode: boolean;
   onboardingDone: boolean;
+  /** True once the user has dismissed the "switch to Borderless" warning
+   * with "No mostrar más". Suppresses the banner permanently for that user
+   * — they've made an informed choice to stay in fullscreen-exclusive. */
+  fullscreenWarningAck: boolean;
+
+  /** Unix-ms timestamp when the user accepted the terms-and-privacy gate.
+   * `null` = never accepted, gate is shown. Legal requirement for EU
+   * distribution (GDPR consent record). */
+  termsAcceptedAt: number | null;
+  /** Last app version (semver string) we showed the "What's new" modal
+   * for. When `__APP_VERSION__` differs from this we surface the
+   * changelog once. Null = never seen (typical first install — we
+   * suppress the modal so we don't greet brand-new users with a
+   * release note dump). */
+  lastChangelogVersionShown: string | null;
+  /** When true, anonymised crash reports are sent to Sentry. Default
+   * `true` — disclosed in TermsGate so it's covered by consent. User can
+   * flip this off from Preferences → Privacy at any moment. GDPR Art. 7:
+   * consent must be as easy to withdraw as to give. */
+  telemetryEnabled: boolean;
+  /** Which terms VERSION the user accepted (see `TERMS_VERSION` in
+   * config.ts). When we materially change wording — new data sources,
+   * new permissions, new disclaimers — we bump the constant and the gate
+   * re-prompts. GDPR best practice: each change of substance requires a
+   * fresh consent record. */
+  termsAcceptedVersion: number | null;
+
+  /** Overlay's manual offset from the LoL window's top-left corner. We
+   * anchor the overlay to LoL by default, but if the user drags it, we
+   * remember the delta so the next match opens at the same relative spot.
+   * Null = first-time placement (defaults to a small padding). */
+  overlayOffsetX: number | null;
+  overlayOffsetY: number | null;
+  /** Whether the overlay should track LoL window movement at all. Off ->
+   * overlay stays where the user dragged it, regardless of where LoL is. */
+  overlayFollowLol: boolean;
 
   // Voice
   voiceCoachEnabled: boolean;
@@ -93,6 +153,9 @@ export const DEFAULT_PREFS: Preferences = {
   autoApplyOnHover: false,
   showSpellImportButton: true,
   autoApplySpells: false,
+  autoApplyItemSet: true,
+  showInGameOverlay: true,
+  lastSeenPatch: "",
   notifyOnEnemyHotStreak: true,
 
   coachAfterMatch: true,
@@ -102,6 +165,8 @@ export const DEFAULT_PREFS: Preferences = {
   liveScoutRefresh: true,
 
   compactMode: false,
+
+  uiLocale: "es",
 
   aiProvider: "groq",
   groqApiKey: "",
@@ -113,6 +178,14 @@ export const DEFAULT_PREFS: Preferences = {
   safeMode: false,
   beginnerMode: false,
   onboardingDone: false,
+  fullscreenWarningAck: false,
+  termsAcceptedAt: null,
+  termsAcceptedVersion: null,
+  lastChangelogVersionShown: null,
+  telemetryEnabled: true,
+  overlayOffsetX: null,
+  overlayOffsetY: null,
+  overlayFollowLol: true,
 
   voiceCoachEnabled: false,
 
@@ -164,6 +237,15 @@ export const usePrefsStore = create<PrefsState>((set, get) => ({
     }
   },
   set: async (key, value) => {
+    // Idempotency guard: skip the write + subscriber notify when the
+    // value didn't actually change. Avoids:
+    //   - Unnecessary disk I/O on rapid toggles (settings checkbox spam)
+    //   - Re-render cascades through every component subscribed to prefs
+    //   - Spurious persistOne calls during boot when DEFAULT_PREFS is
+    //     compared against a loaded value that happens to match.
+    // Uses Object.is so NaN === NaN (matters for nullable numeric prefs).
+    const current = get().prefs[key];
+    if (Object.is(current, value)) return;
     const next = { ...get().prefs, [key]: value };
     set({ prefs: next });
     await persistOne(key, value);
@@ -182,7 +264,23 @@ export const usePrefsStore = create<PrefsState>((set, get) => ({
 async function loadAll(): Promise<Partial<Preferences>> {
   if (!isTauri()) {
     const raw = localStorage.getItem("lol-draft-prefs");
-    return raw ? (JSON.parse(raw) as Partial<Preferences>) : {};
+    if (!raw) return {};
+    // Corruption recovery: if the blob is malformed (power loss mid-write,
+    // antivirus mangled the file, manual edit), JSON.parse throws and the
+    // whole app fails to boot. Catch + warn + reset to defaults so the user
+    // can keep using the app instead of being stuck at a blank screen.
+    try {
+      return JSON.parse(raw) as Partial<Preferences>;
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn("[prefsStore] corrupt localStorage — resetting to defaults", e);
+      try {
+        localStorage.removeItem("lol-draft-prefs");
+      } catch {
+        // localStorage write can fail in private mode — ignore.
+      }
+      return {};
+    }
   }
   const db = await getDb();
   const rows = await db.select<Array<{ key: string; value: string }>>(
@@ -205,8 +303,18 @@ async function persistOne<K extends keyof Preferences>(
 ) {
   if (!isTauri()) {
     const raw = localStorage.getItem("lol-draft-prefs");
-    const cur = raw ? JSON.parse(raw) : {};
-    cur[key] = value;
+    // Same corruption-recovery posture as loadAll: if the existing blob
+    // can't be parsed, start fresh rather than throwing during a write
+    // (which would leave the user unable to persist any pref at all).
+    let cur: Record<string, unknown> = {};
+    if (raw) {
+      try {
+        cur = JSON.parse(raw);
+      } catch {
+        cur = {};
+      }
+    }
+    cur[key as string] = value;
     localStorage.setItem("lol-draft-prefs", JSON.stringify(cur));
     return;
   }

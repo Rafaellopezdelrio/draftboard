@@ -121,6 +121,61 @@ export interface LiveGameSnapshot {
 }
 
 /**
+ * Find the local player inside `allPlayers`. Riot's payload uses several
+ * name fields that don't always agree across patches:
+ *
+ *   - `activePlayer.summonerName` may be just gameName (older) or
+ *     `gameName#tagLine` (newer).
+ *   - `allPlayers[].summonerName` likewise varies, and on Riot ID accounts
+ *     can be `gameName#tagLine` while activePlayer's is just `gameName`.
+ *   - `riotIdGameName` / `riotIdTagLine` are split fields, usually set on
+ *     both sides after the Riot ID migration.
+ *
+ * When the two sides disagree, naive `===` matching returns null and
+ * downstream code (team detection, my-stats) falls back to the wrong team.
+ * In ARAM this looked like "no detecta a los campeones rivales" — when
+ * `myTeam` defaults to ORDER but the user is on CHAOS, the overlay shows
+ * enemies under the "Aliados" header and vice versa.
+ *
+ * This matcher tries every reasonable comparison before giving up.
+ */
+export function findMyPlayer(
+  active: LiveGameActivePlayer | null | undefined,
+  allPlayers: LiveGamePlayer[]
+): LiveGamePlayer | null {
+  if (!active) return null;
+  const norm = (s: string | undefined | null): string =>
+    (s ?? "").toLowerCase().replace(/\s+/g, "").trim();
+  const stripTag = (s: string | undefined | null): string => {
+    const n = norm(s);
+    const hash = n.indexOf("#");
+    return hash >= 0 ? n.slice(0, hash) : n;
+  };
+  const aSummoner = norm(active.summonerName);
+  const aSummonerNoTag = stripTag(active.summonerName);
+  const aGame = norm(active.riotIdGameName);
+  const aFull = active.riotIdGameName && active.riotIdTagLine
+    ? norm(`${active.riotIdGameName}#${active.riotIdTagLine}`)
+    : "";
+
+  for (const p of allPlayers) {
+    const pSummoner = norm(p.summonerName);
+    const pSummonerNoTag = stripTag(p.summonerName);
+    const pGame = norm(p.riotIdGameName);
+    const pFull = p.riotIdGameName && p.riotIdTagLine
+      ? norm(`${p.riotIdGameName}#${p.riotIdTagLine}`)
+      : "";
+    if (aSummoner && pSummoner && aSummoner === pSummoner) return p;
+    if (aFull && pFull && aFull === pFull) return p;
+    if (aGame && pGame && aGame === pGame) return p;
+    if (aSummonerNoTag && pSummonerNoTag && aSummonerNoTag === pSummonerNoTag) return p;
+    if (aSummonerNoTag && pGame && aSummonerNoTag === pGame) return p;
+    if (aGame && pSummonerNoTag && aGame === pSummonerNoTag) return p;
+  }
+  return null;
+}
+
+/**
  * One-shot fetch of the current game data. Resolves `null` if we're not in a
  * game (connection refused / 404) — that's the EXPECTED state most of the
  * time and shouldn't surface as an error.

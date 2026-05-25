@@ -1,9 +1,9 @@
 import { useEffect } from "react";
 import { usePrefsStore } from "./prefsStore";
 import { useDraftStore } from "./draftStore";
-import { applyRunes, applySummonerSpells } from "../services/lcuService";
+import { applyRunes, applySummonerSpells, pushItemSet } from "../services/lcuService";
 import { loadAggregatedRunes } from "../services/aggregateRepo";
-import { fetchOpggBuild } from "../services/opggBuilds";
+import { fetchOpggBuild, pickBestBuild } from "../services/opggBuilds";
 import { pickCoherentSpells } from "../services/spellCoherence";
 import type { Champion, ChampionDb, Role } from "../types/champion";
 
@@ -42,10 +42,27 @@ export function useAutoActions({ db }: Args) {
         const champ = db.champions[detail.championKey];
         if (champ) applySpells(champ, myRole as Role);
       }
+      if (prefs.autoApplyItemSet) {
+        const champ = db.champions[detail.championKey];
+        if (champ) applyItemSet(champ, myRole as Role);
+      }
     };
     window.addEventListener("draft:champion-locked", handler);
     return () => window.removeEventListener("draft:champion-locked", handler);
   }, [prefs.safeMode, prefs.autoApplyRunes, prefs.autoApplySpells, myRole, db]);
+}
+
+/**
+ * Build the item-set title that gets pushed to the LCU. Format is
+ * intentionally rigid: "Draftboard - {ChampionName}" — the "Draftboard"
+ * prefix is how the user identifies OUR set in the in-game shop
+ * sidebar vs sets from other tools (Blitz, op.gg desktop, manual
+ * uploads). Tests pin this format so a refactor can't silently rename it.
+ *
+ * Exported so the test file can assert on the format directly.
+ */
+export function buildItemSetTitle(championName: string): string {
+  return `Draftboard - ${championName}`;
 }
 
 async function applySpells(champion: Champion, role: Role) {
@@ -62,6 +79,67 @@ async function applySpells(champion: Champion, role: Role) {
     await applySummonerSpells(coherent.ids[0], coherent.ids[1]);
   } catch {
     // silent — auto-apply must never throw or interrupt UX
+  }
+}
+
+/**
+ * Build and push a 3-block item set (Starter / Core / Final) to the LCU
+ * so it appears in the in-game shop. Items come from the same op.gg
+ * build the visible BuildPanel renders — we just structure them into
+ * the LCU's expected blocks shape.
+ */
+async function applyItemSet(champion: Champion, role: Role) {
+  try {
+    const build = await fetchOpggBuild(champion.id, role);
+    if (!build) return;
+    const starter = pickBestBuild(build.starterItems);
+    const boots = pickBestBuild(build.boots);
+    const core = pickBestBuild(build.coreItems);
+    const fourth = pickBestBuild(build.fourthItems);
+    const fifth = pickBestBuild(build.fifthItems);
+    const sixth = pickBestBuild(build.sixthItems);
+    const blocks: Array<{ type: string; items: Array<{ id: number; count?: number }> }> = [];
+    if (starter && starter.ids.length > 0) {
+      blocks.push({
+        type: "Starter",
+        items: starter.ids.map((id) => ({ id, count: id === 2003 ? 3 : 1 })),
+      });
+    }
+    if (boots && boots.ids.length > 0) {
+      blocks.push({
+        type: "Boots",
+        items: boots.ids.map((id) => ({ id })),
+      });
+    }
+    if (core && core.ids.length > 0) {
+      blocks.push({
+        type: "Core",
+        items: core.ids.map((id) => ({ id })),
+      });
+    }
+    const situational = [fourth, fifth, sixth]
+      .filter(Boolean)
+      .flatMap((b) => b!.ids);
+    if (situational.length > 0) {
+      blocks.push({
+        type: "Situational",
+        items: situational.map((id) => ({ id })),
+      });
+    }
+    if (blocks.length === 0) return;
+    // Title format is locked: "Draftboard - {Champion}". User-facing
+    // identity (so the user recognises OUR set in the in-game shop
+    // sidebar vs sets pushed by Blitz / op.gg desktop / etc). DO NOT
+    // change this format without updating UID handling — same champion
+    // overwriting is intentional, but a renamed set would orphan the
+    // previous one in the user's saved sets list.
+    await pushItemSet({
+      championId: Number(champion.key),
+      title: buildItemSetTitle(champion.name),
+      blocks,
+    });
+  } catch {
+    // silent
   }
 }
 

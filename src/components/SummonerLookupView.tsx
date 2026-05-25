@@ -8,16 +8,22 @@ import {
   getTopMasteries,
   getRecentMatchIds,
   getMatchFull,
+  getRiotProxyUrl,
   type ChampionMasteryDto,
   type LeagueEntryDto,
 } from "../services/riotApi";
 import { loadSettings } from "../services/settingsRepo";
 import type { ChampionDb } from "../types/champion";
 import { useEscape } from "../hooks/useKeyboardShortcuts";
+import { useFocusTrap } from "../hooks/useFocusTrap";
+import { useRef } from "react";
+
+const SUMMONER_TITLE_ID = "summoner-lookup-title";
 import { Panel, PanelHeader } from "./ui/Panel";
 import { RankBadge } from "./ui/RankBadge";
 import { StatCard } from "./ui/StatCard";
 import { Search, User, Trophy, Star, Swords } from "lucide-react";
+import { Skeleton, SkeletonRow } from "./ui/Skeleton";
 
 interface Props {
   db: ChampionDb;
@@ -52,10 +58,21 @@ export function SummonerLookupView({ db, onClose }: Props) {
     setLoading(true);
     setData(null);
     try {
-      const cfg = await loadSettings();
-      if (!cfg?.apiKey) {
+      // Proxy mode: the Cloudflare Worker injects the Riot API key
+      // server-side, so the user doesn't need to paste one locally.
+      // Direct mode: the user MUST set their own dev key in Settings.
+      // We accept either path — only reject if BOTH are missing.
+      const cfg = (await loadSettings()) ?? {
+        region: "euw1",
+        apiKey: "",
+        riotIdName: "",
+        riotIdTag: "",
+        puuid: "",
+      };
+      const usingProxy = !!getRiotProxyUrl();
+      if (!usingProxy && !cfg.apiKey) {
         throw new Error(
-          "Necesitas configurar tu Riot API Key en ⚙ para buscar otros jugadores."
+          "Necesitas configurar tu Riot API Key en ⚙ para buscar otros jugadores (o un proxy)."
         );
       }
       const account = await getAccountByRiotId(cfg, name.trim(), tag.trim());
@@ -108,12 +125,19 @@ export function SummonerLookupView({ db, onClose }: Props) {
     }
   }
 
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(dialogRef, true);
+
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={SUMMONER_TITLE_ID}
       className="fixed inset-0 z-40 bg-black/70 flex items-center justify-center"
       onClick={onClose}
     >
       <div
+        ref={dialogRef}
         className="animate-[scaleIn_180ms_ease-out] glass border border-border-strong rounded-lg w-[680px] max-h-[88vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
@@ -121,7 +145,7 @@ export function SummonerLookupView({ db, onClose }: Props) {
         <div className="px-5 pt-5 pb-3 border-b border-border-subtle">
           <div className="flex items-center gap-2 mb-3">
             <User className="w-4 h-4 text-accent" />
-            <h2 className="text-xl font-bold gold-text">Buscar jugador</h2>
+            <h2 id={SUMMONER_TITLE_ID} className="text-xl font-bold gold-text">Buscar jugador</h2>
           </div>
           <form
             onSubmit={(e) => {
@@ -175,9 +199,34 @@ export function SummonerLookupView({ db, onClose }: Props) {
           )}
 
           {loading && (
-            <p className="text-white/40 text-sm text-center py-8">
-              Cargando perfil...
-            </p>
+            // Layout-stable skeleton: header avatar + 2 lines + 3 stat
+            // cards + 4 mastery rows. Mirrors the real `data` block
+            // below so the screen doesn't jump when results arrive.
+            <div className="space-y-3" aria-busy="true" aria-live="polite">
+              <Panel padding="sm">
+                <div className="flex items-center gap-3">
+                  <Skeleton className="w-14 h-14 rounded-full" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-40" />
+                    <Skeleton className="h-3 w-24" />
+                  </div>
+                </div>
+              </Panel>
+              <div className="grid grid-cols-3 gap-2">
+                <Skeleton className="h-16 w-full" />
+                <Skeleton className="h-16 w-full" />
+                <Skeleton className="h-16 w-full" />
+              </div>
+              <Panel padding="sm">
+                <Skeleton className="h-3 w-32 mb-2" />
+                <div className="space-y-2">
+                  <SkeletonRow />
+                  <SkeletonRow />
+                  <SkeletonRow />
+                  <SkeletonRow />
+                </div>
+              </Panel>
+            </div>
           )}
 
           {data && (

@@ -1,9 +1,13 @@
 // Sortable champion tier list. Reads from meta_aggregate (pro/soloq/blend)
 // OR live dpm.lol bracket data when the user selects "dpm" as their source.
 
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useMemo, useRef, useState } from "react";
 import type { ChampionDb, MetaTier, Role } from "../types/champion";
 import { useEscape } from "../hooks/useKeyboardShortcuts";
+import { useFocusTrap } from "../hooks/useFocusTrap";
+
+const TIERLIST_TITLE_ID = "tierlist-view-title";
+import { displayPatch } from "../data/patchDisplay";
 import { Tabs } from "./ui/Tabs";
 import { TierBadge } from "./ui/TierBadge";
 import { Search, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
@@ -173,12 +177,19 @@ export function TierListView({ db, onClose, onSelectChampion, onDbUpdate }: Prop
     return { total: db.meta.length, inRole: inRole.length, top };
   }, [db, role]);
 
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(dialogRef, true);
+
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={TIERLIST_TITLE_ID}
       className="fixed inset-0 z-40 bg-black/70 flex items-center justify-center"
       onClick={onClose}
     >
       <div
+        ref={dialogRef}
         className="animate-[scaleIn_180ms_ease-out] glass border border-border-strong rounded-lg w-[820px] max-h-[88vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
@@ -186,7 +197,7 @@ export function TierListView({ db, onClose, onSelectChampion, onDbUpdate }: Prop
         <div className="px-5 pt-5 pb-2 border-b border-border-subtle">
           <div className="flex items-center justify-between mb-3">
             <div>
-              <h2 className="text-xl font-bold gold-text">
+              <h2 id={TIERLIST_TITLE_ID} className="text-xl font-bold gold-text">
                 Tier List
                 {isDpm && (
                   <span className="ml-2 text-[10px] uppercase tracking-widest text-white/40 align-middle">
@@ -327,7 +338,7 @@ export function TierListView({ db, onClose, onSelectChampion, onDbUpdate }: Prop
         {!isEmpty && (
           <div className="overflow-y-auto">
             <table className="w-full text-sm">
-              <thead className="sticky top-0 bg-bg-elev/95 backdrop-blur z-10">
+              <thead className="sticky top-0 bg-bg-elev z-10">
                 <tr className="text-[10px] uppercase tracking-widest text-white/45">
                   <th className="text-left px-4 py-2 font-semibold w-10">#</th>
                   <Th label="Campeón" sortKey="name" current={sortKey} dir={sortDir} onClick={toggleSort} align="left" />
@@ -414,7 +425,7 @@ export function TierListView({ db, onClose, onSelectChampion, onDbUpdate }: Prop
         {/* Footer */}
         {!isEmpty && (
           <div className="px-4 py-2 border-t border-border-subtle text-[10px] uppercase tracking-widest text-white/40 flex items-center justify-between">
-            <span>{rows.length} campeones · patch {db.patch}</span>
+            <span>{rows.length} campeones · patch {displayPatch(db.patch)}</span>
             <span>Ordenar: click en cabecera</span>
           </div>
         )}

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import type { ChampionDb, Role } from "../types/champion";
 import { getMatchupTips } from "../data/matchupTips";
 import { usePrefsStore } from "../state/prefsStore";
@@ -16,7 +16,7 @@ interface Props {
   myRole?: Role | null;
 }
 
-export function MatchupTipsPanel({
+function MatchupTipsPanelInner({
   db,
   enemyKeys,
   myChampionKey,
@@ -172,3 +172,9 @@ function AiMatchupRow({
     </div>
   );
 }
+
+/** Memoised export — prevents re-render when parent (App) re-renders
+ * but our concrete props (enemyKeys array, db ref, champion/role) didn't
+ * change. App.tsx passes stable refs after the DraftBoard memoization
+ * work, so this memo actually pays off. */
+export const MatchupTipsPanel = memo(MatchupTipsPanelInner);

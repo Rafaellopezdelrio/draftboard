@@ -1,4 +1,6 @@
 import type { Champion, Role } from "../types/champion";
+import { withRetry } from "./retry";
+import { trackFetch } from "./breadcrumbs";
 
 const VERSIONS_URL = "https://ddragon.leagueoflegends.com/api/versions.json";
 
@@ -25,10 +27,20 @@ interface DDragonChampionListResponse {
 }
 
 export async function fetchLatestPatch(): Promise<string> {
-  const res = await fetch(VERSIONS_URL);
-  if (!res.ok) throw new Error(`DDragon versions: HTTP ${res.status}`);
-  const versions = (await res.json()) as string[];
-  return versions[0];
+  return withRetry(
+    async () => {
+      const res = await fetch(VERSIONS_URL);
+      if (!res.ok) throw new Error(`DDragon versions: HTTP ${res.status}`);
+      const versions = (await res.json()) as string[];
+      trackFetch(VERSIONS_URL, "ok");
+      return versions[0];
+    },
+    {
+      attempts: 3,
+      baseDelayMs: 400,
+      onRetry: (_e, n) => trackFetch(VERSIONS_URL, "fail", `attempt ${n}`),
+    }
+  );
 }
 
 export async function fetchChampions(
@@ -36,9 +48,27 @@ export async function fetchChampions(
   locale = "en_US"
 ): Promise<Record<string, Champion>> {
   const url = `https://ddragon.leagueoflegends.com/cdn/${patch}/data/${locale}/champion.json`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`DDragon champions: HTTP ${res.status}`);
-  const json = (await res.json()) as DDragonChampionListResponse;
+  return withRetry(
+    async () => {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`DDragon champions: HTTP ${res.status}`);
+      trackFetch(url, "ok");
+      return parseChampionListResponse(await res.json(), patch);
+    },
+    {
+      attempts: 3,
+      baseDelayMs: 400,
+      onRetry: (_e, n) => trackFetch(url, "fail", `attempt ${n}`),
+    }
+  );
+}
+
+/** Pure parser extracted so the retry wrapper above stays small. */
+function parseChampionListResponse(
+  rawJson: unknown,
+  patch: string
+): Record<string, Champion> {
+  const json = rawJson as DDragonChampionListResponse;
   const result: Record<string, Champion> = {};
   for (const entry of Object.values(json.data)) {
     const inferredRoles = inferRoles(entry.tags);

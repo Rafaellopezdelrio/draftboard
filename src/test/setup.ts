@@ -1,6 +1,20 @@
 import "@testing-library/jest-dom/vitest";
 import { vi, afterEach } from "vitest";
 import { cleanup } from "@testing-library/react";
+import i18n from "i18next";
+import { initReactI18next } from "react-i18next";
+import esBundle from "../i18n/locales/es.json";
+
+// Synchronous i18n init for tests. Without this, useTranslation()
+// returns raw key strings ("championPicker.noResults") which break
+// assertions on real copy. Tests run in es (default) — translate
+// English-locale tests separately if added later.
+void i18n.use(initReactI18next).init({
+  resources: { es: { translation: esBundle } },
+  lng: "es",
+  fallbackLng: "es",
+  interpolation: { escapeValue: false },
+});
 
 afterEach(() => {
   cleanup();

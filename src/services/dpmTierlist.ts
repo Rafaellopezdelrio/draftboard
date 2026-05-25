@@ -13,6 +13,9 @@
 import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
 import type { MetaTier, Role } from "../types/champion";
 import { getRiotProxyUrl } from "./riotApi";
+import { withRetry, RateLimitError, throwIfRateLimited } from "./retry";
+import { trackFetch } from "./breadcrumbs";
+import { emitFetchFailure } from "./fetchNotify";
 
 function isTauri(): boolean {
   return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
@@ -107,21 +110,37 @@ export async function fetchDpmMeta(
     console.warn("[dpm] no proxy configured — skipping");
     return [];
   }
+  const url =
+    `${proxyUrl}/dpm/tierlist?tier=${encodeURIComponent(tier)}` +
+    `&platform=${encodeURIComponent(platform)}` +
+    `&timeframe=${encodeURIComponent(timeframe)}`;
   try {
-    const url =
-      `${proxyUrl}/dpm/tierlist?tier=${encodeURIComponent(tier)}` +
-      `&platform=${encodeURIComponent(platform)}` +
-      `&timeframe=${encodeURIComponent(timeframe)}`;
-    const res = await httpFetch(url, {
-      method: "GET",
-      headers: { Accept: "application/json" },
-    });
-    if (!res.ok) {
-      // eslint-disable-next-line no-console
-      console.error(`[dpm] HTTP ${res.status} for ${tier}/${platform}/${timeframe}`);
-      return [];
-    }
-    const data = (await res.json()) as DpmResponse;
+    // Retry 3x on transient errors — dpm.lol scraping via worker can flake
+    // on cold starts. 4xx are programmer errors and stop retry early.
+    const data = await withRetry(
+      async () => {
+        const res = await httpFetch(url, {
+          method: "GET",
+          headers: { Accept: "application/json" },
+        });
+        throwIfRateLimited(res, url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        trackFetch(url, "ok");
+        return (await res.json()) as DpmResponse;
+      },
+      {
+        attempts: 3,
+        baseDelayMs: 500,
+        // Allow 429 retries via RateLimitError + Retry-After. Other 4xx
+        // are non-retriable.
+        shouldRetry: (err) => {
+          if (err instanceof RateLimitError) return true;
+          return !String((err as Error)?.message ?? "").match(/HTTP 4\d\d/);
+        },
+        onRetry: (e, n) =>
+          trackFetch(url, "fail", `attempt ${n}: ${String(e).slice(0, 80)}`),
+      }
+    );
 
     const out: MetaTier[] = [];
     let unknown = 0;
@@ -153,6 +172,7 @@ export async function fetchDpmMeta(
   } catch (e) {
     // eslint-disable-next-line no-console
     console.error("[dpm] fetch failed:", e);
+    emitFetchFailure("dpm.lol tier list", e);
     return [];
   }
 }

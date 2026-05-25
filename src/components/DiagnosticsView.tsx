@@ -3,6 +3,8 @@ import { invoke } from "@tauri-apps/api/core";
 import { fetchLatestPatch } from "../services/dataDragon";
 import { loadSettings } from "../services/settingsRepo";
 import { getAccount } from "../services/riotApi";
+import { Copy, RefreshCw } from "lucide-react";
+import { NETWORK_TIMEOUTS_MS, UI_FEEDBACK_MS, WORKER_HEALTH_URL } from "../config";
 
 interface Props {
   onClose: () => void;
@@ -14,129 +16,225 @@ interface Check {
   detail?: string;
 }
 
+function isTauri(): boolean {
+  return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+}
+
 export function DiagnosticsView({ onClose }: Props) {
   const [checks, setChecks] = useState<Check[]>([
     { name: "Conexión a internet", status: "pending" },
     { name: "Data Dragon (Riot CDN)", status: "pending" },
+    { name: "Cloudflare Worker (backend)", status: "pending" },
     { name: "Cliente de LoL (LCU)", status: "pending" },
+    { name: "Live Client API (in-game)", status: "pending" },
     { name: "Cuenta Riot (vía LCU)", status: "pending" },
     { name: "Riot API Key", status: "pending" },
     { name: "AI provider key", status: "pending" },
     { name: "Base de datos local", status: "pending" },
+    { name: "App version", status: "pending" },
   ]);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     runChecks();
   }, []);
 
   async function runChecks() {
+    // Run all probes in parallel — previously the LCU check alone could
+    // hold up the whole report by 5s when LoL was closed. With Promise.all
+    // the slowest check (the timeout) sets the total time.
+    const probes: Array<Promise<Check>> = [
+      // 1. Internet
+      (async () => {
+        try {
+          await fetch("https://ddragon.leagueoflegends.com/api/versions.json", {
+            signal: AbortSignal.timeout(NETWORK_TIMEOUTS_MS.diagnostic),
+          });
+          return { name: "Conexión a internet", status: "ok" };
+        } catch {
+          return { name: "Conexión a internet", status: "fail", detail: "Sin red. Comprueba tu conexión." };
+        }
+      })(),
+
+      // 2. Data Dragon
+      (async () => {
+        try {
+          const patch = await fetchLatestPatch();
+          return { name: "Data Dragon (Riot CDN)", status: "ok", detail: `Patch ${patch}` };
+        } catch (e) {
+          return { name: "Data Dragon (Riot CDN)", status: "fail", detail: String(e) };
+        }
+      })(),
+
+      // 3. Cloudflare Worker — our backend that proxies Riot API, op.gg,
+      // dpm.lol, pro-builds, AI providers + serves the updater manifest.
+      (async () => {
+        try {
+          const res = await fetch(WORKER_HEALTH_URL, {
+            signal: AbortSignal.timeout(NETWORK_TIMEOUTS_MS.diagnostic),
+            cache: "no-store",
+          });
+          return res.ok
+            ? { name: "Cloudflare Worker (backend)", status: "ok", detail: `HTTP ${res.status}` }
+            : { name: "Cloudflare Worker (backend)", status: "warn", detail: `HTTP ${res.status} — features pueden estar degradadas` };
+        } catch (e) {
+          return { name: "Cloudflare Worker (backend)", status: "fail", detail: `Inalcanzable: ${String(e).slice(0, 80)}` };
+        }
+      })(),
+
+      // 4 + 5. LCU client + account, both derived from one invocation.
+      // Returns a sentinel Check object whose `name` field encodes the
+      // PAIR; we split it after Promise.all completes.
+      (async () => {
+        try {
+          const lcu = await invoke<{ puuid: string; gameName?: string }>(
+            "lcu_current_summoner"
+          );
+          return {
+            name: "__lcu_pair__",
+            status: "ok" as const,
+            detail: JSON.stringify({ gameName: lcu.gameName ?? "?", puuid: lcu.puuid.slice(0, 8) }),
+          };
+        } catch {
+          return {
+            name: "__lcu_pair__",
+            status: "warn" as const,
+            detail: "",
+          };
+        }
+      })(),
+
+      // 6. Live Client API (only available DURING a match)
+      (async () => {
+        try {
+          const live = await invoke<unknown>("live_client_all_game_data");
+          return live && typeof live === "object"
+            ? { name: "Live Client API (in-game)", status: "ok", detail: "Datos en vivo disponibles (estás en partida)" }
+            : { name: "Live Client API (in-game)", status: "warn", detail: "Sin partida activa (esperado fuera de juego)" };
+        } catch {
+          return { name: "Live Client API (in-game)", status: "warn", detail: "Sin partida activa (esperado fuera de juego)" };
+        }
+      })(),
+
+      // 7. Riot API key
+      (async () => {
+        const cfg = await loadSettings();
+        if (!cfg?.apiKey) {
+          return { name: "Riot API Key", status: "warn", detail: "No configurada (opcional, solo necesaria para scout y meta global)" };
+        }
+        try {
+          await getAccount(cfg);
+          return { name: "Riot API Key", status: "ok", detail: "Válida" };
+        } catch (e) {
+          return { name: "Riot API Key", status: "fail", detail: `Inválida o caducada: ${String(e).slice(0, 80)}` };
+        }
+      })(),
+
+      // 8. AI provider key
+      (async () => {
+        const prefsRaw = localStorage.getItem("lol-draft-prefs");
+        let aiKey = "";
+        let provider = "groq";
+        if (prefsRaw) {
+          try {
+            const p = JSON.parse(prefsRaw);
+            provider = p.aiProvider ?? "groq";
+            aiKey =
+              provider === "groq" ? p.groqApiKey
+                : provider === "gemini" ? p.geminiApiKey
+                  : p.anthropicApiKey;
+            aiKey = aiKey ?? "";
+          } catch {}
+        }
+        return aiKey
+          ? { name: "AI provider key", status: "ok", detail: `Configurada (${provider})` }
+          : { name: "AI provider key", status: "warn", detail: `No configurada (opcional, ${provider}). Groq es gratis.` };
+      })(),
+
+      // 9. DB
+      (async () => {
+        try {
+          const { getDb } = await import("../db/client");
+          const db = await getDb();
+          await db.select("SELECT COUNT(*) FROM matches");
+          return { name: "Base de datos local", status: "ok" };
+        } catch (e) {
+          return { name: "Base de datos local", status: "fail", detail: String(e) };
+        }
+      })(),
+    ];
+
+    const results = (await Promise.all(probes)) as Check[];
+
+    // Expand the LCU sentinel into the two real checks. Done here (not in
+    // the probe) because we want display order independent of Promise
+    // settle order.
     const next: Check[] = [];
-
-    // 1. Internet
-    try {
-      await fetch("https://ddragon.leagueoflegends.com/api/versions.json", { signal: AbortSignal.timeout(5000) });
-      next.push({ name: "Conexión a internet", status: "ok" });
-    } catch {
-      next.push({ name: "Conexión a internet", status: "fail", detail: "Sin red. Comprueba tu conexión." });
-    }
-
-    // 2. Data Dragon
-    try {
-      const patch = await fetchLatestPatch();
-      next.push({ name: "Data Dragon (Riot CDN)", status: "ok", detail: `Patch ${patch}` });
-    } catch (e) {
-      next.push({ name: "Data Dragon (Riot CDN)", status: "fail", detail: String(e) });
-    }
-
-    // 3. LCU
-    try {
-      const lcu = await invoke<{ puuid: string; gameName?: string }>("lcu_current_summoner");
-      next.push({
-        name: "Cliente de LoL (LCU)",
-        status: "ok",
-        detail: `Conectado: ${lcu.gameName ?? "?"}`,
-      });
-      next.push({
-        name: "Cuenta Riot (vía LCU)",
-        status: "ok",
-        detail: `PUUID: ${lcu.puuid.slice(0, 8)}...`,
-      });
-    } catch {
-      next.push({
-        name: "Cliente de LoL (LCU)",
-        status: "warn",
-        detail: "Cliente cerrado. Abre LoL para usar todas las features.",
-      });
-      next.push({
-        name: "Cuenta Riot (vía LCU)",
-        status: "warn",
-        detail: "Sin LCU activo",
-      });
-    }
-
-    // 4. Riot API key
-    const cfg = await loadSettings();
-    if (!cfg?.apiKey) {
-      next.push({
-        name: "Riot API Key",
-        status: "warn",
-        detail: "No configurada (opcional, solo necesaria para scout y meta global)",
-      });
-    } else {
-      try {
-        await getAccount(cfg);
-        next.push({ name: "Riot API Key", status: "ok", detail: "Válida" });
-      } catch (e) {
-        next.push({
-          name: "Riot API Key",
-          status: "fail",
-          detail: `Inválida o caducada: ${String(e).slice(0, 80)}`,
-        });
+    for (const c of results) {
+      if (c.name === "__lcu_pair__") {
+        if (c.status === "ok" && c.detail) {
+          const { gameName, puuid } = JSON.parse(c.detail);
+          next.push({
+            name: "Cliente de LoL (LCU)",
+            status: "ok",
+            detail: `Conectado: ${gameName}`,
+          });
+          next.push({
+            name: "Cuenta Riot (vía LCU)",
+            status: "ok",
+            detail: `PUUID: ${puuid}...`,
+          });
+        } else {
+          next.push({
+            name: "Cliente de LoL (LCU)",
+            status: "warn",
+            detail: "Cliente cerrado. Abre LoL para usar todas las features.",
+          });
+          next.push({
+            name: "Cuenta Riot (vía LCU)",
+            status: "warn",
+            detail: "Sin LCU activo",
+          });
+        }
+      } else {
+        next.push(c);
       }
     }
 
-    // 5. Anthropic
-    const prefsRaw = localStorage.getItem("lol-draft-prefs");
-    let aiKey = "";
-    let provider = "groq";
-    if (prefsRaw) {
+    // 10. App version — useful for support requests + comparing local
+    // build vs latest release on the updater channel.
+    if (isTauri()) {
       try {
-        const p = JSON.parse(prefsRaw);
-        provider = p.aiProvider ?? "groq";
-        aiKey =
-          provider === "groq"
-            ? p.groqApiKey
-            : provider === "gemini"
-              ? p.geminiApiKey
-              : p.anthropicApiKey;
-        aiKey = aiKey ?? "";
-      } catch {}
-    }
-    if (!aiKey) {
-      next.push({
-        name: "AI provider key",
-        status: "warn",
-        detail: `No configurada (opcional, ${provider}). Groq es gratis.`,
-      });
+        const { getVersion } = await import("@tauri-apps/api/app");
+        const v = await getVersion();
+        next.push({ name: "App version", status: "ok", detail: `v${v}` });
+      } catch {
+        next.push({ name: "App version", status: "warn", detail: "Desconocida" });
+      }
     } else {
-      next.push({
-        name: "AI provider key",
-        status: "ok",
-        detail: `Configurada (${provider})`,
-      });
-    }
-
-    // 6. DB
-    try {
-      const { getDb } = await import("../db/client");
-      const db = await getDb();
-      await db.select("SELECT COUNT(*) FROM matches");
-      next.push({ name: "Base de datos local", status: "ok" });
-    } catch (e) {
-      next.push({ name: "Base de datos local", status: "fail", detail: String(e) });
+      next.push({ name: "App version", status: "warn", detail: "Modo browser (dev)" });
     }
 
     setChecks(next);
+  }
+
+  /** Copy the current diagnostic snapshot as plain text — useful for
+   * pasting into bug reports without screenshots. */
+  async function copyReport() {
+    const lines = checks.map((c) => {
+      const icon = c.status === "ok" ? "OK " : c.status === "warn" ? "WARN" : c.status === "fail" ? "FAIL" : "... ";
+      const tail = c.detail ? `  ${c.detail}` : "";
+      return `[${icon}] ${c.name}${tail}`;
+    });
+    const text = `Draftboard diagnostic report\n${new Date().toISOString()}\n${"-".repeat(40)}\n${lines.join("\n")}`;
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), UI_FEEDBACK_MS.clipboardCopy);
+    } catch {
+      // Fall back to manual select — rare but possible on locked-down
+      // browsers. We give up silently and let the user screenshot.
+    }
   }
 
   return (
@@ -148,14 +246,25 @@ export function DiagnosticsView({ onClose }: Props) {
         className="animate-[scaleIn_180ms_ease-out] glass border border-border-strong rounded-lg p-4 w-[560px] max-h-[80vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-baseline justify-between mb-3">
+        <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-semibold text-accent">Diagnóstico</h2>
-          <button
-            onClick={runChecks}
-            className="text-xs px-2 py-1 bg-bg-card rounded border border-border-subtle hover:border-accent text-white/80"
-          >
-            Reintentar
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={copyReport}
+              className="text-xs px-2 py-1 bg-bg-card rounded border border-border-subtle hover:border-accent text-white/80 flex items-center gap-1"
+              title="Copia el reporte al portapapeles para incluirlo en un bug report"
+            >
+              <Copy className="w-3 h-3" />
+              {copied ? "¡Copiado!" : "Copiar"}
+            </button>
+            <button
+              onClick={runChecks}
+              className="text-xs px-2 py-1 bg-bg-card rounded border border-border-subtle hover:border-accent text-white/80 flex items-center gap-1"
+            >
+              <RefreshCw className="w-3 h-3" />
+              Reintentar
+            </button>
+          </div>
         </div>
         <div className="space-y-1">
           {checks.map((c, i) => (

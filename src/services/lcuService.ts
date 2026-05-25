@@ -56,6 +56,36 @@ export async function applyRunes(page: RunePageInput): Promise<boolean> {
 }
 
 /**
+ * Push a recommended item set to the LCU. Shows up in the in-game shop's
+ * left sidebar so the user can buy each block with a click.
+ *
+ * Blocks are labelled groups of items (e.g. "Starter", "Core", "Vs AP")
+ * with stable order. Riot's schema is loose (item IDs are strings, fields
+ * are mostly optional) — our Rust wrapper builds a valid payload around
+ * the minimal shape callers provide.
+ *
+ * Returns true on success, false when the LCU isn't ready (login screen
+ * or client closed) or on any error. Never throws.
+ */
+export interface ItemSetInput {
+  championId: number;
+  title: string;
+  blocks: Array<{
+    type: string;
+    items: Array<{ id: number; count?: number }>;
+  }>;
+}
+export async function pushItemSet(set: ItemSetInput): Promise<boolean> {
+  if (!isTauri()) return false;
+  try {
+    const ok = await invoke<boolean>("lcu_push_item_set", { set });
+    return ok;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Apply two summoner spells to the local player's current pick in champ
  * select. Returns `true` if the LCU accepted the change, `false` if we're
  * not in champ select (404) or the call failed for any other reason —

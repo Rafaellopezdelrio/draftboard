@@ -6,6 +6,10 @@ import {
   validateRiotApiKey,
   validateAiKey,
 } from "./inputValidation";
+// Static import — was previously a dynamic `await import()` inside each
+// test, which under full-suite parallel load could stretch to 5s+ and
+// blow the default test timeout (regression first seen 2026-05-21).
+import { __testOnly_stripHtml as stripHtml } from "../components/ChampionGuideView";
 
 describe("input validation — security defense layer", () => {
   describe("validateRiotIdName", () => {
@@ -130,52 +134,34 @@ describe("input validation — security defense layer", () => {
 
 describe("ChampionGuide stripHtml — XSS defense", () => {
   it("strips <script> tags", async () => {
-    const { __testOnly_stripHtml: stripHtml } = await import(
-      "../components/ChampionGuideView"
-    );
-    const out = stripHtml('Hello<script>alert("xss")</script> world');
+const out = stripHtml('Hello<script>alert("xss")</script> world');
     expect(out).not.toContain("<script");
     expect(out).not.toContain("alert");
   });
 
   it("strips inline event handlers", async () => {
-    const { __testOnly_stripHtml: stripHtml } = await import(
-      "../components/ChampionGuideView"
-    );
-    const out = stripHtml('<span onclick="alert(1)">hi</span>');
+const out = stripHtml('<span onclick="alert(1)">hi</span>');
     expect(out).not.toContain("onclick");
   });
 
   it("strips javascript: URLs in href", async () => {
-    const { __testOnly_stripHtml: stripHtml } = await import(
-      "../components/ChampionGuideView"
-    );
-    const out = stripHtml('<a href="javascript:alert(1)">click</a>');
+const out = stripHtml('<a href="javascript:alert(1)">click</a>');
     expect(out).not.toMatch(/href\s*=\s*["']?javascript:/i);
   });
 
   it("strips iframes / objects / embeds", async () => {
-    const { __testOnly_stripHtml: stripHtml } = await import(
-      "../components/ChampionGuideView"
-    );
-    expect(stripHtml('<iframe src="evil.com"></iframe>')).not.toContain("iframe");
+expect(stripHtml('<iframe src="evil.com"></iframe>')).not.toContain("iframe");
     expect(stripHtml('<object data="x"></object>')).not.toContain("object");
   });
 
   it("keeps allowed formatting tags (br, b, span, etc.)", async () => {
-    const { __testOnly_stripHtml: stripHtml } = await import(
-      "../components/ChampionGuideView"
-    );
-    const out = stripHtml("Deals <b>50 damage</b><br>per second");
+const out = stripHtml("Deals <b>50 damage</b><br>per second");
     expect(out).toContain("<b>");
     expect(out).toContain("<br>");
   });
 
   it("strips disallowed tags but keeps inner text", async () => {
-    const { __testOnly_stripHtml: stripHtml } = await import(
-      "../components/ChampionGuideView"
-    );
-    const out = stripHtml("<table><tr><td>text</td></tr></table>");
+const out = stripHtml("<table><tr><td>text</td></tr></table>");
     expect(out).not.toMatch(/<\/?table|<\/?tr|<\/?td/);
     expect(out).toContain("text");
   });

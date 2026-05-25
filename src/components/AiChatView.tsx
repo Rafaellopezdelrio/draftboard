@@ -1,4 +1,7 @@
 import { useEffect, useRef, useState } from "react";
+import { useFocusTrap } from "../hooks/useFocusTrap";
+
+const AI_CHAT_TITLE_ID = "ai-chat-view-title";
 import { usePrefsStore } from "../state/prefsStore";
 import {
   chatWithCoach,
@@ -96,17 +99,24 @@ export function AiChatView({ db, onClose }: Props) {
     }
   }
 
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(dialogRef, true);
+
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={AI_CHAT_TITLE_ID}
       className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center"
       onClick={onClose}
     >
       <div
+        ref={dialogRef}
         className="animate-[scaleIn_180ms_ease-out] glass border border-border-strong rounded-lg w-[680px] h-[80vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-baseline justify-between p-4 border-b border-border-subtle">
-          <h2 className="text-lg font-semibold text-accent">
+          <h2 id={AI_CHAT_TITLE_ID} className="text-lg font-semibold text-accent">
             🤖 Coach IA · habla con Claude
           </h2>
           <button
@@ -117,7 +127,14 @@ export function AiChatView({ db, onClose }: Props) {
           </button>
         </div>
 
-        <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3">
+        <div
+          ref={scrollRef}
+          role="log"
+          aria-label="Conversación con el coach AI"
+          aria-live="polite"
+          aria-atomic="false"
+          className="flex-1 overflow-y-auto p-4 space-y-3"
+        >
           {messages.length === 0 && (
             <div className="space-y-3">
               <p className="text-sm text-white/70">

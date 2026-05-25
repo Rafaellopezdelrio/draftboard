@@ -1,12 +1,16 @@
 // Champion guide modal — abilities, info, builds, runes, power spikes, matchups.
 
-import { useEffect, useState, type ReactElement, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactElement, type ReactNode } from "react";
+import { useFocusTrap } from "../hooks/useFocusTrap";
+
+const CHAMP_GUIDE_TITLE_ID = "champion-guide-title";
 import type { ChampionDb } from "../types/champion";
 import {
   fetchChampionDetail,
   type ChampionDetail,
 } from "../services/dataDragon";
 import { useEscape } from "../hooks/useKeyboardShortcuts";
+import { displayPatch } from "../data/patchDisplay";
 import { Tabs } from "./ui/Tabs";
 import { Panel } from "./ui/Panel";
 import { TierBadge } from "./ui/TierBadge";
@@ -59,13 +63,19 @@ export function ChampionGuideView({ db, championKey, onClose }: Props) {
 
   // Find meta tier entries for this champion
   const metaEntries = db.meta.filter((m) => m.championKey === championKey);
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(dialogRef, true);
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={CHAMP_GUIDE_TITLE_ID}
       className="fixed inset-0 z-40 bg-black/80 flex items-center justify-center"
       onClick={onClose}
     >
       <div
+        ref={dialogRef}
         className="animate-[scaleIn_180ms_ease-out] glass border border-border-strong rounded-lg w-[860px] max-h-[90vh] flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
@@ -85,7 +95,7 @@ export function ChampionGuideView({ db, championKey, onClose }: Props) {
               className="w-16 h-16 rounded-md ring-2 ring-accent shadow-2xl"
             />
             <div className="flex-1">
-              <h2 className="text-3xl font-bold gold-text leading-none">
+              <h2 id={CHAMP_GUIDE_TITLE_ID} className="text-3xl font-bold gold-text leading-none">
                 {champ.name}
               </h2>
               <p className="text-sm text-white/70 italic mt-1">
@@ -491,7 +501,7 @@ function AiGuideTab({
         <div className="flex items-center gap-2">
           <Bot className="w-3.5 h-3.5 text-accent" />
           <p className="text-[10px] uppercase tracking-widest text-accent font-semibold">
-            Guía AI · {role} · {patch}
+            Guía AI · {role} · {displayPatch(patch)}
           </p>
         </div>
         {cached && (

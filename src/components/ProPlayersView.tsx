@@ -11,9 +11,14 @@ import { loadSettings } from "../services/settingsRepo";
 import type { ChampionDb } from "../types/champion";
 import { PRO_PLAYERS, type ProPlayer } from "../data/proPlayers";
 import { useEscape } from "../hooks/useKeyboardShortcuts";
+import { useFocusTrap } from "../hooks/useFocusTrap";
+import { useRef } from "react";
+
+const PROPLAYERS_TITLE_ID = "proplayers-view-title";
 import { Tabs } from "./ui/Tabs";
 import { Panel } from "./ui/Panel";
 import { Trophy, ExternalLink, RefreshCw } from "lucide-react";
+import { Skeleton } from "./ui/Skeleton";
 
 interface Props {
   db: ChampionDb;
@@ -97,18 +102,25 @@ export function ProPlayersView({ db, onClose }: Props) {
     }
   }
 
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(dialogRef, true);
+
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={PROPLAYERS_TITLE_ID}
       className="fixed inset-0 z-40 bg-black/70 flex items-center justify-center"
       onClick={onClose}
     >
       <div
+        ref={dialogRef}
         className="animate-[scaleIn_180ms_ease-out] glass border border-border-strong rounded-lg w-[760px] max-h-[88vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-5 pt-5 pb-2 border-b border-border-subtle">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-xl font-bold gold-text flex items-center gap-2">
+            <h2 id={PROPLAYERS_TITLE_ID} className="text-xl font-bold gold-text flex items-center gap-2">
               <Trophy className="w-5 h-5 text-accent" />
               Pro Players
             </h2>
@@ -193,6 +205,16 @@ export function ProPlayersView({ db, onClose }: Props) {
 
                 {d?.error && (
                   <p className="text-[10px] text-bad mt-2">{d.error}</p>
+                )}
+
+                {d?.loading && (
+                  // Champion icon row skeleton matches the real
+                  // `lastMatches` shape (5 small champ icons).
+                  <div className="flex gap-1.5 mt-2" aria-busy="true">
+                    {Array.from({ length: 5 }).map((_, k) => (
+                      <Skeleton key={k} className="w-8 h-8 rounded" />
+                    ))}
+                  </div>
                 )}
 
                 {d?.lastMatches && d.lastMatches.length > 0 && (

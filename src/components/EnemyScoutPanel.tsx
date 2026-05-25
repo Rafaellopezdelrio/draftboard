@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import type { ChampionDb } from "../types/champion";
 import { getSummonerById } from "../services/lcuService";
 import { scoutPlayer, type ScoutResult } from "../services/enemyScout";
@@ -16,7 +16,7 @@ interface Props {
   enemyChampionIds: (number | null)[];
 }
 
-export function EnemyScoutPanel({
+function EnemyScoutPanelInner({
   db,
   enemySummonerIds,
   enemyChampionIds,
@@ -250,3 +250,8 @@ function ScoutCard({
 
 // keep AlertTriangle import used (referenced in toast warnings elsewhere)
 void AlertTriangle;
+
+/** Memoised: `enemySummonerIds` + `enemyChampionIds` come from draftStore;
+ * App passes them by reference. memo() prevents re-render when the
+ * parent App re-renders but our concrete props are array-equal. */
+export const EnemyScoutPanel = memo(EnemyScoutPanelInner);

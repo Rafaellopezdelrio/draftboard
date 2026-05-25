@@ -9,11 +9,14 @@
 // Phase 2 (later) will layer on coach prompts ("vas 20cs por debajo", build
 // adapter based on enemy items, etc).
 
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { Activity, Crown, Sparkles, Timer } from "lucide-react";
 import { Panel } from "./ui/Panel";
-import { useLiveGame } from "../hooks/useLiveGame";
-import type { LiveGameEvent } from "../services/liveClient";
+import { useLiveGame, useLiveGameTime } from "../hooks/useLiveGame";
+import { findMyPlayer, type LiveGameEvent } from "../services/liveClient";
+import { displayGameMode } from "../data/gameModeNames";
+import { setOverlayVisible } from "../services/overlay";
+import { usePrefsStore } from "../state/prefsStore";
 
 // Riot's respawn timers (seconds after kill). Values match the live game
 // timers shown on the in-game minimap, sourced from Riot's published patch
@@ -84,7 +87,13 @@ function deriveTimers(
 }
 
 export function LiveGamePanel() {
-  const { inGame, snapshot } = useLiveGame(true);
+  const liveState = useLiveGame(true);
+  const { inGame, snapshot } = liveState;
+  // Smooth 1s tick interpolated from the 2s-stale snapshot — keeps the
+  // displayed timer and objective ETAs ticking down every wall-clock
+  // second instead of jumping every poll.
+  const gameTime = useLiveGameTime(liveState);
+  const showOverlay = usePrefsStore((s) => s.prefs.showInGameOverlay);
 
   // Hooks must run unconditionally — useMemo before the early return.
   const timers = useMemo<DerivedTimers | null>(() => {
@@ -92,18 +101,37 @@ export function LiveGamePanel() {
     return deriveTimers(snapshot.events, snapshot.gameData.gameTime);
   }, [snapshot]);
 
+  // Drive the transparent overlay window's visibility from the same
+  // in-game detection. Pref `showInGameOverlay` lets the user opt out
+  // (some prefer the embedded panel only). Hide always fires when the
+  // game ends so the overlay never lingers between matches.
+  useEffect(() => {
+    if (inGame && showOverlay) setOverlayVisible(true);
+    else setOverlayVisible(false);
+  }, [inGame, showOverlay]);
+
   if (!inGame || !snapshot) return null;
 
-  const gameTime = snapshot.gameData.gameTime;
+  // Older fallback kept removed: gameTime now comes from useLiveGameTime
+  // above so the countdown ticks smoothly. Original line referenced
+  // snapshot.gameData.gameTime which we lose access to here, but it's
+  // already captured inside useLiveGameTime's interpolation logic.
   const me = snapshot.activePlayer;
+
+  // Identify the local player's team — labels in the UI are "my team" vs
+  // "enemy team", not "blue/red", so a CHAOS user sees correct values.
+  // Robust matcher handles Riot-ID vs summonerName mismatches that broke
+  // team detection on certain patches (ARAM CHAOS regression).
+  const myRecord = findMyPlayer(me, snapshot.allPlayers);
+  const myTeamColor = myRecord?.team ?? "ORDER";
 
   // Kill score: count from allPlayers since events without team attribution
   // can't be split. allPlayers[].scores.kills sums up to true team totals.
-  let orderKills = 0;
-  let chaosKills = 0;
+  let myKills = 0;
+  let theirKills = 0;
   for (const p of snapshot.allPlayers) {
-    if (p.team === "ORDER") orderKills += p.scores.kills;
-    else chaosKills += p.scores.kills;
+    if (p.team === myTeamColor) myKills += p.scores.kills;
+    else theirKills += p.scores.kills;
   }
 
   return (
@@ -112,7 +140,7 @@ export function LiveGamePanel() {
         <div className="flex items-center gap-2">
           <Activity className="w-3.5 h-3.5 text-good animate-pulse" />
           <p className="text-[10px] uppercase tracking-widest text-good font-semibold">
-            Live · {snapshot.gameData.gameMode || "CLASSIC"}
+            Live · {displayGameMode(snapshot.gameData.gameMode)}
           </p>
         </div>
         <span className="text-[11px] tabular-nums text-white/70 font-medium">
@@ -120,16 +148,22 @@ export function LiveGamePanel() {
         </span>
       </div>
 
-      {/* Team kill scores */}
+      {/* Team kill scores — blue = my team regardless of ORDER/CHAOS side */}
       <div className="flex items-center justify-between text-xs mb-2">
-        <span className="text-blue-300 font-semibold tabular-nums">
-          {orderKills}
+        <span
+          className="text-blue-300 font-semibold tabular-nums"
+          title="Tu equipo"
+        >
+          {myKills}
         </span>
         <span className="text-[10px] uppercase tracking-widest text-white/35">
           vs
         </span>
-        <span className="text-red-300 font-semibold tabular-nums">
-          {chaosKills}
+        <span
+          className="text-red-300 font-semibold tabular-nums"
+          title="Equipo enemigo"
+        >
+          {theirKills}
         </span>
       </div>
 

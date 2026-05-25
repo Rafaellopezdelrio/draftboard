@@ -25,13 +25,16 @@ export const QUEUE_NAMES: Record<number, string> = {
   2300: "Brawl",
   2400: "Brawl",
   3140: "Custom/Bot",
-  6000: "ARAM Chaos",
 };
+
+// NOTE: Queue 6000 was previously listed as "ARAM Chaos" — that's not a
+// real Riot queue. ARAM CHAOS-team games still use queueId 450 (CHAOS is
+// the team side, not a queue). Removed to avoid confusion in filters.
 
 // Queues we consider "real PvP ranked-relevant matches" — used to filter noise
 // (custom games, tutorials, very old modes).
 export const RELEVANT_QUEUE_IDS = new Set<number>([
-  400, 420, 430, 440, 450, 490, 700, 720, 900, 1020, 1300, 1400, 1700, 1900, 6000,
+  400, 420, 430, 440, 450, 490, 700, 720, 900, 1020, 1300, 1400, 1700, 1900,
 ]);
 
 export function isRelevantQueue(queueId: number): boolean {
