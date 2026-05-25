@@ -1,10 +1,15 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { invoke } from "@tauri-apps/api/core";
 import { fetchLatestPatch } from "../services/dataDragon";
 import { loadSettings } from "../services/settingsRepo";
 import { getAccount } from "../services/riotApi";
 import { Copy, RefreshCw } from "lucide-react";
 import { NETWORK_TIMEOUTS_MS, UI_FEEDBACK_MS, WORKER_HEALTH_URL } from "../config";
+import { useFocusTrap } from "../hooks/useFocusTrap";
+import { useEscape } from "../hooks/useKeyboardShortcuts";
+
+const DIAG_TITLE_ID = "diagnostics-view-title";
 
 interface Props {
   onClose: () => void;
@@ -21,6 +26,10 @@ function isTauri(): boolean {
 }
 
 export function DiagnosticsView({ onClose }: Props) {
+  const { t } = useTranslation();
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  useEscape(onClose);
+  useFocusTrap(dialogRef, true);
   const [checks, setChecks] = useState<Check[]>([
     { name: "Conexión a internet", status: "pending" },
     { name: "Data Dragon (Riot CDN)", status: "pending" },
@@ -239,30 +248,34 @@ export function DiagnosticsView({ onClose }: Props) {
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={DIAG_TITLE_ID}
       className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center"
       onClick={onClose}
     >
       <div
+        ref={dialogRef}
         className="animate-[scaleIn_180ms_ease-out] glass border border-border-strong rounded-lg p-4 w-[560px] max-h-[80vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold text-accent">Diagnóstico</h2>
+          <h2 id={DIAG_TITLE_ID} className="text-lg font-semibold text-accent">{t("diagnostics.title")}</h2>
           <div className="flex gap-2">
             <button
               onClick={copyReport}
               className="text-xs px-2 py-1 bg-bg-card rounded border border-border-subtle hover:border-accent text-white/80 flex items-center gap-1"
-              title="Copia el reporte al portapapeles para incluirlo en un bug report"
+              title={t("diagnostics.copyReport")}
             >
               <Copy className="w-3 h-3" />
-              {copied ? "¡Copiado!" : "Copiar"}
+              {copied ? t("errors.copied") : t("diagnostics.copyReport")}
             </button>
             <button
               onClick={runChecks}
               className="text-xs px-2 py-1 bg-bg-card rounded border border-border-subtle hover:border-accent text-white/80 flex items-center gap-1"
             >
               <RefreshCw className="w-3 h-3" />
-              Reintentar
+              {t("diagnostics.rerun")}
             </button>
           </div>
         </div>
