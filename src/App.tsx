@@ -170,6 +170,7 @@ import { subscribeFetchFailure } from "./services/fetchNotify";
 import { BOOT_TIMEOUTS_MS } from "./config";
 import { PATCH_UPDATED_EVENT } from "./state/scheduledJobs";
 import { setUiLocale } from "./i18n";
+import { setSentryTags } from "./services/sentry";
 import { useAutoActions } from "./state/autoActions";
 import { useOverlayFollowLol } from "./hooks/useOverlayFollowLol";
 import { startAutoProSync } from "./services/autoProSync";
@@ -188,6 +189,7 @@ function App() {
     enemySummonerIds,
     myChampionIntent,
     myChampionLocked,
+    reset,
   } = useDraftStore();
   const { status: lcuStatus, session: lcuSession } = useLcuSync();
   const prefs = usePrefsStore((s) => s.prefs);
@@ -281,6 +283,27 @@ function App() {
   // Ctrl+/ to open the shortcuts help. Standard convention (Slack,
   // GitHub, GitLab, Linear, etc all use this binding for the same thing).
   useGlobalShortcut({ key: "/", ctrl: true }, () => setShowShortcuts(true));
+  // 1-5 to pick role quickly (documented in ShortcutsHelp). Bare-key
+  // bindings — skip when user is typing in an input/textarea so they
+  // don't accidentally swap role while typing a Riot ID.
+  const setRoleHotkey = (role: Role) => () => {
+    const el = document.activeElement;
+    const tag = el?.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA") return;
+    setMyRole(role);
+  };
+  useGlobalShortcut({ key: "1" }, setRoleHotkey("TOP"));
+  useGlobalShortcut({ key: "2" }, setRoleHotkey("JUNGLE"));
+  useGlobalShortcut({ key: "3" }, setRoleHotkey("MIDDLE"));
+  useGlobalShortcut({ key: "4" }, setRoleHotkey("BOTTOM"));
+  useGlobalShortcut({ key: "5" }, setRoleHotkey("UTILITY"));
+  // R = reset draft (same input-guard).
+  useGlobalShortcut({ key: "r" }, () => {
+    const el = document.activeElement;
+    const tag = el?.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA") return;
+    reset();
+  });
 
   // Esc closes palette
   useEscape(() => setShowPalette(false), showPalette);
@@ -341,6 +364,20 @@ function App() {
   useEffect(() => {
     setUiLocale(uiLocale);
   }, [uiLocale]);
+
+  // Sentry global tags. Pushed to the scope so every subsequent event
+  // (errors, breadcrumbs, performance) carries this context. Useful in
+  // the dashboard: filter "errors on patch 14.10 KR users in champ
+  // select" instead of digging through stack traces. Tags are cheap +
+  // ride along automatically with no per-event boilerplate.
+  useEffect(() => {
+    setSentryTags({
+      locale: uiLocale,
+      patch: db?.patch ?? null,
+      lcuConnected: lcuStatus.connected,
+      inGame: gamePhase.phase === "InProgress",
+    });
+  }, [uiLocale, db?.patch, lcuStatus.connected, gamePhase.phase]);
 
   useEffect(() => {
     // Probe the Rust pre-boot recovery marker BEFORE loading prefs so
