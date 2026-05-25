@@ -401,6 +401,21 @@ function App() {
     trackNavigation("ChampionGuideView", guideChampionKey ? "open" : "close");
   }, [guideChampionKey]);
 
+  // Right-click on a champion slot in the draft board dispatches this
+  // event from DraftBoard. We open the guide modal for that champion
+  // — saves a click vs going through TierList.
+  useEffect(() => {
+    const onShowGuide = (e: Event) => {
+      const ce = e as CustomEvent<{ championKey: string }>;
+      if (ce.detail?.championKey) {
+        setGuideChampionKey(ce.detail.championKey);
+      }
+    };
+    window.addEventListener("draft:show-champion-guide", onShowGuide);
+    return () =>
+      window.removeEventListener("draft:show-champion-guide", onShowGuide);
+  }, []);
+
   // Sentry global tags. Pushed to the scope so every subsequent event
   // (errors, breadcrumbs, performance) carries this context. Useful in
   // the dashboard: filter "errors on patch 14.10 KR users in champ

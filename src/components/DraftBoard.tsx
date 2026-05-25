@@ -178,10 +178,24 @@ function SideColumn({
       <div className="space-y-1.5">
         {slots.map((slot) => {
           const champ = slot.championKey ? db.champions[slot.championKey] : null;
+          // Right-click opens the champion guide via a window event
+          // (App.tsx listens). Lets us avoid prop-drilling
+          // onShowGuide through DraftBoard. No-op on empty slots.
+          const handleContext = (e: React.MouseEvent) => {
+            if (!champ) return;
+            e.preventDefault();
+            window.dispatchEvent(
+              new CustomEvent("draft:show-champion-guide", {
+                detail: { championKey: champ.key },
+              })
+            );
+          };
           return (
             <button
               key={slot.index}
               onClick={() => onPickClick(slot.index)}
+              onContextMenu={handleContext}
+              title={champ ? `Click derecho: ver guía de ${champ.name}` : undefined}
               className={`w-full flex items-center gap-2.5 ${
                 champ
                   ? "bg-bg-card/60 ring-1 " + accentRing + " hover:bg-bg-card"

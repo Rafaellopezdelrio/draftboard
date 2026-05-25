@@ -9,6 +9,7 @@ import { usePrefsStore } from "../state/prefsStore";
 import { aiTrendsAnalysis } from "../services/aiCoach";
 import { useEscape } from "../hooks/useKeyboardShortcuts";
 import { EmptyState } from "./ui/EmptyState";
+import { SparkLine } from "./ui/SparkLine";
 import { TrendingUp } from "lucide-react";
 
 interface Props {
@@ -73,6 +74,34 @@ export function TrendsView({ db, onClose }: Props) {
 
   const trends = computeTrends(filtered);
   const weakest = detectWeakestArea(filtered);
+
+  // Rolling window series for the SparkLine charts. Chronological
+  // (oldest -> newest), so the line reads left-to-right naturally.
+  // matches array is newest-first; reverse + window for each metric.
+  const sparkData = useMemo(() => {
+    if (filtered.length < 3) return null;
+    const chrono = [...filtered].reverse();
+    const windowSize = Math.max(5, Math.floor(chrono.length / 10));
+    const winrate: number[] = [];
+    const kda: number[] = [];
+    const cspm: number[] = [];
+    for (let i = windowSize - 1; i < chrono.length; i++) {
+      const slice = chrono.slice(i - windowSize + 1, i + 1);
+      const wins = slice.filter((m) => m.win).length;
+      winrate.push((wins / slice.length) * 100);
+      const k = slice.reduce(
+        (acc, m) => acc + (m.kills + m.assists) / Math.max(1, m.deaths),
+        0
+      );
+      kda.push(k / slice.length);
+      const c = slice.reduce(
+        (acc, m) => acc + m.cs / Math.max(1, m.durationSec / 60),
+        0
+      );
+      cspm.push(c / slice.length);
+    }
+    return { winrate, kda, cspm };
+  }, [filtered]);
 
   async function runAi() {
     setAiLoading(true);
@@ -178,6 +207,53 @@ export function TrendsView({ db, onClose }: Props) {
                 {aiText}
               </p>
             )}
+          </div>
+        )}
+
+        {sparkData && (
+          // Visual trend curves: winrate (baseline 50%), KDA (baseline
+          // 2.0 — "decent"), CS/min. Each chart is a tiny rolling
+          // average window, chronological left-to-right, so the user
+          // sees if they're trending up or down at a glance.
+          <div className="grid grid-cols-3 gap-2 mb-3">
+            <div className="p-2 rounded bg-bg-card/40 border border-border-subtle">
+              <p className="text-[10px] uppercase tracking-wide text-white/45 mb-1">
+                Winrate
+              </p>
+              <SparkLine
+                data={sparkData.winrate}
+                baseline={50}
+                color="#94d09b"
+                width={140}
+                height={32}
+                ariaLabel="Tendencia de winrate"
+              />
+            </div>
+            <div className="p-2 rounded bg-bg-card/40 border border-border-subtle">
+              <p className="text-[10px] uppercase tracking-wide text-white/45 mb-1">
+                KDA medio
+              </p>
+              <SparkLine
+                data={sparkData.kda}
+                baseline={2}
+                color="#e6cf8a"
+                width={140}
+                height={32}
+                ariaLabel="Tendencia de KDA"
+              />
+            </div>
+            <div className="p-2 rounded bg-bg-card/40 border border-border-subtle">
+              <p className="text-[10px] uppercase tracking-wide text-white/45 mb-1">
+                CS/min
+              </p>
+              <SparkLine
+                data={sparkData.cspm}
+                color="#9eb8d0"
+                width={140}
+                height={32}
+                ariaLabel="Tendencia de CS por minuto"
+              />
+            </div>
           </div>
         )}
 
