@@ -56,6 +56,14 @@ export function useOverlayFollowLol(enabled: boolean): void {
     let timer: ReturnType<typeof setTimeout> | null = null;
 
     const tick = async () => {
+      // Pause polling when the main window is hidden (minimised, alt-tab
+      // away, on another desktop). Saves Win32 IPC + Tauri command cost.
+      // We still re-schedule a slow tick so we wake up promptly when
+      // visibility flips back on.
+      if (typeof document !== "undefined" && document.hidden) {
+        timer = setTimeout(tick, POLL_SLOW_MS);
+        return;
+      }
       const rect = await getLoLWindowRect();
       if (cancelled) return;
       let nextDelay = POLL_SLOW_MS;

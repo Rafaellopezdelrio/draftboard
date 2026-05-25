@@ -43,6 +43,12 @@ export function useGamePhase(): { phase: GamePhase | null; gameId?: number } {
   useEffect(() => {
     let cancelled = false;
     const tick = async () => {
+      // Pause when window hidden — UI doesn't need a fresh gameflow
+      // state if the user can't see the rendering. We deliberately
+      // keep the interval running (vs clearing on hide + restarting
+      // on show) because reattaching gameflow detection has a tiny
+      // race window where post-game auto-coach could miss its trigger.
+      if (typeof document !== "undefined" && document.hidden) return;
       const session = await lcuGetSafe<GameflowSession>("/lol-gameflow/v1/session");
       if (cancelled) return;
       setState({

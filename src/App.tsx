@@ -1,7 +1,7 @@
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
 import "./App.css";
 import { loadChampionDb, readChampionDbCacheUnsafe } from "./services/championDb";
-import { trackEvent, trackFetch } from "./services/breadcrumbs";
+import { trackEvent, trackFetch, trackNavigation } from "./services/breadcrumbs";
 import { mark, measure, warnIfSlow } from "./services/perf";
 import { useDraftStore } from "./state/draftStore";
 import type { ChampionDb, Role } from "./types/champion";
@@ -364,6 +364,42 @@ function App() {
   useEffect(() => {
     setUiLocale(uiLocale);
   }, [uiLocale]);
+
+  // Sentry navigation breadcrumbs. Fires "open"/"close" for every
+  // view modal. Sentry events captured AFTER a crash include this
+  // trail — turns "TypeError at line 47" into "user opened History,
+  // then Coach, then crashed in Coach". Each effect watches one flag
+  // independently so React's useEffect dep diff catches the transition.
+  useEffect(() => {
+    trackNavigation("SettingsView", showSettings ? "open" : "close");
+  }, [showSettings]);
+  useEffect(() => {
+    trackNavigation("HistoryView", showHistory ? "open" : "close");
+  }, [showHistory]);
+  useEffect(() => {
+    trackNavigation("CoachView", showCoach ? "open" : "close");
+  }, [showCoach]);
+  useEffect(() => {
+    trackNavigation("PreferencesView", showPrefs ? "open" : "close");
+  }, [showPrefs]);
+  useEffect(() => {
+    trackNavigation("DiagnosticsView", showDiag ? "open" : "close");
+  }, [showDiag]);
+  useEffect(() => {
+    trackNavigation("AiChatView", showChat ? "open" : "close");
+  }, [showChat]);
+  useEffect(() => {
+    trackNavigation("DataPrivacyView", showPrivacy ? "open" : "close");
+  }, [showPrivacy]);
+  useEffect(() => {
+    trackNavigation("TierListView", showTierList ? "open" : "close");
+  }, [showTierList]);
+  useEffect(() => {
+    trackNavigation("ProPlayersView", showProPlayers ? "open" : "close");
+  }, [showProPlayers]);
+  useEffect(() => {
+    trackNavigation("ChampionGuideView", guideChampionKey ? "open" : "close");
+  }, [guideChampionKey]);
 
   // Sentry global tags. Pushed to the scope so every subsequent event
   // (errors, breadcrumbs, performance) carries this context. Useful in

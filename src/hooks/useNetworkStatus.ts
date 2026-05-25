@@ -74,6 +74,13 @@ export function useNetworkStatus(): NetworkStatus {
     cancelledRef.current = false;
     let timer: ReturnType<typeof setTimeout> | null = null;
     const loop = async () => {
+      // Skip probing when window is hidden — no point burning a fetch
+      // every 60s on a minimised app. Re-schedule a slow tick so we
+      // wake up promptly when visibility comes back.
+      if (typeof document !== "undefined" && document.hidden) {
+        timer = setTimeout(loop, POLL_INTERVALS_MS.workerHealth);
+        return;
+      }
       await probe();
       if (!cancelledRef.current) {
         timer = setTimeout(loop, POLL_INTERVALS_MS.workerHealth);

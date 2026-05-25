@@ -6,6 +6,7 @@
 // version am I running and where do I get help if it breaks?".
 
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useFocusTrap } from "../hooks/useFocusTrap";
 import { getVersion } from "@tauri-apps/api/app";
 import { openPath } from "@tauri-apps/plugin-opener";
@@ -24,6 +25,7 @@ function isTauri(): boolean {
 }
 
 export function AboutModal({ onClose }: Props) {
+  const { t } = useTranslation();
   const [version, setVersion] = useState<string>("…");
   const [checking, setChecking] = useState(false);
   const [updateStatus, setUpdateStatus] = useState<string | null>(null);
@@ -107,12 +109,12 @@ export function AboutModal({ onClose }: Props) {
           <div className="flex items-center gap-2">
             <Info className="w-5 h-5 text-accent" />
             <h2 id="about-title" className="text-lg font-semibold text-white">
-              Acerca de Draftboard
+              {t("about.title")}
             </h2>
           </div>
           <button
             onClick={onClose}
-            aria-label="Cerrar"
+            aria-label={t("common.close")}
             className="text-white/40 hover:text-white"
           >
             <X className="w-4 h-4" />
@@ -132,7 +134,7 @@ export function AboutModal({ onClose }: Props) {
             className="w-full px-3 py-2 bg-accent text-black font-medium rounded hover:bg-accent-deep transition flex items-center justify-center gap-2 disabled:opacity-50"
           >
             <Download className="w-4 h-4" />
-            {checking ? "Comprobando..." : "Buscar actualizaciones"}
+            {checking ? t("common.loading") : t("about.checkUpdates")}
           </button>
           {updateStatus && (
             <p className="text-xs text-white/70 text-center">{updateStatus}</p>
@@ -150,7 +152,7 @@ export function AboutModal({ onClose }: Props) {
               className="px-3 py-2 bg-bg-elev border border-border-subtle text-white/80 rounded hover:bg-bg-card transition flex items-center justify-center gap-2 text-sm"
             >
               <FileText className="w-4 h-4" />
-              Abrir carpeta
+              {t("about.openLogs")}
             </button>
           </div>
           <button
@@ -158,7 +160,7 @@ export function AboutModal({ onClose }: Props) {
             className="w-full px-3 py-2 bg-bg-elev border border-accent/40 text-accent rounded hover:bg-accent/10 transition flex items-center justify-center gap-2 text-sm"
           >
             <MessageSquare className="w-4 h-4" />
-            Reportar un problema
+            {t("about.reportIssue")}
           </button>
         </div>
 

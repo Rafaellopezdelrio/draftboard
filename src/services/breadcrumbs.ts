@@ -48,6 +48,14 @@ export function trackClick(label: string, data?: Record<string, unknown>): void 
   trackEvent("ui.click", label, data);
 }
 
+/** Track view open/close so Sentry events show which screens the user
+ * navigated through right before a crash. Massive triage value:
+ * "crash happened after opening CoachView from HistoryView" is
+ * far more actionable than a bare stack frame. */
+export function trackNavigation(view: string, action: "open" | "close"): void {
+  trackEvent("navigation", `${action} ${view}`);
+}
+
 /** A fetch finished. Useful when a downstream crash happens after a slow
  * or failed network call — the breadcrumb tells us what was loading. */
 export function trackFetch(
