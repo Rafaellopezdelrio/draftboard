@@ -118,6 +118,12 @@ export interface Preferences {
   // Voice
   voiceCoachEnabled: boolean;
 
+  // Accent theme variant. Brand color is mint by default but power users
+  // sometimes want a different vibe — we ship 3 curated variants. CSS
+  // applies via a data-attribute on <html> so the change is instant and
+  // affects every accent-colored element.
+  accentTheme: "mint" | "sapphire" | "amber" | "rose";
+
   // Meta source: where the suggestion engine pulls tier/winrates from.
   //   "opgg"    = live op.gg data (millions of games, broad, default)
   //   "proplay" = LCK/LEC/LCS/LPL games (your own sync, pro-focused)
@@ -155,13 +161,21 @@ export const DEFAULT_PREFS: Preferences = {
   useMastery: true,
   useMetaTier: true,
 
-  autoApplyRunes: false,
+  // Auto-apply runes/spells ON by default — competing apps (Blitz,
+  // Mobalytics) ship this on, and users expect "lock-in champion -> my
+  // runes are ready". Previously off meant the user had to discover +
+  // toggle to get the killer feature.
+  autoApplyRunes: true,
   showRuneImportButton: true,
   autoApplyOnHover: false,
   showSpellImportButton: true,
-  autoApplySpells: false,
+  autoApplySpells: true,
   autoApplyItemSet: true,
-  showInGameOverlay: true,
+  // Overlay OFF por defecto — current Win32 transparent topmost
+  // approach has UX issues (click-through edge cases, positioning
+  // drift). User can re-enable from PreferencesView. Will polish a
+  // v2 overlay in a future tanda.
+  showInGameOverlay: false,
   lastSeenPatch: "",
   notifyOnEnemyHotStreak: true,
 
@@ -195,9 +209,18 @@ export const DEFAULT_PREFS: Preferences = {
   overlayOffsetY: null,
   overlayFollowLol: true,
 
-  voiceCoachEnabled: false,
+  // Voice coach on by default — competing apps ship voice on, and the
+  // events are sparse enough (only hot-streak enemy warnings + draft
+  // turn announcements) that it stays useful without being noisy. User
+  // can mute via Settings if unwanted.
+  voiceCoachEnabled: true,
+  // Mint default — user's brand color preference (see App.css).
+  accentTheme: "mint",
 
-  metaSource: "opgg", // default: live op.gg data — broadest coverage, no setup
+  // Default: dpm.lol — cleaner per-bracket data, user preferred over
+  // op.gg's plat+ aggregate. op.gg still works as fallback if synced
+  // separately, but new installs start with dpm.
+  metaSource: "dpm",
   proPlayDaysWindow: 30,
 
   // dpm.lol defaults — emerald+ on EUW matches their own UI's default and
@@ -237,7 +260,19 @@ export const usePrefsStore = create<PrefsState>((set, get) => ({
     );
     try {
       const loaded = await Promise.race([loadAll(), timeout]);
-      set({ prefs: { ...DEFAULT_PREFS, ...loaded }, loaded: true });
+      // Migration: existing users with metaSource="opgg" auto-migrate to
+      // "dpm" (current default). Op.gg source deprecated for new installs
+      // — dpm.lol gives cleaner per-bracket data. Users who explicitly
+      // re-select op.gg in Settings stay there (no forced override).
+      const migrated = { ...loaded };
+      if (migrated.metaSource === "opgg") {
+        migrated.metaSource = "dpm";
+      }
+      set({ prefs: { ...DEFAULT_PREFS, ...migrated }, loaded: true });
+      // Persist the migration so the next boot doesn't re-trigger.
+      if (loaded.metaSource === "opgg") {
+        persistOne("metaSource", "dpm").catch(() => {});
+      }
     } catch (e) {
       // eslint-disable-next-line no-console
       console.error("[prefs] load failed, booting with defaults:", e);

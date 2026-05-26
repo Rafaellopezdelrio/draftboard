@@ -8,6 +8,8 @@ import {
 } from "../services/lcuService";
 import { useDraftStore } from "./draftStore";
 import { trackEvent } from "../services/breadcrumbs";
+import { voiceCoach } from "../services/voiceCoach";
+import { nativeNotify } from "../services/nativeNotify";
 
 export function useLcuSync() {
   const [status, setStatus] = useState<LcuStatus>({ connected: false });
@@ -32,6 +34,34 @@ export function useLcuSync() {
 
 let lastLockedChamp: string | null = null;
 let lastLoggedAramShape = "";
+// TTS turn-detection dedupe — we only speak once per ban/pick turn.
+// Reset to null when the action transitions to completed (lock-in) or
+// when the cellId changes. Same pattern as lastLockedChamp.
+let lastSpokenMyBanTurnId: number | null = null;
+let lastSpokenMyPickTurnId: number | null = null;
+let lastSpokenEnemyBanIds: Set<number> = new Set();
+
+/** Compact signature of a session frame for log dedup. */
+let lastDiagSignature = "";
+
+function diagnosticLog(s: LcuChampSelectSession) {
+  // Compact deterministic signature: phase + ban+pick count + my cell
+  // championId. Changes only when something material changes.
+  const myTeam = Array.isArray(s.myTeam) ? s.myTeam : [];
+  const theirTeam = Array.isArray(s.theirTeam) ? s.theirTeam : [];
+  const myBans = Array.isArray(s.bans?.myTeamBans) ? s.bans!.myTeamBans.length : 0;
+  const enemyBans = Array.isArray(s.bans?.theirTeamBans) ? s.bans!.theirTeamBans.length : 0;
+  const actionBans = Array.isArray(s.actions)
+    ? s.actions.flat().filter((a) => a?.type === "ban" && a.championId > 0).length
+    : 0;
+  const myPicks = myTeam.filter((p) => p.championId > 0).length;
+  const enemyPicks = theirTeam.filter((p) => p.championId > 0).length;
+  const sig = `${s.timer?.phase ?? "?"}|b${myBans}+${enemyBans}|ab${actionBans}|p${myPicks}+${enemyPicks}|cell${s.localPlayerCellId}`;
+  if (sig === lastDiagSignature) return;
+  lastDiagSignature = sig;
+  // eslint-disable-next-line no-console
+  console.log(`[lcuSync] frame: ${sig}`);
+}
 
 /**
  * Exported for unit tests — apply a champ-select session payload to the
@@ -51,7 +81,19 @@ function applySession(s: LcuChampSelectSession | null | undefined) {
   // (ARAM has no bans, and certain mid-transition frames lack theirTeam).
   // Treat any malformed shape as a no-op rather than crashing the store
   // — a crash here silently breaks pick rendering with no error in the UI.
-  if (!s || typeof s !== "object") return;
+  if (!s || typeof s !== "object") {
+    // Null session = left champ select (dodge, queue exit, game end).
+    // Reset TTS dedup vars so the NEXT champ select session announces
+    // its turns from scratch. Without this, action.id values from the
+    // previous session could match new ones and suppress legitimate
+    // turn announcements.
+    lastSpokenMyBanTurnId = null;
+    lastSpokenMyPickTurnId = null;
+    lastSpokenEnemyBanIds = new Set();
+    lastLockedChamp = null;
+    voiceCoach.resetSession();
+    return;
+  }
 
   const myTeam = Array.isArray(s.myTeam) ? s.myTeam : [];
   const theirTeam = Array.isArray(s.theirTeam) ? s.theirTeam : [];
@@ -99,6 +141,9 @@ function applySession(s: LcuChampSelectSession | null | undefined) {
       window.dispatchEvent(
         new CustomEvent("draft:champion-locked", { detail: { championKey: locked } })
       );
+      // Audible confirmation. Dedup by champKey so reopen of champ select
+      // with same hover doesn't repeat. session reset clears via resetSession.
+      voiceCoach.speak("Campeón bloqueado", `lock-${locked}`);
     }
     if (!locked) lastLockedChamp = null;
   }
@@ -107,42 +152,145 @@ function applySession(s: LcuChampSelectSession | null | undefined) {
     store.setPhase(s.timer.phase, Math.max(0, Math.round(s.timer.adjustedTimeLeftInPhase / 1000)));
   }
 
-  myTeam.forEach((p, idx) => {
-    const champKey =
-      p.championId > 0
-        ? String(p.championId)
-        : p.championPickIntent && p.championPickIntent > 0
-          ? String(p.championPickIntent)
-          : null;
-    store.setPick("ally", idx, champKey);
-    const role = lcuPositionToRole(p.assignedPosition);
-    if (role) store.setRoleForSlot("ally", idx, role);
-  });
+  // Iterate FIXED 5 pick slots per side (not forEach over team arrays)
+  // so trailing slots clear when a player leaves the lobby or the team
+  // array shrinks mid-session. Same defensive pattern as bans.
+  for (let idx = 0; idx < 5; idx++) {
+    const ally = myTeam[idx];
+    if (ally) {
+      const champKey =
+        ally.championId > 0
+          ? String(ally.championId)
+          : ally.championPickIntent && ally.championPickIntent > 0
+            ? String(ally.championPickIntent)
+            : null;
+      store.setPick("ally", idx, champKey);
+      const role = lcuPositionToRole(ally.assignedPosition);
+      if (role) store.setRoleForSlot("ally", idx, role);
+    } else {
+      store.setPick("ally", idx, null);
+    }
 
-  theirTeam.forEach((p, idx) => {
-    // Use intent as a fallback so we see hover picks BEFORE enemy lockin.
-    // Critical in blind pick / ARAM where Riot exposes pickIntent for the
-    // enemy team during the early seconds. Without this the engine waits
-    // for lock-in and the user loses precious counter-pick time.
-    const champKey =
-      p.championId > 0
-        ? String(p.championId)
-        : p.championPickIntent && p.championPickIntent > 0
-          ? String(p.championPickIntent)
-          : null;
-    store.setPick("enemy", idx, champKey);
-  });
+    const enemy = theirTeam[idx];
+    if (enemy) {
+      // Use intent as a fallback so we see hover picks BEFORE enemy lockin.
+      // Critical in blind pick / ARAM where Riot exposes pickIntent for the
+      // enemy team during the early seconds. Without this the engine waits
+      // for lock-in and the user loses precious counter-pick time.
+      const champKey =
+        enemy.championId > 0
+          ? String(enemy.championId)
+          : enemy.championPickIntent && enemy.championPickIntent > 0
+            ? String(enemy.championPickIntent)
+            : null;
+      store.setPick("enemy", idx, champKey);
+    } else {
+      store.setPick("enemy", idx, null);
+    }
+  }
   store.setEnemySummonerIds(theirTeam.map((p) => p.summonerId ?? 0));
 
   // ARAM has no bans — `s.bans` is undefined for Howling Abyss sessions.
   // The forEach() calls used to crash here, silently halting any code that
   // ran AFTER bans handling. Guard both the object and each array.
+  //
+  // CRITICAL: `bans.myTeamBans` / `bans.theirTeamBans` only populate AFTER
+  // the ban phase ends. During hover (which is when the user expects to
+  // SEE bans in our UI to inform their own pick), those arrays are empty.
+  // Riot delivers live ban hovers via `actions[][]` instead — scan those
+  // first; the final `bans.*` arrays act as backup/confirmation.
   const myTeamBans = Array.isArray(s.bans?.myTeamBans) ? s.bans!.myTeamBans : [];
   const theirTeamBans = Array.isArray(s.bans?.theirTeamBans) ? s.bans!.theirTeamBans : [];
-  myTeamBans.forEach((id, idx) => {
-    if (id > 0) store.setBan("ally", idx, String(id));
-  });
-  theirTeamBans.forEach((id, idx) => {
-    if (id > 0) store.setBan("enemy", idx, String(id));
-  });
+
+  // Diagnostic — log a single line per session frame so we have an
+  // audit trail when "nothing tracked". Compact form: shows phase +
+  // bans + picks count so we can grep the log and confirm data flow.
+  // Only emit when something changed since last frame to avoid log spam.
+  diagnosticLog(s);
+
+  // Derive live bans from actions[][]. Track per-side index so we fill
+  // slots 0..4 in the order Riot reports them. We accept hovered bans
+  // (`championId > 0` even when `completed=false`) so the UI updates
+  // in real time as enemies and allies hover-lock their bans.
+  //
+  // Same pass also drives TTS turn-detection + enemy-ban announcements
+  // since we're already walking every action. Avoids a second iteration.
+  const liveAllyBans: number[] = [];
+  const liveEnemyBans: number[] = [];
+  let myTurnActiveBan: number | null = null;   // action.id when my unfinished ban turn is up
+  let myTurnActivePick: number | null = null;  // action.id when my unfinished pick turn is up
+  const enemyCompletedBansThisFrame = new Set<number>();
+  if (Array.isArray(s.actions)) {
+    for (const group of s.actions) {
+      if (!Array.isArray(group)) continue;
+      for (const act of group) {
+        if (!act) continue;
+        // Bans accumulation (UI)
+        if (act.type === "ban" && act.championId > 0) {
+          if (act.isAllyAction) liveAllyBans.push(act.championId);
+          else liveEnemyBans.push(act.championId);
+          // Track completed enemy bans so we can announce once each.
+          if (!act.isAllyAction && act.completed) {
+            enemyCompletedBansThisFrame.add(act.championId);
+          }
+        }
+        // Turn detection — `actorCellId === myCell && !completed` means
+        // it's MY turn right now. Distinguish ban vs pick to tailor speech.
+        if (act.actorCellId === myCell && !act.completed) {
+          if (act.type === "ban") myTurnActiveBan = act.id;
+          else if (act.type === "pick") myTurnActivePick = act.id;
+        }
+      }
+    }
+  }
+
+  // Speak my-turn alerts once per action.id (the LCU stably numbers actions
+  // 0..N for the whole draft, so action.id is a perfect dedup key). Also
+  // fire a native OS notification so the user gets popped to attention
+  // even when Draftboard is alt-tabbed under LoL fullscreen.
+  if (myTurnActiveBan !== null && myTurnActiveBan !== lastSpokenMyBanTurnId) {
+    lastSpokenMyBanTurnId = myTurnActiveBan;
+    voiceCoach.speak("Tu turno de banear");
+    nativeNotify({
+      title: "Tu turno de banear",
+      body: "Abre Draftboard para ver sugerencias.",
+      tag: "draft-turn",
+      durationMs: 5000,
+    });
+  }
+  if (myTurnActivePick !== null && myTurnActivePick !== lastSpokenMyPickTurnId) {
+    lastSpokenMyPickTurnId = myTurnActivePick;
+    voiceCoach.speak("Tu turno de pickear");
+    nativeNotify({
+      title: "Tu turno de pickear",
+      body: "Abre Draftboard para ver el pick óptimo.",
+      tag: "draft-turn",
+      durationMs: 5000,
+    });
+  }
+
+  // Enemy-ban announcements skipped: 10 bans per draft = audio spam.
+  // Dedup set kept for future use if we add a "ban your top pick" hook
+  // (would speak only when the banned champ matches our recommendation).
+  for (const banId of enemyCompletedBansThisFrame) {
+    lastSpokenEnemyBanIds.add(banId);
+  }
+
+  // Merge: prefer the final committed `bans.*` arrays if they have data
+  // (end of phase), otherwise use live-derived from actions. Either way
+  // we push to the store so the bans row in the UI reflects current state.
+  const finalAlly = myTeamBans.length > 0 ? myTeamBans : liveAllyBans;
+  const finalEnemy = theirTeamBans.length > 0 ? theirTeamBans : liveEnemyBans;
+  // CRITICAL: iterate FIXED 5 ban slots (not forEach over the live array)
+  // so we explicitly clear slots that drop out — e.g. when a hover is
+  // canceled mid-phase, or when entering a brand new champ select with
+  // no bans yet. Previous code only set populated entries; stale slots
+  // from a prior frame persisted in the store and the UI showed
+  // phantom bans that no longer existed in the actual LCU session.
+  for (let idx = 0; idx < 5; idx++) {
+    const allyId = finalAlly[idx];
+    store.setBan("ally", idx, allyId && allyId > 0 ? String(allyId) : null);
+    const enemyId = finalEnemy[idx];
+    store.setBan("enemy", idx, enemyId && enemyId > 0 ? String(enemyId) : null);
+  }
 }

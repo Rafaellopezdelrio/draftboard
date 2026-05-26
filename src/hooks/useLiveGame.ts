@@ -16,7 +16,7 @@
 //   3. Backoff on misses — out-of-game ticks back off to 10s polling so
 //      we're not hammering localhost when LoL isn't running.
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   fetchLiveGameSnapshot,
   type LiveGameSnapshot,
@@ -44,14 +44,140 @@ function isTauri(): boolean {
   return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 }
 
+/* ──────────────────────────────────────────────────────────────────────
+ * Singleton poll loop for the MAIN window.
+ *
+ * Multiple components (BuildPanel, LiveGamePanel, TrackingStatusBar,
+ * InGameTimers) call useLiveGame independently. Previously each one
+ * spun up its own setInterval — 4 components = 4x localhost:2999
+ * requests every 2s. This module hoists the poll loop OUT of the hook
+ * so one shared loop services every subscriber. Components register
+ * via subscribeMainState; cleanup is automatic on unmount.
+ * ────────────────────────────────────────────────────────────────────── */
+const mainSubscribers = new Set<(s: LiveGameState) => void>();
+let mainState: LiveGameState = {
+  inGame: false,
+  snapshot: null,
+  reason: "loading",
+};
+let mainPollerActive = false;
+// Timer handle kept for future cleanup hook — currently the poller
+// runs for the lifetime of the renderer, so we never clear it.
+let mainPollerTimer: ReturnType<typeof setTimeout> | null = null;
+let mainPollerMisses = 0;
+// Defensive: silence unused-var warning while the cleanup path is
+// deferred. Marked as void so eslint stays happy without removing
+// the binding (we'll wire it once we need teardown).
+void mainPollerTimer;
+let mainPollerPrevInGame = false;
+let mainEmit:
+  | ((event: string, payload: unknown) => Promise<void>)
+  | null = null;
+
+function startMainPoller(): void {
+  if (mainPollerActive) return;
+  mainPollerActive = true;
+  if (isTauri()) {
+    import("@tauri-apps/api/event").then((m) => {
+      mainEmit = m.emit;
+    });
+  }
+
+  const tick = async () => {
+    // Pause work when this webview isn't visible (window minimised, tab
+    // hidden, OS-level hide). Re-schedule a soft retry so we wake up
+    // promptly when visibility flips back on.
+    if (typeof document !== "undefined" && document.hidden) {
+      mainPollerTimer = setTimeout(tick, SLOW_POLL_INTERVAL_MS);
+      return;
+    }
+
+    const snap = await fetchLiveGameSnapshot();
+    const nowInGame =
+      !!snap &&
+      snap.gameData?.gameTime !== undefined &&
+      snap.gameData.gameTime > 0;
+    if (nowInGame !== mainPollerPrevInGame) {
+      mainPollerPrevInGame = nowInGame;
+      // eslint-disable-next-line no-console
+      console.log(
+        `[useLiveGame] transition inGame=${nowInGame}${snap?.gameData ? ` mode=${snap.gameData.gameMode} t=${snap.gameData.gameTime?.toFixed(0)}s` : ""}`
+      );
+    }
+
+    const isLive =
+      !!snap &&
+      snap.gameData?.gameTime !== undefined &&
+      snap.gameData.gameTime > 0;
+    const nextState: LiveGameState = isLive
+      ? {
+          inGame: true,
+          snapshot: snap!,
+          reason: "in-game",
+          snapshotAt: Date.now(),
+        }
+      : { inGame: false, snapshot: null, reason: "not-running" };
+
+    if (nextState.inGame) mainPollerMisses = 0;
+    else mainPollerMisses++;
+
+    // Debounce inGame -> !inGame transition (3 consecutive misses before
+    // accepting "game ended"). Same logic as the previous in-hook version.
+    if (
+      !(
+        mainState.inGame &&
+        !nextState.inGame &&
+        mainPollerMisses < SLOW_AFTER_MISSES
+      )
+    ) {
+      mainState = nextState;
+      for (const cb of mainSubscribers) {
+        try {
+          cb(mainState);
+        } catch {
+          /* never let one subscriber crash the loop */
+        }
+      }
+    }
+
+    if (mainEmit && isTauri()) {
+      mainEmit(EVENT_NAME, nextState).catch(() => {});
+    }
+
+    const next =
+      mainPollerMisses >= SLOW_AFTER_MISSES
+        ? SLOW_POLL_INTERVAL_MS
+        : POLL_INTERVAL_MS;
+    mainPollerTimer = setTimeout(tick, next);
+  };
+
+  tick();
+}
+
+function subscribeMainState(cb: (s: LiveGameState) => void): () => void {
+  mainSubscribers.add(cb);
+  // Replay current state immediately so the new subscriber gets data
+  // without waiting up to 2s for the next tick.
+  try {
+    cb(mainState);
+  } catch {
+    /* ignore */
+  }
+  startMainPoller();
+  return () => {
+    mainSubscribers.delete(cb);
+    // Note: we don't stop the poller when the last subscriber leaves
+    // because the cost of a single 2s poll is negligible and components
+    // re-mount frequently. Avoids start/stop thrash on view switches.
+  };
+}
+
 export function useLiveGame(enabled: boolean = true): LiveGameState {
   const [state, setState] = useState<LiveGameState>({
     inGame: false,
     snapshot: null,
     reason: "loading",
   });
-  const missesRef = useRef(0);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const overlay = isOverlayWindow();
 
   // OVERLAY window: subscribe to events emitted by the main window. No
@@ -79,90 +205,17 @@ export function useLiveGame(enabled: boolean = true): LiveGameState {
     };
   }, [enabled, overlay]);
 
-  // MAIN window: poll + emit events for other windows to consume.
+  // MAIN window: subscribe to the singleton poller. Previously each
+  // hook instance opened its own setInterval — with 5 consumers
+  // (BuildPanel, LiveGamePanel, TrackingStatusBar, InGameTimers,
+  // overlay subscription) that meant 5x localhost:2999 requests every
+  // 2 seconds. The singleton subscribeMainState shares one poll loop
+  // across all subscribers; each component still gets reactive state
+  // updates via the cb path. Replaces ~80 lines of duplicated polling
+  // logic with a single subscribe call.
   useEffect(() => {
     if (!enabled || overlay) return;
-
-    let cancelled = false;
-    let emit: ((event: string, payload: unknown) => Promise<void>) | null = null;
-
-    if (isTauri()) {
-      import("@tauri-apps/api/event").then((m) => {
-        emit = m.emit;
-      });
-    }
-
-    const tick = async () => {
-      // Pause work when this webview isn't visible (window minimised, tab
-      // hidden, OS-level hide). Re-schedule a soft retry so we wake up
-      // promptly when visibility flips back on. Most of the time the main
-      // window IS visible so this is a no-op.
-      if (typeof document !== "undefined" && document.hidden) {
-        timerRef.current = setTimeout(tick, SLOW_POLL_INTERVAL_MS);
-        return;
-      }
-
-      const snap = await fetchLiveGameSnapshot();
-      if (cancelled) return;
-      // gameTime semantics from Riot's Live Client API:
-      //   - undefined / no response → LoL not running OR not in a match
-      //   - NEGATIVE values (-90..0) → loading screen / minion-spawn countdown.
-      //     Players + champions are already populated here, so we used to
-      //     flip `inGame = true` during loading. That fires timers, overlays,
-      //     and "Live game" panels before champions actually spawn — confusing.
-      //   - 0+ → match started, minions on map, real game running.
-      // Gate on `gameTime > 0` so panels only activate once the game truly
-      // begins. Loading screen now reports `inGame: false`.
-      const isLive =
-        !!snap &&
-        snap.gameData?.gameTime !== undefined &&
-        snap.gameData.gameTime > 0;
-      const nextState: LiveGameState = isLive
-        ? { inGame: true, snapshot: snap!, reason: "in-game", snapshotAt: Date.now() }
-        : { inGame: false, snapshot: null, reason: "not-running" };
-
-      if (nextState.inGame) missesRef.current = 0;
-      else missesRef.current++;
-
-      // Debounce inGame -> !inGame transition. The Live Client API
-      // briefly returns empty during loading screens, network blips,
-      // or alt-tab focus changes. Flipping inGame=false on the first
-      // miss flickers every overlay/timer/panel that depends on it.
-      // Wait for SLOW_AFTER_MISSES (3) consecutive misses before
-      // accepting "game ended". Previous version returned `prev`
-      // unconditionally on this transition — the app then thought you
-      // were in-game forever after a single match.
-      setState((prev) => {
-        if (
-          prev.inGame &&
-          !nextState.inGame &&
-          missesRef.current < SLOW_AFTER_MISSES
-        ) {
-          return prev;
-        }
-        return nextState;
-      });
-
-      // Broadcast to other windows (overlay). Never throws — if the event
-      // bus isn't ready yet (first tick race) the overlay just misses one
-      // update and catches up on the next.
-      if (emit && isTauri()) {
-        emit(EVENT_NAME, nextState).catch(() => {});
-      }
-
-      const next =
-        missesRef.current >= SLOW_AFTER_MISSES
-          ? SLOW_POLL_INTERVAL_MS
-          : POLL_INTERVAL_MS;
-      timerRef.current = setTimeout(tick, next);
-    };
-
-    tick();
-
-    return () => {
-      cancelled = true;
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
+    return subscribeMainState(setState);
   }, [enabled, overlay]);
 
   return state;

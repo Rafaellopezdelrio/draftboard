@@ -43,17 +43,29 @@ export function useGamePhase(): { phase: GamePhase | null; gameId?: number } {
   useEffect(() => {
     let cancelled = false;
     const tick = async () => {
-      // Pause when window hidden — UI doesn't need a fresh gameflow
-      // state if the user can't see the rendering. We deliberately
-      // keep the interval running (vs clearing on hide + restarting
-      // on show) because reattaching gameflow detection has a tiny
-      // race window where post-game auto-coach could miss its trigger.
-      if (typeof document !== "undefined" && document.hidden) return;
+      // CRITICAL: do NOT pause this on document.hidden. The whole
+      // point of gameflow detection is to know when the user goes
+      // InProgress -> ended, which happens WHILE Draftboard is hidden
+      // (user is in LoL fullscreen/borderless). Skipping polls when
+      // hidden meant we never registered the transitions -> post-game
+      // auto-coach never fired. Wave 14 mistakenly added a hidden
+      // guard here; this revert keeps the 5s LCU poll always-on.
       const session = await lcuGetSafe<GameflowSession>("/lol-gameflow/v1/session");
       if (cancelled) return;
-      setState({
+      const next = {
         phase: session?.phase ?? null,
         gameId: session?.gameData?.gameId,
+      };
+      // Log only on phase transition so draftboard.log shows exactly when
+      // gameflow flipped Lobby → ReadyCheck → ChampSelect → InProgress →
+      // EndOfGame. Critical for diagnosing "post-game coach didn't open"
+      // — if InProgress never logged, the poll missed the whole match.
+      setState((prev) => {
+        if (prev.phase !== next.phase) {
+          // eslint-disable-next-line no-console
+          console.log(`[useGamePhase] transition ${prev.phase ?? "null"} → ${next.phase ?? "null"}`);
+        }
+        return next;
       });
     };
     tick();
