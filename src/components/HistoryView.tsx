@@ -10,6 +10,7 @@ import { StatCard } from "./ui/StatCard";
 import { Flame, Snowflake, Search, Inbox, Filter } from "lucide-react";
 import { EmptyState } from "./ui/EmptyState";
 import { ChampionStatsPanel } from "./ChampionStatsPanel";
+import { SparkLine } from "./ui/SparkLine";
 
 const TITLE_ID = "history-view-title";
 
@@ -209,6 +210,31 @@ export function HistoryView({ db, onClose }: Props) {
           <StatCard value={avgCs.toFixed(1)} label={t("history.csPerMin")} />
         </div>
 
+        {/* Winrate trend sparkline — rolling 10-game WR % over the filter
+          * set. Older games on the left, newer on the right. Lets the
+          * user see if they're climbing (line going up) or tilting
+          * (line going down) at a glance. Hidden when <10 games to
+          * avoid noisy single-point lines. */}
+        {filtered.length >= 10 && (
+          <div className="px-4 py-2 bg-bg-card/20 border-b border-border-subtle flex items-center gap-3">
+            <span className="text-[10px] uppercase tracking-widest text-white/45 font-semibold shrink-0">
+              Tendencia WR
+            </span>
+            <div className="flex-1">
+              <SparkLine
+                data={rollingWinRate(filtered)}
+                width={280}
+                height={28}
+                color="rgb(78,205,196)"
+                baseline={50}
+              />
+            </div>
+            <span className="text-[10px] text-white/45 tabular-nums">
+              {filtered.length} partidas
+            </span>
+          </div>
+        )}
+
         {streakInfo && (
           <div
             className={`px-5 py-2 text-xs flex items-center gap-2 ${
@@ -335,6 +361,26 @@ const MatchRowCard = memo(function MatchRowCard({ db, m }: { db: ChampionDb; m: 
     </div>
   );
 });
+
+/**
+ * Compute a rolling 10-game winrate series for sparkline display.
+ * Walks the matches in chronological order (oldest first), maintains a
+ * sliding window, emits the % win for the window at each step.
+ * Returns at most 30 data points so the sparkline doesn't get cramped.
+ */
+function rollingWinRate(matches: MatchRow[]): number[] {
+  const WINDOW = 10;
+  // matches arrive newest-first; reverse so we read chronologically.
+  const chrono = [...matches].reverse();
+  const series: number[] = [];
+  for (let i = WINDOW - 1; i < chrono.length; i++) {
+    const window = chrono.slice(i - WINDOW + 1, i + 1);
+    const wins = window.filter((m) => m.win).length;
+    series.push((wins / WINDOW) * 100);
+  }
+  // Cap to last 30 points so the chart stays readable on wide histories.
+  return series.slice(-30);
+}
 
 function computeStreak(matches: MatchRow[]): { win: boolean; count: number } | null {
   if (matches.length === 0) return null;

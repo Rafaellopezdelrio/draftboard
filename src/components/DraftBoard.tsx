@@ -196,14 +196,26 @@ function SideColumn({
               onClick={() => onPickClick(slot.index)}
               onContextMenu={handleContext}
               title={champ ? `Click derecho: ver guía de ${champ.name}` : undefined}
-              className={`w-full flex items-center gap-2.5 ${
+              className={`relative w-full flex items-center gap-2.5 overflow-hidden ${
                 champ
                   ? "bg-bg-card/60 ring-1 " + accentRing + " hover:bg-bg-card"
                   : "bg-transparent ring-1 ring-dashed ring-white/10 hover:ring-accent/40 hover:bg-bg-card/30"
               } rounded-md p-2 transition group`}
             >
+              {/* Splash backdrop — fades in on hover when slot has a champ.
+                * Adds visual richness without breaking layout (absolute
+                * positioned, parent has overflow-hidden). DDragon loading
+                * splash hashes are champion ID + 0. */}
+              {champ && (
+                <div
+                  className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-30 transition-opacity duration-300 bg-cover bg-center"
+                  style={{
+                    backgroundImage: `linear-gradient(90deg, rgba(11,14,20,0.85) 0%, rgba(11,14,20,0.5) 60%, transparent 100%), url(${champ.splashUrl})`,
+                  }}
+                />
+              )}
               <div
-                className={`w-11 h-11 rounded overflow-hidden ${
+                className={`relative z-10 w-11 h-11 rounded overflow-hidden ${
                   champ
                     ? "bg-bg-elev ring-1 ring-border-subtle"
                     : "bg-transparent ring-1 ring-dashed ring-white/10 group-hover:ring-accent/40"
@@ -219,7 +231,7 @@ function SideColumn({
                   <Plus className="w-3.5 h-3.5 text-white/20 group-hover:text-accent/70 transition" />
                 )}
               </div>
-              <div className="text-left flex-1 min-w-0">
+              <div className="relative z-10 text-left flex-1 min-w-0">
                 {champ ? (
                   <>
                     <p className="text-sm text-white font-medium truncate">

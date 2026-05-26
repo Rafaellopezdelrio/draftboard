@@ -46,6 +46,13 @@ export function SettingsView({ onClose }: Props) {
   const [status, setStatus] = useState<string>("");
   const [busy, setBusy] = useState(false);
   const [confirmResync, setConfirmResync] = useState(false);
+  // Riot API access available — either local apiKey OR the Cloudflare
+  // Worker proxy is configured. Previously the sync buttons were gated
+  // ONLY on `apiKey`, which meant proxy users (no local key set)
+  // couldn't trigger any sync action — the buttons sat disabled with
+  // no explanation. This flag reflects the real "can we make Riot
+  // API calls" capability.
+  const hasRiotAccess = !!apiKey || !!getRiotProxyUrl();
 
   useEffect(() => {
     loadSettings().then((s) => {
@@ -118,7 +125,9 @@ export function SettingsView({ onClose }: Props) {
   const proPlayDays = usePrefsStore((s) => s.prefs.proPlayDaysWindow);
 
   async function syncMetaMultiRegion() {
-    if (!apiKey) return;
+    // Allow either a local apiKey OR proxy — proxy injects the key
+    // server-side so the local store stays empty for proxy users.
+    if (!hasRiotAccess) return;
     setBusy(true);
     setStatus("Multi-región KR + EUW + NA (esto tarda ~30 min)...");
     try {
@@ -383,27 +392,42 @@ export function SettingsView({ onClose }: Props) {
             🏆 Sync meta PRO
           </button>
           <button
-            disabled={busy || !apiKey}
+            disabled={busy || !hasRiotAccess}
             onClick={syncMeta}
             type="button"
             className="px-3 py-2 bg-bg-card border border-border-subtle rounded text-white/80 hover:border-accent disabled:opacity-50"
-            title="Necesita API key Riot. Agrega Master+ SoloQ"
+            title={
+              hasRiotAccess
+                ? "Agrega Master+ SoloQ a la base de datos meta"
+                : "Necesita API key Riot o proxy configurado"
+            }
           >
             Sync meta SoloQ
           </button>
           <button
-            disabled={busy || !apiKey}
+            disabled={busy || !hasRiotAccess}
             onClick={syncMetaMultiRegion}
             type="button"
             className="px-3 py-2 bg-bg-card border border-purple-400/40 rounded text-purple-300 hover:bg-purple-400/10 disabled:opacity-50"
-            title="KR + EUW + NA. Tarda ~30 min, máxima calidad de datos"
+            title={
+              hasRiotAccess
+                ? "KR + EUW + NA. Tarda ~30 min, máxima calidad de datos"
+                : "Necesita API key Riot o proxy configurado"
+            }
           >
             🌍 Multi-región
           </button>
           <button
-            disabled={busy || !apiKey || !riotIdName || !riotIdTag}
+            disabled={busy || !hasRiotAccess || !riotIdName || !riotIdTag}
             onClick={handleSaveAndSync}
             className="px-4 py-2 bg-accent text-black font-medium rounded disabled:opacity-50"
+            title={
+              !hasRiotAccess
+                ? "Necesita API key Riot o proxy"
+                : !riotIdName || !riotIdTag
+                  ? "Completa Riot ID + tag arriba"
+                  : "Valida tu cuenta y sincroniza tu historial"
+            }
           >
             {busy ? "..." : "Guardar y sincronizar"}
           </button>

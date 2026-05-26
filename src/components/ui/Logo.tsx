@@ -9,10 +9,12 @@ export function Logo({ size = 28 }: { size?: number }) {
         className="shrink-0"
       >
         <defs>
+          {/* Logo gradient — mint palette matching --color-accent.
+            * ID kept as `logoGold` so existing path refs don't break. */}
           <linearGradient id="logoGold" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#f0e6d2" />
-            <stop offset="50%" stopColor="#c89b3c" />
-            <stop offset="100%" stopColor="#785a28" />
+            <stop offset="0%" stopColor="#a8ebe5" />
+            <stop offset="50%" stopColor="#4ecdc4" />
+            <stop offset="100%" stopColor="#2a8a82" />
           </linearGradient>
           <linearGradient id="logoBg" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#1f2433" />

@@ -84,9 +84,26 @@ function BanCard({ s }: { s: BanSuggestion }) {
     global: "bg-meh/15 text-meh ring-meh/30",
     blend: "bg-accent/15 text-accent ring-accent/30",
   };
+  // Severity → letter badge so the user sees the threat tier at a glance
+  // alongside the source. High = critical ban target, Low = nice-to-have.
+  const sevBadge = {
+    high: { letter: "S+", cls: "bg-bad/30 text-bad ring-bad/60" },
+    medium: { letter: "S", cls: "bg-meh/30 text-meh ring-meh/60" },
+    low: { letter: "A", cls: "bg-white/10 text-white/60 ring-white/20" },
+  }[s.severity];
+  // Build an extended explanation tooltip so users understand WHY the
+  // engine surfaced this — e.g. "Pierdes 32% vs Camille en TOP (8g)"
+  // gets a fuller rationale on hover.
+  const tooltip =
+    s.source === "personal"
+      ? `Personal: ${s.reason}. Banearlo elimina tu peor matchup directo.`
+      : s.source === "global"
+        ? `Meta: ${s.reason}. Threat alto que ningún jugador quiere enfrentar.`
+        : `Combinado: ${s.reason}. Threat global + dolor personal.`;
   return (
     <div
       className={`flex items-center gap-2 p-2 rounded ring-1 ${colors[s.severity]}`}
+      title={tooltip}
     >
       <div className="relative">
         <img
@@ -100,6 +117,12 @@ function BanCard({ s }: { s: BanSuggestion }) {
         <p className="text-xs text-white font-medium truncate">{s.championName}</p>
         <p className="text-[11px] text-white/65 truncate">{s.reason}</p>
       </div>
+      <span
+        className={`text-[9px] uppercase tracking-widest font-bold px-1.5 py-0.5 rounded ring-1 ${sevBadge.cls}`}
+        title={`Severidad: ${s.severity}`}
+      >
+        {sevBadge.letter}
+      </span>
       <span
         className={`text-[9px] uppercase tracking-widest font-bold px-1.5 py-0.5 rounded ring-1 ${tagColors[s.source]}`}
       >

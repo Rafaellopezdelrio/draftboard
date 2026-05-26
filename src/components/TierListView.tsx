@@ -231,21 +231,22 @@ export function TierListView({ db, onClose, onSelectChampion, onDbUpdate }: Prop
               onChange={(e) => applyFilter({ source: e.target.value as SourceVal })}
               className="bg-bg-elev/60 text-xs rounded ring-1 ring-border-subtle px-2 py-1 text-white outline-none focus:ring-accent"
             >
-              {/* Only opgg + dpm are exposed in the tier list selector for
-                  testers. proplay/soloq/blend still exist in the codebase and
-                  in Settings (so power users can sync + use them) but they
-                  default to off and would just confuse newcomers if shown as
-                  greyed options. We DO show them if the user has already
-                  synced data — no point hiding a source that has real
-                  entries to offer. */}
-              <option value="opgg">
-                op.gg (plat+ global)
-                {db.metaSourceCounts && ` · ${db.metaSourceCounts.opgg}`}
-              </option>
+              {/* dpm.lol is the primary source — per-bracket data + cleaner
+                  visuals. op.gg is hidden by default; user can re-enable via
+                  Settings if needed. proplay/soloq/blend stay available when
+                  synced (no point hiding sources that have real data). */}
               <option value="dpm">
                 dpm.lol (por rango)
                 {db.metaSourceCounts && db.metaSourceCounts.dpm > 0 && ` · ${db.metaSourceCounts.dpm}`}
               </option>
+              {/* op.gg deprecated as default — keep option only if user
+                  has the data already synced so existing setups don't
+                  break silently. */}
+              {db.metaSourceCounts && db.metaSourceCounts.opgg > 0 && prefs.metaSource === "opgg" && (
+                <option value="opgg">
+                  op.gg (legacy · {db.metaSourceCounts.opgg})
+                </option>
+              )}
               {db.metaSourceCounts && db.metaSourceCounts.proplay > 0 && (
                 <option value="proplay">
                   Pro play · {db.metaSourceCounts.proplay}

@@ -10,13 +10,15 @@
 // adapter based on enemy items, etc).
 
 import { useEffect, useMemo } from "react";
-import { Activity, Crown, Sparkles, Timer } from "lucide-react";
+import { Activity, Crown, Sparkles, Timer, Shield } from "lucide-react";
 import { Panel } from "./ui/Panel";
 import { useLiveGame, useLiveGameTime } from "../hooks/useLiveGame";
 import { findMyPlayer, type LiveGameEvent } from "../services/liveClient";
 import { displayGameMode } from "../data/gameModeNames";
 import { setOverlayVisible } from "../services/overlay";
 import { usePrefsStore } from "../state/prefsStore";
+import { suggestInGameAdaptations } from "../engine/inGameAdapter";
+import type { ChampionDb } from "../types/champion";
 
 // Riot's respawn timers (seconds after kill). Values match the live game
 // timers shown on the in-game minimap, sourced from Riot's published patch
@@ -86,7 +88,14 @@ function deriveTimers(
   };
 }
 
-export function LiveGamePanel() {
+interface LiveGamePanelProps {
+  /** Champion DB — required to look up the local player's champion tags
+   *  for the contextual build adapter. Panel renders timers/scores fine
+   *  without it, but the "counters" section won't appear. */
+  db?: ChampionDb | null;
+}
+
+export function LiveGamePanel({ db }: LiveGamePanelProps = {}) {
   const liveState = useLiveGame(true);
   const { inGame, snapshot } = liveState;
   // Smooth 1s tick interpolated from the 2s-stale snapshot — keeps the
@@ -101,13 +110,18 @@ export function LiveGamePanel() {
     return deriveTimers(snapshot.events, snapshot.gameData.gameTime);
   }, [snapshot]);
 
-  // Drive the transparent overlay window's visibility from the same
-  // in-game detection. Pref `showInGameOverlay` lets the user opt out
-  // (some prefer the embedded panel only). Hide always fires when the
-  // game ends so the overlay never lingers between matches.
+  // OVERLAY TEMPORARILY DISABLED — current Win32 transparent topmost
+  // approach has UX issues users report (click-through edge cases,
+  // positioning drift, doesn't survive alt-tab cleanly). Hard-disabled
+  // until we ship a polished v2. We still call setOverlayVisible(false)
+  // unconditionally so any window state lingering from a previous
+  // session gets cleared.
+  //
+  // Pref `showInGameOverlay` is preserved for the user's choice when
+  // v2 ships — they don't have to re-opt-in.
+  void showOverlay; // pref still read so the dependency array stays meaningful
   useEffect(() => {
-    if (inGame && showOverlay) setOverlayVisible(true);
-    else setOverlayVisible(false);
+    setOverlayVisible(false);
   }, [inGame, showOverlay]);
 
   if (!inGame || !snapshot) return null;
@@ -133,6 +147,25 @@ export function LiveGamePanel() {
     if (p.team === myTeamColor) myKills += p.scores.kills;
     else theirKills += p.scores.kills;
   }
+
+  // Contextual build advice — scans enemy items every poll and surfaces
+  // grievous wounds, anti-armor, anti-MR, anti-crit recs as enemies
+  // itemise. Returns [] before MIN_GAME_TIME so we don't suggest Mortal
+  // Reminder during minute 2 based on starting Doran's.
+  const myChamp = myRecord && db
+    ? Object.values(db.champions).find(
+        (c) => c.id === myRecord.rawChampionName || c.id === myRecord.championName
+      )
+    : null;
+  const enemyPlayers = snapshot.allPlayers.filter((p) => p.team !== myTeamColor);
+  const inGameSuggestions = myChamp
+    ? suggestInGameAdaptations({
+        champion: myChamp,
+        enemyPlayers,
+        gameTime,
+        myItems: myRecord?.items ?? [],
+      })
+    : [];
 
   return (
     <Panel padding="sm">
@@ -174,6 +207,42 @@ export function LiveGamePanel() {
             <Stat label="Gold" value={me.currentGold.toFixed(0)} />
             <Stat label="Lvl" value={String(me.level)} />
           </div>
+        </div>
+      )}
+
+      {/* Contextual counters — reacts to actual enemy item buys */}
+      {inGameSuggestions.length > 0 && (
+        <div className="border-t border-white/5 pt-2 mb-2 space-y-1">
+          <div className="flex items-center gap-1.5 mb-1">
+            <Shield className="w-3 h-3 text-accent" />
+            <p className="text-[10px] uppercase tracking-widest text-accent font-semibold">
+              Counters según items enemigos
+            </p>
+          </div>
+          {inGameSuggestions.map((s) => (
+            <div
+              key={s.key}
+              className={`flex items-start gap-2 p-1.5 rounded text-[11px] ${
+                s.priority === "core"
+                  ? "bg-bad/10 border border-bad/40"
+                  : "bg-meh/10 border border-meh/40"
+              }`}
+              title={s.reason}
+            >
+              <img
+                src={`https://ddragon.leagueoflegends.com/cdn/${db?.patch ?? ""}/img/item/${s.itemId}.png`}
+                alt=""
+                className="w-7 h-7 rounded border border-border-subtle flex-shrink-0"
+                onError={(e) => {
+                  e.currentTarget.style.display = "none";
+                }}
+              />
+              <div className="flex-1 min-w-0">
+                <p className="text-white font-medium leading-tight">{s.itemName}</p>
+                <p className="text-white/60 text-[10px] leading-tight mt-0.5">{s.reason}</p>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 

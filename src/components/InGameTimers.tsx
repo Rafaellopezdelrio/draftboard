@@ -9,22 +9,61 @@
 import { useMemo } from "react";
 import { useLiveGame, useLiveGameTime } from "../hooks/useLiveGame";
 import type { LiveGameEvent } from "../services/liveClient";
+import { Activity, Crown, Eye, Flame, Skull } from "lucide-react";
 
 interface TimerRow {
   name: string;
-  icon: string;
+  IconComponent: React.ComponentType<{ className?: string }>;
   color: string;
+  /** Solid bg class for the progress bar fill. Must be a literal class
+   *  so Tailwind JIT scans it at build time (dynamic concat breaks JIT). */
+  fillColor: string;
+  ringColor: string;
   firstSpawnSec: number;
   respawnSec: number;
 }
 
 // Canonical schedule for Season 14+ Summoner's Rift. Atakhan is the new
 // 20-min objective; only spawns once per game so respawnSec stays 0.
+// Icons use lucide for crisp vector renders + mint-accented ring colors
+// so the panel stays cohesive with the rest of the brand.
 const TIMERS: TimerRow[] = [
-  { name: "Drake",   firstSpawnSec: 5 * 60,  respawnSec: 5 * 60, icon: "🐉", color: "text-good" },
-  { name: "Herald",  firstSpawnSec: 14 * 60, respawnSec: 6 * 60, icon: "👁️", color: "text-meh" },
-  { name: "Baron",   firstSpawnSec: 25 * 60, respawnSec: 6 * 60, icon: "💀", color: "text-bad" },
-  { name: "Atakhan", firstSpawnSec: 20 * 60, respawnSec: 0,      icon: "👑", color: "text-accent" },
+  {
+    name: "Drake",
+    IconComponent: Flame,
+    color: "text-orange-300",
+    fillColor: "bg-orange-300",
+    ringColor: "border-orange-300/40 bg-orange-300/5",
+    firstSpawnSec: 5 * 60,
+    respawnSec: 5 * 60,
+  },
+  {
+    name: "Herald",
+    IconComponent: Eye,
+    color: "text-purple-300",
+    fillColor: "bg-purple-300",
+    ringColor: "border-purple-300/40 bg-purple-300/5",
+    firstSpawnSec: 14 * 60,
+    respawnSec: 6 * 60,
+  },
+  {
+    name: "Baron",
+    IconComponent: Skull,
+    color: "text-bad",
+    fillColor: "bg-bad",
+    ringColor: "border-bad/40 bg-bad/5",
+    firstSpawnSec: 25 * 60,
+    respawnSec: 6 * 60,
+  },
+  {
+    name: "Atakhan",
+    IconComponent: Crown,
+    color: "text-accent",
+    fillColor: "bg-accent",
+    ringColor: "border-accent/40 bg-accent/5",
+    firstSpawnSec: 20 * 60,
+    respawnSec: 0,
+  },
 ];
 
 function formatMMSS(sec: number): string {
@@ -88,8 +127,9 @@ export function InGameTimers() {
   return (
     <div className="space-y-2 p-3 bg-bg-elev border border-border-subtle rounded">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm uppercase tracking-wide text-accent">
-          🎮 Partida en curso — referencias
+        <h3 className="text-sm uppercase tracking-wide text-accent flex items-center gap-1.5">
+          <Activity className="w-3.5 h-3.5 animate-pulse" />
+          Objetivos · timers
         </h3>
         {live && (
           <span className="text-[10px] uppercase tracking-widest text-good tabular-nums">
@@ -99,31 +139,49 @@ export function InGameTimers() {
       </div>
       <div className="grid grid-cols-2 gap-2">
         {TIMERS.map((t) => {
+          const Icon = t.IconComponent;
           if (live) {
             const killedAt =
               t.name === "Drake" ? kills.drake :
               t.name === "Herald" ? kills.herald :
               t.name === "Baron" ? kills.baron :
               null;
-            const { ready, label } = etaFor(t, killedAt, liveTime);
+            const { ready, label, etaSec } = etaFor(t, killedAt, liveTime);
+            // Progress bar — visualise how close we are to spawn.
+            // Width: 0% when far away, 100% when ready. Helps the user
+            // glance at the card and feel urgency without doing math.
+            const total = t.respawnSec || t.firstSpawnSec;
+            const progress = ready
+              ? 100
+              : Math.max(0, Math.min(100, 100 - (etaSec / total) * 100));
             return (
               <div
                 key={t.name}
-                className={`bg-bg-card rounded p-2 border ${
-                  ready ? "border-good ring-1 ring-good/40" : "border-border-subtle"
+                className={`relative rounded p-2 border overflow-hidden ${
+                  ready ? "border-good ring-2 ring-good/40 bg-good/5 animate-pulse" : t.ringColor
                 }`}
               >
-                <p className={`text-sm font-medium ${t.color}`}>
-                  {t.icon} {t.name}
-                </p>
-                <p className={`text-xs tabular-nums ${ready ? "text-good font-semibold" : "text-white/70"}`}>
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <Icon className={`w-3.5 h-3.5 ${t.color}`} />
+                  <p className={`text-sm font-semibold ${t.color}`}>{t.name}</p>
+                </div>
+                <p className={`text-xs tabular-nums ${ready ? "text-good font-bold" : "text-white/85"}`}>
                   {ready ? "↑ Spawn ahora" : `Próximo: ${label}`}
                 </p>
                 {killedAt !== null && t.respawnSec > 0 && (
-                  <p className="text-[10px] text-white/40 mt-0.5">
+                  <p className="text-[9px] text-white/40 mt-0.5">
                     último a {formatMMSS(killedAt)}
                   </p>
                 )}
+                {/* Progress bar — animates as the timer counts down. */}
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-white/5">
+                  <div
+                    className={`h-full transition-all duration-1000 ${
+                      ready ? "bg-good" : t.fillColor
+                    }`}
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
               </div>
             );
           }
@@ -131,16 +189,17 @@ export function InGameTimers() {
           return (
             <div
               key={t.name}
-              className="bg-bg-card rounded p-2 border border-border-subtle"
+              className={`rounded p-2 border ${t.ringColor}`}
             >
-              <p className={`text-sm font-medium ${t.color}`}>
-                {t.icon} {t.name}
-              </p>
-              <p className="text-xs text-white/60">
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <Icon className={`w-3.5 h-3.5 ${t.color}`} />
+                <p className={`text-sm font-semibold ${t.color}`}>{t.name}</p>
+              </div>
+              <p className="text-[11px] text-white/65 tabular-nums">
                 1ª spawn: {Math.round(t.firstSpawnSec / 60)}min
               </p>
               {t.respawnSec > 0 && (
-                <p className="text-xs text-white/60">
+                <p className="text-[11px] text-white/65 tabular-nums">
                   Respawn: {Math.round(t.respawnSec / 60)}min
                 </p>
               )}
@@ -148,7 +207,7 @@ export function InGameTimers() {
           );
         })}
       </div>
-      <p className="text-xs text-white/40">
+      <p className="text-[10px] text-white/45 leading-snug">
         💡 Wardea río 30s antes del spawn. Empuja waves laterales primero.
       </p>
     </div>

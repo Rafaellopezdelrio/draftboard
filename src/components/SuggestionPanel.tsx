@@ -5,6 +5,45 @@ import { CountUp } from "./ui/CountUp";
 import { GradeBadge } from "./ui/GradeBadge";
 import { Crown, Sword, Heart, Trophy, Star } from "lucide-react";
 
+/**
+ * Mastery chevron — small badge overlaid on a champion icon showing
+ * the player's mastery level (M5, M6, M7, or M10) for that champ.
+ * Returns null below M3 to keep the UI clean — we only flag champs
+ * the player has meaningful experience with.
+ *
+ * Colors mirror Riot's in-client mastery palette: M5 blue, M6 purple,
+ * M7 gold, M10 prestige red.
+ *
+ * Declared at module top (before the components that reference it) so
+ * Vite HMR can't strand consumers with a stale reference when this
+ * file is edited mid-session. Function declarations DO hoist within an
+ * ES module, but HMR partial updates have been observed to break that
+ * guarantee — the bug surfaced as a ReferenceError in production
+ * (Sentry DRAFTBOARD-3/DRAFTBOARD-4) until we moved the def up.
+ */
+function MasteryChevron({ level, large = false }: { level: number; large?: boolean }) {
+  if (!level || level < 3) return null;
+  const color =
+    level >= 10
+      ? "bg-red-500 ring-red-300"
+      : level >= 7
+        ? "bg-accent ring-accent/70 text-black"
+        : level >= 6
+          ? "bg-purple-500 ring-purple-300"
+          : level >= 5
+            ? "bg-blue-500 ring-blue-300"
+            : "bg-white/30 ring-white/50";
+  const size = large ? "w-5 h-5 text-[10px]" : "w-4 h-4 text-[9px]";
+  return (
+    <span
+      className={`absolute -bottom-1 -left-1 ${size} font-bold rounded-full inline-flex items-center justify-center ring-2 shadow-md tabular-nums ${color}`}
+      title={`Mastery ${level}`}
+    >
+      {level}
+    </span>
+  );
+}
+
 interface Props {
   suggestions: ScoredSuggestion[];
   hasRole?: boolean;
@@ -138,6 +177,9 @@ function PickHero({ suggestion: s, beginner }: { suggestion: ScoredSuggestion; b
               <Crown className="w-3 h-3" />
             </div>
           )}
+          {/* Mastery chevron — bottom-right corner (Crown stays top-right
+            * for one-tricks so both badges coexist cleanly). */}
+          <MasteryChevron level={s.breakdown.masteryLevel} large />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline gap-2">
@@ -178,11 +220,17 @@ function PickRow({ suggestion: s, beginner }: { suggestion: ScoredSuggestion; be
       className={`flex items-center gap-2.5 p-2 rounded-md bg-bg-card/60 ring-1 ${ring} hover:bg-bg-hover transition`}
       title={`Counter ${(s.breakdown.counter * 100).toFixed(0)}% · Synergy ${(s.breakdown.synergy * 100).toFixed(0)}% · Meta ${(s.breakdown.meta * 100).toFixed(0)}%`}
     >
-      <img
-        src={s.champion.iconUrl}
-        alt={s.champion.name}
-        className="w-10 h-10 rounded"
-      />
+      <div className="relative shrink-0">
+        <img
+          src={s.champion.iconUrl}
+          alt={s.champion.name}
+          className="w-10 h-10 rounded"
+        />
+        {/* Mastery chevron — shows M5/M6/M7/M10 badge over the icon
+          * so the user sees their experience level with the champ at a
+          * glance. Only renders for M3+. Sized + colored by tier. */}
+        <MasteryChevron level={s.breakdown.masteryLevel} />
+      </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
           <p className="text-sm font-medium text-white truncate">{s.champion.name}</p>

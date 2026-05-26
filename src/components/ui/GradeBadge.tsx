@@ -16,7 +16,7 @@ function scoreToGrade(score01: number): { grade: string; tier: "splus" | "s" | "
 }
 
 const STYLES = {
-  splus: "bg-gradient-to-br from-accent-soft to-accent text-black ring-accent shadow-[0_0_12px_rgba(200,155,60,0.5)]",
+  splus: "bg-gradient-to-br from-accent-soft to-accent text-black ring-accent shadow-[0_0_12px_rgba(78,205,196,0.55)]",
   s: "bg-gradient-to-br from-accent to-accent-deep text-black ring-accent",
   a: "bg-gradient-to-br from-cyan-300 to-cyan-600 text-black ring-cyan-400",
   b: "bg-gradient-to-br from-emerald-400 to-emerald-700 text-black ring-emerald-400",

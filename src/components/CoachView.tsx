@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { analyzeMatch, type Insight } from "../engine/coachEngine";
 import { computeGpi, type GpiScore } from "../engine/gpiEngine";
+import { deriveTopInsight } from "../engine/topInsight";
 import {
   getMatchFull,
   getMatchTimeline,
@@ -47,7 +48,11 @@ export function CoachView({ db, onClose }: Props) {
       durationSec: number;
     }>
   >([]);
-  const showGpi = usePrefsStore((s) => s.prefs.coachShowGpi);
+  // showGpi pref kept readable for telemetry/future use but no longer
+  // gates the radar render — GPI is the killer visual in CoachView and
+  // we don't hide it. Kept as a no-op assignment so the pref still
+  // appears in DataPrivacy export.
+  void usePrefsStore((s) => s.prefs.coachShowGpi);
   const aiEnabled = usePrefsStore((s) => s.prefs.aiCoachEnabled);
   const aiProvider = usePrefsStore((s) => s.prefs.aiProvider);
   const aiKey = usePrefsStore((s) =>
@@ -231,7 +236,51 @@ export function CoachView({ db, onClose }: Props) {
               {Math.round(matchFull.durationSec / 60)}min ·{" "}
               {queueLabel(matchFull.queueId)}
             </div>
-            {gpi && showGpi && (
+            {/* Top Insight card — surfaces the weakest GPI axis with a
+              * concrete tip. Renders ABOVE the radar so the user gets
+              * the actionable advice first, then dives into the
+              * detailed visual breakdown. Card is skipped entirely when
+              * GPI is healthy (all axes > 65), so it only appears when
+              * there's something meaningful to coach. */}
+            {(() => {
+              const insight = deriveTopInsight(gpi);
+              if (!insight) return null;
+              const sevPalette = {
+                critical: "border-bad/60 bg-bad/10",
+                "needs-work": "border-meh/50 bg-meh/10",
+                okay: "border-border-subtle bg-bg-card",
+              }[insight.severity];
+              const sevColor = {
+                critical: "text-bad",
+                "needs-work": "text-meh",
+                okay: "text-white/70",
+              }[insight.severity];
+              return (
+                <div className={`border rounded p-3 ${sevPalette}`}>
+                  <div className="flex items-baseline justify-between mb-1.5">
+                    <p className={`text-[10px] uppercase tracking-widest font-semibold ${sevColor}`}>
+                      ⚡ Top insight
+                    </p>
+                    <span className={`text-[10px] uppercase tracking-wider ${sevColor}`}>
+                      {insight.label} · {insight.score}/100
+                    </span>
+                  </div>
+                  <p className="text-sm text-white leading-snug mb-1">{insight.tip}</p>
+                  {insight.secondaryTip && (
+                    <p className="text-[11px] text-white/55 leading-snug pt-1 border-t border-white/5">
+                      {insight.secondaryTip}
+                    </p>
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* GPI radar — always shown when available. Previously gated
+              * on `showGpi` pref which defaulted to ON anyway; the gate
+              * just left users confused when they accidentally toggled
+              * it off. The radar is the single most useful visual in
+              * CoachView so we don't hide it. */}
+            {gpi && (
               <div className="bg-bg-card border border-border-subtle rounded p-3">
                 <GpiRadar score={gpi} />
               </div>

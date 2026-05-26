@@ -399,6 +399,7 @@ export function PreferencesView({ onClose }: Props) {
               <AutostartField />
               <RiotProxyField />
               <MetaSourceField />
+              <ThemeAccentField />
               <AnthropicKeyField />
             </>
           )}
@@ -496,10 +497,81 @@ function RiotProxyField() {
   );
 }
 
+/**
+ * Theme accent picker. Lets the user pick the brand color variant.
+ * Default mint, with sapphire/amber/rose alternatives. Change is
+ * instant — CSS overrides --color-accent via data-attribute applied
+ * in App.tsx, no reload required.
+ */
+function ThemeAccentField() {
+  const theme = usePrefsStore((s) => s.prefs.accentTheme);
+  const set = usePrefsStore((s) => s.set);
+  type Theme = "mint" | "sapphire" | "amber" | "rose";
+  const themes: Array<{ key: Theme; label: string; hex: string; emoji: string }> = [
+    { key: "mint", label: "Mint", hex: "#4ecdc4", emoji: "🌿" },
+    { key: "sapphire", label: "Sapphire", hex: "#4dabf7", emoji: "💎" },
+    { key: "amber", label: "Amber", hex: "#fbbf24", emoji: "🏆" },
+    { key: "rose", label: "Rose", hex: "#ff6b8a", emoji: "🌸" },
+  ];
+  return (
+    <section>
+      <h3 className="text-xs uppercase tracking-wide text-white/50 mb-2">
+        Color de marca
+      </h3>
+      <div className="grid grid-cols-4 gap-2">
+        {themes.map((t) => (
+          <button
+            key={t.key}
+            type="button"
+            onClick={() => set("accentTheme", t.key)}
+            className={`flex flex-col items-center gap-1.5 p-2 rounded border transition ${
+              theme === t.key
+                ? "border-accent ring-2 ring-accent/40 bg-accent/5"
+                : "border-border-subtle bg-bg-card/40 hover:border-accent/40"
+            }`}
+            title={`Aplica color ${t.label} a botones, badges y resaltados.`}
+          >
+            <div
+              className="w-8 h-8 rounded-full ring-2 ring-white/10"
+              style={{ backgroundColor: t.hex }}
+            />
+            <span className="text-[10px] uppercase tracking-wider text-white/70 font-semibold">
+              {t.emoji} {t.label}
+            </span>
+          </button>
+        ))}
+      </div>
+      <p className="text-[11px] text-white/40 mt-2">
+        El cambio es inmediato. Mint es el predeterminado.
+      </p>
+    </section>
+  );
+}
+
 function MetaSourceField() {
   const source = usePrefsStore((s) => s.prefs.metaSource);
   const days = usePrefsStore((s) => s.prefs.proPlayDaysWindow);
   const set = usePrefsStore((s) => s.set);
+  // Local string state for the days input. Required because clamping
+  // Number(e.target.value) on every keystroke broke typing intermediate
+  // values — e.g. typing "30" first hit "3" → clamp to min=7 → input
+  // shows "7" → user can never finish typing 30. We hold local string
+  // while typing, then validate + persist on blur or Enter.
+  const [daysInput, setDaysInput] = useState(String(days));
+  // Keep local in sync if pref changes from outside (e.g. another window).
+  useEffect(() => {
+    setDaysInput(String(days));
+  }, [days]);
+  const commitDays = () => {
+    const n = parseInt(daysInput, 10);
+    if (!Number.isFinite(n)) {
+      setDaysInput(String(days)); // revert to last valid value
+      return;
+    }
+    const clamped = Math.max(7, Math.min(90, n));
+    setDaysInput(String(clamped));
+    if (clamped !== days) set("proPlayDaysWindow", clamped);
+  };
   return (
     <section>
       <h3 className="text-xs uppercase tracking-wide text-white/50 mb-2">
@@ -513,11 +585,16 @@ function MetaSourceField() {
           }
           className="w-full bg-bg text-white text-sm px-3 py-2 rounded border border-border-subtle"
         >
-          <option value="opgg">⚡ op.gg live (millones de partidas — default)</option>
-          <option value="dpm">🎯 dpm.lol (filtrado por tu rango — Iron → Challenger)</option>
+          <option value="dpm">🎯 dpm.lol (filtrado por tu rango — Iron → Challenger · default)</option>
           <option value="proplay">🏆 Pro play (LCK/LEC/LCS/LPL) — requiere sync</option>
           <option value="soloq">SoloQ Master+ — requiere sync + API key Riot</option>
           <option value="blend">Mezcla pro + SoloQ — requiere sync</option>
+          {/* op.gg deprecated as primary source — only show when user
+            * is currently on it so they can stay or migrate to dpm.
+            * Hidden by default to nudge new installs to the better source. */}
+          {source === "opgg" && (
+            <option value="opgg">⚡ op.gg legacy (cambia a dpm.lol)</option>
+          )}
         </select>
         <p className="text-xs text-white/60">
           {source === "opgg" &&
@@ -533,17 +610,32 @@ function MetaSourceField() {
         </p>
         {source !== "soloq" && (
           <div className="flex items-center gap-2 pt-1">
-            <label className="text-xs text-white/50">Ventana pro (días)</label>
+            <label
+              htmlFor="proPlayDaysInput"
+              className="text-xs text-white/50"
+            >
+              Ventana pro (días)
+            </label>
             <input
+              id="proPlayDaysInput"
               type="number"
               min={7}
               max={90}
-              value={days}
-              onChange={(e) =>
-                set("proPlayDaysWindow", Math.max(7, Math.min(90, Number(e.target.value))))
-              }
-              className="w-20 bg-bg text-white text-xs px-2 py-1 rounded border border-border-subtle"
+              value={daysInput}
+              onChange={(e) => setDaysInput(e.target.value)}
+              onBlur={commitDays}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  (e.currentTarget as HTMLInputElement).blur();
+                }
+              }}
+              className="w-20 bg-bg text-white text-xs px-2 py-1 rounded border border-border-subtle focus:border-accent outline-none"
+              title="7-90 días. Pulsa Enter o cambia foco para guardar."
             />
+            <span className="text-[10px] text-white/40">
+              {daysInput !== String(days) ? "sin guardar" : "guardado"}
+            </span>
           </div>
         )}
       </div>

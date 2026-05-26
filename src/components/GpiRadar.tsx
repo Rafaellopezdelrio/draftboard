@@ -83,8 +83,8 @@ export function GpiRadar({ score }: Props) {
         {axisLines}
         <polygon
           points={points}
-          fill="rgba(200,155,60,0.25)"
-          stroke="#c89b3c"
+          fill="rgba(78,205,196,0.25)"
+          stroke="#4ecdc4"
           strokeWidth="2"
         />
         {labelEls}

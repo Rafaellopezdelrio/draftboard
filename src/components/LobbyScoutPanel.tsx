@@ -117,6 +117,29 @@ function TeamColumn({
   );
 }
 
+/** Maps a Riot rank string (e.g. "DIAMOND IV", "EMERALD II") to the
+ *  CommunityDragon emblem URL. Returns null for unranked / unknown
+ *  tiers so caller can render the fallback Shield icon. */
+function rankEmblemUrl(rank: string | undefined | null): string | null {
+  if (!rank) return null;
+  const tier = rank.split(" ")[0]?.toLowerCase();
+  const valid = [
+    "iron",
+    "bronze",
+    "silver",
+    "gold",
+    "platinum",
+    "emerald",
+    "diamond",
+    "master",
+    "grandmaster",
+    "challenger",
+  ];
+  if (!tier || !valid.includes(tier)) return null;
+  // CDragon hosts ranked emblems under a stable path. Lowercase, no spaces.
+  return `https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-static-assets/global/default/images/ranked-mini-regalia/${tier}.png`;
+}
+
 function PlayerRow({ p, db }: { p: ScoutedPlayer; db: ChampionDb }) {
   const champ = Object.values(db.champions).find(
     (c) => Number(c.key) === p.championId
@@ -132,6 +155,8 @@ function PlayerRow({ p, db }: { p: ScoutedPlayer; db: ChampionDb }) {
       : p.soloWinRate >= 0.48
         ? "text-white/65"
         : "text-bad";
+
+  const emblem = rankEmblemUrl(p.soloRank);
 
   return (
     <li className="flex items-center gap-2 text-[11px]">
@@ -155,8 +180,17 @@ function PlayerRow({ p, db }: { p: ScoutedPlayer; db: ChampionDb }) {
         </div>
         {p.soloRank && (
           <div className="flex items-center gap-1.5 text-[10px] text-white/55">
-            <Shield className="w-2.5 h-2.5" />
-            <span>
+            {emblem ? (
+              <img
+                src={emblem}
+                alt={p.soloRank}
+                className="w-4 h-4 shrink-0"
+                onError={(e) => ((e.currentTarget as HTMLImageElement).style.display = "none")}
+              />
+            ) : (
+              <Shield className="w-2.5 h-2.5" />
+            )}
+            <span className="font-medium">
               {p.soloRank} · {p.soloLp} LP
             </span>
             <span className={`tabular-nums ${wrColor}`}>
