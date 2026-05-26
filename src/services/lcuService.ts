@@ -123,10 +123,25 @@ export interface LcuPlayer {
   summonerId?: number;
 }
 
+export interface LcuChampSelectAction {
+  actorCellId: number;
+  championId: number;
+  completed: boolean;
+  id: number;
+  isAllyAction: boolean;
+  type: "ban" | "pick" | string;
+}
+
 export interface LcuChampSelectSession {
   myTeam: LcuPlayer[];
   theirTeam: LcuPlayer[];
   bans: { myTeamBans: number[]; theirTeamBans: number[] };
+  /** Riot delivers ban + pick actions as a 2D array: outer = turn groups,
+   *  inner = each player's action in that turn. We scan this for live
+   *  ban hovers because `bans.myTeamBans` is only populated AFTER the
+   *  ban phase completes — during hover/timer it stays empty, which
+   *  hid all banned champs from our UI until the phase ended. */
+  actions?: LcuChampSelectAction[][];
   localPlayerCellId: number;
   timer?: { phase: string; adjustedTimeLeftInPhase: number };
 }

@@ -3,6 +3,14 @@
 
 export type VoiceLang = "es" | "en";
 
+/** Single source of truth for the speechSynthesis-available check.
+ *  jsdom, SSR, and stripped-down webviews lack the Web Speech API;
+ *  every call site has to guard or unit tests + non-browser callers
+ *  blow up with ReferenceError. */
+function hasSpeech(): boolean {
+  return typeof window !== "undefined" && typeof speechSynthesis !== "undefined";
+}
+
 class VoiceCoach {
   private enabled = false;
   private lang: VoiceLang = "es";
@@ -11,7 +19,7 @@ class VoiceCoach {
 
   setEnabled(v: boolean) {
     this.enabled = v;
-    if (!v) speechSynthesis.cancel();
+    if (!v && hasSpeech()) speechSynthesis.cancel();
   }
 
   setLanguage(l: VoiceLang) {
@@ -20,13 +28,13 @@ class VoiceCoach {
   }
 
   init() {
-    if (typeof window === "undefined") return;
+    if (!hasSpeech()) return;
     this.pickVoice();
     speechSynthesis.addEventListener?.("voiceschanged", () => this.pickVoice());
   }
 
   private pickVoice() {
-    if (typeof window === "undefined") return;
+    if (!hasSpeech()) return;
     const wanted = this.lang === "es" ? ["es-ES", "es-MX", "es"] : ["en-US", "en-GB", "en"];
     const all = speechSynthesis.getVoices();
     for (const w of wanted) {
@@ -40,7 +48,7 @@ class VoiceCoach {
   }
 
   speak(message: string, dedupKey?: string) {
-    if (!this.enabled || typeof window === "undefined") return;
+    if (!this.enabled || !hasSpeech()) return;
     if (dedupKey) {
       if (this.spoken.has(dedupKey)) return;
       this.spoken.add(dedupKey);
@@ -57,7 +65,7 @@ class VoiceCoach {
 
   resetSession() {
     this.spoken.clear();
-    speechSynthesis.cancel();
+    if (hasSpeech()) speechSynthesis.cancel();
   }
 }
 

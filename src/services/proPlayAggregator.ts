@@ -145,16 +145,30 @@ export async function aggregateFromProPlay(
     if (!resp || !resp.ok) break;
     const json = (await resp.json()) as CargoResponse;
     if (json.error) {
-      // Soft-fail on rate limit so user sees partial data rather than total fail
-      if (/rate limit/i.test(json.error.info ?? "")) {
+      const info = json.error.info ?? "error";
+      // Soft-fail on transient errors so partial data is preserved
+      // rather than wiping the whole sync. Three known transient
+      // signatures:
+      //   - rate limit (Fandom throttling)
+      //   - MWException (random MediaWiki server hiccup, very common)
+      //   - "Internal error" / 5xx from Cargo
+      const isTransient =
+        /rate limit/i.test(info) ||
+        /MWException/i.test(info) ||
+        /internal/i.test(info) ||
+        /5\d\d/.test(info);
+      if (isTransient) {
         onProgress({
-          phase: `Leaguepedia rate-limited — usando ${allRows.length} partidas descargadas hasta ahora`,
+          phase:
+            allRows.length > 0
+              ? `Leaguepedia error transitorio — usando ${allRows.length} partidas descargadas`
+              : `Leaguepedia error transitorio (${info.slice(0, 60)}). Reintenta en 1-2 min.`,
           done: page,
           total: 6,
         });
         break;
       }
-      throw new Error(`Leaguepedia: ${json.error.info ?? "error"}`);
+      throw new Error(`Leaguepedia: ${info}`);
     }
     const batch = (json.cargoquery ?? []).map((x) => x.title);
     allRows.push(...batch);
