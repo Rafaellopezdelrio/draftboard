@@ -62,7 +62,10 @@ export function suggestBans({
       .filter(
         (m) =>
           m.role === role &&
-          m.tier === "S" &&
+          // Include S+ (dpm.lol top tier) AND S — only filtering "S" meant
+          // dpm-default users got zero global threats because their top-tier
+          // champs are tagged "S+", not "S".
+          (m.tier === "S+" || m.tier === "S") &&
           m.winRate >= 0.52 &&
           !taken.has(m.championKey) &&
           !suggestions.some((s) => s.championKey === m.championKey)

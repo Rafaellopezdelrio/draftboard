@@ -37,6 +37,13 @@ export interface ScoredSuggestion {
      * something you know how to play AND that the meta agrees is strong.
      */
     isPerfectPick: boolean;
+    /**
+     * Player's mastery level for this champion (1-10 via M1..M10 system).
+     * Forwarded raw from LCU /lol-collections so the UI can render a
+     * mastery chevron (M5/M6/M7/M10) badge on the champion icon. 0 if
+     * the player has never played this champ.
+     */
+    masteryLevel: number;
   };
   reasons: string[];
   color: "good" | "meh" | "bad";
@@ -224,6 +231,7 @@ function scoreChampion(c: Champion, ctx: ScoreCtx): ScoredSuggestion {
       hasAllyData: ctx.allyKeys.length > 0,
       isComfort,
       isPerfectPick,
+      masteryLevel: masteryEntry?.championLevel ?? 0,
     },
     reasons,
     color,
