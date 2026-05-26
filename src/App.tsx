@@ -17,6 +17,7 @@ import { OwnMasteriesPanel } from "./components/OwnMasteriesPanel";
 import { PhaseTimer } from "./components/PhaseTimer";
 import { Toaster } from "./components/Toaster";
 import { ViewBoundary } from "./components/ViewBoundary";
+import { PanelBoundary } from "./components/PanelBoundary";
 import { Logo } from "./components/ui/Logo";
 import {
   Sparkles,
@@ -106,6 +107,7 @@ import { UpdateBanner } from "./components/UpdateBanner";
 import { OverlayCompatBanner } from "./components/OverlayCompatBanner";
 import { NetworkStatusBanner } from "./components/NetworkStatusBanner";
 import { FirstRunHealthBanner } from "./components/FirstRunHealthBanner";
+import { TrackingStatusBar } from "./components/TrackingStatusBar";
 // AboutModal + ShortcutsHelp lazy-loaded — they pull lucide icons + their
 // own logic and are rarely opened. ChangelogModal stays eager because
 // it's auto-mounted on every boot (version diff check); lazy would defer
@@ -145,6 +147,8 @@ import { ChampionPoolPanel } from "./components/ChampionPoolPanel";
 import { InGameTimers } from "./components/InGameTimers";
 import { PatchImpactPanel } from "./components/PatchImpactPanel";
 import { PlaystylePanel } from "./components/PlaystylePanel";
+import { WinConditionsPanel } from "./components/WinConditionsPanel";
+import { TipCarousel } from "./components/TipCarousel";
 import { TradeSuggestionPanel } from "./components/TradeSuggestionPanel";
 import { CommandPalette, type Command } from "./components/CommandPalette";
 import { setOverlayVisible, setOverlayPosition } from "./services/overlay";
@@ -242,6 +246,7 @@ function App() {
   // "was in a match" state with a ref so we only fire the open on the
   // actual transition, not every render.
   const wasInMatchRef = useRef(false);
+  const announcedGameStartRef = useRef(false);
   useEffect(() => {
     const inMatch =
       gamePhase.phase === "InProgress" ||
@@ -250,12 +255,26 @@ function App() {
       gamePhase.phase === "WaitingForStats";
     if (inMatch) {
       wasInMatchRef.current = true;
+      // Speak once at first InProgress transition. announcedGameStartRef
+      // resets when we leave the match below, so each new game gets a
+      // fresh announcement.
+      if (gamePhase.phase === "InProgress" && !announcedGameStartRef.current) {
+        announcedGameStartRef.current = true;
+        voiceCoach.speak("Partida empezada");
+      }
       return;
     }
+    // Out of match — clear the announce flag so the next game speaks again.
+    announcedGameStartRef.current = false;
     if (wasInMatchRef.current && prefs.coachAfterMatch && !showCoach) {
       // Small delay so Riot's stats ingestion completes + our match
       // sync grabs the new row before CoachView queries the DB.
-      const t = setTimeout(() => setShowCoach(true), 6000);
+      const t = setTimeout(() => {
+        setShowCoach(true);
+        // Audible cue so user knows coach opened (Draftboard may be in
+        // background after they alt-tab from the post-game lobby).
+        voiceCoach.speak("Análisis post-partida listo");
+      }, 6000);
       wasInMatchRef.current = false;
       return () => clearTimeout(t);
     }
@@ -272,7 +291,21 @@ function App() {
   // Voice coach init
   useEffect(() => {
     voiceCoach.init();
+    // Lazy-import to avoid bundling notification code in the SSR/test paths.
+    import("./services/nativeNotify").then(({ ensureNotificationPermission }) => {
+      ensureNotificationPermission();
+    });
   }, []);
+
+  // Apply the user's accent theme variant by setting a data-attribute
+  // on the root <html> element. CSS in App.css overrides the
+  // --color-accent variables based on this attribute, so every
+  // accent-using element re-styles automatically.
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    document.documentElement.dataset.accent = prefs.accentTheme ?? "mint";
+  }, [prefs.accentTheme]);
+
   useEffect(() => {
     voiceCoach.setEnabled(prefs.voiceCoachEnabled);
     voiceCoach.setLanguage(prefs.aiCoachLanguage);
@@ -500,6 +533,7 @@ function App() {
     })();
   }, [lcuStatus.connected]);
 
+
   // Reload personal stats whenever role changes — so the engine uses
   // only your data in that specific role (mid CS != support CS).
   useEffect(() => {
@@ -535,6 +569,53 @@ function App() {
       });
     });
   }, [pushToast]);
+
+  // Toast on LCU connect/disconnect transitions so the user gets a
+  // non-intrusive heads-up when their LoL client opens or closes. Tracks
+  // the previous value via a ref so the initial mount doesn't fire.
+  const prevLcuConnectedRef = useRef<boolean | null>(null);
+  useEffect(() => {
+    if (prevLcuConnectedRef.current === null) {
+      // Initial mount — record state, don't notify.
+      prevLcuConnectedRef.current = lcuStatus.connected;
+      return;
+    }
+    if (prevLcuConnectedRef.current === lcuStatus.connected) return;
+    prevLcuConnectedRef.current = lcuStatus.connected;
+    if (lcuStatus.connected) {
+      pushToast({
+        type: "success",
+        title: "Cliente de LoL conectado",
+        detail: "Champ select y partidas se trackearán automáticamente.",
+        durationMs: 3000,
+      });
+    } else {
+      pushToast({
+        type: "warn",
+        title: "Cliente de LoL desconectado",
+        detail: "Reabre el cliente para reanudar el tracking.",
+        durationMs: 4000,
+      });
+    }
+  }, [lcuStatus.connected, pushToast]);
+
+  // Listen for the champ-select lock event dispatched by lcuSync and
+  // surface a toast confirmation. Voice + UI both fire — toast gives a
+  // visible cue for muted users while voiceCoach handles the audio.
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<{ championKey: string }>).detail;
+      const champ = detail?.championKey ? db?.champions[detail.championKey] : null;
+      pushToast({
+        type: "success",
+        title: "Campeón bloqueado",
+        detail: champ?.name ?? "Locked in",
+        durationMs: 2000,
+      });
+    };
+    window.addEventListener("draft:champion-locked", handler);
+    return () => window.removeEventListener("draft:champion-locked", handler);
+  }, [db, pushToast]);
 
   // Listen for the patch-poll signal (scheduledJobs fires this when
   // DDragon reports a new top version mid-session). Show an actionable
@@ -830,6 +911,10 @@ function App() {
       />
       <OverlayCompatBanner />
       <PatchNewBanner db={db} masteries={masteries} />
+      {/* Tracking diagnostic strip — always visible. When the user says
+        * "nada funciona" we can read straight from the pills what's
+        * actually connected vs missing. No more guessing. */}
+      <TrackingStatusBar lcuStatus={lcuStatus} gamePhase={gamePhase.phase} />
       <header className="glass border border-border-subtle rounded-xl px-4 py-3 flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-4">
           <Logo />
@@ -938,22 +1023,28 @@ function App() {
               />
             )}
             {prefs.showBuildPanel && buildChampionKey && myRole && (
-              <BuildPanel
-                db={db}
-                championKey={buildChampionKey}
-                role={myRole}
-                enemyKeys={enemyKeys}
-              />
+              <PanelBoundary name="BuildPanel">
+                <BuildPanel
+                  db={db}
+                  championKey={buildChampionKey}
+                  role={myRole}
+                  enemyKeys={enemyKeys}
+                />
+              </PanelBoundary>
             )}
             {/* Live game panel — only renders when a real LoL match is in
                 progress. Auto-hides between games. Polls localhost:2999. */}
-            <LiveGamePanel />
-            <BanSuggestionsPanel
-              db={db}
-              role={myRole}
-              bannedKeys={bans.ally.concat(bans.enemy)}
-              pickedKeys={[...allyKeys, ...enemyKeys]}
-            />
+            <PanelBoundary name="LiveGamePanel">
+              <LiveGamePanel db={db} />
+            </PanelBoundary>
+            <PanelBoundary name="BanSuggestionsPanel">
+              <BanSuggestionsPanel
+                db={db}
+                role={myRole}
+                bannedKeys={bans.ally.concat(bans.enemy)}
+                pickedKeys={[...allyKeys, ...enemyKeys]}
+              />
+            </PanelBoundary>
           </div>
 
           {/* Column B — context: scouts, comp, matchups, mains, patch */}
@@ -962,23 +1053,52 @@ function App() {
                 session. Shows rank + level + win-rate per teammate (and
                 enemies when their names are visible). Re-runs only on
                 roster changes, not on every hover. */}
-            <LobbyScoutPanel session={lcuSession} db={db} />
+            <PanelBoundary name="LobbyScoutPanel">
+              <LobbyScoutPanel session={lcuSession} db={db} />
+            </PanelBoundary>
             {prefs.showCompAnalysis && (
-              <CompAnalysis db={db} allyKeys={allyKeys} />
+              <PanelBoundary name="CompAnalysis">
+                <CompAnalysis db={db} allyKeys={allyKeys} />
+              </PanelBoundary>
             )}
-            <MatchupTipsPanel
-              db={db}
-              enemyKeys={enemyKeys}
-              myChampionKey={buildChampionKey}
-              myRole={myRole}
-            />
-            {prefs.showEnemyScout && (
-              <EnemyScoutPanel
+            <PanelBoundary name="MatchupTipsPanel">
+              <MatchupTipsPanel
                 db={db}
-                enemySummonerIds={enemySummonerIds}
-                enemyChampionIds={enemyChampionIds}
+                enemyKeys={enemyKeys}
+                myChampionKey={buildChampionKey}
+                myRole={myRole}
               />
+            </PanelBoundary>
+            {prefs.showEnemyScout && (
+              <PanelBoundary name="EnemyScoutPanel">
+                <EnemyScoutPanel
+                  db={db}
+                  enemySummonerIds={enemySummonerIds}
+                  enemyChampionIds={enemyChampionIds}
+                />
+              </PanelBoundary>
             )}
+            {/* Win Conditions — game plan derived from comp matchup.
+              * Renders top of side rail so the user sees the tactical
+              * objective first, before the deeper context panels. */}
+            <PanelBoundary name="WinConditionsPanel">
+              <WinConditionsPanel
+                db={db}
+                myChampionKey={buildChampionKey}
+                myRole={myRole}
+                allyKeys={allyKeys}
+                enemyKeys={enemyKeys}
+              />
+            </PanelBoundary>
+            {/* Pre-game tip carousel — rotating champion/role-specific
+              * one-liner advice. Replaces dead space with actionable
+              * tactical reminders. Auto-hides when no role/champ. */}
+            <PanelBoundary name="TipCarousel">
+              <TipCarousel
+                champion={buildChampionKey ? db.champions[buildChampionKey] ?? null : null}
+                role={myRole}
+              />
+            </PanelBoundary>
             <PlaystylePanel />
             <PatchImpactPanel db={db} masteries={masteries} />
             <ChampionPoolPanel db={db} masteries={masteries} />
