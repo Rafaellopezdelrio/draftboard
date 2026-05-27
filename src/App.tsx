@@ -154,24 +154,14 @@ import { CommandPalette, type Command } from "./components/CommandPalette";
 import { setOverlayVisible, setOverlayPosition } from "./services/overlay";
 import { HeaderMenu } from "./components/ui/HeaderMenu";
 import { useEscape, useGlobalShortcut } from "./hooks/useKeyboardShortcuts";
-import { lcuMasteries, lcuRank } from "./services/lcuPersonalData";
 import { useScheduledJobs } from "./state/scheduledJobs";
 import { useGamePhase } from "./state/inGameDetection";
-import { setCoachEloBucket } from "./engine/coachEngine";
 import { predictDraftWinrate } from "./engine/draftWinrateEngine";
 import { personalStatsByChampion } from "./services/matchRepo";
-import { loadSettings } from "./services/settingsRepo";
-import { getTopMasteries, setRiotProxyUrl, type ChampionMasteryDto } from "./services/riotApi";
+import { setRiotProxyUrl } from "./services/riotApi";
 import type { ChampionPersonalStat } from "./services/matchRepo";
 import { usePrefsStore } from "./state/prefsStore";
-import {
-  didRecoverFromCorruption,
-  consumeCorruptionRecovery,
-  probeRustRecoveryMarker,
-} from "./db/client";
-import { subscribeFetchFailure } from "./services/fetchNotify";
-import { BOOT_TIMEOUTS_MS } from "./config";
-import { PATCH_UPDATED_EVENT } from "./state/scheduledJobs";
+import { probeRustRecoveryMarker } from "./db/client";
 import { setUiLocale } from "./i18n";
 import { useAutoActions } from "./state/autoActions";
 import { useOverlayFollowLol } from "./hooks/useOverlayFollowLol";
@@ -181,6 +171,10 @@ import { useLcuConnectToasts, useChampionLockToast } from "./hooks/useLcuToasts"
 import { useAutoOpenCoach } from "./hooks/useAutoOpenCoach";
 import { useViewBreadcrumb } from "./hooks/useViewBreadcrumbs";
 import { useSentrySessionTags } from "./hooks/useSentrySessionTags";
+import { useLcuPersonalData } from "./hooks/useLcuPersonalData";
+import { useTelemetryConsent } from "./hooks/useTelemetryConsent";
+import { useChampionGuideEvent } from "./hooks/useChampionGuideEvent";
+import { useSystemToasts } from "./hooks/useSystemToasts";
 import { startAutoProSync } from "./services/autoProSync";
 
 const ROLES: Role[] = ["TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY"];
@@ -229,15 +223,13 @@ function App() {
     online: netStatus.online,
     version: typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "dev",
   });
-  const [guideChampionKey, setGuideChampionKey] = useState<string | null>(null);
+  const { guideChampionKey, setGuideChampionKey } = useChampionGuideEvent();
   const [personalStats, setPersonalStats] = useState<ChampionPersonalStat[]>([]);
-  // Rank tier from LCU (e.g. "GOLD", "DIAMOND", null when unranked or
-  // the client isn't running). Passed to the suggest engine so it can
-  // boost mastery weight for unranked players who have no rank signal
-  // to anchor their meta calibration.
-  const [rankTier, setRankTier] = useState<string | null>(null);
-  const [masteries, setMasteries] = useState<ChampionMasteryDto[]>([]);
   const gamePhase = useGamePhase();
+  // Personal data from LCU (masteries + rank). Rank feeds the coach
+  // engine + suggestion engine — boosts mastery weight for unranked
+  // players who lack a rank signal to anchor meta calibration.
+  const { masteries, rankTier } = useLcuPersonalData(lcuStatus.connected);
 
   // Post-game auto-coach + "Partida empezada" voice cue. The full
   // in-match → out-of-match state machine lives in useAutoOpenCoach so
@@ -365,21 +357,6 @@ function App() {
   useViewBreadcrumb("ProPlayersView", showProPlayers);
   useViewBreadcrumb("ChampionGuideView", !!guideChampionKey);
 
-  // Right-click on a champion slot in the draft board dispatches this
-  // event from DraftBoard. We open the guide modal for that champion
-  // — saves a click vs going through TierList.
-  useEffect(() => {
-    const onShowGuide = (e: Event) => {
-      const ce = e as CustomEvent<{ championKey: string }>;
-      if (ce.detail?.championKey) {
-        setGuideChampionKey(ce.detail.championKey);
-      }
-    };
-    window.addEventListener("draft:show-champion-guide", onShowGuide);
-    return () =>
-      window.removeEventListener("draft:show-champion-guide", onShowGuide);
-  }, []);
-
   // Sentry global tags — pushed to the scope so every event carries
   // session context. Extracted to a hook.
   useSentrySessionTags({
@@ -397,68 +374,14 @@ function App() {
     probeRustRecoveryMarker().finally(() => loadPrefs());
   }, [loadPrefs]);
 
-  // Mirror the telemetry pref into localStorage so the NEXT app boot can
-  // read the user's choice synchronously (SQLite prefs hydrate async →
-  // would miss early-crash window). Also call shutdownSentry mid-session
-  // when the user flips the pref off, so consent withdrawal is immediate.
-  useEffect(() => {
-    try {
-      localStorage.setItem(
-        "draftboard:telemetry",
-        prefs.telemetryEnabled ? "true" : "false"
-      );
-    } catch {
-      // localStorage unavailable — fall through; next boot defaults to on.
-    }
-    if (!prefs.telemetryEnabled) {
-      import("./services/sentry").then(({ shutdownSentry }) => {
-        shutdownSentry().catch(() => {});
-      });
-    }
-  }, [prefs.telemetryEnabled]);
+  // Mirrors telemetry pref → localStorage + shuts down Sentry mid-session.
+  useTelemetryConsent(prefs.telemetryEnabled);
 
   // Sync Riot proxy URL into the API client whenever prefs change. Lets the
   // user toggle proxy mode without restarting the app.
   useEffect(() => {
     setRiotProxyUrl(prefs.riotProxyUrl || null);
   }, [prefs.riotProxyUrl]);
-
-  // Try LCU first for masteries (no key needed); fall back to Riot API.
-  // Also pull the user's rank to calibrate coach benchmarks to their actual elo.
-  useEffect(() => {
-    (async () => {
-      const fromLcu = await lcuMasteries();
-      if (fromLcu.length > 0) {
-        setMasteries(fromLcu);
-      } else {
-        const cfg = await loadSettings();
-        if (cfg?.puuid && cfg.apiKey) {
-          getTopMasteries(cfg, cfg.puuid, 20).then(setMasteries).catch(() => {});
-        }
-      }
-      const rank = await lcuRank();
-      if (rank) {
-        setCoachEloBucket(rank.tier);
-        setRankTier(rank.tier);
-      } else {
-        setRankTier(null);
-      }
-      // Tag Sentry events with an anonymised PUUID hash so we can group
-      // "this same person hit this same bug" without ever knowing who
-      // they are. Raw PUUID never leaves the device.
-      try {
-        const { getCurrentSummoner } = await import("./services/lcuService");
-        const me = await getCurrentSummoner();
-        if (me?.puuid) {
-          const { setSentryAnonUser } = await import("./services/sentry");
-          setSentryAnonUser(me.puuid);
-        }
-      } catch {
-        // LCU offline — Sentry user stays unset.
-      }
-    })();
-  }, [lcuStatus.connected]);
-
 
   // Reload personal stats whenever role changes — so the engine uses
   // only your data in that specific role (mid CS != support CS).
@@ -477,75 +400,15 @@ function App() {
   const [usingStaleCache, setUsingStaleCache] = useState(false);
   const { push: pushToast } = useToast();
 
-  // Bridge service-layer fetch failures to user-facing toasts.
-  // Services emit via fetchNotify (throttled 30s/source) when a retry
-  // chain exhausts — without this, panels just silently render empty
-  // and the user has no idea the network/proxy is down. We dedupe by
-  // source on the emitter side, so this subscriber stays dumb.
-  useEffect(() => {
-    return subscribeFetchFailure(({ source, error }) => {
-      pushToast({
-        type: "warn",
-        title: `No se pudo cargar: ${source}`,
-        detail:
-          typeof error === "object" && error && "message" in error
-            ? String((error as { message: unknown }).message).slice(0, 140)
-            : "Comprueba tu conexión o reintenta en unos segundos.",
-        durationMs: 6000,
-      });
-    });
-  }, [pushToast]);
-
   // LCU lifecycle toasts (connect/disconnect + champion lock) extracted
   // to hooks. Each one owns its own useEffect + dedup state so App.tsx
   // stays a layout shell instead of a toast-router.
   useLcuConnectToasts(lcuStatus);
   useChampionLockToast(db);
 
-  // Listen for the patch-poll signal (scheduledJobs fires this when
-  // DDragon reports a new top version mid-session). Show an actionable
-  // toast inviting the user to refresh — clicking the action button
-  // forces a fresh champion DB load + reloads the UI to surface new
-  // tier-list/build data immediately.
-  useEffect(() => {
-    function onPatchUpdate(e: Event) {
-      const ce = e as CustomEvent<{ previous: string; latest: string }>;
-      const latest = ce.detail?.latest ?? "?";
-      pushToast({
-        type: "info",
-        title: `Nuevo parche ${latest} detectado`,
-        detail: "Recarga la app para actualizar tier-list, builds y matchups.",
-        durationMs: 0, // sticky — user opts in to refresh
-        action: {
-          label: "Recargar",
-          onClick: () => window.location.reload(),
-        },
-      });
-    }
-    window.addEventListener(PATCH_UPDATED_EVENT, onPatchUpdate);
-    return () => window.removeEventListener(PATCH_UPDATED_EVENT, onPatchUpdate);
-  }, [pushToast]);
-
-  // Surface a one-time toast if the DB was quarantined on boot due to
-  // corruption. The flag is set inside db/client.ts when Database.load
-  // fails and the retry-after-quarantine path succeeds. We poll once
-  // shortly after mount — by then any first getDb() call (from prefs
-  // load) has already fired and set the flag if recovery happened.
-  useEffect(() => {
-    const t = setTimeout(() => {
-      if (didRecoverFromCorruption()) {
-        pushToast({
-          type: "warn",
-          title: "Datos restablecidos",
-          detail:
-            "Tu base de datos estaba dañada y se ha guardado a un lado. La app arranca con datos en blanco para que puedas seguir usándola.",
-          durationMs: 12000,
-        });
-        consumeCorruptionRecovery();
-      }
-    }, BOOT_TIMEOUTS_MS.recoveryProbeDelay);
-    return () => clearTimeout(t);
-  }, [pushToast]);
+  // System-level toasts: fetch failures + patch update + DB corruption
+  // recovery. All three combined into one hook to keep the shell clean.
+  useSystemToasts(pushToast);
 
   useEffect(() => {
     if (!prefsLoaded) return;
