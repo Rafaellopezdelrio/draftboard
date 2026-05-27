@@ -1,10 +1,7 @@
 import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import "./App.css";
-import { loadChampionDb, readChampionDbCacheUnsafe } from "./services/championDb";
-import { trackEvent, trackFetch } from "./services/breadcrumbs";
-import { mark, measure, warnIfSlow } from "./services/perf";
 import { useDraftStore } from "./state/draftStore";
-import type { ChampionDb, Role } from "./types/champion";
+import type { Role } from "./types/champion";
 import { suggest } from "./engine/suggestionEngine";
 import { DraftBoard } from "./components/DraftBoard";
 import { SuggestionPanel } from "./components/SuggestionPanel";
@@ -140,7 +137,6 @@ function SkeletonPanel({ rows, title }: { rows: number; title?: string }) {
     </div>
   );
 }
-import { CHAMPION_ROLES } from "./data/championRoles";
 import { displayPatch } from "./data/patchDisplay";
 import { MatchupTipsPanel } from "./components/MatchupTipsPanel";
 import { ChampionPoolPanel } from "./components/ChampionPoolPanel";
@@ -175,13 +171,12 @@ import { useLcuPersonalData } from "./hooks/useLcuPersonalData";
 import { useTelemetryConsent } from "./hooks/useTelemetryConsent";
 import { useChampionGuideEvent } from "./hooks/useChampionGuideEvent";
 import { useSystemToasts } from "./hooks/useSystemToasts";
-import { startAutoProSync } from "./services/autoProSync";
+import { useChampionDbBoot } from "./hooks/useChampionDbBoot";
+import { useRoleDerivation } from "./hooks/useRoleDerivation";
 
 const ROLES: Role[] = ["TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY"];
 
 function App() {
-  const [db, setDb] = useState<ChampionDb | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const {
     ally,
     enemy,
@@ -196,6 +191,14 @@ function App() {
   const { status: lcuStatus, session: lcuSession } = useLcuSync();
   const prefs = usePrefsStore((s) => s.prefs);
   const loadPrefs = usePrefsStore((s) => s.load);
+  const prefsLoaded = usePrefsStore((s) => s.loaded);
+  const { push: pushToast } = useToast();
+  // Champion DB cold-load with stale-cache fallback + background retry.
+  // Owns: db, error, usingStaleCache. Exposes setDb so TierListView can
+  // force-refresh after a meta-source change. Declared early so other
+  // hooks (useAutoActions, useChampionLockToast) can consume `db`.
+  const { db, error, usingStaleCache, retry: retryDbBoot, setDb } =
+    useChampionDbBoot(prefsLoaded, pushToast);
   const [showSettings, setShowSettings] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showCoach, setShowCoach] = useState(false);
@@ -395,10 +398,6 @@ function App() {
   // meta source selection (especially dpm.lol bracket/region/timeframe)
   // is visible to readMetaSourcePref(). Without this gate the first load
   // races prefsStore.load() and always falls back to op.gg defaults.
-  const prefsLoaded = usePrefsStore((s) => s.loaded);
-  const [bootAttempt, setBootAttempt] = useState(0);
-  const [usingStaleCache, setUsingStaleCache] = useState(false);
-  const { push: pushToast } = useToast();
 
   // LCU lifecycle toasts (connect/disconnect + champion lock) extracted
   // to hooks. Each one owns its own useEffect + dedup state so App.tsx
@@ -410,115 +409,15 @@ function App() {
   // recovery. All three combined into one hook to keep the shell clean.
   useSystemToasts(pushToast);
 
-  useEffect(() => {
-    if (!prefsLoaded) return;
-    let cancelled = false;
-    setError(null);
-    setUsingStaleCache(false);
-    mark("dbLoad:start");
-    loadChampionDb()
-      .then((loadedDb) => {
-        if (cancelled) return;
-        mark("dbLoad:end");
-        const elapsed = measure("dbLoad:start", "dbLoad:end");
-        // Boot budget: 2s. Anything slower indicates DDragon/worker
-        // is sluggish or the user is on a poor connection. Breadcrumb
-        // surfaces this in Sentry if a later error fires.
-        warnIfSlow(elapsed, 2000, "Champion DB initial load", {
-          patch: loadedDb.patch,
-        });
-        trackEvent("config", "Champion DB loaded", {
-          patch: loadedDb.patch,
-          champCount: Object.keys(loadedDb.champions).length,
-          loadMs: Math.round(elapsed),
-        });
-        setDb(loadedDb);
-        // Auto-sync pro-play data in the background once we have champion data.
-        // Silent — fails gracefully if Leaguepedia is rate-limited.
-        startAutoProSync(loadedDb);
-      })
-      .catch((e) => {
-        if (cancelled) return;
-        trackFetch("championDb", "fail", String(e).slice(0, 200));
-        // Fresh load failed — try stale cache fallback so user isn't
-        // dead-ended. Common cases: CF Worker down, DDragon flaky,
-        // user opened the app immediately after losing internet.
-        const stale = readChampionDbCacheUnsafe();
-        if (stale) {
-          setDb(stale);
-          setUsingStaleCache(true);
-          const ageMin = Math.round((Date.now() - stale.fetchedAt) / 60_000);
-          const ageLabel =
-            ageMin < 60 ? `hace ${ageMin}min` : `hace ${Math.round(ageMin / 60)}h`;
-          pushToast({
-            type: "warn",
-            title: "Mostrando datos en caché",
-            detail: `No pude refrescar (${ageLabel}). Reintento en background.`,
-            durationMs: 8000,
-          });
-          // Background retry every minute until fresh load works.
-          const t = setInterval(async () => {
-            try {
-              const fresh = await loadChampionDb(true);
-              if (!cancelled) {
-                setDb(fresh);
-                setUsingStaleCache(false);
-                clearInterval(t);
-                pushToast({
-                  type: "success",
-                  title: "Datos actualizados",
-                  detail: "Refresco completado.",
-                });
-              }
-            } catch {
-              // Keep retrying silently.
-            }
-          }, 60_000);
-        } else {
-          // No cache + load failure = hard error. User retries manually.
-          setError(String(e));
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [prefsLoaded, bootAttempt]);
-
-  // Role derivation. Two-step logic:
-  //
-  //   1. If myRole is null (Practice Tool / blind pick with no assigned
-  //      position) AND we have a hovered/locked champion -> derive role
-  //      from the champion's primary role in CHAMPION_ROLES.
-  //
-  //   2. If myRole IS set but the picked champion CAN'T play that role
-  //      (e.g. queue assigned UTILITY but user picked Kha'Zix who's
-  //      JUNGLE-only) -> override to the champion's primary role. Without
-  //      this, BuildPanel + spell coherence + matchup grid all use the
-  //      wrong role, producing nonsense ("Soporte pick → Ignite" for a
-  //      jungler) and empty build data because op.gg has no support
-  //      stats for Kha'Zix.
-  //
-  // We don't auto-override for borderline cases like Vayne TOP — those
-  // are listed in CHAMPION_ROLES with both BOTTOM and TOP, so the role
-  // check passes. Override only fires when the role is truly impossible.
-  useEffect(() => {
-    if (!db) return;
-    const championKey = myChampionLocked ?? myChampionIntent;
-    if (!championKey) return;
-    const champ = db.champions[championKey];
-    if (!champ) return;
-    const allowedRoles = CHAMPION_ROLES[champ.id];
-    if (!allowedRoles || allowedRoles.length === 0) return;
-
-    if (!myRole) {
-      setMyRole(allowedRoles[0]);
-      return;
-    }
-    if (!allowedRoles.includes(myRole)) {
-      // Hard role mismatch — switch to the champion's primary role.
-      setMyRole(allowedRoles[0]);
-    }
-  }, [myRole, myChampionLocked, myChampionIntent, db, setMyRole]);
+  // Role derivation — fixes nonsense role when queue assigns one the
+  // champion can't play (e.g. UTILITY + Kha'Zix → switch to JUNGLE).
+  useRoleDerivation({
+    db,
+    myChampionLocked,
+    myChampionIntent,
+    myRole,
+    setMyRole,
+  });
 
   const allyKeys = useMemo(
     () => ally.map((s) => s.championKey).filter((x): x is string => Boolean(x)),
@@ -594,18 +493,14 @@ function App() {
           </details>
           <div className="flex gap-2">
             <button
-              onClick={() => {
-                setError(null);
-                setBootAttempt((n) => n + 1);
-              }}
+              onClick={retryDbBoot}
               className="flex-1 px-3 py-2 bg-accent text-black font-medium rounded hover:bg-accent-deep transition"
             >
               Reintentar
             </button>
             <button
               onClick={() => {
-                setError(null);
-                setBootAttempt((n) => n + 1);
+                retryDbBoot();
                 setShowDiag(true);
               }}
               className="flex-1 px-3 py-2 bg-bg-elev border border-border-subtle text-white/80 rounded hover:bg-bg-card transition"
