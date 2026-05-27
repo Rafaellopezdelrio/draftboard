@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import "./App.css";
 import { loadChampionDb, readChampionDbCacheUnsafe } from "./services/championDb";
 import { trackEvent, trackFetch, trackNavigation } from "./services/breadcrumbs";
@@ -154,7 +154,6 @@ import { CommandPalette, type Command } from "./components/CommandPalette";
 import { setOverlayVisible, setOverlayPosition } from "./services/overlay";
 import { HeaderMenu } from "./components/ui/HeaderMenu";
 import { useEscape, useGlobalShortcut } from "./hooks/useKeyboardShortcuts";
-import { voiceCoach } from "./services/voiceCoach";
 import { lcuMasteries, lcuRank } from "./services/lcuPersonalData";
 import { useScheduledJobs } from "./state/scheduledJobs";
 import { useGamePhase } from "./state/inGameDetection";
@@ -180,6 +179,7 @@ import { useOverlayFollowLol } from "./hooks/useOverlayFollowLol";
 import { useThemeAccent } from "./hooks/useThemeAccent";
 import { useVoiceCoach } from "./hooks/useVoiceCoach";
 import { useLcuConnectToasts, useChampionLockToast } from "./hooks/useLcuToasts";
+import { useAutoOpenCoach } from "./hooks/useAutoOpenCoach";
 import { startAutoProSync } from "./services/autoProSync";
 
 const ROLES: Role[] = ["TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY"];
@@ -238,51 +238,15 @@ function App() {
   const [masteries, setMasteries] = useState<ChampionMasteryDto[]>([]);
   const gamePhase = useGamePhase();
 
-  // Post-game auto-coach. When the LCU gameflow transitions OUT of an
-  // in-progress match (InProgress / PreEndOfGame / EndOfGame /
-  // WaitingForStats → anything else like Lobby/None), auto-open the
-  // Coach modal so the user gets immediate analysis of the match they
-  // just played. CoachView itself auto-selects the most recent match
-  // from local DB, so no matchId plumbing needed here.
-  //
-  // Gated by `prefs.coachAfterMatch` (default ON). We track the
-  // "was in a match" state with a ref so we only fire the open on the
-  // actual transition, not every render.
-  const wasInMatchRef = useRef(false);
-  const announcedGameStartRef = useRef(false);
-  useEffect(() => {
-    const inMatch =
-      gamePhase.phase === "InProgress" ||
-      gamePhase.phase === "PreEndOfGame" ||
-      gamePhase.phase === "EndOfGame" ||
-      gamePhase.phase === "WaitingForStats";
-    if (inMatch) {
-      wasInMatchRef.current = true;
-      // Speak once at first InProgress transition. announcedGameStartRef
-      // resets when we leave the match below, so each new game gets a
-      // fresh announcement.
-      if (gamePhase.phase === "InProgress" && !announcedGameStartRef.current) {
-        announcedGameStartRef.current = true;
-        voiceCoach.speak("Partida empezada");
-      }
-      return;
-    }
-    // Out of match — clear the announce flag so the next game speaks again.
-    announcedGameStartRef.current = false;
-    if (wasInMatchRef.current && prefs.coachAfterMatch && !showCoach) {
-      // Small delay so Riot's stats ingestion completes + our match
-      // sync grabs the new row before CoachView queries the DB.
-      const t = setTimeout(() => {
-        setShowCoach(true);
-        // Audible cue so user knows coach opened (Draftboard may be in
-        // background after they alt-tab from the post-game lobby).
-        voiceCoach.speak("Análisis post-partida listo");
-      }, 6000);
-      wasInMatchRef.current = false;
-      return () => clearTimeout(t);
-    }
-    wasInMatchRef.current = false;
-  }, [gamePhase.phase, prefs.coachAfterMatch, showCoach]);
+  // Post-game auto-coach + "Partida empezada" voice cue. The full
+  // in-match → out-of-match state machine lives in useAutoOpenCoach so
+  // App.tsx stays focused on layout instead of phase plumbing.
+  useAutoOpenCoach({
+    phase: gamePhase.phase,
+    coachAfterMatch: prefs.coachAfterMatch,
+    showCoach,
+    setShowCoach,
+  });
 
   useAutoActions({ db });
   // Auto-pin the overlay to LoL's window + follow it when user drags LoL
