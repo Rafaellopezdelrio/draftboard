@@ -98,16 +98,21 @@ async function applyItemSet(champion: Champion, role: Role) {
     const fourth = pickBestBuild(build.fourthItems);
     const fifth = pickBestBuild(build.fifthItems);
     const sixth = pickBestBuild(build.sixthItems);
+    // Block names — kept SHORT (max 8 chars) because LoL's in-game
+    // item shop sidebar has a narrow column that truncates anything
+    // longer. Previously used "Starter/Boots/Core/Situational" — the
+    // sidebar showed "...ter, ots, e, uational" with the actual labels
+    // hidden. Short ES strings stay fully readable.
     const blocks: Array<{ type: string; items: Array<{ id: number; count?: number }> }> = [];
     if (starter && starter.ids.length > 0) {
       blocks.push({
-        type: "Starter",
+        type: "Inicio",
         items: starter.ids.map((id) => ({ id, count: id === 2003 ? 3 : 1 })),
       });
     }
     if (boots && boots.ids.length > 0) {
       blocks.push({
-        type: "Boots",
+        type: "Botas",
         items: boots.ids.map((id) => ({ id })),
       });
     }
@@ -122,7 +127,7 @@ async function applyItemSet(champion: Champion, role: Role) {
       .flatMap((b) => b!.ids);
     if (situational.length > 0) {
       blocks.push({
-        type: "Situational",
+        type: "Finales",
         items: situational.map((id) => ({ id })),
       });
     }

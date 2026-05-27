@@ -1342,20 +1342,40 @@ function RuneIcon({
   }
 
   const src = getPerkIconUrl(perkId);
+  // Wrap the img in a span so we can show a tooltip on hover via a
+  // styled pseudo-element rather than the browser's native `title`
+  // attribute. Native tooltips render as huge OS-level popups that
+  // overlap adjacent rune icons (Sentry screenshot showed
+  // "Legend: Haste" tooltip covering the next 3 runes). The styled
+  // tooltip is small, dark-themed, and never bleeds outside the
+  // panel.
   return (
-    <img
-      src={src}
-      alt={name}
-      title={name}
-      className={`${size} rounded ${keystone ? "ring-2 ring-accent/70 shadow-[0_0_8px_rgba(78,205,196,0.45)] bg-black/40 p-0.5" : "ring-1 ring-border-subtle bg-black/30"}`}
-      onError={(e) => {
-        // Manifest URL also failed — fade to placeholder rather than
-        // showing the alt text. Happens for runes the manifest doesn't
-        // include (e.g. recently removed) or when the user is offline.
-        const img = e.currentTarget;
-        img.style.opacity = "0.3";
-      }}
-    />
+    <span
+      className={`relative inline-block group/rune`}
+      aria-label={name}
+    >
+      <img
+        src={src}
+        alt={name}
+        className={`${size} rounded ${keystone ? "ring-2 ring-accent/70 shadow-[0_0_8px_rgba(78,205,196,0.45)] bg-black/40 p-0.5" : "ring-1 ring-border-subtle bg-black/30"}`}
+        onError={(e) => {
+          // Manifest URL also failed — fade to placeholder rather
+          // than showing the alt text.
+          const img = e.currentTarget;
+          img.style.opacity = "0.3";
+        }}
+      />
+      {/* Compact custom tooltip — appears on hover, dark themed,
+        * never extends beyond the panel column so it doesn't cover
+        * adjacent runes. opacity-based show/hide so layout doesn't
+        * jump. */}
+      <span
+        role="tooltip"
+        className="pointer-events-none absolute left-1/2 -translate-x-1/2 -top-7 px-1.5 py-0.5 rounded bg-bg-elev/95 border border-border-subtle text-[10px] text-white whitespace-nowrap opacity-0 group-hover/rune:opacity-100 transition-opacity z-30 shadow-md"
+      >
+        {name}
+      </span>
+    </span>
   );
 }
 
