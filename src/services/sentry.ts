@@ -53,6 +53,24 @@ export function initSentry(opts: InitOptions = {}): void {
     // (different champion key in error message, different filename
     // hash from Vite chunks, etc).
     beforeSend(event) {
+      // ─── 0. Drop Vite HMR partial-reload noise ───
+      // When dev server hot-reloads App.tsx after a hook is added/renamed,
+      // React Refresh re-runs the component BEFORE the new module is in
+      // scope → transient ReferenceError. Stack frames contain
+      // `/@react-refresh` and `performReactRefresh`. Pure dev artifact;
+      // never reaches prod users. Drop silently.
+      try {
+        const frames = event.exception?.values?.[0]?.stacktrace?.frames ?? [];
+        const isHmrNoise = frames.some(
+          (f) =>
+            (f.filename && f.filename.includes("@react-refresh")) ||
+            (f.function && f.function.includes("performReactRefresh"))
+        );
+        if (isHmrNoise) return null;
+      } catch {
+        // never let filter logic block real errors
+      }
+
       // ─── 1. Group identical errors together (custom fingerprint) ───
       // Sentry's default fingerprint includes the exception message +
       // top stack frame, which over-splits issues like "TypeError:
