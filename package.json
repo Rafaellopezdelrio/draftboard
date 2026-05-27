@@ -17,7 +17,11 @@
     "test:all": "npm run typecheck && npm run test && npm run test:e2e",
     "test:flaky": "node -e \"for(let i=1;i<=10;i++){require('child_process').execSync('npx vitest run',{stdio:'inherit'})}\"",
     "bundle-check": "node scripts/bundle-check.mjs",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "rust:check": "cd src-tauri && cargo clippy --all-targets -- -D warnings && cargo fmt --check",
+    "rust:fmt": "cd src-tauri && cargo fmt",
+    "rust:fix": "cd src-tauri && cargo clippy --fix --allow-dirty --allow-staged --all-targets",
+    "check:all": "npm run typecheck && npm run test && npm run rust:check"
   },
   "dependencies": {
     "@sentry/react": "^10.53.1",
@@ -58,6 +62,7 @@
     "tailwindcss": "^4.3.0",
     "typescript": "~5.8.3",
     "vite": "^7.0.4",
-    "vitest": "^2.1.9"
+    "vitest": "^2.1.9",
+    "vitest-axe": "^0.1.0"
   }
 }

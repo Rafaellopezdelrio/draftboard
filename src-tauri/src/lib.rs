@@ -454,17 +454,33 @@ fn preboot_db_integrity_check_and_quarantine(app: &tauri::AppHandle) -> Result<(
     // Try open + integrity_check. Both failures are treated as
     // "corrupt enough to quarantine" — better safe than letting the
     // SQL plugin hit it and throw forever.
+    //
+    // Also: switch the DB to WAL journal mode if it isn't already.
+    // WAL mode persists in the DB file header, so this only needs to
+    // run once per file — subsequent opens automatically use WAL.
+    // Benefits:
+    //   - Concurrent reads + 1 write without blocking each other
+    //     (rollback journal blocks readers during writes).
+    //   - ~30% faster on write-heavy workloads (match sync, draft
+    //     logging, agg writes).
+    //   - WAL files can be checkpointed lazily, fewer fsync calls.
+    // `synchronous=NORMAL` is the WAL-recommended setting; full sync
+    // is overkill given we already have the rolling backup safety net.
     let check_result: Result<(), String> = (|| {
         let conn = rusqlite::Connection::open(&db_path)
             .map_err(|e| format!("open: {e}"))?;
         let s: String = conn
             .query_row("PRAGMA integrity_check", [], |row| row.get(0))
             .map_err(|e| format!("query: {e}"))?;
-        if s == "ok" {
-            Ok(())
-        } else {
-            Err(format!("integrity_check returned: {s}"))
+        if s != "ok" {
+            return Err(format!("integrity_check returned: {s}"));
         }
+        // Force WAL mode + NORMAL sync. Idempotent — no-op if already set.
+        // We swallow inner errors because they're non-fatal: the DB still
+        // works in rollback journal mode, just slower.
+        let _ = conn.pragma_update(None, "journal_mode", &"WAL");
+        let _ = conn.pragma_update(None, "synchronous", &"NORMAL");
+        Ok(())
     })();
 
     if check_result.is_ok() {
@@ -763,46 +779,81 @@ async fn set_tray_tooltip(app: tauri::AppHandle, text: String) -> Result<(), Str
     Ok(())
 }
 
+/// Install a custom panic hook that pipes Rust panics through `log::error!`
+/// so they end up in the rotated draftboard.log file alongside frontend
+/// JS errors. Without this, panics print to stderr and vanish — invisible
+/// to users + impossible to triage from a bug report.
+///
+/// Falls back to the default hook after logging so the panic still
+/// crashes the thread (we don't want to silently swallow corruption).
+fn install_panic_logger() {
+    let default_hook = std::panic::take_hook();
+    std::panic::set_hook(Box::new(move |info| {
+        let location = info
+            .location()
+            .map(|l| format!("{}:{}", l.file(), l.line()))
+            .unwrap_or_else(|| "<unknown>".into());
+        let payload = info
+            .payload()
+            .downcast_ref::<&str>()
+            .map(|s| (*s).to_string())
+            .or_else(|| info.payload().downcast_ref::<String>().cloned())
+            .unwrap_or_else(|| "<non-string panic>".into());
+        log::error!("[PANIC] at {location}: {payload}");
+        default_hook(info);
+    }));
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    install_panic_logger();
     let _ = rustls::crypto::aws_lc_rs::default_provider().install_default();
 
+    // SQLite migrations. Each file lives under `src/db/migrations/`
+    // following the `NNN_name.sql` convention so the order is encoded
+    // in the filename. tauri-plugin-sql tracks applied versions in
+    // `__db_migrations` and only runs new ones.
+    //
+    // Adding a new migration:
+    //   1. Drop a `00X_description.sql` in src/db/migrations/.
+    //   2. Append a Migration entry below with version = X.
+    //   3. NEVER edit applied migrations — append a new one instead.
     use tauri_plugin_sql::{Migration, MigrationKind};
     let migrations = vec![
         Migration {
             version: 1,
             description: "initial schema",
-            sql: include_str!("../../src/db/schema.sql"),
+            sql: include_str!("../../src/db/migrations/001_initial.sql"),
             kind: MigrationKind::Up,
         },
         Migration {
             version: 2,
             description: "aggregation tables",
-            sql: include_str!("../../src/db/schema_v2.sql"),
+            sql: include_str!("../../src/db/migrations/002_aggregation_tables.sql"),
             kind: MigrationKind::Up,
         },
         Migration {
             version: 3,
             description: "preferences",
-            sql: include_str!("../../src/db/schema_v3.sql"),
+            sql: include_str!("../../src/db/migrations/003_preferences.sql"),
             kind: MigrationKind::Up,
         },
         Migration {
             version: 4,
             description: "matchup tracking",
-            sql: include_str!("../../src/db/schema_v4.sql"),
+            sql: include_str!("../../src/db/migrations/004_matchup_tracking.sql"),
             kind: MigrationKind::Up,
         },
         Migration {
             version: 5,
             description: "ai memory + lesson plans + ai guides",
-            sql: include_str!("../../src/db/schema_v5.sql"),
+            sql: include_str!("../../src/db/migrations/005_ai_memory.sql"),
             kind: MigrationKind::Up,
         },
         Migration {
             version: 6,
             description: "ai matchup tips cache",
-            sql: include_str!("../../src/db/schema_v6.sql"),
+            sql: include_str!("../../src/db/migrations/006_ai_matchup_tips_cache.sql"),
             kind: MigrationKind::Up,
         },
     ];

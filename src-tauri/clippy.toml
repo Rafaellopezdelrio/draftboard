@@ -1,0 +1,15 @@
+# Clippy config — strict-ish lints for the Tauri backend.
+#
+# Most-bytes-by-default: deny on suspicious + perf antipatterns,
+# warn on pedantic that's mostly noise (string_add, missing_errors_doc).
+#
+# Set via Cargo workspace lints in Cargo.toml or invoke directly:
+#   cargo clippy --all-targets -- -D warnings
+#
+# This file is reserved for clippy lint thresholds (e.g.
+# `cognitive-complexity-threshold`). Lint levels themselves go in
+# Cargo.toml under [lints.clippy] for reproducibility.
+
+cognitive-complexity-threshold = 30
+too-many-arguments-threshold = 8
+type-complexity-threshold = 250

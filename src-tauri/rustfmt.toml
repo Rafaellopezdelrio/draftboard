@@ -1,0 +1,16 @@
+# Rustfmt config for the Tauri backend.
+#
+# Defaults are sensible; we only override the bits where the
+# `cargo fmt` output otherwise fights with our hand-written style
+# (long match arms in lcu.rs, trailing commas on multi-line types).
+
+edition = "2021"
+max_width = 100
+hard_tabs = false
+tab_spaces = 4
+newline_style = "Unix"
+use_field_init_shorthand = true
+use_try_shorthand = true
+reorder_imports = true
+reorder_modules = true
+remove_nested_parens = true

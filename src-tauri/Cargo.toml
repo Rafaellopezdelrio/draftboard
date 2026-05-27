@@ -81,3 +81,29 @@ windows = { version = "0.61", features = [
     "Win32_Graphics_Dwm",
 ] }
 
+
+
+# Strict lint configuration. Run as part of CI / pre-commit.
+# Override individual lints inline with `#[allow(clippy::lint_name)]`
+# when justified — never blanket-allow.
+[lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "allow", priority = -1 }
+# Common high-value pedantic lints worth turning back on:
+unwrap_used = "warn"
+expect_used = "warn"
+todo = "warn"
+panic = "warn"
+# Override too-noisy defaults for our domain (LCU JSON parsing
+# returns lots of Option<Value> chains where ? gymnastics hurt
+# readability more than they help).
+needless_pass_by_value = "allow"
+missing_errors_doc = "allow"
+
+[lints.rust]
+# `unsafe` is unavoidable for the Win32 overlay re-assertion path
+# (SetWindowPos / GetForegroundWindow). Warn so any NEW unsafe blocks
+# get reviewer attention without breaking the existing wrappers.
+unsafe_code = "warn"
+unused_must_use = "deny"
+

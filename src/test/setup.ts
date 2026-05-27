@@ -1,5 +1,17 @@
 import "@testing-library/jest-dom/vitest";
-import { vi, afterEach } from "vitest";
+// vitest-axe extends `expect` with `toHaveNoViolations` for a11y tests.
+// Register manually via expect.extend because the package's auto-register
+// helper targets Vitest 0.x and doesn't run on Vitest 2.x. Cast through
+// unknown — the matcher type isn't generic over Vitest's MatchersObject
+// shape so a direct cast fails; unknown is the documented escape.
+import { vi, afterEach, expect } from "vitest";
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+import * as matchers from "vitest-axe/matchers";
+// Bridge: vitest-axe targets Vitest 0.x's matcher signature, Vitest 2.x's
+// MatchersObject is stricter. Cast via unknown — the matcher runs fine at
+// runtime, only the type wrapping differs.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+expect.extend(matchers as any);
 import { cleanup } from "@testing-library/react";
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
