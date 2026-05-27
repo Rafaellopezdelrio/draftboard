@@ -11,8 +11,10 @@ import type { Champion, ChampionDb, Role } from "../types/champion";
 import { applyRunes, applySummonerSpells } from "../services/lcuService";
 import { UI_FEEDBACK_MS } from "../config";
 import { SUMMONER_SPELL_META } from "../services/opggBuilds";
-import { fetchOpggMatchups, type OpggMatchup } from "../services/opggMatchups";
-import { fetchProBuilds, type ProBuildVariant, type ProMatchRecent } from "../services/proBuilds";
+import { MatchupGrid } from "./build/MatchupGrid";
+import { ProBuildsSection } from "./build/ProBuildsSection";
+import { ItemIcon, PerkIcon, SpellIcon } from "./build/icons";
+// fetchProBuilds + types now live inside ProBuildsSection.
 import { pickCoherentSpells } from "../services/spellCoherence";
 import { usePrefsStore } from "../state/prefsStore";
 import {
@@ -39,7 +41,7 @@ import { lookupPerkId } from "../data/runePerkIds";
 import { TierBadge } from "./ui/TierBadge";
 import { useToast } from "./ui/ToastContainer";
 import { getPerkIconUrl, subscribeToPerkIcons } from "../services/perkIcons";
-import { getItemMeta, subscribeToItemMeta } from "../services/itemMeta";
+// getItemMeta/subscribeToItemMeta now live in build/icons.tsx
 import {
   getChampionSpells,
   spellIconUrl,
@@ -763,294 +765,12 @@ function OpggBuildSection({
   );
 }
 
-function MatchupGrid({
-  championDdId,
-  role,
-}: {
-  championDdId: string;
-  role: Role;
-}) {
-  const [matchups, setMatchups] = useState<OpggMatchup[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [expanded, setExpanded] = useState(false);
+// MatchupGrid + MatchupColumn extracted to components/build/MatchupGrid.tsx
+// (see import at the top of this file). Removed from here to shrink
+// BuildPanel.tsx — the sub-components are independent + tested via
+// their own boundary.
 
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setMatchups([]);
-    fetchOpggMatchups(championDdId, role).then((m) => {
-      if (cancelled) return;
-      setMatchups(m);
-      setLoading(false);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [championDdId, role]);
-
-  if (loading) {
-    return (
-      <div className="border-t border-white/5 pt-2">
-        <div className="flex items-center gap-2 py-1">
-          <div className="w-1.5 h-1.5 rounded-full bg-accent/70 animate-pulse" />
-          <p className="text-[10px] text-white/40">Cargando matchups…</p>
-        </div>
-      </div>
-    );
-  }
-  if (matchups.length === 0) return null;
-
-  // Filter to entries with enough sample size (≥50 games) so we don't
-  // surface noise from rare matchups, then sort: lowest WR = hardest for us.
-  const significant = matchups.filter((m) => m.play >= 50);
-  const sortedByWr = [...significant].sort((a, b) => b.winRate - a.winRate);
-  const wins = sortedByWr.filter((m) => m.winRate >= 50);
-  const losses = [...sortedByWr]
-    .filter((m) => m.winRate < 50)
-    .reverse(); // lowest WR first
-  // Show top 4 by default, expand to full list on click. Mobalytics
-  // shows top 3-5 then a "See all" link to the full counter chart;
-  // we follow the same pattern. Cap at 20 per side to avoid render
-  // explosion on champs with 60+ tracked matchups.
-  const limit = expanded ? 20 : 4;
-  const youBeat = wins.slice(0, limit);
-  const youLose = losses.slice(0, limit);
-  const totalAvailable = wins.length + losses.length;
-  const isExpandable = totalAvailable > 8;
-
-  return (
-    <div className="border-t border-white/5 pt-2 space-y-1.5">
-      <div className="grid grid-cols-2 gap-3">
-        <MatchupColumn
-          title="Ganas vs"
-          color="text-good"
-          entries={youBeat}
-        />
-        <MatchupColumn
-          title="Pierdes vs"
-          color="text-bad"
-          entries={youLose}
-        />
-      </div>
-      {isExpandable && (
-        <button
-          type="button"
-          onClick={() => setExpanded((v) => !v)}
-          className="w-full text-[10px] uppercase tracking-wider px-2 py-1 rounded ring-1 ring-border-subtle bg-bg-card/40 text-white/55 hover:text-accent hover:ring-accent/40 transition"
-        >
-          {expanded ? "Mostrar menos ▲" : `Ver todos (${totalAvailable}) ▼`}
-        </button>
-      )}
-    </div>
-  );
-}
-
-function MatchupColumn({
-  title,
-  color,
-  entries,
-}: {
-  title: string;
-  color: string;
-  entries: OpggMatchup[];
-}) {
-  if (entries.length === 0) {
-    return (
-      <div>
-        <p className={`text-[10px] uppercase tracking-widest ${color} mb-1`}>
-          {title}
-        </p>
-        <p className="text-[10px] text-white/35 italic">Sin datos</p>
-      </div>
-    );
-  }
-  return (
-    <div>
-      <p className={`text-[10px] uppercase tracking-widest ${color} mb-1`}>
-        {title}
-      </p>
-      <ul className="space-y-0.5">
-        {entries.map((m) => {
-          // Threat tier from winrate delta — gives users a quick visual
-          // signal beyond raw %. Mirrors Mobalytics' S/A/B badges.
-          // >55% = strong favor / <45% = severe / etc.
-          const delta = m.winRate - 50;
-          const absDelta = Math.abs(delta);
-          const tierLabel =
-            absDelta >= 7 ? "S" : absDelta >= 4 ? "A" : absDelta >= 2 ? "B" : "C";
-          const tierColor = delta >= 0
-            ? absDelta >= 7 ? "bg-good/30 text-good" : "bg-good/15 text-good/85"
-            : absDelta >= 7 ? "bg-bad/30 text-bad" : "bg-bad/15 text-bad/85";
-          return (
-            <li
-              key={m.championKey}
-              className="flex items-center justify-between gap-1.5 text-[11px] text-white/70"
-              title={`${m.play.toLocaleString()} partidas`}
-            >
-              <span className="truncate pr-1 flex-1">{m.championName}</span>
-              <span
-                className={`inline-flex items-center justify-center w-4 h-4 rounded text-[9px] font-bold tabular-nums shrink-0 ${tierColor}`}
-                title={`Tier amenaza ${tierLabel}`}
-              >
-                {tierLabel}
-              </span>
-              <span
-                className={`tabular-nums text-[10px] font-medium shrink-0 ${
-                  m.winRate >= 50 ? "text-good" : "text-bad"
-                }`}
-              >
-                {m.winRate.toFixed(0)}%
-              </span>
-            </li>
-          );
-        })}
-      </ul>
-    </div>
-  );
-}
-
-/**
- * "Pro builds" section — shows 2-3 archetype variants pulled from u.gg's
- * pro match data and clustered by core-item composition. Each variant
- * lists the pros that ran it, the representative full build, and W/L
- * stats. Tab-style switcher so the user can compare variants side-by-side.
- *
- * Falls back to nothing if the proxy is unreachable or the champion has
- * no recent pro presence (rare champs like Yorick almost never appear).
- */
-function ProBuildsSection({
-  championId,
-  role,
-  patch,
-}: {
-  championId: number;
-  role: Role;
-  patch: string;
-}) {
-  const [data, setData] = useState<{
-    variants: ProBuildVariant[];
-    recent: ProMatchRecent[];
-    total: number;
-  } | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [activeIdx, setActiveIdx] = useState(0);
-
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setData(null);
-    setActiveIdx(0);
-    fetchProBuilds(championId, role).then((d) => {
-      if (cancelled) return;
-      if (d) setData({ variants: d.variants, recent: d.recent, total: d.totalMatches });
-      setLoading(false);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [championId, role]);
-
-  if (loading) {
-    return (
-      <div className="border-t border-white/5 pt-2">
-        <div className="flex items-center gap-2 py-1">
-          <div className="w-1.5 h-1.5 rounded-full bg-accent/70 animate-pulse" />
-          <p className="text-[10px] text-white/40">Cargando pro builds…</p>
-        </div>
-      </div>
-    );
-  }
-  if (!data || data.variants.length === 0) {
-    return (
-      <div className="border-t border-white/5 pt-2">
-        <p className="text-[10px] uppercase tracking-widest text-white/45 mb-1">
-          Pro builds
-        </p>
-        <p className="text-[11px] text-white/35 italic">
-          Sin partidas pro recientes para este champion en {role}.
-        </p>
-      </div>
-    );
-  }
-
-  const active = data.variants[activeIdx];
-
-  return (
-    <div className="border-t border-white/5 pt-2 space-y-2">
-      <div className="flex items-baseline justify-between">
-        <p className="text-[10px] uppercase tracking-widest text-accent font-semibold">
-          🏆 Pro builds · {data.total} partidas analizadas
-        </p>
-      </div>
-
-      {/* Variant tabs */}
-      <div className="flex gap-1">
-        {data.variants.map((v, i) => (
-          <button
-            key={v.key}
-            onClick={() => setActiveIdx(i)}
-            className={`flex-1 px-2 py-1.5 rounded text-[10px] uppercase tracking-wider transition ring-1 ${
-              i === activeIdx
-                ? "bg-accent/15 ring-accent/50 text-accent"
-                : "bg-bg-card/40 ring-border-subtle text-white/50 hover:bg-bg-hover"
-            }`}
-            title={`${v.games} partidas · ${(v.winRate * 100).toFixed(0)}% WR`}
-          >
-            #{i + 1} · {v.games} pros
-          </button>
-        ))}
-      </div>
-
-      {/* Active variant: build path + pros */}
-      {active && (
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            {Array.from(new Set(active.representativeBuild)).slice(0, 6).map((id, i) => (
-              <ItemIcon key={i} patch={patch} id={id} />
-            ))}
-          </div>
-          <div className="flex items-center justify-between text-[10px]">
-            <span className="text-white/55">
-              Pros: <span className="text-white/80">{active.proNames.join(", ")}</span>
-            </span>
-            <span
-              className={`tabular-nums font-semibold ${
-                active.winRate >= 0.5 ? "text-good" : "text-bad/80"
-              }`}
-            >
-              {(active.winRate * 100).toFixed(0)}% WR · {active.games}g
-            </span>
-          </div>
-        </div>
-      )}
-
-      {/* Recent pro matches teaser */}
-      {data.recent.length > 0 && (
-        <div className="border-t border-white/5 pt-1.5 space-y-0.5">
-          <p className="text-[9px] uppercase tracking-widest text-white/35">
-            Últimas partidas pro
-          </p>
-          {data.recent.slice(0, 3).map((m, i) => (
-            <p key={i} className="text-[10px] text-white/55 flex justify-between gap-2">
-              <span className="truncate">
-                <span className="text-white/80">{m.proName}</span>
-                {m.team && <span className="text-white/40"> · {m.team}</span>}
-                {m.league && <span className="text-white/40"> · {m.league}</span>}
-              </span>
-              <span
-                className={`tabular-nums shrink-0 ${
-                  m.win ? "text-good" : "text-bad/80"
-                }`}
-              >
-                {m.kda}
-              </span>
-            </p>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
+// ProBuildsSection extracted to components/build/ProBuildsSection.tsx.
 
 function BuildRow({
   label,
@@ -1206,81 +926,9 @@ function SpellsRow({
   );
 }
 
-function SpellIcon({
-  id,
-  meta,
-  patch,
-}: {
-  id: number;
-  meta?: { name: string; icon: string };
-  patch: string;
-}) {
-  // Data Dragon hosts summoner spell icons by their internal filename
-  // (e.g. SummonerFlash.png). We fall back to communitydragon ID-based
-  // path if the meta map doesn't have this spell — covers Mark/Snowball
-  // and any future additions without us having to update the map.
-  const src = meta
-    ? `https://ddragon.leagueoflegends.com/cdn/${patch}/img/spell/${meta.icon}`
-    : `https://raw.communitydragon.org/latest/game/data/spells/icons2d/summoner_flash.png`;
-  return (
-    <img
-      src={src}
-      alt={meta?.name ?? `Spell ${id}`}
-      className="w-8 h-8 rounded border border-border-subtle"
-      title={meta?.name ?? `Spell ${id}`}
-      onError={(e) => ((e.target as HTMLImageElement).style.opacity = "0.3")}
-    />
-  );
-}
-
-function ItemIcon({ patch, id }: { patch: string; id: number }) {
-  // Guard invalid IDs: aggregation sometimes emits 0 / undefined /
-  // consumable IDs (potions, wards) that don't have item icons in
-  // DDragon. Rendering a broken <img> with alt fallback showed
-  // "Item Item" placeholder boxes in the UI — visual noise. Filter.
-  // Re-render hook so the title flips from "Item {id}" to the real
-  // item name as soon as items.json finishes loading.
-  const [, force] = useState(0);
-  useEffect(() => {
-    return subscribeToItemMeta(() => force((n) => n + 1));
-  }, []);
-  if (!id || id <= 0) return null;
-  const meta = getItemMeta(patch, id);
-  // Compose a rich title: name + plaintext + gold cost. Falls back to
-  // "Item {id}" while the manifest is loading.
-  const titleParts: string[] = [];
-  if (meta?.name) titleParts.push(meta.name);
-  if (meta?.plaintext) titleParts.push(meta.plaintext);
-  if (meta?.goldTotal && meta.goldTotal > 0) titleParts.push(`${meta.goldTotal}g`);
-  const title = titleParts.length > 0 ? titleParts.join(" · ") : `Item ${id}`;
-  return (
-    <img
-      src={`https://ddragon.leagueoflegends.com/cdn/${patch}/img/item/${id}.png`}
-      alt={meta?.name ?? ""}
-      className="w-8 h-8 rounded border border-border-subtle"
-      title={title}
-      onError={(e) => {
-        // DDragon returned 404 (item removed / placeholder ID).
-        // Hide the broken image visual instead of showing alt text.
-        const img = e.currentTarget;
-        img.style.display = "none";
-      }}
-    />
-  );
-}
-
-function PerkIcon({ id, small = false }: { id: number; small?: boolean }) {
-  const size = small ? "w-5 h-5" : "w-8 h-8";
-  return (
-    <img
-      src={`https://raw.communitydragon.org/latest/game/assets/perks/${id}.png`}
-      alt={`Perk ${id}`}
-      className={`${size} rounded`}
-      onError={(e) => ((e.target as HTMLImageElement).style.opacity = "0.3")}
-      title={`Perk ${id}`}
-    />
-  );
-}
+// ItemIcon / PerkIcon / SpellIcon extracted to components/build/icons.tsx.
+// Imported at the top of this file. Shared with the split-out
+// sub-sections (MatchupGrid, ProBuildsSection, etc).
 
 /**
  * Renders a rune by its string name (e.g. "Conqueror", "Triunfo").
