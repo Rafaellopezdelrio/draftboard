@@ -177,6 +177,9 @@ import { setUiLocale } from "./i18n";
 import { setSentryTags } from "./services/sentry";
 import { useAutoActions } from "./state/autoActions";
 import { useOverlayFollowLol } from "./hooks/useOverlayFollowLol";
+import { useThemeAccent } from "./hooks/useThemeAccent";
+import { useVoiceCoach } from "./hooks/useVoiceCoach";
+import { useLcuConnectToasts, useChampionLockToast } from "./hooks/useLcuToasts";
 import { startAutoProSync } from "./services/autoProSync";
 
 const ROLES: Role[] = ["TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY"];
@@ -288,28 +291,13 @@ function App() {
   useOverlayFollowLol(true);
   useScheduledJobs();
 
-  // Voice coach init
-  useEffect(() => {
-    voiceCoach.init();
-    // Lazy-import to avoid bundling notification code in the SSR/test paths.
-    import("./services/nativeNotify").then(({ ensureNotificationPermission }) => {
-      ensureNotificationPermission();
-    });
-  }, []);
+  // Voice coach lifecycle — init + pref sync. Extracted to hook.
+  useVoiceCoach();
 
-  // Apply the user's accent theme variant by setting a data-attribute
-  // on the root <html> element. CSS in App.css overrides the
-  // --color-accent variables based on this attribute, so every
-  // accent-using element re-styles automatically.
-  useEffect(() => {
-    if (typeof document === "undefined") return;
-    document.documentElement.dataset.accent = prefs.accentTheme ?? "mint";
-  }, [prefs.accentTheme]);
+  // Theme accent variant → <html data-accent>. Extracted into a hook
+  // so App.tsx stays focused on layout glue.
+  useThemeAccent();
 
-  useEffect(() => {
-    voiceCoach.setEnabled(prefs.voiceCoachEnabled);
-    voiceCoach.setLanguage(prefs.aiCoachLanguage);
-  }, [prefs.voiceCoachEnabled, prefs.aiCoachLanguage]);
 
   // Ctrl+K to open command palette
   useGlobalShortcut({ key: "k", ctrl: true }, () => setShowPalette(true));
@@ -570,52 +558,11 @@ function App() {
     });
   }, [pushToast]);
 
-  // Toast on LCU connect/disconnect transitions so the user gets a
-  // non-intrusive heads-up when their LoL client opens or closes. Tracks
-  // the previous value via a ref so the initial mount doesn't fire.
-  const prevLcuConnectedRef = useRef<boolean | null>(null);
-  useEffect(() => {
-    if (prevLcuConnectedRef.current === null) {
-      // Initial mount — record state, don't notify.
-      prevLcuConnectedRef.current = lcuStatus.connected;
-      return;
-    }
-    if (prevLcuConnectedRef.current === lcuStatus.connected) return;
-    prevLcuConnectedRef.current = lcuStatus.connected;
-    if (lcuStatus.connected) {
-      pushToast({
-        type: "success",
-        title: "Cliente de LoL conectado",
-        detail: "Champ select y partidas se trackearán automáticamente.",
-        durationMs: 3000,
-      });
-    } else {
-      pushToast({
-        type: "warn",
-        title: "Cliente de LoL desconectado",
-        detail: "Reabre el cliente para reanudar el tracking.",
-        durationMs: 4000,
-      });
-    }
-  }, [lcuStatus.connected, pushToast]);
-
-  // Listen for the champ-select lock event dispatched by lcuSync and
-  // surface a toast confirmation. Voice + UI both fire — toast gives a
-  // visible cue for muted users while voiceCoach handles the audio.
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const detail = (e as CustomEvent<{ championKey: string }>).detail;
-      const champ = detail?.championKey ? db?.champions[detail.championKey] : null;
-      pushToast({
-        type: "success",
-        title: "Campeón bloqueado",
-        detail: champ?.name ?? "Locked in",
-        durationMs: 2000,
-      });
-    };
-    window.addEventListener("draft:champion-locked", handler);
-    return () => window.removeEventListener("draft:champion-locked", handler);
-  }, [db, pushToast]);
+  // LCU lifecycle toasts (connect/disconnect + champion lock) extracted
+  // to hooks. Each one owns its own useEffect + dedup state so App.tsx
+  // stays a layout shell instead of a toast-router.
+  useLcuConnectToasts(lcuStatus);
+  useChampionLockToast(db);
 
   // Listen for the patch-poll signal (scheduledJobs fires this when
   // DDragon reports a new top version mid-session). Show an actionable

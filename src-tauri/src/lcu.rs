@@ -165,16 +165,36 @@ async fn update_status(app: &AppHandle, connected: bool, reason: Option<String>)
     );
 }
 
+/// Parse the raw lockfile string into structured Port + Password.
+/// Pure function — no IO — so it's directly unit-testable. Real
+/// production callers use `read_lockfile` which walks candidate paths
+/// + reads the file before delegating here.
+///
+/// LCU lockfile format: `LeagueClient:PID:PORT:PASSWORD:PROTOCOL`
+/// (colon-separated, 5 fields, always trailing newline that we trim).
+pub(crate) fn parse_lockfile_content(content: &str) -> Result<Lockfile> {
+    let trimmed = content.trim();
+    let parts: Vec<&str> = trimmed.split(':').collect();
+    if parts.len() < 4 {
+        return Err(anyhow!(
+            "lockfile has only {} fields, expected at least 4",
+            parts.len()
+        ));
+    }
+    let port: u16 = parts[2].parse().context("parse lockfile port")?;
+    let password = parts[3].to_string();
+    if password.is_empty() {
+        return Err(anyhow!("lockfile password is empty"));
+    }
+    Ok(Lockfile { port, password })
+}
+
 fn read_lockfile() -> Result<Lockfile> {
     let candidates = lockfile_candidates();
     for path in candidates {
         if let Ok(content) = std::fs::read_to_string(&path) {
-            // Format: LeagueClient:PID:PORT:PASSWORD:PROTOCOL
-            let parts: Vec<&str> = content.split(':').collect();
-            if parts.len() >= 4 {
-                let port: u16 = parts[2].parse().context("parse lockfile port")?;
-                let password = parts[3].to_string();
-                return Ok(Lockfile { port, password });
+            if let Ok(lock) = parse_lockfile_content(&content) {
+                return Ok(lock);
             }
         }
     }
@@ -776,3 +796,57 @@ fn read_region() -> Result<String> {
     }
     Err(anyhow!("region not found"))
 }
+
+
+// ──────────────────────────────────────────────────────────────────────
+// Tests
+// ──────────────────────────────────────────────────────────────────────
+//
+// Pure-function tests only — anything involving IO (file reads, HTTPS,
+// LCU WebSocket) needs an integration test harness or a running client.
+// `cargo test --lib` runs these without any LoL session present.
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_lockfile_canonical_format() {
+        let lock = parse_lockfile_content("LeagueClient:12345:2999:abcdef:https")
+            .expect("canonical format should parse");
+        assert_eq!(lock.port, 2999);
+        assert_eq!(lock.password, "abcdef");
+    }
+
+    #[test]
+    fn parse_lockfile_trims_trailing_newline() {
+        let lock = parse_lockfile_content("LeagueClient:12345:2999:abcdef:https\n")
+            .expect("trailing newline should be stripped");
+        assert_eq!(lock.port, 2999);
+    }
+
+    #[test]
+    fn parse_lockfile_rejects_short_input() {
+        assert!(parse_lockfile_content("only:three:fields").is_err());
+    }
+
+    #[test]
+    fn parse_lockfile_rejects_non_numeric_port() {
+        assert!(parse_lockfile_content("LeagueClient:pid:notaport:pw:https").is_err());
+    }
+
+    #[test]
+    fn parse_lockfile_rejects_empty_password() {
+        assert!(parse_lockfile_content("LeagueClient:12345:2999::https").is_err());
+    }
+
+    #[test]
+    fn parse_lockfile_handles_extra_fields() {
+        // Riot historically appended extra fields in some versions — we
+        // ignore anything beyond field 4 instead of rejecting.
+        let lock = parse_lockfile_content("LeagueClient:1:2999:pw:https:extra:more")
+            .expect("extra fields should be tolerated");
+        assert_eq!(lock.password, "pw");
+    }
+}
+

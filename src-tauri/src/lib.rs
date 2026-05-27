@@ -1,5 +1,7 @@
+mod db;
 mod lcu;
 
+use db::{epoch_secs_to_ymd, ymd_to_epoch_secs};
 use lcu::{
     lcu_apply_runes, lcu_apply_summoner_spells, lcu_current_summoner, lcu_get_json,
     lcu_push_item_set, lcu_status, lcu_summoner_by_id, live_client_all_game_data, LcuState,
@@ -323,47 +325,6 @@ fn rolling_db_backup(app: &tauri::AppHandle) -> Result<(), String> {
         }
     }
     Ok(())
-}
-
-/// Convert UNIX epoch seconds → "YYYY-MM-DD". Uses the civil-from-days
-/// algorithm so we avoid pulling `chrono` for one date string.
-fn epoch_secs_to_ymd(secs: u64) -> String {
-    let days = (secs / 86_400) as i64;
-    // Howard Hinnant's algorithm — civil_from_days.
-    let z = days + 719468;
-    let era = if z >= 0 { z } else { z - 146096 } / 146097;
-    let doe = (z - era * 146097) as u64;
-    let yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;
-    let y = (yoe as i64) + era * 400;
-    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
-    let mp = (5 * doy + 2) / 153;
-    let d = doy - (153 * mp + 2) / 5 + 1;
-    let m = if mp < 10 { mp + 3 } else { mp - 9 };
-    let y = if m <= 2 { y + 1 } else { y };
-    format!("{:04}-{:02}-{:02}", y, m, d)
-}
-
-fn ymd_to_epoch_secs(ymd: &str) -> Option<u64> {
-    // "2026-05-21" → year, month, day.
-    let mut parts = ymd.split('-');
-    let y: i64 = parts.next()?.parse().ok()?;
-    let m: u64 = parts.next()?.parse().ok()?;
-    let d: u64 = parts.next()?.parse().ok()?;
-    if !(1..=12).contains(&m) || !(1..=31).contains(&d) {
-        return None;
-    }
-    // Inverse of civil_from_days — days_from_civil.
-    let y_adj = if m <= 2 { y - 1 } else { y };
-    let era = if y_adj >= 0 { y_adj } else { y_adj - 399 } / 400;
-    let yoe = (y_adj - era * 400) as u64;
-    let mp = if m > 2 { m - 3 } else { m + 9 };
-    let doy = (153 * mp + 2) / 5 + d - 1;
-    let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
-    let days = (era * 146097) + (doe as i64) - 719468;
-    if days < 0 {
-        return None;
-    }
-    Some((days as u64) * 86_400)
 }
 
 /// List the auto-rolling DB backups currently on disk. Surfaced in
