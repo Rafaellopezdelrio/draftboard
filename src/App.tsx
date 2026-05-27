@@ -173,7 +173,6 @@ import { subscribeFetchFailure } from "./services/fetchNotify";
 import { BOOT_TIMEOUTS_MS } from "./config";
 import { PATCH_UPDATED_EVENT } from "./state/scheduledJobs";
 import { setUiLocale } from "./i18n";
-import { setSentryTags } from "./services/sentry";
 import { useAutoActions } from "./state/autoActions";
 import { useOverlayFollowLol } from "./hooks/useOverlayFollowLol";
 import { useThemeAccent } from "./hooks/useThemeAccent";
@@ -181,6 +180,7 @@ import { useVoiceCoach } from "./hooks/useVoiceCoach";
 import { useLcuConnectToasts, useChampionLockToast } from "./hooks/useLcuToasts";
 import { useAutoOpenCoach } from "./hooks/useAutoOpenCoach";
 import { useViewBreadcrumb } from "./hooks/useViewBreadcrumbs";
+import { useSentrySessionTags } from "./hooks/useSentrySessionTags";
 import { startAutoProSync } from "./services/autoProSync";
 
 const ROLES: Role[] = ["TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY"];
@@ -380,19 +380,14 @@ function App() {
       window.removeEventListener("draft:show-champion-guide", onShowGuide);
   }, []);
 
-  // Sentry global tags. Pushed to the scope so every subsequent event
-  // (errors, breadcrumbs, performance) carries this context. Useful in
-  // the dashboard: filter "errors on patch 14.10 KR users in champ
-  // select" instead of digging through stack traces. Tags are cheap +
-  // ride along automatically with no per-event boilerplate.
-  useEffect(() => {
-    setSentryTags({
-      locale: uiLocale,
-      patch: db?.patch ?? null,
-      lcuConnected: lcuStatus.connected,
-      inGame: gamePhase.phase === "InProgress",
-    });
-  }, [uiLocale, db?.patch, lcuStatus.connected, gamePhase.phase]);
+  // Sentry global tags — pushed to the scope so every event carries
+  // session context. Extracted to a hook.
+  useSentrySessionTags({
+    uiLocale,
+    patch: db?.patch ?? null,
+    lcuConnected: lcuStatus.connected,
+    gamePhase: gamePhase.phase,
+  });
 
   useEffect(() => {
     // Probe the Rust pre-boot recovery marker BEFORE loading prefs so
