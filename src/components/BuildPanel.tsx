@@ -8,12 +8,14 @@ import {
   type SkillOrderAgg,
 } from "../services/aggregateRepo";
 import type { Champion, ChampionDb, Role } from "../types/champion";
-import { applyRunes, applySummonerSpells } from "../services/lcuService";
-import { UI_FEEDBACK_MS } from "../config";
-import { SUMMONER_SPELL_META } from "../services/opggBuilds";
+import { applyRunes } from "../services/lcuService";
+// UI_FEEDBACK_MS + SUMMONER_SPELL_META + applySummonerSpells now live
+// inside build/SpellsRow which owns the apply flow.
 import { MatchupGrid } from "./build/MatchupGrid";
 import { ProBuildsSection } from "./build/ProBuildsSection";
-import { ItemIcon, PerkIcon, SpellIcon } from "./build/icons";
+import { BuildRow } from "./build/BuildRow";
+import { SpellsRow } from "./build/SpellsRow";
+import { ItemIcon, PerkIcon } from "./build/icons";
 // fetchProBuilds + types now live inside ProBuildsSection.
 import { pickCoherentSpells } from "../services/spellCoherence";
 import { usePrefsStore } from "../state/prefsStore";
@@ -772,159 +774,7 @@ function OpggBuildSection({
 
 // ProBuildsSection extracted to components/build/ProBuildsSection.tsx.
 
-function BuildRow({
-  label,
-  path,
-  patch,
-  highlight = false,
-}: {
-  label: string;
-  path: OpggBuildPath;
-  patch: string;
-  highlight?: boolean;
-}) {
-  // Filter to valid item IDs only. Aggregation sometimes emits 0 or
-  // sub-1000 IDs (consumables, removed items) that don't render.
-  // If after filtering nothing remains, skip the row entirely —
-  // showing an empty "6º item" label with no icons looks broken.
-  const validIds = Array.from(new Set(path.ids)).filter((id) => id > 0);
-  if (validIds.length === 0) return null;
-  const winRate = path.play > 0 ? path.win / path.play : 0;
-  const wrColor =
-    winRate >= 0.52 ? "text-good" : winRate >= 0.49 ? "text-white/65" : "text-bad/80";
-  // Per-row tier badge — only when sample is decent (>=200 games) so
-  // we don't slap "S+" on a 12-game noise variant. Tier maps directly
-  // to winrate cutoffs in buildClassifier.tierFromWinRate.
-  const rowTier = path.play >= 200 ? tierFromWinRate(winRate) : null;
-  return (
-    <div
-      className={`flex items-center gap-2 ${
-        highlight ? "p-1.5 rounded bg-accent/10 ring-1 ring-accent/30" : ""
-      }`}
-      title={`${path.play.toLocaleString()} partidas · ${(path.pickRate * 100).toFixed(1)}% pick rate`}
-    >
-      <span className="text-[10px] uppercase tracking-wider text-white/45 w-12 shrink-0">
-        {label}
-      </span>
-      <div className="flex gap-1 flex-1">
-        {validIds.map((id, i) => (
-          <ItemIcon key={i} patch={patch} id={id} />
-        ))}
-      </div>
-      {rowTier && (
-        <span className="shrink-0">
-          <TierBadge tier={rowTier} size="sm" />
-        </span>
-      )}
-      <div className="flex flex-col items-end shrink-0 leading-tight">
-        <span className={`text-[11px] tabular-nums font-semibold ${wrColor}`}>
-          {(winRate * 100).toFixed(0)}% WR
-        </span>
-        <span className="text-[9px] tabular-nums text-white/30">
-          {(path.pickRate * 100).toFixed(0)}% PR
-        </span>
-      </div>
-    </div>
-  );
-}
-
-/**
- * Renders the recommended summoner spell combo + a button to import them
- * into the live client (only shown if user enabled showSpellImportButton
- * AND the LCU is reachable — applySummonerSpells fails silently otherwise
- * so we don't need to gate the button further).
- */
-function SpellsRow({
-  spell1Id,
-  spell2Id,
-  patch,
-  pickRate,
-  winRate,
-  reason,
-  overrode,
-}: {
-  spell1Id: number;
-  spell2Id: number;
-  patch: string;
-  pickRate: number;
-  winRate: number;
-  reason: string;
-  overrode: boolean;
-}) {
-  const showButton = usePrefsStore((s) => s.prefs.showSpellImportButton);
-  const { push: pushToast } = useToast();
-  const [applying, setApplying] = useState(false);
-  const [applied, setApplied] = useState(false);
-  const meta1 = SUMMONER_SPELL_META[spell1Id];
-  const meta2 = SUMMONER_SPELL_META[spell2Id];
-  const wrColor =
-    winRate >= 0.52 ? "text-good" : winRate >= 0.49 ? "text-white/65" : "text-bad/80";
-  const handleApply = async () => {
-    setApplying(true);
-    const ok = await applySummonerSpells(spell1Id, spell2Id);
-    setApplying(false);
-    if (ok) {
-      setApplied(true);
-      setTimeout(() => setApplied(false), UI_FEEDBACK_MS.appliedFlash);
-    }
-    pushToast({
-      type: ok ? "success" : "error",
-      title: ok ? "Hechizos aplicados" : "Error aplicando hechizos",
-      detail: ok
-        ? `${meta1?.name ?? `Spell ${spell1Id}`} + ${meta2?.name ?? `Spell ${spell2Id}`}`
-        : "Asegúrate de estar en champ select.",
-      durationMs: 2500,
-    });
-  };
-  return (
-    <div className="border-t border-white/5 pt-2">
-      <div className="flex items-center justify-between mb-1">
-        <p className="text-[10px] uppercase tracking-widest text-white/45">
-          Hechizos de invocador
-        </p>
-        <div className="flex flex-col items-end shrink-0 leading-tight">
-          <span className={`text-[11px] tabular-nums font-semibold ${wrColor}`}>
-            {(winRate * 100).toFixed(0)}% WR
-          </span>
-          <span className="text-[9px] tabular-nums text-white/30">
-            {(pickRate * 100).toFixed(0)}% PR
-          </span>
-        </div>
-      </div>
-      <div className="flex items-center gap-2">
-        <SpellIcon id={spell1Id} meta={meta1} patch={patch} />
-        <SpellIcon id={spell2Id} meta={meta2} patch={patch} />
-        <span className="text-xs text-white/70 flex-1">
-          {meta1?.name ?? `Spell ${spell1Id}`} + {meta2?.name ?? `Spell ${spell2Id}`}
-        </span>
-        {showButton && (
-          <button
-            onClick={handleApply}
-            disabled={applying}
-            className={`text-[10px] uppercase tracking-wider px-2 py-1 rounded ring-1 transition ${
-              applied
-                ? "bg-good/20 ring-good/60 text-good"
-                : "bg-accent/10 ring-accent/40 text-accent hover:bg-accent/20"
-            } ${applying ? "opacity-50" : ""}`}
-          >
-            {applied ? "✓ Aplicado" : applying ? "..." : "Aplicar"}
-          </button>
-        )}
-      </div>
-      {/* When we overrode op.gg's dominant pick to keep coherence with
-          the champion's archetype, surface the reasoning so the user
-          knows it's intentional and not random. */}
-      <p
-        className={`text-[9px] mt-1 ${
-          overrode ? "text-accent/70" : "text-white/30"
-        }`}
-      >
-        {overrode ? "↳ " : ""}
-        {reason}
-      </p>
-    </div>
-  );
-}
+// BuildRow + SpellsRow extracted to components/build/.
 
 // ItemIcon / PerkIcon / SpellIcon extracted to components/build/icons.tsx.
 // Imported at the top of this file. Shared with the split-out
