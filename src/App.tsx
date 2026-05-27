@@ -1,7 +1,7 @@
 import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import "./App.css";
 import { loadChampionDb, readChampionDbCacheUnsafe } from "./services/championDb";
-import { trackEvent, trackFetch, trackNavigation } from "./services/breadcrumbs";
+import { trackEvent, trackFetch } from "./services/breadcrumbs";
 import { mark, measure, warnIfSlow } from "./services/perf";
 import { useDraftStore } from "./state/draftStore";
 import type { ChampionDb, Role } from "./types/champion";
@@ -180,6 +180,7 @@ import { useThemeAccent } from "./hooks/useThemeAccent";
 import { useVoiceCoach } from "./hooks/useVoiceCoach";
 import { useLcuConnectToasts, useChampionLockToast } from "./hooks/useLcuToasts";
 import { useAutoOpenCoach } from "./hooks/useAutoOpenCoach";
+import { useViewBreadcrumb } from "./hooks/useViewBreadcrumbs";
 import { startAutoProSync } from "./services/autoProSync";
 
 const ROLES: Role[] = ["TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY"];
@@ -350,41 +351,19 @@ function App() {
     setUiLocale(uiLocale);
   }, [uiLocale]);
 
-  // Sentry navigation breadcrumbs. Fires "open"/"close" for every
-  // view modal. Sentry events captured AFTER a crash include this
-  // trail — turns "TypeError at line 47" into "user opened History,
-  // then Coach, then crashed in Coach". Each effect watches one flag
-  // independently so React's useEffect dep diff catches the transition.
-  useEffect(() => {
-    trackNavigation("SettingsView", showSettings ? "open" : "close");
-  }, [showSettings]);
-  useEffect(() => {
-    trackNavigation("HistoryView", showHistory ? "open" : "close");
-  }, [showHistory]);
-  useEffect(() => {
-    trackNavigation("CoachView", showCoach ? "open" : "close");
-  }, [showCoach]);
-  useEffect(() => {
-    trackNavigation("PreferencesView", showPrefs ? "open" : "close");
-  }, [showPrefs]);
-  useEffect(() => {
-    trackNavigation("DiagnosticsView", showDiag ? "open" : "close");
-  }, [showDiag]);
-  useEffect(() => {
-    trackNavigation("AiChatView", showChat ? "open" : "close");
-  }, [showChat]);
-  useEffect(() => {
-    trackNavigation("DataPrivacyView", showPrivacy ? "open" : "close");
-  }, [showPrivacy]);
-  useEffect(() => {
-    trackNavigation("TierListView", showTierList ? "open" : "close");
-  }, [showTierList]);
-  useEffect(() => {
-    trackNavigation("ProPlayersView", showProPlayers ? "open" : "close");
-  }, [showProPlayers]);
-  useEffect(() => {
-    trackNavigation("ChampionGuideView", guideChampionKey ? "open" : "close");
-  }, [guideChampionKey]);
+  // Sentry navigation breadcrumbs — one hook call per view modal.
+  // Extracted from a wall of 10 useEffects that all did the same
+  // `trackNavigation(name, open?"open":"close")` thing.
+  useViewBreadcrumb("SettingsView", showSettings);
+  useViewBreadcrumb("HistoryView", showHistory);
+  useViewBreadcrumb("CoachView", showCoach);
+  useViewBreadcrumb("PreferencesView", showPrefs);
+  useViewBreadcrumb("DiagnosticsView", showDiag);
+  useViewBreadcrumb("AiChatView", showChat);
+  useViewBreadcrumb("DataPrivacyView", showPrivacy);
+  useViewBreadcrumb("TierListView", showTierList);
+  useViewBreadcrumb("ProPlayersView", showProPlayers);
+  useViewBreadcrumb("ChampionGuideView", !!guideChampionKey);
 
   // Right-click on a champion slot in the draft board dispatches this
   // event from DraftBoard. We open the guide modal for that champion
