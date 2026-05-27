@@ -40,6 +40,10 @@ let lastLoggedAramShape = "";
 let lastSpokenMyBanTurnId: number | null = null;
 let lastSpokenMyPickTurnId: number | null = null;
 let lastSpokenEnemyBanIds: Set<number> = new Set();
+// Blind-pick diagnostic: tracks the cell we last warned about to
+// dedup the "my champ + intent both 0" log so it doesn't spam every
+// frame.
+let lastBlindWarnedCell: number | null = null;
 
 /** Compact signature of a session frame for log dedup. */
 let lastDiagSignature = "";
@@ -91,6 +95,7 @@ function applySession(s: LcuChampSelectSession | null | undefined) {
     lastSpokenMyPickTurnId = null;
     lastSpokenEnemyBanIds = new Set();
     lastLockedChamp = null;
+    lastBlindWarnedCell = null;
     voiceCoach.resetSession();
     return;
   }
@@ -132,6 +137,25 @@ function applySession(s: LcuChampSelectSession | null | undefined) {
       myPlayer.championPickIntent && myPlayer.championPickIntent > 0
         ? String(myPlayer.championPickIntent)
         : null;
+
+    // Blind-pick diagnostic — if WE found our cell but both
+    // championId AND championPickIntent stay 0 across consecutive
+    // frames, log once so we can see what shape Riot actually sends
+    // (queue type, available fields). Riot's policy is that
+    // championPickIntent populates during hover for the local player
+    // in EVERY queue including blind — if this fires, it's a bug
+    // worth investigating (different field name in blind?).
+    if (locked === null && intent === null && !lastBlindWarnedCell) {
+      // Capture the shape ONCE per session so logs don't fill up.
+      lastBlindWarnedCell = myCell;
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[lcuSync] my cell ${myCell} has no champ + no intent — Riot fields received:`,
+        Object.keys(myPlayer ?? {}).join(",")
+      );
+    }
+    if (locked !== null) lastBlindWarnedCell = null;
+
     store.setLocalSelection(myCell, intent, locked);
 
     // Fire lock event the first time we see this champion locked.
