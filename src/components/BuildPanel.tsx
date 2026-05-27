@@ -15,6 +15,10 @@ import { MatchupGrid } from "./build/MatchupGrid";
 import { ProBuildsSection } from "./build/ProBuildsSection";
 import { BuildRow } from "./build/BuildRow";
 import { SpellsRow } from "./build/SpellsRow";
+import { RuneIcon, translateTree } from "./build/RuneIcon";
+import { StatChip } from "./build/StatChip";
+import { BuyOrderTimeline } from "./build/BuyOrderTimeline";
+import { SkillOrderSection } from "./build/SkillOrderSection";
 import { ItemIcon, PerkIcon } from "./build/icons";
 // fetchProBuilds + types now live inside ProBuildsSection.
 import { pickCoherentSpells } from "../services/spellCoherence";
@@ -29,7 +33,6 @@ import {
   pickBestBuild,
   pickMostPopular,
   type OpggBuild,
-  type OpggBuildPath,
 } from "../services/opggBuilds";
 import { suggestInGameAdaptations, type InGameSuggestion } from "../engine/inGameAdapter";
 import { useLiveGame } from "../hooks/useLiveGame";
@@ -39,43 +42,16 @@ import {
   tierFromWinRate,
   type BuildClassification,
 } from "../engine/buildClassifier";
-import { lookupPerkId } from "../data/runePerkIds";
 import { TierBadge } from "./ui/TierBadge";
 import { useToast } from "./ui/ToastContainer";
-import { getPerkIconUrl, subscribeToPerkIcons } from "../services/perkIcons";
+// getPerkIconUrl/subscribeToPerkIcons now live in build/RuneIcon.tsx
+// getChampionSpells + spellIconUrl + subscribeToChampionSpells now live
+// in build/SkillOrderSection.tsx
 // getItemMeta/subscribeToItemMeta now live in build/icons.tsx
-import {
-  getChampionSpells,
-  spellIconUrl,
-  subscribeToChampionSpells,
-} from "../services/championSpells";
+// tierFromWinRate now used in build/BuildRow.tsx
 
-/**
- * Translates op.gg's English tree names to Spanish for UI consistency.
- * Falls through to the input string if already in Spanish or unknown.
- * Matching is exact + case-insensitive on the canonical English form.
- *
- * Hoisted to module top BEFORE consumers (RuneIcon, OpggBuildSection)
- * to avoid Vite HMR stalls where a partial reload leaves the helper
- * undefined for downstream JSX — surfaced as ReferenceError in
- * production (Sentry DRAFTBOARD-2).
- */
-const TREE_NAMES_ES: Record<string, string> = {
-  Precision: "Precisión",
-  Domination: "Dominación",
-  Sorcery: "Hechicería",
-  Resolve: "Determinación",
-  Inspiration: "Inspiración",
-};
-function translateTree(name: string | undefined): string {
-  if (!name) return "";
-  const direct = TREE_NAMES_ES[name];
-  if (direct) return direct;
-  for (const k of Object.keys(TREE_NAMES_ES)) {
-    if (k.toLowerCase() === name.toLowerCase()) return TREE_NAMES_ES[k];
-  }
-  return name;
-}
+// translateTree + TREE_NAMES_ES moved to build/RuneIcon.tsx alongside
+// the rune helpers they're used with.
 
 interface Props {
   db: ChampionDb;
@@ -796,296 +772,8 @@ function OpggBuildSection({
  * Without this, statMod IDs like 5005/5001 fell through to text chips
  * because they don't match any English/Spanish key in our map.
  */
-function resolveRuneId(name: string): number | null {
-  if (!name) return null;
-  // Numeric? Use directly. Riot's stat shards are 5001/5002/5003/5005/5007/5008/5011/5013.
-  if (/^\d+$/.test(name)) {
-    const n = parseInt(name, 10);
-    if (n > 0) return n;
-  }
-  return lookupPerkId(name);
-}
-
-function RuneIcon({
-  name,
-  keystone = false,
-  small = false,
-}: {
-  name: string;
-  keystone?: boolean;
-  small?: boolean;
-}) {
-  const perkId = resolveRuneId(name);
-  const size = keystone ? "w-12 h-12" : small ? "w-6 h-6" : "w-8 h-8";
-
-  // Force a re-render once perks.json finishes loading. Until then,
-  // getPerkIconUrl returns a generic fallback URL that's still visible
-  // (so the panel never has empty cells), but on real load the icons
-  // swap to the proper per-perk images automatically.
-  const [, force] = useState(0);
-  useEffect(() => {
-    return subscribeToPerkIcons(() => force((n) => n + 1));
-  }, []);
-
-  if (perkId === null) {
-    // Unknown rune name — render a text chip rather than a broken icon.
-    return (
-      <span
-        className={`inline-flex items-center justify-center px-1.5 ${keystone ? "py-1 text-[10px]" : "py-0.5 text-[9px]"} bg-bg-card/60 ring-1 ring-border-subtle rounded text-white/70`}
-        title={`Sin icono: ${name}`}
-      >
-        {name}
-      </span>
-    );
-  }
-
-  const src = getPerkIconUrl(perkId);
-  // Wrap the img in a span so we can show a tooltip on hover via a
-  // styled pseudo-element rather than the browser's native `title`
-  // attribute. Native tooltips render as huge OS-level popups that
-  // overlap adjacent rune icons (Sentry screenshot showed
-  // "Legend: Haste" tooltip covering the next 3 runes). The styled
-  // tooltip is small, dark-themed, and never bleeds outside the
-  // panel.
-  return (
-    <span
-      className={`relative inline-block group/rune`}
-      aria-label={name}
-    >
-      <img
-        src={src}
-        alt={name}
-        className={`${size} rounded ${keystone ? "ring-2 ring-accent/70 shadow-[0_0_8px_rgba(78,205,196,0.45)] bg-black/40 p-0.5" : "ring-1 ring-border-subtle bg-black/30"}`}
-        onError={(e) => {
-          // Manifest URL also failed — fade to placeholder rather
-          // than showing the alt text.
-          const img = e.currentTarget;
-          img.style.opacity = "0.3";
-        }}
-      />
-      {/* Compact custom tooltip — appears on hover, dark themed,
-        * never extends beyond the panel column so it doesn't cover
-        * adjacent runes. opacity-based show/hide so layout doesn't
-        * jump. */}
-      <span
-        role="tooltip"
-        className="pointer-events-none absolute left-1/2 -translate-x-1/2 -top-7 px-1.5 py-0.5 rounded bg-bg-elev/95 border border-border-subtle text-[10px] text-white whitespace-nowrap opacity-0 group-hover/rune:opacity-100 transition-opacity z-30 shadow-md"
-      >
-        {name}
-      </span>
-    </span>
-  );
-}
-
-/**
- * Compact colored chip for a single stat value. Used in the build stats
- * roll-up row so the user can compare archetypes (AD/AP/HP/MR/etc)
- * without doing math. Colors mirror good/bad/info/meh from the global
- * Tailwind palette so the visual language stays consistent.
- */
-function StatChip({
-  label,
-  value,
-  color,
-}: {
-  label: string;
-  value: number;
-  color: "good" | "bad" | "meh" | "accent" | "info";
-}) {
-  const palette = {
-    good: "bg-good/15 text-good ring-good/40",
-    bad: "bg-bad/15 text-bad ring-bad/40",
-    meh: "bg-meh/15 text-meh ring-meh/40",
-    accent: "bg-accent/15 text-accent ring-accent/40",
-    info: "bg-blue-500/15 text-blue-300 ring-blue-500/40",
-  }[color];
-  return (
-    <span
-      className={`inline-flex items-baseline gap-1 px-1.5 py-0.5 rounded ring-1 tabular-nums font-medium ${palette}`}
-    >
-      <span className="opacity-70 text-[9px] uppercase">{label}</span>
-      <span>{value}</span>
-    </span>
-  );
-}
-
-/**
- * Buy order timeline — horizontal compact flow of build progression.
- * X-axis = expected purchase order, each cell = 1 item slot. Times
- * are heuristic (Riot doesn't expose purchase timings per item path)
- * but anchored to typical SoloQ progression: starter at 0min,
- * boots ~5-7min, core 3 by ~25min, full build by 35min+.
- */
-function BuyOrderTimeline({
-  starter,
-  boots,
-  core,
-  fourth,
-  fifth,
-  sixth,
-  patch,
-}: {
-  starter: OpggBuildPath | null;
-  boots: OpggBuildPath | null;
-  core: OpggBuildPath | null;
-  fourth: OpggBuildPath | null;
-  fifth: OpggBuildPath | null;
-  sixth: OpggBuildPath | null;
-  patch: string;
-}) {
-  const phases: Array<{ label: string; time: string; ids: number[]; emphasis: boolean }> = [];
-  if (starter) phases.push({ label: "Inicio", time: "0:00", ids: starter.ids, emphasis: false });
-  if (boots) phases.push({ label: "Botas", time: "~6:00", ids: boots.ids, emphasis: false });
-  if (core) phases.push({ label: "Core 3", time: "~22:00", ids: core.ids, emphasis: true });
-  if (fourth) phases.push({ label: "4º", time: "~28:00", ids: fourth.ids, emphasis: false });
-  if (fifth) phases.push({ label: "5º", time: "~35:00", ids: fifth.ids, emphasis: false });
-  if (sixth) phases.push({ label: "6º", time: "~40:00+", ids: sixth.ids, emphasis: false });
-  if (phases.length === 0) return null;
-
-  return (
-    <div className="border-t border-white/5 pt-2">
-      <p className="text-[10px] uppercase tracking-widest text-white/45 mb-1.5">
-        Orden de compra · timeline
-      </p>
-      <div className="flex items-stretch gap-1 overflow-x-auto pb-1">
-        {phases.map((p, i) => {
-          const ids = Array.from(new Set(p.ids)).filter((id) => id > 0);
-          if (ids.length === 0) return null;
-          return (
-            <div
-              key={i}
-              className={`flex flex-col items-center gap-0.5 shrink-0 ${p.emphasis ? "ring-1 ring-accent/40 rounded p-1 bg-accent/5" : ""}`}
-              title={`${p.label} · aprox ${p.time}`}
-            >
-              <span className="text-[9px] uppercase tracking-wider text-white/45">
-                {p.time}
-              </span>
-              <div className="flex gap-0.5">
-                {ids.slice(0, 3).map((id, j) => (
-                  <img
-                    key={j}
-                    src={`https://ddragon.leagueoflegends.com/cdn/${patch}/img/item/${id}.png`}
-                    alt=""
-                    className="w-6 h-6 rounded border border-border-subtle"
-                    onError={(e) => ((e.currentTarget as HTMLImageElement).style.display = "none")}
-                  />
-                ))}
-              </div>
-              <span className={`text-[9px] uppercase tracking-wider ${p.emphasis ? "text-accent font-semibold" : "text-white/45"}`}>
-                {p.label}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-/**
- * Skill order with real ability icons. Top row: Q/W/E/R icons sized
- * larger with their first-leveled level number badge. Bottom row: the
- * full 18-level priority pattern as small letter chips. Falls back to
- * pure letters until DDragon champion data loads.
- */
-function SkillOrderSection({
-  order,
-  championId,
-  patch,
-}: {
-  order: string;
-  championId: string;
-  patch: string;
-}) {
-  // Force re-render when champion spell data finishes loading. The
-  // first call to getChampionSpells kicks the fetch; subsequent calls
-  // return cached data.
-  const [, force] = useState(0);
-  useEffect(() => {
-    return subscribeToChampionSpells(() => force((n) => n + 1));
-  }, []);
-  const spells = getChampionSpells(patch, championId);
-
-  // Compute first-level priority — what skill the player levels at 1,
-  // 2, 3, then which is maxed first. Shows the macro pattern at a glance.
-  const firstThree = order.slice(0, 3).split("");
-  const skillFirstLevel: Record<string, number> = {};
-  for (let i = 0; i < order.length; i++) {
-    const s = order[i];
-    if (skillFirstLevel[s] === undefined) skillFirstLevel[s] = i + 1;
-  }
-
-  const skillIndex = (letter: string): number => {
-    if (letter === "Q") return 0;
-    if (letter === "W") return 1;
-    if (letter === "E") return 2;
-    if (letter === "R") return 3;
-    return -1;
-  };
-
-  return (
-    <div className="space-y-1.5">
-      <p className="text-[10px] uppercase tracking-widest text-white/45">
-        Subida de habilidades
-      </p>
-
-      {/* Top row: 4 ability icons (or letter fallback) with level badge */}
-      <div className="flex items-center gap-1.5">
-        {["Q", "W", "E", "R"].map((letter) => {
-          const idx = skillIndex(letter);
-          const spell = idx >= 0 && spells?.spells[idx];
-          const lvl = skillFirstLevel[letter];
-          // Highlight the first-three priority skills so the user knows
-          // what to level at 1/2/3.
-          const isPriority = firstThree.includes(letter);
-          return (
-            <div
-              key={letter}
-              className={`relative ${isPriority ? "ring-2 ring-accent/60 rounded" : ""}`}
-              title={spell ? `${letter}: ${spell.name}` : `${letter}: nivel ${lvl ?? "?"}`}
-            >
-              {spell ? (
-                <img
-                  src={spellIconUrl(patch, spell.image)}
-                  alt={spell.name}
-                  className="w-9 h-9 rounded border border-border-subtle"
-                  onError={(e) => ((e.currentTarget as HTMLImageElement).style.opacity = "0.3")}
-                />
-              ) : (
-                <span className="inline-flex items-center justify-center w-9 h-9 text-base font-bold rounded bg-bg-card border border-border-subtle text-accent">
-                  {letter}
-                </span>
-              )}
-              {/* Level badge in bottom-right corner — shows when player
-                * first puts a point in this skill. */}
-              {lvl && (
-                <span className="absolute -bottom-1 -right-1 text-[9px] font-bold bg-accent text-black rounded-full w-4 h-4 inline-flex items-center justify-center ring-1 ring-bg">
-                  {lvl}
-                </span>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Bottom row: full 18-level letter sequence */}
-      <div className="flex flex-wrap gap-0.5">
-        {order.split("").slice(0, 18).map((s, i) => (
-          <span
-            key={i}
-            className={`inline-flex items-center justify-center w-5 h-5 text-[10px] font-bold rounded ring-1 ${
-              s === "R"
-                ? "bg-accent/20 ring-accent/50 text-accent"
-                : "bg-bg-card ring-border-subtle text-white/80"
-            }`}
-            title={`Nivel ${i + 1}: ${s}`}
-          >
-            {s}
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-}
+// RuneIcon + StatChip + BuyOrderTimeline + SkillOrderSection extracted
+// to components/build/. translateTree + TREE_NAMES_ES moved into
+// RuneIcon.tsx (related concern).
 
 export const BuildPanel = memo(BuildPanelInner);
