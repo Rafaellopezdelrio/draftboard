@@ -145,4 +145,85 @@ describe("lcuSync.applySession — defensive parsing", () => {
     expect(s.bans.ally[0]).toBe("1");
     expect(s.bans.enemy[1]).toBe("4");
   });
+
+  it("BLIND PICK: myTeam fields stay 0 but actions[][] has the pick → still rendered", () => {
+    // Regression for blind-pick bug — Riot's queue 430 leaves
+    // myTeam[].championId AND championPickIntent at 0 while the pick
+    // action holds the real champion. We must fall back to actions[][].
+    const blind = {
+      localPlayerCellId: 2,
+      myTeam: [
+        player(0, 0),
+        player(1, 0),
+        player(2, 0), // me, blind pick — myTeam fields all zero
+        player(3, 0),
+        player(4, 0),
+      ],
+      theirTeam: [player(5, 0), player(6, 0), player(7, 0), player(8, 0), player(9, 0)],
+      actions: [
+        // hovers + locks come on actorCellId
+        [
+          { type: "pick", actorCellId: 2, championId: 266, completed: false, id: 1 }, // me hover
+          { type: "pick", actorCellId: 0, championId: 157, completed: true, id: 2 },  // ally locked
+          { type: "pick", actorCellId: 5, championId: 64, completed: true, id: 3 },   // enemy locked
+        ],
+      ],
+      bans: { myTeamBans: [], theirTeamBans: [] }, // explicit empty so the
+      // post-pick preservation guard doesn't return early
+    } as unknown as Parameters<typeof applySession>[0];
+
+    applySession(blind);
+    const s = useDraftStore.getState();
+    expect(s.ally[2].championKey).toBe("266"); // me — from actions hover
+    expect(s.ally[0].championKey).toBe("157"); // ally — from actions lock
+    expect(s.enemy[0].championKey).toBe("64"); // enemy — from actions lock
+  });
+
+  it("BLIND PICK: locked over hover when both present for same cell", () => {
+    const blind = {
+      localPlayerCellId: 0,
+      myTeam: [player(0, 0)],
+      theirTeam: [],
+      actions: [
+        [
+          { type: "pick", actorCellId: 0, championId: 266, completed: false, id: 1 }, // hover
+          { type: "pick", actorCellId: 0, championId: 157, completed: true, id: 2 },  // locked
+        ],
+      ],
+      bans: { myTeamBans: [], theirTeamBans: [] },
+    } as unknown as Parameters<typeof applySession>[0];
+
+    applySession(blind);
+    expect(useDraftStore.getState().ally[0].championKey).toBe("157");
+  });
+
+  it("transition frame (no bans field, no actions) preserves previously-set bans", () => {
+    // Regression for surrender-vote / post-pick frame: LCU sometimes
+    // pushes a frame with neither s.bans nor s.actions while the user
+    // is still in champ select. Naively iterating 5 slots and writing
+    // null would nuke bans the user can still see in the client.
+    //
+    // First frame: real ban data lands.
+    const realFrame = {
+      localPlayerCellId: 0,
+      myTeam: [player(0, 266)],
+      theirTeam: [player(5, 23)],
+      bans: { myTeamBans: [1, 2, 3, 4, 5], theirTeamBans: [6, 7, 8, 9, 10] },
+    } as unknown as Parameters<typeof applySession>[0];
+    applySession(realFrame);
+    expect(useDraftStore.getState().bans.ally[0]).toBe("1");
+
+    // Second frame: transition — bans field gone, actions[] empty.
+    // Without the preservation guard the store would clear all 5 bans.
+    const transitionFrame = {
+      localPlayerCellId: 0,
+      myTeam: [player(0, 266)],
+      theirTeam: [player(5, 23)],
+      // bans + actions intentionally absent
+    } as unknown as Parameters<typeof applySession>[0];
+    applySession(transitionFrame);
+    const after = useDraftStore.getState();
+    expect(after.bans.ally[0]).toBe("1"); // preserved
+    expect(after.bans.enemy[4]).toBe("10"); // preserved
+  });
 });

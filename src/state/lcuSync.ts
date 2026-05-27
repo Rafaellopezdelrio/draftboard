@@ -128,29 +128,67 @@ function applySession(s: LcuChampSelectSession | null | undefined) {
   const myPlayer = [...myTeam, ...theirTeam].find(
     (p) => p.cellId === myCell
   );
+
+  // ── Pick fallback from actions[][] ──
+  // In BLIND PICK queue (430), Riot leaves myTeam[].championId AND
+  // championPickIntent at 0 the entire phase, but DOES populate the pick
+  // action's `championId` for the local player (whether hovered or locked).
+  // We build a per-cell pick map here and use it as fallback below.
+  // Same map covers ally/enemy slot iteration so blind-pick allies and
+  // enemies also appear in the UI (previously the whole board stayed
+  // empty for the entire phase).
+  //
+  // The map gives us both the locked champ (act.completed=true) and the
+  // hover champ (act.completed=false). We pick locked over hover when
+  // both exist for the same cell.
+  const cellPickMap = new Map<number, { locked: number; hover: number }>();
+  if (Array.isArray(s.actions)) {
+    for (const group of s.actions) {
+      if (!Array.isArray(group)) continue;
+      for (const act of group) {
+        if (!act || act.type !== "pick" || !act.championId || act.championId <= 0) continue;
+        const cellId = act.actorCellId;
+        if (typeof cellId !== "number") continue;
+        const existing = cellPickMap.get(cellId) ?? { locked: 0, hover: 0 };
+        if (act.completed) existing.locked = act.championId;
+        else existing.hover = act.championId;
+        cellPickMap.set(cellId, existing);
+      }
+    }
+  }
+  const pickFromActions = (cellId: number | undefined): { locked: string | null; intent: string | null } => {
+    if (typeof cellId !== "number") return { locked: null, intent: null };
+    const entry = cellPickMap.get(cellId);
+    if (!entry) return { locked: null, intent: null };
+    return {
+      locked: entry.locked > 0 ? String(entry.locked) : null,
+      intent: entry.hover > 0 ? String(entry.hover) : null,
+    };
+  };
   if (myPlayer) {
     const role = lcuPositionToRole(myPlayer.assignedPosition);
     if (role) store.setMyRole(role);
-    const locked =
-      myPlayer.championId > 0 ? String(myPlayer.championId) : null;
-    const intent =
-      myPlayer.championPickIntent && myPlayer.championPickIntent > 0
-        ? String(myPlayer.championPickIntent)
-        : null;
+    const fromMyTeam = {
+      locked: myPlayer.championId > 0 ? String(myPlayer.championId) : null,
+      intent:
+        myPlayer.championPickIntent && myPlayer.championPickIntent > 0
+          ? String(myPlayer.championPickIntent)
+          : null,
+    };
+    const fromActions = pickFromActions(myCell);
+    // Prefer myTeam fields when populated (draft pick) and fall back to
+    // actions[][] map (blind pick — populated there but not in myTeam).
+    const locked = fromMyTeam.locked ?? fromActions.locked;
+    const intent = fromMyTeam.intent ?? fromActions.intent;
 
-    // Blind-pick diagnostic — if WE found our cell but both
-    // championId AND championPickIntent stay 0 across consecutive
-    // frames, log once so we can see what shape Riot actually sends
-    // (queue type, available fields). Riot's policy is that
-    // championPickIntent populates during hover for the local player
-    // in EVERY queue including blind — if this fires, it's a bug
-    // worth investigating (different field name in blind?).
+    // Diagnostic — still warn once if BOTH paths returned null, which
+    // would mean Riot's session shape is unrecognised (new queue type,
+    // schema change). Helps catch regressions vs the silent-empty state.
     if (locked === null && intent === null && !lastBlindWarnedCell) {
-      // Capture the shape ONCE per session so logs don't fill up.
       lastBlindWarnedCell = myCell;
       // eslint-disable-next-line no-console
       console.warn(
-        `[lcuSync] my cell ${myCell} has no champ + no intent — Riot fields received:`,
+        `[lcuSync] my cell ${myCell} has no champ in myTeam OR actions — Riot fields:`,
         Object.keys(myPlayer ?? {}).join(",")
       );
     }
@@ -182,12 +220,16 @@ function applySession(s: LcuChampSelectSession | null | undefined) {
   for (let idx = 0; idx < 5; idx++) {
     const ally = myTeam[idx];
     if (ally) {
-      const champKey =
+      // Same priority as myCell: myTeam fields first (draft pick),
+      // actions[][] fallback (blind pick where myTeam stays at 0).
+      const fromTeam =
         ally.championId > 0
           ? String(ally.championId)
           : ally.championPickIntent && ally.championPickIntent > 0
             ? String(ally.championPickIntent)
             : null;
+      const fromActions = pickFromActions(ally.cellId);
+      const champKey = fromTeam ?? fromActions.locked ?? fromActions.intent;
       store.setPick("ally", idx, champKey);
       const role = lcuPositionToRole(ally.assignedPosition);
       if (role) store.setRoleForSlot("ally", idx, role);
@@ -201,12 +243,14 @@ function applySession(s: LcuChampSelectSession | null | undefined) {
       // Critical in blind pick / ARAM where Riot exposes pickIntent for the
       // enemy team during the early seconds. Without this the engine waits
       // for lock-in and the user loses precious counter-pick time.
-      const champKey =
+      const fromTeam =
         enemy.championId > 0
           ? String(enemy.championId)
           : enemy.championPickIntent && enemy.championPickIntent > 0
             ? String(enemy.championPickIntent)
             : null;
+      const fromActions = pickFromActions(enemy.cellId);
+      const champKey = fromTeam ?? fromActions.locked ?? fromActions.intent;
       store.setPick("enemy", idx, champKey);
     } else {
       store.setPick("enemy", idx, null);
@@ -305,6 +349,25 @@ function applySession(s: LcuChampSelectSession | null | undefined) {
   // we push to the store so the bans row in the UI reflects current state.
   const finalAlly = myTeamBans.length > 0 ? myTeamBans : liveAllyBans;
   const finalEnemy = theirTeamBans.length > 0 ? theirTeamBans : liveEnemyBans;
+
+  // ── Preservation guard for post-pick / surrender-vote frames ──
+  // After the ban phase ends, LCU sometimes pushes frames where:
+  //   - s.bans is undefined entirely (mid-transition), OR
+  //   - s.actions[] no longer contains ban entries (already committed)
+  // If we naively iterate 5 slots and setBan(null), the UI nukes bans
+  // that ARE still real (visible in client). Skip the clear loop when
+  // BOTH sources came back empty AND s.bans wasn't explicitly sent —
+  // that signals a transition frame, not a real "bans were unset".
+  const bansAreExplicit =
+    s.bans !== undefined &&
+    s.bans !== null &&
+    (Array.isArray(s.bans.myTeamBans) || Array.isArray(s.bans.theirTeamBans));
+  const haveLiveBans = liveAllyBans.length > 0 || liveEnemyBans.length > 0;
+  if (!bansAreExplicit && !haveLiveBans) {
+    // Transition frame — preserve existing store bans rather than nuking.
+    return;
+  }
+
   // CRITICAL: iterate FIXED 5 ban slots (not forEach over the live array)
   // so we explicitly clear slots that drop out — e.g. when a hover is
   // canceled mid-phase, or when entering a brand new champ select with
