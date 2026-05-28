@@ -4,6 +4,12 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Warm the connections we hit on first paint: DDragon serves the
+         champion grid images + data at boot; CommunityDragon serves rune
+         icons. preconnect does DNS + TCP + TLS ahead of the first request. -->
+    <link rel="dns-prefetch" href="https://ddragon.leagueoflegends.com" />
+    <link rel="preconnect" href="https://ddragon.leagueoflegends.com" />
+    <link rel="dns-prefetch" href="https://raw.communitydragon.org" />
     <title>Tauri + React + Typescript</title>
   </head>
 

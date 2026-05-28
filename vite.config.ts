@@ -1,14 +1,24 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
+import { visualizer } from "rollup-plugin-visualizer";
 import pkg from "./package.json" with { type: "json" };
 
 // @ts-expect-error process is a nodejs global
 const host = process.env.TAURI_DEV_HOST;
 
 // https://vite.dev/config/
-export default defineConfig(async () => ({
-  plugins: [react(), tailwindcss()],
+export default defineConfig(async ({ mode }) => ({
+  plugins: [
+    react(),
+    tailwindcss(),
+    // Bundle treemap — only on `npm run analyze` (--mode analyze). Writes
+    // dist/stats.html (gzip + brotli sizes) so we can see what's inside the
+    // ~481KB main chunk. Never runs on dev / normal build / CI.
+    ...(mode === "analyze"
+      ? [visualizer({ filename: "dist/stats.html", gzipSize: true, brotliSize: true })]
+      : []),
+  ],
   // Compile-time constants. `__APP_VERSION__` lets Sentry tag every event
   // with the binary's package.json version so errors group by release in
   // the dashboard. We also expose it to <AboutModal> as a fallback when

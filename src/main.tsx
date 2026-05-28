@@ -73,8 +73,22 @@ function bootTelemetryDecision(): boolean {
   }
   return true;
 }
-initSentry({ enabled: bootTelemetryDecision() });
+// installLogBridge stays synchronous — it only patches console + adds the
+// window error/rejection listeners (cheap), so early crashes still reach
+// the disk log even before Sentry is up.
 installLogBridge();
+// Defer the heavier Sentry SDK init off the first-paint critical path.
+// initSentry wires transport + integrations; running it synchronously at
+// boot delayed the initial render. Kick it on the first idle slot (capped
+// at 2s so it always runs soon). The SentryErrorBoundary + window
+// listeners cover the brief pre-init window — we only trade away SDK-side
+// capture of a crash in those first few ms for a faster boot.
+const bootSentry = () => initSentry({ enabled: bootTelemetryDecision() });
+if (typeof requestIdleCallback === "function") {
+  requestIdleCallback(bootSentry, { timeout: 2000 });
+} else {
+  setTimeout(bootSentry, 0);
+}
 
 // The "overlay" Tauri window loads index.html with ?overlay=1. Same React
 // bundle, different root component. Keeps build pipeline simple (one
