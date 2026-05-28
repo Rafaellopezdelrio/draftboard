@@ -14,13 +14,16 @@
 // process injection, no memory reads, no DLL hooks — same primitives
 // any accessibility tool or window manager uses.
 
+// Win32 overlay re-assertion (SetWindowPos / GetForegroundWindow /
+// GetWindowLongPtr) requires `unsafe`. Cargo.toml sets unsafe_code = "warn"
+// crate-wide so NEW unsafe elsewhere gets flagged; this whole module IS the
+// reviewed Win32 wrapper, so scope the allow here (not blanket across crate).
+#![allow(unsafe_code)]
+
 use tauri::Manager as _;
 
 #[tauri::command]
-pub async fn overlay_set_visible(
-    app: tauri::AppHandle,
-    visible: bool,
-) -> Result<(), String> {
+pub async fn overlay_set_visible(app: tauri::AppHandle, visible: bool) -> Result<(), String> {
     let win = app
         .get_webview_window("overlay")
         .ok_or_else(|| "overlay window not found".to_string())?;
@@ -35,10 +38,7 @@ pub async fn overlay_set_visible(
 }
 
 #[tauri::command]
-pub async fn overlay_set_clickthrough(
-    app: tauri::AppHandle,
-    enabled: bool,
-) -> Result<(), String> {
+pub async fn overlay_set_clickthrough(app: tauri::AppHandle, enabled: bool) -> Result<(), String> {
     let win = app
         .get_webview_window("overlay")
         .ok_or_else(|| "overlay window not found".to_string())?;
@@ -47,11 +47,7 @@ pub async fn overlay_set_clickthrough(
 }
 
 #[tauri::command]
-pub async fn overlay_set_position(
-    app: tauri::AppHandle,
-    x: i32,
-    y: i32,
-) -> Result<(), String> {
+pub async fn overlay_set_position(app: tauri::AppHandle, x: i32, y: i32) -> Result<(), String> {
     use tauri::{PhysicalPosition, Position};
     let win = app
         .get_webview_window("overlay")
@@ -112,10 +108,8 @@ fn find_lol_hwnd() -> Option<windows::Win32::Foundation::HWND> {
     ];
 
     let try_find = |class: Option<&str>, title: Option<&str>| -> Option<HWND> {
-        let class_buf: Option<Vec<u16>> =
-            class.map(|s| format!("{s}\0").encode_utf16().collect());
-        let title_buf: Option<Vec<u16>> =
-            title.map(|s| format!("{s}\0").encode_utf16().collect());
+        let class_buf: Option<Vec<u16>> = class.map(|s| format!("{s}\0").encode_utf16().collect());
+        let title_buf: Option<Vec<u16>> = title.map(|s| format!("{s}\0").encode_utf16().collect());
         let class_ptr = class_buf
             .as_ref()
             .map(|v| PCWSTR::from_raw(v.as_ptr()))
@@ -205,9 +199,7 @@ pub async fn get_lol_window_rect() -> Result<Option<serde_json::Value>, String> 
 pub async fn detect_lol_window_mode() -> Result<String, String> {
     #[cfg(windows)]
     {
-        use windows::Win32::UI::WindowsAndMessaging::{
-            GetWindowLongPtrW, GWL_STYLE, WS_CAPTION,
-        };
+        use windows::Win32::UI::WindowsAndMessaging::{GetWindowLongPtrW, GWL_STYLE, WS_CAPTION};
 
         // Reuse the same Win32 finder as the positioning code so we always
         // classify the SAME window we're anchoring to. Previously the mode

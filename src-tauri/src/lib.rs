@@ -34,8 +34,8 @@ use lcu::{
     lcu_push_item_set, lcu_status, lcu_summoner_by_id, live_client_all_game_data, LcuState,
 };
 use overlay::{
-    detect_lol_window_mode, get_lol_window_rect, overlay_assert_topmost,
-    overlay_set_clickthrough, overlay_set_position, overlay_set_size, overlay_set_visible,
+    detect_lol_window_mode, get_lol_window_rect, overlay_assert_topmost, overlay_set_clickthrough,
+    overlay_set_position, overlay_set_size, overlay_set_visible,
 };
 use panic_logger::install_panic_logger;
 
@@ -188,8 +188,12 @@ pub fn run() {
             let quit = MenuItem::with_id(app, "quit", "Salir", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&show, &hide, &quit])?;
 
+            let default_icon = app
+                .default_window_icon()
+                .ok_or("no default window icon configured")?
+                .clone();
             let _tray = TrayIconBuilder::with_id("main")
-                .icon(app.default_window_icon().unwrap().clone())
+                .icon(default_icon)
                 .menu(&menu)
                 .show_menu_on_left_click(false)
                 .on_menu_event(|app, event| match event.id.as_ref() {
@@ -277,5 +281,8 @@ pub fn run() {
             set_tray_tooltip
         ])
         .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .unwrap_or_else(|e| {
+            log::error!("fatal: tauri runtime exited: {e}");
+            std::process::exit(1);
+        });
 }

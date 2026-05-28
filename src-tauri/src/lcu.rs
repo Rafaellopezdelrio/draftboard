@@ -19,7 +19,7 @@ pub struct LcuStatus {
 }
 
 #[derive(Debug, Clone)]
-struct Lockfile {
+pub(crate) struct Lockfile {
     port: u16,
     password: String,
 }
@@ -70,7 +70,11 @@ async fn try_connect(app: &AppHandle) -> Result<()> {
     // I/O and bloating logs. The watcher loop already broadcasts the
     // disconnected status to the frontend; no log needed.
     let lf = read_lockfile()?;
-    eprintln!("[LCU] lockfile OK port={} password=({} chars)", lf.port, lf.password.len());
+    eprintln!(
+        "[LCU] lockfile OK port={} password=({} chars)",
+        lf.port,
+        lf.password.len()
+    );
 
     let auth = format!("riot:{}", lf.password);
     let auth_b64 = B64.encode(auth.as_bytes());
@@ -84,17 +88,13 @@ async fn try_connect(app: &AppHandle) -> Result<()> {
     // The LCU uses a self-signed cert. Disable verification only against localhost.
     let tls = rustls_dangerous_config()?;
     let connector = Connector::Rustls(std::sync::Arc::new(tls));
-    let (mut stream, _) = tokio_tungstenite::connect_async_tls_with_config(
-        req,
-        None,
-        false,
-        Some(connector),
-    )
-    .await
-    .map_err(|e| {
-        eprintln!("[LCU] websocket connect failed: {}", e);
-        anyhow!("LCU websocket connect: {}", e)
-    })?;
+    let (mut stream, _) =
+        tokio_tungstenite::connect_async_tls_with_config(req, None, false, Some(connector))
+            .await
+            .map_err(|e| {
+                eprintln!("[LCU] websocket connect failed: {}", e);
+                anyhow!("LCU websocket connect: {}", e)
+            })?;
 
     eprintln!("[LCU] WebSocket connected ✓");
     update_status(app, true, None).await;
@@ -104,7 +104,7 @@ async fn try_connect(app: &AppHandle) -> Result<()> {
         5,
         "OnJsonApiEvent_lol-champ-select_v1_session"
     ]))?;
-    stream.send(Message::Text(sub.into())).await?;
+    stream.send(Message::Text(sub)).await?;
 
     // Bootstrap: the WebSocket only fires when the session CHANGES.
     // If the user is already in champ select when Draftboard launches,
@@ -156,13 +156,7 @@ async fn update_status(app: &AppHandle, connected: bool, reason: Option<String>)
         s.connected = connected;
         s.reason = reason.clone();
     }
-    let _ = app.emit(
-        "lcu:status",
-        LcuStatus {
-            connected,
-            reason,
-        },
-    );
+    let _ = app.emit("lcu:status", LcuStatus { connected, reason });
 }
 
 /// Parse the raw lockfile string into structured Port + Password.
@@ -242,7 +236,7 @@ fn detect_lol_install_from_process() -> Option<PathBuf> {
     let sys = System::new_with_specifics(
         RefreshKind::new().with_processes(ProcessRefreshKind::everything()),
     );
-    for (_, proc) in sys.processes() {
+    for proc in sys.processes().values() {
         let name = proc.name().to_string_lossy();
         if name.eq_ignore_ascii_case("LeagueClient.exe") {
             if let Some(exe) = proc.exe() {
@@ -378,7 +372,9 @@ pub struct LcuSummonerLite {
 
 #[tauri::command]
 pub async fn lcu_summoner_by_id(summoner_id: u64) -> Result<LcuSummonerLite, String> {
-    fetch_summoner_by_id(summoner_id).await.map_err(|e| e.to_string())
+    fetch_summoner_by_id(summoner_id)
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -420,9 +416,11 @@ async fn apply_runes(page: RunePageInput) -> Result<()> {
         .json()
         .await?;
 
-    let editable = pages
-        .iter()
-        .find(|p| p.get("isEditable").and_then(|v| v.as_bool()).unwrap_or(false));
+    let editable = pages.iter().find(|p| {
+        p.get("isEditable")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false)
+    });
 
     if let Some(existing) = editable {
         if let Some(id) = existing.get("id").and_then(|v| v.as_i64()) {
@@ -547,7 +545,9 @@ pub struct ItemSetItem {
     #[serde(default = "default_one")]
     pub count: u32,
 }
-fn default_one() -> u32 { 1 }
+fn default_one() -> u32 {
+    1
+}
 
 #[tauri::command]
 pub async fn lcu_push_item_set(set: ItemSetInput) -> Result<bool, String> {
@@ -575,11 +575,9 @@ async fn push_item_set(set: ItemSetInput) -> Result<bool> {
         .await?
         .json()
         .await?;
-    let summoner_id = me.get("summonerId").and_then(|v| v.as_u64());
-    if summoner_id.is_none() {
+    let Some(summoner_id) = me.get("summonerId").and_then(|v| v.as_u64()) else {
         return Ok(false); // not logged in to client
-    }
-    let summoner_id = summoner_id.unwrap();
+    };
 
     // Build the body Riot expects. Items in the `items` array carry their
     // id as a STRING (their schema is loose — strings everywhere).
@@ -686,10 +684,7 @@ async fn apply_summoner_spells(spell1: u32, spell2: u32) -> Result<bool> {
         return Ok(false);
     }
     if !resp.status().is_success() {
-        return Err(anyhow!(
-            "apply summoner spells returned {}",
-            resp.status()
-        ));
+        return Err(anyhow!("apply summoner spells returned {}", resp.status()));
     }
     Ok(true)
 }
@@ -760,7 +755,10 @@ async fn fetch_current_summoner() -> Result<LcuSummoner> {
         .connect_timeout(Duration::from_secs(2))
         .build()?;
 
-    let url = format!("https://127.0.0.1:{}/lol-summoner/v1/current-summoner", lf.port);
+    let url = format!(
+        "https://127.0.0.1:{}/lol-summoner/v1/current-summoner",
+        lf.port
+    );
     let resp = client
         .get(&url)
         .header("Authorization", format!("Basic {}", auth_b64))
@@ -780,9 +778,10 @@ fn read_region() -> Result<String> {
     // %LOCALAPPDATA%\Riot Games\Riot Client\Data\RiotClientSettings.yaml
     // Easier: read from LeagueClientSettings.yaml
     use std::fs;
-    let candidates = [
-        format!("{}\\Riot Games\\Riot Client\\Data\\RiotClientSettings.yaml", std::env::var("LOCALAPPDATA").unwrap_or_default()),
-    ];
+    let candidates = [format!(
+        "{}\\Riot Games\\Riot Client\\Data\\RiotClientSettings.yaml",
+        std::env::var("LOCALAPPDATA").unwrap_or_default()
+    )];
     for path in candidates {
         if let Ok(content) = fs::read_to_string(&path) {
             // very small parse: look for "region:"
@@ -797,7 +796,6 @@ fn read_region() -> Result<String> {
     Err(anyhow!("region not found"))
 }
 
-
 // ──────────────────────────────────────────────────────────────────────
 // Tests
 // ──────────────────────────────────────────────────────────────────────
@@ -808,6 +806,8 @@ fn read_region() -> Result<String> {
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::unwrap_used, clippy::expect_used)] // unwrap/expect idiomatic in tests
+
     use super::*;
 
     #[test]
@@ -849,4 +849,3 @@ mod tests {
         assert_eq!(lock.password, "pw");
     }
 }
-

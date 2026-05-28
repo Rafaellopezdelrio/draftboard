@@ -71,6 +71,7 @@ pub fn ymd_to_epoch_secs(ymd: &str) -> Option<u64> {
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::unwrap_used, clippy::expect_used)] // unwrap idiomatic in tests
     use super::*;
 
     #[test]

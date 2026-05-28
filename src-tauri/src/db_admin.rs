@@ -55,15 +55,15 @@ pub fn rolling_db_backup(app: &tauri::AppHandle) -> Result<(), String> {
     if let Ok(entries) = fs::read_dir(&backup_dir) {
         for e in entries.flatten() {
             let p = e.path();
-            let Some(name) = p.file_name().and_then(|n| n.to_str()) else { continue };
+            let Some(name) = p.file_name().and_then(|n| n.to_str()) else {
+                continue;
+            };
             if !name.starts_with("auto-") || !name.ends_with(".db") {
                 continue;
             }
             if let Ok(meta) = e.metadata() {
                 if let Ok(modified) = meta.modified() {
-                    if let Ok(age_secs) =
-                        std::time::SystemTime::now().duration_since(modified)
-                    {
+                    if let Ok(age_secs) = std::time::SystemTime::now().duration_since(modified) {
                         if age_secs.as_secs() > KEEP_DAYS * 86_400 {
                             let _ = fs::remove_file(&p);
                             continue;
@@ -91,9 +91,7 @@ pub fn rolling_db_backup(app: &tauri::AppHandle) -> Result<(), String> {
 /// Settings → Mis datos so the user can restore a specific snapshot
 /// without using a file picker. Returns newest first.
 #[tauri::command]
-pub async fn db_list_auto_backups(
-    app: tauri::AppHandle,
-) -> Result<Vec<serde_json::Value>, String> {
+pub async fn db_list_auto_backups(app: tauri::AppHandle) -> Result<Vec<serde_json::Value>, String> {
     use std::fs;
     let app_data = app
         .path()
@@ -107,7 +105,9 @@ pub async fn db_list_auto_backups(
     for e in fs::read_dir(&backup_dir).map_err(|e| format!("readdir: {e}"))? {
         let Ok(entry) = e else { continue };
         let p = entry.path();
-        let Some(name) = p.file_name().and_then(|n| n.to_str()) else { continue };
+        let Some(name) = p.file_name().and_then(|n| n.to_str()) else {
+            continue;
+        };
         if !name.starts_with("auto-") || !name.ends_with(".db") {
             continue;
         }
@@ -131,7 +131,7 @@ pub async fn db_list_auto_backups(
         ));
     }
     // Newest first by modified time.
-    entries.sort_by(|a, b| b.3.cmp(&a.3));
+    entries.sort_by_key(|e| std::cmp::Reverse(e.3));
     Ok(entries
         .into_iter()
         .map(|(path, date_label, size, modified)| {
@@ -157,9 +157,7 @@ pub async fn db_list_auto_backups(
 /// Side effects: writes a `recovery-marker.json` next to the DB if a
 /// quarantine happened. The frontend reads + consumes this on boot to
 /// show the user a toast explaining their data was reset.
-pub fn preboot_db_integrity_check_and_quarantine(
-    app: &tauri::AppHandle,
-) -> Result<(), String> {
+pub fn preboot_db_integrity_check_and_quarantine(app: &tauri::AppHandle) -> Result<(), String> {
     use std::fs;
     let app_data = app
         .path()
@@ -187,8 +185,7 @@ pub fn preboot_db_integrity_check_and_quarantine(
     // `synchronous=NORMAL` is the WAL-recommended setting; full sync
     // is overkill given we already have the rolling backup safety net.
     let check_result: Result<(), String> = (|| {
-        let conn = rusqlite::Connection::open(&db_path)
-            .map_err(|e| format!("open: {e}"))?;
+        let conn = rusqlite::Connection::open(&db_path).map_err(|e| format!("open: {e}"))?;
         let s: String = conn
             .query_row("PRAGMA integrity_check", [], |row| row.get(0))
             .map_err(|e| format!("query: {e}"))?;
@@ -198,16 +195,15 @@ pub fn preboot_db_integrity_check_and_quarantine(
         // Force WAL mode + NORMAL sync. Idempotent — no-op if already set.
         // We swallow inner errors because they're non-fatal: the DB still
         // works in rollback journal mode, just slower.
-        let _ = conn.pragma_update(None, "journal_mode", &"WAL");
-        let _ = conn.pragma_update(None, "synchronous", &"NORMAL");
+        let _ = conn.pragma_update(None, "journal_mode", "WAL");
+        let _ = conn.pragma_update(None, "synchronous", "NORMAL");
         Ok(())
     })();
 
-    if check_result.is_ok() {
-        return Ok(());
-    }
-
-    let reason = check_result.unwrap_err();
+    let reason = match check_result {
+        Ok(()) => return Ok(()),
+        Err(e) => e,
+    };
     eprintln!("[db-integrity] CORRUPT: {reason} — quarantining");
 
     let epoch = std::time::SystemTime::now()
@@ -244,9 +240,7 @@ pub fn preboot_db_integrity_check_and_quarantine(
 /// invokes this once at boot to decide whether to show the user a
 /// "your data was reset" toast.
 #[tauri::command]
-pub async fn consume_db_recovery_marker(
-    app: tauri::AppHandle,
-) -> Result<Option<String>, String> {
+pub async fn consume_db_recovery_marker(app: tauri::AppHandle) -> Result<Option<String>, String> {
     use std::fs;
     let app_data = app
         .path()
@@ -309,10 +303,7 @@ pub async fn db_quarantine_corrupt(app: tauri::AppHandle) -> Result<String, Stri
 /// it's always the app's own DB. The target comes from a native file
 /// picker so we never write to arbitrary locations.
 #[tauri::command]
-pub async fn db_backup_to(
-    app: tauri::AppHandle,
-    target_path: String,
-) -> Result<u64, String> {
+pub async fn db_backup_to(app: tauri::AppHandle, target_path: String) -> Result<u64, String> {
     use std::fs;
     let app_data = app
         .path()
@@ -322,8 +313,7 @@ pub async fn db_backup_to(
     if !source.exists() {
         return Err(format!("DB file not found at {}", source.display()));
     }
-    let bytes = fs::copy(&source, &target_path)
-        .map_err(|e| format!("copy failed: {e}"))?;
+    let bytes = fs::copy(&source, &target_path).map_err(|e| format!("copy failed: {e}"))?;
     Ok(bytes)
 }
 
@@ -332,16 +322,12 @@ pub async fn db_backup_to(
 /// before we overwrite. After restore the user MUST restart the app to
 /// reopen the DB connection — we surface that in the UI.
 #[tauri::command]
-pub async fn db_restore_from(
-    app: tauri::AppHandle,
-    source_path: String,
-) -> Result<u64, String> {
+pub async fn db_restore_from(app: tauri::AppHandle, source_path: String) -> Result<u64, String> {
     use std::fs;
     use std::io::Read;
 
     // Validate magic header. SQLite 3 files start with "SQLite format 3\0".
-    let mut f =
-        fs::File::open(&source_path).map_err(|e| format!("can't open source: {e}"))?;
+    let mut f = fs::File::open(&source_path).map_err(|e| format!("can't open source: {e}"))?;
     let mut header = [0u8; 16];
     f.read_exact(&mut header)
         .map_err(|e| format!("can't read header: {e}"))?;
@@ -353,8 +339,7 @@ pub async fn db_restore_from(
         .path()
         .app_data_dir()
         .map_err(|e| format!("can't resolve app data dir: {e}"))?;
-    fs::create_dir_all(&app_data)
-        .map_err(|e| format!("can't create app data dir: {e}"))?;
+    fs::create_dir_all(&app_data).map_err(|e| format!("can't create app data dir: {e}"))?;
     let target = app_data.join("lol-draft-advisor.db");
 
     // Keep a safety copy of the CURRENT DB before overwriting — gives
@@ -364,7 +349,6 @@ pub async fn db_restore_from(
         let _ = fs::copy(&target, &safety);
     }
 
-    let bytes = fs::copy(&source_path, &target)
-        .map_err(|e| format!("copy failed: {e}"))?;
+    let bytes = fs::copy(&source_path, &target).map_err(|e| format!("copy failed: {e}"))?;
     Ok(bytes)
 }
