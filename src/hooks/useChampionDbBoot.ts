@@ -49,6 +49,7 @@ export function useChampionDbBoot(
   useEffect(() => {
     if (!prefsLoaded) return;
     let cancelled = false;
+    let retryTimer: ReturnType<typeof setInterval> | null = null;
     setError(null);
     setUsingStaleCache(false);
     mark("dbLoad:start");
@@ -93,14 +94,18 @@ export function useChampionDbBoot(
             detail: `No pude refrescar (${ageLabel}). Reintento en background.`,
             durationMs: 8000,
           });
-          // Background retry every minute until fresh load works.
-          const t = setInterval(async () => {
+          // Background retry every minute until fresh load works. Handle
+          // hoisted to effect scope so the cleanup below clears it on
+          // unmount / re-run — otherwise a fallback that never recovers
+          // keeps hitting the network every 60s forever and stacks a new
+          // interval on every effect re-run.
+          retryTimer = setInterval(async () => {
             try {
               const fresh = await loadChampionDb(true);
               if (!cancelled) {
                 setDb(fresh);
                 setUsingStaleCache(false);
-                clearInterval(t);
+                if (retryTimer) clearInterval(retryTimer);
                 pushToast({
                   type: "success",
                   title: "Datos actualizados",
@@ -119,6 +124,7 @@ export function useChampionDbBoot(
 
     return () => {
       cancelled = true;
+      if (retryTimer) clearInterval(retryTimer);
     };
   }, [prefsLoaded, bootAttempt, pushToast]);
 

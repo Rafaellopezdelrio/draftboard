@@ -27,20 +27,32 @@ export function useLcuPersonalData(lcuConnected: boolean): LcuPersonalData {
   const [rankTier, setRankTier] = useState<string | null>(null);
 
   useEffect(() => {
+    // Guard against stale writes: if lcuConnected flips again (or the
+    // component unmounts) before these awaits resolve, an older run must
+    // not clobber state set by a newer one. Flip `cancelled` in cleanup
+    // and bail before every setState.
+    let cancelled = false;
     (async () => {
       // ── Masteries: LCU first (no key needed), Riot API fallback ──
       const fromLcu = await lcuMasteries();
+      if (cancelled) return;
       if (fromLcu.length > 0) {
         setMasteries(fromLcu);
       } else {
         const cfg = await loadSettings();
+        if (cancelled) return;
         if (cfg?.puuid && cfg.apiKey) {
-          getTopMasteries(cfg, cfg.puuid, 20).then(setMasteries).catch(() => {});
+          getTopMasteries(cfg, cfg.puuid, 20)
+            .then((m) => {
+              if (!cancelled) setMasteries(m);
+            })
+            .catch(() => {});
         }
       }
 
       // ── Rank: feeds coach calibration + suggestion engine ──
       const rank = await lcuRank();
+      if (cancelled) return;
       if (rank) {
         setCoachEloBucket(rank.tier);
         setRankTier(rank.tier);
@@ -54,6 +66,7 @@ export function useLcuPersonalData(lcuConnected: boolean): LcuPersonalData {
       try {
         const { getCurrentSummoner } = await import("../services/lcuService");
         const me = await getCurrentSummoner();
+        if (cancelled) return;
         if (me?.puuid) {
           const { setSentryAnonUser } = await import("../services/sentry");
           setSentryAnonUser(me.puuid);
@@ -62,6 +75,9 @@ export function useLcuPersonalData(lcuConnected: boolean): LcuPersonalData {
         // LCU offline — Sentry user stays unset.
       }
     })();
+    return () => {
+      cancelled = true;
+    };
   }, [lcuConnected]);
 
   return { masteries, rankTier };

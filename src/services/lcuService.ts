@@ -160,6 +160,27 @@ export async function subscribeChampSelect(
   return unlisten;
 }
 
+/**
+ * Pull the CURRENT champ-select session on demand. The WS only fires on
+ * CHANGE, and the Rust bootstrap GET emits once when the watcher connects
+ * — which can land BEFORE this app's listener mounts (cold boot while
+ * already in champ select, or an HMR remount). Callers seed themselves
+ * with this so the board fills immediately instead of waiting for the next
+ * pick/ban. Returns null when not in champ select (404) or on error.
+ */
+export async function fetchCurrentChampSelect(): Promise<LcuChampSelectSession | null> {
+  if (!isTauri()) return null;
+  try {
+    return (
+      (await invoke<LcuChampSelectSession>("lcu_get_json", {
+        path: "/lol-champ-select/v1/session",
+      })) ?? null
+    );
+  } catch {
+    return null;
+  }
+}
+
 export async function subscribeStatus(
   cb: StatusListener
 ): Promise<() => void> {

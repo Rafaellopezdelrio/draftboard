@@ -3,6 +3,7 @@ import {
   lcuPositionToRole,
   subscribeChampSelect,
   subscribeStatus,
+  fetchCurrentChampSelect,
   type LcuChampSelectSession,
   type LcuStatus,
 } from "../services/lcuService";
@@ -22,6 +23,17 @@ export function useLcuSync() {
     const unsubData = subscribeChampSelect((s) => {
       applySession(s);
       setSession(s);
+    });
+    // Self-seed the current champ-select session on mount. The WS only
+    // fires on CHANGE and the Rust bootstrap GET emits once at watcher
+    // connect — both can fire BEFORE this listener mounts (cold boot while
+    // already in champ select, or an HMR remount), leaving the board empty
+    // until the next pick/ban. Pull it directly so the board fills now.
+    void fetchCurrentChampSelect().then((s) => {
+      if (s) {
+        applySession(s);
+        setSession(s);
+      }
     });
     return () => {
       unsubStatus.then((fn) => fn());
@@ -48,6 +60,15 @@ let lastBlindWarnedCell: number | null = null;
 /** Compact signature of a session frame for log dedup. */
 let lastDiagSignature = "";
 
+// Debug flag (read once at module load). OFF → frame logs use console.log
+// = devtools only, NOT bridged to the disk log (logger.ts only mirrors
+// warn/info/error), so the hot path pays zero IPC + disk cost. Set
+// localStorage["draftboard:debug-lcu"]="1" + reload to promote frames to
+// console.info (disk-mirrored) for live tracing.
+const DEBUG_LCU =
+  typeof localStorage !== "undefined" &&
+  localStorage.getItem("draftboard:debug-lcu") === "1";
+
 function diagnosticLog(s: LcuChampSelectSession) {
   // Compact deterministic signature: phase + ban+pick count + my cell
   // championId. Changes only when something material changes.
@@ -58,13 +79,24 @@ function diagnosticLog(s: LcuChampSelectSession) {
   const actionBans = Array.isArray(s.actions)
     ? s.actions.flat().filter((a) => a?.type === "ban" && a.championId > 0).length
     : 0;
+  const actionPicks = Array.isArray(s.actions)
+    ? s.actions.flat().filter((a) => a?.type === "pick" && a.championId > 0).length
+    : 0;
   const myPicks = myTeam.filter((p) => p.championId > 0).length;
   const enemyPicks = theirTeam.filter((p) => p.championId > 0).length;
-  const sig = `${s.timer?.phase ?? "?"}|b${myBans}+${enemyBans}|ab${actionBans}|p${myPicks}+${enemyPicks}|cell${s.localPlayerCellId}`;
+  const sig = `${s.timer?.phase ?? "?"}|team${myTeam.length}+${theirTeam.length}|b${myBans}+${enemyBans}|ab${actionBans}|ap${actionPicks}|p${myPicks}+${enemyPicks}|cell${s.localPlayerCellId}`;
   if (sig === lastDiagSignature) return;
   lastDiagSignature = sig;
-  // eslint-disable-next-line no-console
-  console.log(`[lcuSync] frame: ${sig}`);
+  // Sig carries phase, roster sizes, and WHERE pick data lives — myTeam
+  // picks (p) vs actions[][] picks (ap). DEBUG_LCU promotes to console.info
+  // (disk) for tracing; default console.log keeps it devtools-only + cheap.
+  if (DEBUG_LCU) {
+    // eslint-disable-next-line no-console
+    console.info(`[lcuSync] frame: ${sig}`);
+  } else {
+    // eslint-disable-next-line no-console
+    console.log(`[lcuSync] frame: ${sig}`);
+  }
 }
 
 /**
@@ -97,6 +129,17 @@ function applySession(s: LcuChampSelectSession | null | undefined) {
     lastLockedChamp = null;
     lastBlindWarnedCell = null;
     voiceCoach.resetSession();
+    // Clear the board so a dodge / queue-exit / game-start doesn't leave
+    // the previous draft's picks, bans, local selection, enemies, and
+    // phase frozen on screen until the next champ select overwrites them.
+    // All setters are idempotent, so repeated Delete frames are no-ops.
+    // myRole is intentionally preserved — the user may have set it manually
+    // for out-of-champ-select planning.
+    const store = useDraftStore.getState();
+    store.reset();
+    store.setLocalSelection(null, null, null);
+    store.setEnemySummonerIds([]);
+    store.setPhase(null, null);
     return;
   }
 

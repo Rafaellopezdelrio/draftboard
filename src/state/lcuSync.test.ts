@@ -38,6 +38,36 @@ describe("lcuSync.applySession — defensive parsing", () => {
     expect(() => applySession(undefined)).not.toThrow();
   });
 
+  it("null session CLEARS a populated board (dodge / queue exit / game start)", () => {
+    // Seed a full draft + local selection + phase.
+    applySession({
+      localPlayerCellId: 0,
+      myTeam: [player(0, 266), player(1, 157)],
+      theirTeam: [player(5, 23)],
+      bans: { myTeamBans: [1, 2], theirTeamBans: [3, 4] },
+      timer: { phase: "BAN_PICK", adjustedTimeLeftInPhase: 30000 },
+    } as unknown as Parameters<typeof applySession>[0]);
+    const seeded = useDraftStore.getState();
+    expect(seeded.ally[0].championKey).toBe("266");
+    expect(seeded.bans.ally[0]).toBe("1");
+    expect(seeded.myChampionLocked).toBe("266");
+    expect(seeded.phase).toBe("BAN_PICK");
+
+    // Leaving champ select → null payload → board fully wiped so the dead
+    // draft doesn't linger on screen. myRole is the only field preserved.
+    applySession(null);
+    const s = useDraftStore.getState();
+    expect(s.ally.every((sl) => sl.championKey === null)).toBe(true);
+    expect(s.enemy.every((sl) => sl.championKey === null)).toBe(true);
+    expect(s.bans.ally.every((b) => !b)).toBe(true);
+    expect(s.bans.enemy.every((b) => !b)).toBe(true);
+    expect(s.myChampionLocked).toBe(null);
+    expect(s.myChampionIntent).toBe(null);
+    expect(s.myCellId).toBe(null);
+    expect(s.phase).toBe(null);
+    expect(s.enemySummonerIds).toEqual([]);
+  });
+
   it("ARAM session with no bans field still writes picks (the regression)", () => {
     // Howling Abyss session: 5 vs 5, all locked, NO bans object at all.
     const aramSession = {
