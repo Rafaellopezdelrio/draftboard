@@ -1,0 +1,11 @@
+#!/usr/bin/env sh
+# Pre-commit guard — block bad commits at the source.
+#
+# Runs the cheapest check available: full project typecheck (~3-5s).
+# vitest + rust:check are NOT run here — too slow for a commit gate
+# (~40s combined). CI catches them via .github/workflows/ci.yml.
+#
+# Skip in emergencies: git commit --no-verify (then fix in follow-up).
+# But anything you skip must be fixed before push — CI will block PR.
+
+npm run typecheck

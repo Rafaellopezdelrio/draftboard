@@ -1,8 +1,7 @@
-import { Suspense, lazy, useEffect, useMemo, useState } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import "./App.css";
 import { useDraftStore } from "./state/draftStore";
 import type { Role } from "./types/champion";
-import { suggest } from "./engine/suggestionEngine";
 import { DraftBoard } from "./components/DraftBoard";
 import { SuggestionPanel } from "./components/SuggestionPanel";
 import { CompAnalysis } from "./components/CompAnalysis";
@@ -152,7 +151,6 @@ import { HeaderMenu } from "./components/ui/HeaderMenu";
 import { useEscape, useGlobalShortcut } from "./hooks/useKeyboardShortcuts";
 import { useScheduledJobs } from "./state/scheduledJobs";
 import { useGamePhase } from "./state/inGameDetection";
-import { predictDraftWinrate } from "./engine/draftWinrateEngine";
 import { personalStatsByChampion } from "./services/matchRepo";
 import { setRiotProxyUrl } from "./services/riotApi";
 import type { ChampionPersonalStat } from "./services/matchRepo";
@@ -173,6 +171,9 @@ import { useChampionGuideEvent } from "./hooks/useChampionGuideEvent";
 import { useSystemToasts } from "./hooks/useSystemToasts";
 import { useChampionDbBoot } from "./hooks/useChampionDbBoot";
 import { useRoleDerivation } from "./hooks/useRoleDerivation";
+import { useDraftDerivations } from "./hooks/useDraftDerivations";
+import { useSuggestions } from "./hooks/useSuggestions";
+import { useDraftPrediction } from "./hooks/useDraftPrediction";
 
 const ROLES: Role[] = ["TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY"];
 
@@ -419,52 +420,23 @@ function App() {
     setMyRole,
   });
 
-  const allyKeys = useMemo(
-    () => ally.map((s) => s.championKey).filter((x): x is string => Boolean(x)),
-    [ally]
-  );
-  const enemyKeys = useMemo(
-    () => enemy.map((s) => s.championKey).filter((x): x is string => Boolean(x)),
-    [enemy]
-  );
-  const enemyChampionIds = useMemo(
-    () => enemy.map((s) => (s.championKey ? Number(s.championKey) : null)),
-    [enemy]
-  );
-  const bannedKeys = useMemo(
-    () => [...bans.ally, ...bans.enemy].filter(Boolean),
-    [bans]
-  );
+  const { allyKeys, enemyKeys, enemyChampionIds, bannedKeys } =
+    useDraftDerivations({ ally, enemy, bans });
 
-  const suggestions = useMemo(() => {
-    if (!db) return [];
-    return suggest({
-      db,
-      role: myRole,
-      allyKeys,
-      enemyKeys,
-      bannedKeys,
-      personalStats: prefs.usePersonalStats ? personalStats : [],
-      masteries: prefs.useMastery ? masteries : [],
-      rankTier,
-    });
-  }, [
+  const suggestions = useSuggestions({
     db,
-    myRole,
+    role: myRole,
     allyKeys,
     enemyKeys,
     bannedKeys,
     personalStats,
     masteries,
-    prefs.usePersonalStats,
-    prefs.useMastery,
     rankTier,
-  ]);
+    usePersonalStats: prefs.usePersonalStats,
+    useMastery: prefs.useMastery,
+  });
 
-  const draftPrediction = useMemo(() => {
-    if (!db || allyKeys.length === 0 || enemyKeys.length === 0) return null;
-    return predictDraftWinrate({ db, allyKeys, enemyKeys });
-  }, [db, allyKeys, enemyKeys]);
+  const draftPrediction = useDraftPrediction(db, allyKeys, enemyKeys);
 
   // Use locked champion if available, else hovered intent, else first suggestion
   const buildChampionKey =

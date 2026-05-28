@@ -13,11 +13,21 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # ── Frontend matrix: TypeScript + vitest + bundle gate on Linux ──
+  # Windows is added for tsc parity (catches case-sensitivity bugs that
+  # only fail on case-insensitive filesystems). vitest + bundle-check
+  # only run on Linux to save minutes — the test code is OS-agnostic.
   test:
-    name: TypeScript + Vitest
-    runs-on: ubuntu-latest
+    name: Frontend (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - uses: actions/setup-node@v4
         with:
@@ -30,17 +40,50 @@ jobs:
       - name: Type check
         run: npm run typecheck
 
-      - name: Unit + integration tests
+      - name: Unit + integration tests (Linux only)
+        if: matrix.os == 'ubuntu-latest'
         run: npm test
 
-      - name: Coverage gate (no regression)
+      - name: Coverage gate (Linux only)
+        if: matrix.os == 'ubuntu-latest'
         run: npm run test:coverage
 
-      - name: Build (Vite frontend only — Tauri/Rust skipped on CI)
+      - name: Build Vite frontend
         run: npm run build
 
       # Bundle size budget. Fails if any chunk crosses HARD_FAIL_KB
       # (see scripts/bundle-check.mjs). Catches regressions from new
       # deps or accidental large imports before they ship.
-      - name: Bundle size budget
+      - name: Bundle size budget (Linux only)
+        if: matrix.os == 'ubuntu-latest'
         run: npm run bundle-check
+
+  # ── Rust backend: clippy + rustfmt + cargo test ──
+  # Skipped from the main test job because Rust toolchain install + cargo
+  # build doubles CI time. Runs in parallel as its own job.
+  rust:
+    name: Rust (clippy + fmt + test)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          components: clippy, rustfmt
+          cache-workspaces: "src-tauri"
+
+      # Tauri requires Linux system libs for the webkit2gtk dep tree.
+      # Mirrors what tauri-action does internally.
+      - name: Install Tauri Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - name: clippy (deny warnings)
+        run: cd src-tauri && cargo clippy --all-targets -- -D warnings
+
+      - name: rustfmt check
+        run: cd src-tauri && cargo fmt --check
+
+      - name: Unit tests
+        run: cd src-tauri && cargo test --release

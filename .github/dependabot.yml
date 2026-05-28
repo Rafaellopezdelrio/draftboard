@@ -1,0 +1,56 @@
+# Dependabot config — weekly bumps for npm + cargo + actions.
+#
+# Strategy:
+#   - Grouped by ecosystem so PRs don't fragment one ecosystem into 20 PRs.
+#   - Production deps grouped separately from dev so prod risk is visible.
+#   - Major bumps allowed (no `ignore` block) — we'll review case by case.
+#   - Schedule: Monday early UTC so the PR is ready before work starts.
+
+version: 2
+updates:
+  # npm (frontend) — root package.json
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Madrid"
+    open-pull-requests-limit: 5
+    groups:
+      prod:
+        dependency-type: "production"
+        update-types: ["minor", "patch"]
+      dev:
+        dependency-type: "development"
+        update-types: ["minor", "patch"]
+    labels: ["dependencies", "npm"]
+
+  # cargo (Rust backend)
+  - package-ecosystem: "cargo"
+    directory: "/src-tauri"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Madrid"
+    open-pull-requests-limit: 3
+    groups:
+      cargo-all:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+    labels: ["dependencies", "rust"]
+
+  # GitHub Actions versions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Madrid"
+    open-pull-requests-limit: 2
+    groups:
+      actions-all:
+        patterns: ["*"]
+    labels: ["dependencies", "github-actions"]
