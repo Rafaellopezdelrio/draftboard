@@ -68,6 +68,32 @@ describe("lcuSync.applySession — defensive parsing", () => {
     expect(s.enemySummonerIds).toEqual([]);
   });
 
+  it("empty session (cell -1, no players) CLEARS the board like a leave", () => {
+    // Rust filters the null Delete event, so leaving champ select arrives as
+    // an EMPTIED session object — not null. Seed a draft, then send the
+    // empty frame and assert the board is wiped (the production leave path).
+    applySession({
+      localPlayerCellId: 0,
+      myTeam: [player(0, 266)],
+      theirTeam: [player(5, 23)],
+      bans: { myTeamBans: [1, 2], theirTeamBans: [3, 4] },
+      timer: { phase: "BAN_PICK", adjustedTimeLeftInPhase: 30000 },
+    } as unknown as Parameters<typeof applySession>[0]);
+    expect(useDraftStore.getState().ally[0].championKey).toBe("266");
+
+    applySession({
+      localPlayerCellId: -1,
+      myTeam: [],
+      theirTeam: [],
+    } as unknown as Parameters<typeof applySession>[0]);
+    const s = useDraftStore.getState();
+    expect(s.ally.every((sl) => sl.championKey === null)).toBe(true);
+    expect(s.enemy.every((sl) => sl.championKey === null)).toBe(true);
+    expect(s.bans.ally.every((b) => !b)).toBe(true);
+    expect(s.bans.enemy.every((b) => !b)).toBe(true);
+    expect(s.phase).toBe(null);
+  });
+
   it("ARAM session with no bans field still writes picks (the regression)", () => {
     // Howling Abyss session: 5 vs 5, all locked, NO bans object at all.
     const aramSession = {

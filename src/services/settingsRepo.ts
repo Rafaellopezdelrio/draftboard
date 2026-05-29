@@ -8,7 +8,15 @@ export interface StoredSettings extends RiotConfig {
 export async function loadSettings(): Promise<StoredSettings | null> {
   if (!isTauri()) {
     const raw = localStorage.getItem("riot-config");
-    return raw ? (JSON.parse(raw) as StoredSettings) : null;
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw) as StoredSettings;
+    } catch {
+      // Corrupt blob — treat as no settings rather than throwing into every
+      // caller (EnemyScoutPanel, useLcuPersonalData, …) that fire-and-forgets
+      // loadSettings(). Same recovery posture as prefsStore.
+      return null;
+    }
   }
   const db = await getDb();
   const rows = await db.select<

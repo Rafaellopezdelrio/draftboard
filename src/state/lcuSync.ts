@@ -135,6 +135,31 @@ function diagnosticLog(s: LcuChampSelectSession) {
 }
 
 /**
+ * Reset everything when the user leaves champ select (dodge, queue exit,
+ * game start). Clears the board so the dead draft doesn't linger, and
+ * resets all the once-per-session dedup vars (TTS turns, blind-pick warn,
+ * ARAM shape log, frame signature) so the NEXT champ select starts fresh —
+ * otherwise stale action.id / signature values could suppress legitimate
+ * announcements or skip the first frame. `myRole` is intentionally
+ * preserved (the user may have set it manually for out-of-select planning).
+ */
+function leaveChampSelect() {
+  lastSpokenMyBanTurnId = null;
+  lastSpokenMyPickTurnId = null;
+  lastSpokenEnemyBanIds = new Set();
+  lastLockedChamp = null;
+  lastBlindWarnedCell = null;
+  lastLoggedAramShape = "";
+  lastDiagSignature = "";
+  voiceCoach.resetSession();
+  const store = useDraftStore.getState();
+  store.reset();
+  store.setLocalSelection(null, null, null);
+  store.setEnemySummonerIds([]);
+  store.setPhase(null, null);
+}
+
+/**
  * Exported for unit tests — apply a champ-select session payload to the
  * draft store. Defensive against malformed/null payloads (ARAM lacks
  * `bans`, mid-transition events may lack `theirTeam`, Delete events
@@ -153,33 +178,24 @@ function applySession(s: LcuChampSelectSession | null | undefined) {
   // Treat any malformed shape as a no-op rather than crashing the store
   // — a crash here silently breaks pick rendering with no error in the UI.
   if (!s || typeof s !== "object") {
-    // Null session = left champ select (dodge, queue exit, game end).
-    // Reset TTS dedup vars so the NEXT champ select session announces
-    // its turns from scratch. Without this, action.id values from the
-    // previous session could match new ones and suppress legitimate
-    // turn announcements.
-    lastSpokenMyBanTurnId = null;
-    lastSpokenMyPickTurnId = null;
-    lastSpokenEnemyBanIds = new Set();
-    lastLockedChamp = null;
-    lastBlindWarnedCell = null;
-    voiceCoach.resetSession();
-    // Clear the board so a dodge / queue-exit / game-start doesn't leave
-    // the previous draft's picks, bans, local selection, enemies, and
-    // phase frozen on screen until the next champ select overwrites them.
-    // All setters are idempotent, so repeated Delete frames are no-ops.
-    // myRole is intentionally preserved — the user may have set it manually
-    // for out-of-champ-select planning.
-    const store = useDraftStore.getState();
-    store.reset();
-    store.setLocalSelection(null, null, null);
-    store.setEnemySummonerIds([]);
-    store.setPhase(null, null);
+    leaveChampSelect();
     return;
   }
 
   const myTeam = Array.isArray(s.myTeam) ? s.myTeam : [];
   const theirTeam = Array.isArray(s.theirTeam) ? s.theirTeam : [];
+
+  // Left champ select. Rust filters the `null` Delete event (it only emits
+  // when `data.is_object()`), so leaving NEVER arrives as null here — it
+  // arrives as an emptied session object (no players, localPlayerCellId -1).
+  // Without this branch the null-clear above never fired in production and
+  // the previous draft's bans + local selection stayed frozen on the board
+  // after the game started. Both teams empty is unambiguous: a live champ
+  // select always has at least the local player in myTeam.
+  if (myTeam.length === 0 && theirTeam.length === 0) {
+    leaveChampSelect();
+    return;
+  }
 
   // ARAM diagnostic: when both teams come in fully populated but champion
   // IDs are still 0, log once per shape change so we can see what field

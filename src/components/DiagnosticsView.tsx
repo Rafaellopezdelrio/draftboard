@@ -181,17 +181,26 @@ export function DiagnosticsView({ onClose }: Props) {
     const next: Check[] = [];
     for (const c of results) {
       if (c.name === "__lcu_pair__") {
+        let parsed: { gameName?: string; puuid?: string } | null = null;
         if (c.status === "ok" && c.detail) {
-          const { gameName, puuid } = JSON.parse(c.detail);
+          try {
+            parsed = JSON.parse(c.detail);
+          } catch {
+            // Malformed detail — fall through to the "closed" branch below
+            // rather than throwing out of the whole diagnostics render loop.
+            parsed = null;
+          }
+        }
+        if (parsed) {
           next.push({
             name: "Cliente de LoL (LCU)",
             status: "ok",
-            detail: `Conectado: ${gameName}`,
+            detail: `Conectado: ${parsed.gameName}`,
           });
           next.push({
             name: "Cuenta Riot (vía LCU)",
             status: "ok",
-            detail: `PUUID: ${puuid}...`,
+            detail: `PUUID: ${parsed.puuid}...`,
           });
         } else {
           next.push({
