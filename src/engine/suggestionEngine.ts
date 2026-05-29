@@ -326,6 +326,11 @@ function metaScore(key: string, role: Role, db: ChampionDb): number {
       return 0.4;
     case "D":
       return 0.2;
+    default:
+      // Defensive: scrapers normalise tier to S+/S/A/B/C/D, but a future
+      // source change must never yield undefined here → NaN score → broken
+      // sort. Neutral 0.5 keeps the champ rankable.
+      return 0.5;
   }
 }
 

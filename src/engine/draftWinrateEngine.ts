@@ -96,5 +96,8 @@ function avgCounterScore(
 }
 
 function clamp01(n: number): number {
+  // Guard NaN / Infinity so a bad upstream stat can't surface as "NaN%" in
+  // the winrate badge — degrade to the neutral 0.5 instead.
+  if (!Number.isFinite(n)) return 0.5;
   return Math.max(0, Math.min(1, n));
 }

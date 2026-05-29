@@ -12,6 +12,21 @@ import { trackEvent } from "../services/breadcrumbs";
 import { voiceCoach } from "../services/voiceCoach";
 import { nativeNotify } from "../services/nativeNotify";
 
+// Safety re-sync interval. Events (Rust WS → Tauri bus) are the primary,
+// low-latency path; this poll is the backstop that re-reads the LCU
+// (source of truth) so the board self-heals if an event is ever missed or
+// the IPC bridge degrades (the "Couldn't find callback id… app reloaded
+// while Rust running async" class — seen on HMR remounts and slow async).
+const CHAMP_SELECT_RESYNC_MS = 4000;
+
+// Shared dedup across BOTH the event path and the poll path. Without it,
+// every real change would be applied twice (once by the event, once by the
+// next poll) → redundant store writes → wasted re-renders. JSON of the
+// payload is the signature: comprehensive (can't under-capture a field) and
+// cheap at this frequency. Reset to "" on the null/leave frame so re-entering
+// champ select always applies its first frame.
+let lastAppliedRaw = "";
+
 export function useLcuSync() {
   const [status, setStatus] = useState<LcuStatus>({ connected: false });
   // Track the latest champ-select session so consumers (LobbyScoutPanel,
@@ -19,10 +34,19 @@ export function useLcuSync() {
   const [session, setSession] = useState<LcuChampSelectSession | null>(null);
 
   useEffect(() => {
+    // Apply only when the payload actually changed (see lastAppliedRaw).
+    // Returns true when applied so the caller knows to update React state.
+    const applyIfChanged = (s: LcuChampSelectSession | null): boolean => {
+      const raw = s ? JSON.stringify(s) : "";
+      if (raw === lastAppliedRaw) return false;
+      lastAppliedRaw = raw;
+      applySession(s);
+      return true;
+    };
+
     const unsubStatus = subscribeStatus(setStatus);
     const unsubData = subscribeChampSelect((s) => {
-      applySession(s);
-      setSession(s);
+      if (applyIfChanged(s)) setSession(s);
     });
     // Self-seed the current champ-select session on mount. The WS only
     // fires on CHANGE and the Rust bootstrap GET emits once at watcher
@@ -30,12 +54,23 @@ export function useLcuSync() {
     // already in champ select, or an HMR remount), leaving the board empty
     // until the next pick/ban. Pull it directly so the board fills now.
     void fetchCurrentChampSelect().then((s) => {
-      if (s) {
-        applySession(s);
-        setSession(s);
-      }
+      if (s && applyIfChanged(s)) setSession(s);
     });
+
+    // Backstop poll — re-reads the session every few seconds and applies it
+    // only when it differs from what's already on the board. Cheap: a 404
+    // (not in champ select) returns null fast and is a no-op.
+    let cancelled = false;
+    const pollId = setInterval(async () => {
+      if (cancelled) return;
+      const s = await fetchCurrentChampSelect();
+      if (cancelled || !s) return;
+      if (applyIfChanged(s)) setSession(s);
+    }, CHAMP_SELECT_RESYNC_MS);
+
     return () => {
+      cancelled = true;
+      clearInterval(pollId);
       unsubStatus.then((fn) => fn());
       unsubData.then((fn) => fn());
     };
