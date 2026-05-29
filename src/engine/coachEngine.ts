@@ -86,6 +86,11 @@ export function analyzeMatch({
   const team = match.participants.filter((p) => p.teamId === myTeamId);
   const enemy = match.participants.filter((p) => p.teamId !== myTeamId);
   const minutes = match.durationSec / 60;
+  // Guard against remakes / corrupt duration: dividing CS, vision, gold etc.
+  // by 0 (or a sub-minute value) yields Infinity/NaN and surfaces nonsense
+  // insights ("Buen farm" with Infinity CS/min). No meaningful coaching from
+  // a <1min game anyway.
+  if (!Number.isFinite(minutes) || minutes < 1) return [];
   const role = me.position;
 
   const out: Insight[] = [];
