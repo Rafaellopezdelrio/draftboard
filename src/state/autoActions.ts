@@ -49,7 +49,14 @@ export function useAutoActions({ db }: Args) {
     };
     window.addEventListener("draft:champion-locked", handler);
     return () => window.removeEventListener("draft:champion-locked", handler);
-  }, [prefs.safeMode, prefs.autoApplyRunes, prefs.autoApplySpells, myRole, db]);
+  }, [
+    prefs.safeMode,
+    prefs.autoApplyRunes,
+    prefs.autoApplySpells,
+    prefs.autoApplyItemSet,
+    myRole,
+    db,
+  ]);
 }
 
 /**

@@ -81,13 +81,12 @@ function BuildPanelInner({ db, championKey, role, enemyKeys = [] }: Props) {
     };
   }, [champ, role]);
 
-  if (!champ) return null;
-
   // Adaptations recompute the enemy-comp profile every call (~5 SET ops +
   // map). Memoising means only re-running when the actual inputs change,
-  // not on every parent prefs/draft tick.
+  // not on every parent prefs/draft tick. Guarded for null champ + kept
+  // ABOVE the early return so all hooks run unconditionally (rules-of-hooks).
   const adaptations: BuildAdaptation[] = useMemo(
-    () => suggestBuildAdaptations({ db, champion: champ, enemyKeys }),
+    () => (champ ? suggestBuildAdaptations({ db, champion: champ, enemyKeys }) : []),
     [db, champ, enemyKeys]
   );
 
@@ -106,7 +105,7 @@ function BuildPanelInner({ db, championKey, role, enemyKeys = [] }: Props) {
     liveGame.snapshot?.gameData?.gameMode === "ARAM" ||
     liveGame.snapshot?.gameData?.mapNumber === 12;
   const inGameSuggestions: InGameSuggestion[] = useMemo(() => {
-    if (!liveGame.inGame || !liveGame.snapshot) return [];
+    if (!champ || !liveGame.inGame || !liveGame.snapshot) return [];
     const me = findMyPlayer(liveGame.snapshot.activePlayer, liveGame.snapshot.allPlayers);
     if (!me) return [];
     const enemies = liveGame.snapshot.allPlayers.filter((p) => p.team !== me.team);
@@ -117,6 +116,10 @@ function BuildPanelInner({ db, championKey, role, enemyKeys = [] }: Props) {
       myItems: me.items,
     });
   }, [liveGame.inGame, liveGame.snapshot, champ]);
+
+  // All hooks above now run unconditionally (rules-of-hooks); safe to bail
+  // if the champion key isn't in the DB (unknown/brand-new champ).
+  if (!champ) return null;
 
   // "No data" only true when BOTH op.gg AND local synced data are empty
   const noData =

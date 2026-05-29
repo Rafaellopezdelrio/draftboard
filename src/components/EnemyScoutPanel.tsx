@@ -27,6 +27,12 @@ function EnemyScoutPanelInner({
     Record<number, ScoutResult | "loading" | "error">
   >({});
   const lastChampSnapshot = useRef<string>("");
+  // Mirror `scouts` into a ref so the scout loop can read the LATEST map
+  // (to skip already-scouted summoners) WITHOUT listing `scouts` as an effect
+  // dep — that would re-run the effect every setScouts → infinite loop.
+  // Updating a ref during render is safe (no re-render triggered).
+  const scoutsRef = useRef(scouts);
+  scoutsRef.current = scouts;
 
   useEffect(() => {
     if (enemySummonerIds.every((s) => s <= 0)) return;
@@ -47,7 +53,7 @@ function EnemyScoutPanelInner({
         const sid = enemySummonerIds[i];
         const champId = enemyChampionIds[i] ?? undefined;
         if (sid <= 0) continue;
-        if (!force && scouts[sid] && scouts[sid] !== "loading") continue;
+        if (!force && scoutsRef.current[sid] && scoutsRef.current[sid] !== "loading") continue;
         setScouts((s) => ({ ...s, [sid]: "loading" }));
         const lcuSum = await getSummonerById(sid);
         if (!lcuSum?.puuid) {
@@ -86,7 +92,7 @@ function EnemyScoutPanelInner({
         }
       }
     }
-  }, [enemySummonerIds, enemyChampionIds, liveRefresh]);
+  }, [enemySummonerIds, enemyChampionIds, liveRefresh, notifyHot, db.champions]);
 
   if (enemySummonerIds.every((s) => s <= 0)) return null;
 

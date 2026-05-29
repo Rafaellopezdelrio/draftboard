@@ -59,12 +59,17 @@ export function ChampionGuideView({ db, championKey, onClose }: Props) {
       .finally(() => setLoading(false));
   }, [champ, db.patch]);
 
+  // Hooks must run unconditionally (rules-of-hooks) — keep useRef +
+  // useFocusTrap ABOVE the early return. The focus trap is a no-op while the
+  // dialog isn't mounted (ref.current null), so calling it when champ is
+  // null is harmless.
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(dialogRef, true);
+
   if (!champ) return null;
 
   // Find meta tier entries for this champion
   const metaEntries = db.meta.filter((m) => m.championKey === championKey);
-  const dialogRef = useRef<HTMLDivElement | null>(null);
-  useFocusTrap(dialogRef, true);
 
   return (
     <div

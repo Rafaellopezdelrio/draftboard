@@ -41,6 +41,12 @@ jobs:
       - name: Type check
         run: npm run typecheck
 
+      # ESLint react-hooks gate (Linux only — OS-agnostic, no need to double
+      # up). Catches rules-of-hooks violations + stale-closure deps.
+      - name: Lint (react-hooks)
+        if: matrix.os == 'ubuntu-latest'
+        run: npm run lint
+
       - name: Unit + integration tests (Linux only)
         if: matrix.os == 'ubuntu-latest'
         run: npm test

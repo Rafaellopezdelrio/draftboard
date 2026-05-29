@@ -53,18 +53,13 @@ interface Props {
 function SuggestionPanelInner({ suggestions, hasRole, hasDraft }: Props) {
   const beginner = usePrefsStore((s) => s.prefs.beginnerMode);
   const noContext = !hasRole && !hasDraft;
-  if (suggestions.length === 0) {
-    return (
-      <p className="text-white/50 text-sm">
-        Selecciona algún campeón para ver sugerencias.
-      </p>
-    );
-  }
 
   // Split into "comfort" (you've actually played these) vs "meta only"
   // (recommended by tier list but you don't know them yet). Memoised so
   // re-renders triggered by unrelated prefs (e.g. beginnerMode toggle
-  // elsewhere) don't re-filter+slice the suggestions array.
+  // elsewhere) don't re-filter+slice the suggestions array. MUST run before
+  // the empty-suggestions early return below so the hook order is stable
+  // across renders (rules-of-hooks); empty input just yields empty buckets.
   const { comfortPicks, metaPicks } = useMemo(() => {
     const comfort = suggestions.filter((s) => s.breakdown.isComfort).slice(0, 3);
     const usedKeys = new Set(comfort.map((s) => s.champion.key));
@@ -73,6 +68,14 @@ function SuggestionPanelInner({ suggestions, hasRole, hasDraft }: Props) {
       .slice(0, comfort.length > 0 ? 3 : 5);
     return { comfortPicks: comfort, metaPicks: meta };
   }, [suggestions]);
+
+  if (suggestions.length === 0) {
+    return (
+      <p className="text-white/50 text-sm">
+        Selecciona algún campeón para ver sugerencias.
+      </p>
+    );
+  }
 
   return (
     <div className="space-y-3">
