@@ -153,6 +153,7 @@ import { useScheduledJobs } from "./state/scheduledJobs";
 import { useGamePhase } from "./state/inGameDetection";
 import { useLiveGame } from "./hooks/useLiveGame";
 import { findMyPlayer, liveChampionKey } from "./services/liveClient";
+import { lcuPositionToRole } from "./services/lcuService";
 import { personalStatsByChampion } from "./services/matchRepo";
 import { setRiotProxyUrl } from "./services/riotApi";
 import type { ChampionPersonalStat } from "./services/matchRepo";
@@ -440,25 +441,36 @@ function App() {
 
   const draftPrediction = useDraftPrediction(db, allyKeys, enemyKeys);
 
-  // In-game, the champion the player is ACTUALLY on (from the Live Client)
-  // is the source of truth — champ select is over, so myChampionLocked /
-  // intent are cleared and the old code fell through to suggestions[0]
-  // (the top meta pick for the role), showing e.g. Warwick's build while
-  // the player is on Jarvan. Derive the live champion and prefer it.
-  // Only recomputes the KEY when it actually changes (stable per match).
+  // In-game, the Live Client is the source of truth for BOTH the champion
+  // and the role — champ select is over, so myChampionLocked/intent are
+  // cleared. The old code fell through to suggestions[0] (the top meta pick
+  // for the role), showing e.g. Warwick's build while the player is on
+  // Jarvan. We also adopt the live `position` as the role: useRoleDerivation
+  // keys off locked/intent (null in-game) so it can't help here, and a user
+  // who boots Draftboard mid-game never had myRole set in champ select.
+  // Memoised so it only recomputes when the snapshot changes.
   const liveGame = useLiveGame(true);
-  const liveChampKey = useMemo(() => {
-    if (!db || !liveGame.inGame || !liveGame.snapshot) return null;
+  const liveDerived = useMemo<{ key: string | null; role: Role | null }>(() => {
+    if (!db || !liveGame.inGame || !liveGame.snapshot) return { key: null, role: null };
     const me = findMyPlayer(
       liveGame.snapshot.activePlayer,
       liveGame.snapshot.allPlayers
     );
-    return me ? liveChampionKey(db, me) : null;
+    if (!me) return { key: null, role: null };
+    return { key: liveChampionKey(db, me), role: lcuPositionToRole(me.position) };
   }, [db, liveGame.inGame, liveGame.snapshot]);
+
+  // Adopt the live role in-game (authoritative lane). Inert out-of-game
+  // (role null) so champ-select's useRoleDerivation keeps ownership there;
+  // the two never fight because that hook early-returns when locked/intent
+  // are both null (always the case in-game).
+  useEffect(() => {
+    if (liveDerived.role && liveDerived.role !== myRole) setMyRole(liveDerived.role);
+  }, [liveDerived.role, myRole, setMyRole]);
 
   // Priority: live (in-game truth) → locked → hovered intent → top suggestion.
   const buildChampionKey =
-    liveChampKey ??
+    liveDerived.key ??
     myChampionLocked ??
     myChampionIntent ??
     suggestions[0]?.champion.key ??
