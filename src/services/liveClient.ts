@@ -14,6 +14,7 @@
 // we get repeated errors (game over / not in game).
 
 import { invoke } from "@tauri-apps/api/core";
+import type { ChampionDb } from "../types/champion";
 
 function isTauri(): boolean {
   return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
@@ -171,6 +172,36 @@ export function findMyPlayer(
     if (aSummonerNoTag && pSummonerNoTag && aSummonerNoTag === pSummonerNoTag) return p;
     if (aSummonerNoTag && pGame && aSummonerNoTag === pGame) return p;
     if (aGame && pSummonerNoTag && aGame === pSummonerNoTag) return p;
+  }
+  return null;
+}
+
+/**
+ * Map a live-client player to our ChampionDb key (the numeric championId
+ * string used to index `db.champions`). The Live Client gives
+ * `rawChampionName` = "game_character_displayname_<DDragonId>" whose last
+ * underscore-segment equals `champion.id` (e.g. "JarvanIV", "MonkeyKing"),
+ * which is more reliable than the localized `championName` display string.
+ * Falls back to display-name match, then null when unmapped.
+ *
+ * Used in-game to show the build for the champion the player is ACTUALLY
+ * playing — not the top suggestion (which is the champ-select fallback).
+ */
+export function liveChampionKey(
+  db: ChampionDb,
+  player: { championName?: string; rawChampionName?: string }
+): string | null {
+  const rawId = (player.rawChampionName ?? "").split("_").pop() ?? "";
+  if (rawId) {
+    for (const k in db.champions) {
+      if (db.champions[k].id === rawId) return k;
+    }
+  }
+  const name = (player.championName ?? "").trim();
+  if (name) {
+    for (const k in db.champions) {
+      if (db.champions[k].name === name) return k;
+    }
   }
   return null;
 }

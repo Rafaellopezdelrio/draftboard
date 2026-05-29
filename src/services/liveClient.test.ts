@@ -8,9 +8,11 @@ vi.mock("@tauri-apps/api/core", () => ({
 import {
   fetchLiveGameSnapshot,
   findMyPlayer,
+  liveChampionKey,
   type LiveGameActivePlayer,
   type LiveGamePlayer,
 } from "./liveClient";
+import type { ChampionDb } from "../types/champion";
 
 const mkPlayer = (over: Partial<LiveGamePlayer>): LiveGamePlayer => ({
   championName: "Lux",
@@ -151,5 +153,37 @@ describe("liveClient.fetchLiveGameSnapshot", () => {
     const snap = await fetchLiveGameSnapshot();
     expect(snap?.activePlayer?.currentGold).toBe(1234.5);
     expect(snap?.activePlayer?.championStats?.maxHealth).toBe(1000);
+  });
+});
+
+describe("liveChampionKey — live player → ChampionDb key", () => {
+  const db = {
+    champions: {
+      "59": { id: "JarvanIV", key: "59", name: "Jarvan IV" },
+      "19": { id: "Warwick", key: "19", name: "Warwick" },
+      "62": { id: "MonkeyKing", key: "62", name: "Wukong" },
+    },
+  } as unknown as ChampionDb;
+
+  it("maps via rawChampionName suffix === DDragon id (Jarvan, not the suggestion)", () => {
+    expect(
+      liveChampionKey(db, { rawChampionName: "game_character_displayname_JarvanIV" })
+    ).toBe("59");
+  });
+
+  it("maps display-name mismatch via rawChampionName (Wukong → MonkeyKing)", () => {
+    expect(
+      liveChampionKey(db, { rawChampionName: "game_character_displayname_MonkeyKing", championName: "Wukong" })
+    ).toBe("62");
+  });
+
+  it("falls back to championName when rawChampionName is empty", () => {
+    expect(liveChampionKey(db, { championName: "Warwick", rawChampionName: "" })).toBe("19");
+  });
+
+  it("returns null when the champion isn't in the db", () => {
+    expect(
+      liveChampionKey(db, { rawChampionName: "game_character_displayname_Aatrox" })
+    ).toBeNull();
   });
 });

@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import "./App.css";
 import { useDraftStore } from "./state/draftStore";
 import type { Role } from "./types/champion";
@@ -151,6 +151,8 @@ import { HeaderMenu } from "./components/ui/HeaderMenu";
 import { useEscape, useGlobalShortcut } from "./hooks/useKeyboardShortcuts";
 import { useScheduledJobs } from "./state/scheduledJobs";
 import { useGamePhase } from "./state/inGameDetection";
+import { useLiveGame } from "./hooks/useLiveGame";
+import { findMyPlayer, liveChampionKey } from "./services/liveClient";
 import { personalStatsByChampion } from "./services/matchRepo";
 import { setRiotProxyUrl } from "./services/riotApi";
 import type { ChampionPersonalStat } from "./services/matchRepo";
@@ -438,9 +440,29 @@ function App() {
 
   const draftPrediction = useDraftPrediction(db, allyKeys, enemyKeys);
 
-  // Use locked champion if available, else hovered intent, else first suggestion
+  // In-game, the champion the player is ACTUALLY on (from the Live Client)
+  // is the source of truth — champ select is over, so myChampionLocked /
+  // intent are cleared and the old code fell through to suggestions[0]
+  // (the top meta pick for the role), showing e.g. Warwick's build while
+  // the player is on Jarvan. Derive the live champion and prefer it.
+  // Only recomputes the KEY when it actually changes (stable per match).
+  const liveGame = useLiveGame(true);
+  const liveChampKey = useMemo(() => {
+    if (!db || !liveGame.inGame || !liveGame.snapshot) return null;
+    const me = findMyPlayer(
+      liveGame.snapshot.activePlayer,
+      liveGame.snapshot.allPlayers
+    );
+    return me ? liveChampionKey(db, me) : null;
+  }, [db, liveGame.inGame, liveGame.snapshot]);
+
+  // Priority: live (in-game truth) → locked → hovered intent → top suggestion.
   const buildChampionKey =
-    myChampionLocked ?? myChampionIntent ?? suggestions[0]?.champion.key ?? null;
+    liveChampKey ??
+    myChampionLocked ??
+    myChampionIntent ??
+    suggestions[0]?.champion.key ??
+    null;
 
   if (error) {
     return (
