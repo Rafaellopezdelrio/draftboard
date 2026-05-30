@@ -603,6 +603,14 @@ function App() {
                 Caché
               </span>
             )}
+            {db.metaSourceUsed === "static" && (
+              <span
+                className="text-[10px] uppercase tracking-widest text-bad font-medium px-1.5 py-0.5 rounded ring-1 ring-bad/40"
+                title="Las fuentes de meta (op.gg/dpm) no respondieron — mostrando datos básicos de respaldo. Reintentando en background; la tier list y las sugerencias serán más precisas cuando recuperen."
+              >
+                Datos básicos
+              </span>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-1.5 flex-wrap">
