@@ -120,6 +120,13 @@ export async function fetchOpggMetaAllRoles(
     console.log(
       `[opgg] loaded ${result.length} tier entries (${unknownCount} unknown names; worker pre-filtered off-meta picks)`
     );
+    if (result.length === 0) {
+      // HTTP 200 but 0 parsed entries = op.gg changed the Positions(...) tuple
+      // shape and our parser missed. championDb will silently fall back to
+      // another meta source; breadcrumb so telemetry reveals the break instead
+      // of the user just getting quietly worse data.
+      trackFetch("opgg meta", "fail", "scraper 200 but 0 tier entries (op.gg layout change?)");
+    }
     return result;
   } catch (e) {
     // eslint-disable-next-line no-console

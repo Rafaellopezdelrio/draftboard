@@ -105,8 +105,18 @@ export async function fetchOpggMatchups(
           trackFetch(url, "fail", `attempt ${n}: ${String(e).slice(0, 80)}`),
       }
     );
-    cache.set(cacheKey, { ts: Date.now(), data: data.matchups });
-    return data.matchups;
+    const matchups = data.matchups ?? [];
+    if (matchups.length === 0) {
+      // HTTP 200 but zero matchups = op.gg changed their page structure and
+      // our anchor/parse missed (a "soft" scraper break, not a network
+      // error). Breadcrumb it so telemetry shows the breakage, and DON'T
+      // cache the empty result — otherwise a transient miss serves dead data
+      // for the full 30min TTL. Next call retries.
+      trackFetch(url, "fail", "scraper 200 but 0 matchups (op.gg layout change?)");
+      return [];
+    }
+    cache.set(cacheKey, { ts: Date.now(), data: matchups });
+    return matchups;
   } catch (e) {
     // eslint-disable-next-line no-console
     console.error("[opggMatchups] fetch failed after retries:", e);
