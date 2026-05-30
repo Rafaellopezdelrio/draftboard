@@ -9,6 +9,7 @@ import { usePrefsStore } from "../state/prefsStore";
 import { aiTrendsAnalysis } from "../services/aiCoach";
 import { useEscape } from "../hooks/useKeyboardShortcuts";
 import { EmptyState } from "./ui/EmptyState";
+import { DraftAdherencePanel } from "./DraftAdherencePanel";
 import { SparkLine } from "./ui/SparkLine";
 import { TrendingUp } from "lucide-react";
 
@@ -256,6 +257,8 @@ export function TrendsView({ db, onClose }: Props) {
             </div>
           </div>
         )}
+
+        <DraftAdherencePanel />
 
         {trends.length === 0 ? (
           <EmptyState
