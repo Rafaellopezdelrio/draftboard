@@ -178,6 +178,7 @@ import { useDraftDerivations } from "./hooks/useDraftDerivations";
 import { useSuggestions } from "./hooks/useSuggestions";
 import { useEnemyCounters } from "./hooks/useEnemyCounters";
 import { useDraftPrediction } from "./hooks/useDraftPrediction";
+import { useDraftLogger } from "./hooks/useDraftLogger";
 
 const ROLES: Role[] = ["TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY"];
 
@@ -446,6 +447,20 @@ function App() {
   });
 
   const draftPrediction = useDraftPrediction(db, allyKeys, enemyKeys);
+
+  // Record each completed draft (on lock-in) for advice-adherence tracking —
+  // personalDataSync links it to the match outcome later.
+  const suggestedKeys = useMemo(
+    () => suggestions.map((s) => s.champion.key),
+    [suggestions]
+  );
+  useDraftLogger({
+    myChampionLocked,
+    allyKeys,
+    enemyKeys,
+    bannedKeys,
+    suggestedKeys,
+  });
 
   // In-game, the Live Client is the source of truth for BOTH the champion
   // and the role — champ select is over, so myChampionLocked/intent are

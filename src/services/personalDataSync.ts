@@ -2,6 +2,7 @@
 // falls back to Riot API only when key is configured AND LCU lacks data.
 
 import { saveMatch, existingMatchIds } from "./matchRepo";
+import { linkDraftToMatch } from "./draftsRepo";
 import {
   lcuMasteries,
   lcuRecentMatches,
@@ -107,6 +108,11 @@ async function tryLcuSync(
   for (let i = 0; i < matches.length; i++) {
     if (known.has(matches[i].matchId)) continue;
     await saveMatch(matches[i]);
+    await linkDraftToMatch(
+      matches[i].matchId,
+      matches[i].championId,
+      matches[i].gameEndTimestampMs
+    ).catch(() => {});
     saved++;
     onProgress({
       source: "LCU",
@@ -136,6 +142,9 @@ async function riotApiSync(
     try {
       const m = await getMatch(cfg, cfg.puuid!, todo[i]);
       await saveMatch(m);
+      await linkDraftToMatch(m.matchId, m.championId, m.gameEndTimestampMs).catch(
+        () => {}
+      );
       saved++;
     } catch {
       // skip
