@@ -2,6 +2,7 @@ import type {
   Archetype,
   Champion,
   ChampionDb,
+  CounterEntry,
   Role,
 } from "../types/champion";
 import { counterScore } from "../services/murderBridge";
@@ -65,6 +66,13 @@ interface SuggestParams {
    * against. Forwarded from coachEloBucket prefs.
    */
   rankTier?: string | null;
+  /**
+   * Broad op.gg matchup counters (candidate vs enemy) fetched live for the
+   * current enemies — see services/enemyCounters. Merged on top of the
+   * user's sparse personal `db.counters` so the counter dimension actually
+   * differentiates picks instead of returning a flat neutral 0.5.
+   */
+  liveCounters?: CounterEntry[];
 }
 
 // Engine weights — re-balanced so champion mastery + personal winrate
@@ -107,6 +115,7 @@ export function suggest({
   masteries = [],
   limit = 10,
   rankTier = null,
+  liveCounters = [],
 }: SuggestParams): ScoredSuggestion[] {
   const weights = isUnranked(rankTier) ? UNRANKED_WEIGHTS : RANKED_WEIGHTS;
   const taken = new Set([...allyKeys, ...enemyKeys, ...bannedKeys]);
@@ -115,6 +124,12 @@ export function suggest({
   for (const p of personalStats) personalById.set(p.championId, p);
   const masteryById = new Map<number, ChampionMasteryDto>();
   for (const m of masteries) masteryById.set(m.championId, m);
+
+  // Live op.gg matchup counters take priority over the user's sparse personal
+  // counters: concatenating with liveCounters FIRST means counterScore's
+  // `.find` hits a broad-data entry before the personal one for the same pair.
+  const counters: CounterEntry[] =
+    liveCounters.length > 0 ? [...liveCounters, ...db.counters] : db.counters;
 
   const candidates = Object.values(db.champions).filter(
     (c) => !taken.has(c.key) && (role === null || isPlayableInRole(c, role, db))
@@ -129,6 +144,7 @@ export function suggest({
     personalById,
     masteryById,
     weights,
+    counters,
   }));
 
   scored.sort((a, b) => b.score - a.score);
@@ -153,11 +169,12 @@ interface ScoreCtx {
   personalById: Map<number, ChampionPersonalStat>;
   masteryById: Map<number, ChampionMasteryDto>;
   weights: EngineWeights;
+  counters: CounterEntry[];
 }
 
 function scoreChampion(c: Champion, ctx: ScoreCtx): ScoredSuggestion {
   const role = ctx.role ?? c.roles[0];
-  const counter = counterScore(c.key, ctx.enemyKeys, role, ctx.db.counters);
+  const counter = counterScore(c.key, ctx.enemyKeys, role, ctx.counters);
   const synergy = synergyScore(c, ctx.allyKeys, ctx.db);
   const meta = metaScore(c.key, role, ctx.db);
   const archetype = archetypeFitScore(c, ctx.missingArchetypes);

@@ -10,7 +10,7 @@
 import { useMemo } from "react";
 import { suggest } from "../engine/suggestionEngine";
 type Suggestion = ReturnType<typeof suggest>[number];
-import type { ChampionDb, Role } from "../types/champion";
+import type { ChampionDb, CounterEntry, Role } from "../types/champion";
 import type { ChampionMasteryDto } from "../services/riotApi";
 import type { ChampionPersonalStat } from "../services/matchRepo";
 
@@ -25,6 +25,8 @@ interface Args {
   rankTier: string | null;
   usePersonalStats: boolean;
   useMastery: boolean;
+  /** Live op.gg matchup counters for the current enemies (see useEnemyCounters). */
+  liveCounters: CounterEntry[];
 }
 
 export function useSuggestions(args: Args): Suggestion[] {
@@ -39,6 +41,7 @@ export function useSuggestions(args: Args): Suggestion[] {
     rankTier,
     usePersonalStats,
     useMastery,
+    liveCounters,
   } = args;
   return useMemo(() => {
     if (!db) return [];
@@ -51,6 +54,7 @@ export function useSuggestions(args: Args): Suggestion[] {
       personalStats: usePersonalStats ? personalStats : [],
       masteries: useMastery ? masteries : [],
       rankTier,
+      liveCounters,
     });
   }, [
     db,
@@ -63,5 +67,6 @@ export function useSuggestions(args: Args): Suggestion[] {
     usePersonalStats,
     useMastery,
     rankTier,
+    liveCounters,
   ]);
 }

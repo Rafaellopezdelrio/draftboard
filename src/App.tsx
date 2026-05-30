@@ -176,6 +176,7 @@ import { useChampionDbBoot } from "./hooks/useChampionDbBoot";
 import { useRoleDerivation } from "./hooks/useRoleDerivation";
 import { useDraftDerivations } from "./hooks/useDraftDerivations";
 import { useSuggestions } from "./hooks/useSuggestions";
+import { useEnemyCounters } from "./hooks/useEnemyCounters";
 import { useDraftPrediction } from "./hooks/useDraftPrediction";
 
 const ROLES: Role[] = ["TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY"];
@@ -426,6 +427,10 @@ function App() {
   const { allyKeys, enemyKeys, enemyChampionIds, bannedKeys } =
     useDraftDerivations({ ally, enemy, bans });
 
+  // Live op.gg matchup counters for the current enemies — feeds the engine's
+  // counter dimension with broad data (the personal db.counters is too sparse).
+  const liveCounters = useEnemyCounters(db, enemyKeys, myRole);
+
   const suggestions = useSuggestions({
     db,
     role: myRole,
@@ -437,6 +442,7 @@ function App() {
     rankTier,
     usePersonalStats: prefs.usePersonalStats,
     useMastery: prefs.useMastery,
+    liveCounters,
   });
 
   const draftPrediction = useDraftPrediction(db, allyKeys, enemyKeys);

@@ -264,4 +264,64 @@ describe("suggestionEngine", () => {
     expect(yasuo).toBeDefined();
     expect(yasuo!.reasons.some((r) => r.includes("tu main"))).toBe(true);
   });
+
+  it("liveCounters feed the counter dimension (broad op.gg data, not flat 0.5)", () => {
+    // Without any counter data the counter dimension is a flat 0.5. A live
+    // op.gg counter saying Orianna beats the enemy Zed should lift Orianna's
+    // counter score and surface the "countra a enemigos" reason.
+    const db = mkDb([meta(ORIANNA_KEY, "MIDDLE")]);
+    const result = suggest({
+      db,
+      role: "MIDDLE",
+      allyKeys: [],
+      enemyKeys: [ZED_KEY],
+      bannedKeys: [],
+      liveCounters: [
+        {
+          championKey: ORIANNA_KEY,
+          vsChampionKey: ZED_KEY,
+          role: "MIDDLE",
+          winRate: 0.66,
+          sampleSize: 1200,
+        },
+      ],
+    });
+    const ori = result.find((s) => s.champion.key === ORIANNA_KEY);
+    expect(ori).toBeDefined();
+    expect(ori!.breakdown.counter).toBeCloseTo(0.66, 5);
+    expect(ori!.reasons.some((r) => r.includes("countra"))).toBe(true);
+  });
+
+  it("liveCounters take priority over sparse personal db.counters for the same pair", () => {
+    const db = mkDb([meta(ORIANNA_KEY, "MIDDLE")]);
+    // Personal data says Orianna loses to Zed (small sample); live op.gg says
+    // she wins. Live must win the tie.
+    db.counters = [
+      {
+        championKey: ORIANNA_KEY,
+        vsChampionKey: ZED_KEY,
+        role: "MIDDLE",
+        winRate: 0.3,
+        sampleSize: 4,
+      },
+    ];
+    const result = suggest({
+      db,
+      role: "MIDDLE",
+      allyKeys: [],
+      enemyKeys: [ZED_KEY],
+      bannedKeys: [],
+      liveCounters: [
+        {
+          championKey: ORIANNA_KEY,
+          vsChampionKey: ZED_KEY,
+          role: "MIDDLE",
+          winRate: 0.62,
+          sampleSize: 1500,
+        },
+      ],
+    });
+    const ori = result.find((s) => s.champion.key === ORIANNA_KEY);
+    expect(ori!.breakdown.counter).toBeCloseTo(0.62, 5);
+  });
 });
