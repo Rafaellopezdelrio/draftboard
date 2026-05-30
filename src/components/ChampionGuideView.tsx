@@ -589,11 +589,25 @@ function stripHtml(html: string): string {
   out = out.replace(/\son\w+\s*=\s*[^\s>]+/gi, "");
   // 4. Strip javascript:/data: URLs in attributes
   out = out.replace(/\s(href|src|action)\s*=\s*(["'])\s*(javascript|data|vbscript)\s*:[^"']*\2/gi, "");
-  // 5. Whitelist: keep only specific tags, strip everything else but keep text
-  const ALLOWED = /^(br|b|strong|i|em|span|font|color|small|p|ul|li)$/i;
-  out = out.replace(/<\/?([a-z][a-z0-9]*)\b[^>]*>/gi, (match, tag) => {
-    return ALLOWED.test(tag) ? match : "";
-  });
+  // 5. Allowlist tags AND strip their attributes. A kept <span>/<font>
+  //    otherwise carries `style=` (and anything else) straight through — the
+  //    one concrete gap in the prior version. We preserve ONLY a validated
+  //    `color` (hex or a color word) so Data Dragon's ability-text coloring
+  //    survives; every other attribute is dropped.
+  const ALLOWED = /^(br|b|strong|i|em|span|font|small|p|ul|li)$/i;
+  out = out.replace(
+    /<(\/?)([a-z][a-z0-9]*)\b([^>]*)>/gi,
+    (_match, slash: string, tag: string, attrs: string) => {
+      if (!ALLOWED.test(tag)) return "";
+      if (slash) return `</${tag.toLowerCase()}>`;
+      const colorMatch = /\bcolor\s*=\s*(["']?)(#[0-9a-fA-F]{3,8}|[a-zA-Z]{3,20})\1/.exec(
+        attrs
+      );
+      return colorMatch
+        ? `<${tag.toLowerCase()} color="${colorMatch[2]}">`
+        : `<${tag.toLowerCase()}>`;
+    }
+  );
   return out;
 }
 

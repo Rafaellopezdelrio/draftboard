@@ -109,4 +109,24 @@ describe("stripHtml — XSS sanitization", () => {
     const out = stripHtml(`<<script>script>alert(1)<</script>/script>`);
     expect(out).not.toMatch(/alert/);
   });
+
+  it("strips attributes from ALLOWED tags (style/class survive on kept tags otherwise)", () => {
+    const out = stripHtml(`<span style="background:url(x)" class="evil">t</span>`);
+    expect(out).not.toMatch(/style|class|background/i);
+    expect(out).toContain("t");
+    expect(out).toContain("<span>");
+  });
+
+  it("preserves a validated color attribute (DDragon ability coloring) but nothing else", () => {
+    const out = stripHtml(`<font color="#ff0000" style="x" onmouseover="evil()">dmg</font>`);
+    expect(out).toContain('color="#ff0000"');
+    expect(out).not.toMatch(/style|onmouseover|evil/i);
+    expect(out).toContain("dmg");
+  });
+
+  it("rejects a non-color-shaped color value (no script/expression smuggling)", () => {
+    const out = stripHtml(`<span color="expression(alert(1))">t</span>`);
+    expect(out).not.toMatch(/expression|alert/);
+    expect(out).toContain("<span>");
+  });
 });
