@@ -26,6 +26,22 @@ interface InitOptions {
   enabled?: boolean;
 }
 
+/**
+ * Redact every secret that must never reach Sentry from an arbitrary string
+ * (URLs, breadcrumb messages). Covers the Riot key plus ALL AI provider keys
+ * — including the Gemini key, which Google's API requires as a `?key=` URL
+ * query param, so it would otherwise leak through auto-captured fetch
+ * breadcrumbs. The generic `key=`/`token=` catch-all backstops future params.
+ */
+function redactSecrets(s: string): string {
+  return s
+    .replace(/RGAPI-[\w-]+/g, "RGAPI-***")
+    .replace(/sk-ant-[\w-]+/g, "sk-ant-***")
+    .replace(/gsk_[A-Za-z0-9]+/g, "gsk_***")
+    .replace(/AIza[\w-]+/g, "AIza-***")
+    .replace(/([?&](?:key|token|api[_-]?key)=)[^&\s"']+/gi, "$1***");
+}
+
 export function initSentry(opts: InitOptions = {}): void {
   if (initialized) return;
   if (opts.enabled === false) {
@@ -110,7 +126,21 @@ export function initSentry(opts: InitOptions = {}): void {
       // ─── 2. PII scrubbing — never ship identifying data ───
       // Don't ship Riot IDs, API keys, file paths with username
       if (event.request?.url) {
-        event.request.url = event.request.url.replace(/RGAPI-[\w-]+/g, "RGAPI-***");
+        event.request.url = redactSecrets(event.request.url);
+      }
+      // Scrub secrets out of any breadcrumbs attached to the event too —
+      // Sentry auto-captures fetch/xhr breadcrumbs with full URLs, and the
+      // Gemini call passes its key as a `?key=` query param, so without this
+      // the AI key could ride along to Sentry. (beforeBreadcrumb below also
+      // scrubs at capture time; this is the belt-and-suspenders for events
+      // assembled with pre-existing breadcrumbs.)
+      if (event.breadcrumbs) {
+        for (const c of event.breadcrumbs) {
+          if (c.data && typeof c.data.url === "string") {
+            c.data.url = redactSecrets(c.data.url);
+          }
+          if (typeof c.message === "string") c.message = redactSecrets(c.message);
+        }
       }
       if (event.user) {
         // Replace identifying user info with anonymous hash
@@ -131,6 +161,18 @@ export function initSentry(opts: InitOptions = {}): void {
         }
       }
       return event;
+    },
+    // Scrub secrets at breadcrumb-capture time too. Sentry auto-records
+    // fetch/xhr breadcrumbs with the full request URL; the Gemini `?key=`
+    // would otherwise sit in the breadcrumb trail until an error ships them.
+    beforeBreadcrumb(crumb) {
+      if (crumb.data && typeof crumb.data.url === "string") {
+        crumb.data.url = redactSecrets(crumb.data.url);
+      }
+      if (typeof crumb.message === "string") {
+        crumb.message = redactSecrets(crumb.message);
+      }
+      return crumb;
     },
     // Common ignored errors — browser noise that doesn't matter
     ignoreErrors: [
@@ -203,3 +245,6 @@ export const captureException = Sentry.captureException;
 export const captureMessage = Sentry.captureMessage;
 export const addBreadcrumb = Sentry.addBreadcrumb;
 export { setSentryGlobalTags as setSentryTags };
+
+// Exported for tests — the secret-redaction is security-critical, so pin it.
+export const __testOnly_redactSecrets = redactSecrets;
