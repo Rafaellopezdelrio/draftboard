@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import {
   recentLessonPlans,
+  saveLessonPlan,
   markLessonPlanCompleted,
   type LessonPlan,
 } from "../services/lessonPlanRepo";
@@ -90,6 +91,17 @@ export function LessonPlanView({ db, onClose }: Props) {
         recentMatches: summary,
         language: lang,
       });
+      // Persist BEFORE setText: generated plans were never saved (the repo's
+      // saveLessonPlan was unused), so History stayed permanently empty and a
+      // plan vanished on close. Saving first means the [text] effect below
+      // re-runs recentLessonPlans and the new plan shows up immediately.
+      await saveLessonPlan({
+        createdTsMs: Date.now(),
+        weakestArea: weakest?.detail ?? null,
+        archetype: archetypeLabel,
+        planText: result,
+        completed: false,
+      }).catch(() => {});
       setText(result);
     } catch (e) {
       setErr(String(e));
@@ -191,7 +203,7 @@ export function LessonPlanView({ db, onClose }: Props) {
                     }}
                     className="mt-3 text-xs text-accent hover:underline"
                   >
-                    Guardar y ver anteriores →
+                    Ver planes guardados →
                   </button>
                 </Panel>
               )}
