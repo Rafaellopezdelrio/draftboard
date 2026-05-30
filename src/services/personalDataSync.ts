@@ -43,7 +43,23 @@ export interface SyncResult {
  * user hasn't opened their match history tab in the client. Riot API is the
  * source of truth.
  */
-export async function syncPersonalData(
+// Dedupe concurrent syncs: the periodic timer, the new post-game trigger, and
+// the manual button can all fire near each other; without this they'd double
+// up Riot API fetches (rate-limit risk). Concurrent callers share the
+// in-flight run (a caller's onProgress is ignored while one is already going).
+let syncInFlight: Promise<SyncResult> | null = null;
+
+export function syncPersonalData(
+  onProgress: (p: SyncProgress) => void = () => {}
+): Promise<SyncResult> {
+  if (syncInFlight) return syncInFlight;
+  syncInFlight = runSync(onProgress).finally(() => {
+    syncInFlight = null;
+  });
+  return syncInFlight;
+}
+
+async function runSync(
   onProgress: (p: SyncProgress) => void = () => {}
 ): Promise<SyncResult> {
   const cfg = await loadSettings();

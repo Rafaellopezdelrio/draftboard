@@ -9,6 +9,7 @@
 import { useEffect, useRef } from "react";
 import type { GamePhase } from "../state/inGameDetection";
 import { voiceCoach } from "../services/voiceCoach";
+import { syncPersonalData } from "../services/personalDataSync";
 
 const POST_GAME_DELAY_MS = 6000; // wait for Riot stats ingestion
 
@@ -66,7 +67,15 @@ export function useAutoOpenCoach({
     announcedGameStart.current = false;
 
     if (wasInMatch.current && coachAfterMatch && !showCoach) {
-      const t = setTimeout(() => {
+      const t = setTimeout(async () => {
+        // Pull the just-finished match into the local DB FIRST. Match sync
+        // otherwise only runs on a periodic timer / app start, so without this
+        // the coach would open on the PREVIOUS game — it analyses whatever is
+        // newest in the DB, and the game you just played isn't there yet.
+        // 6s gives Riot's match-v5 time to finalize; we await the sync so the
+        // new match is present before CoachView reads recentMatches().
+        // Failure is non-fatal — the coach still opens (degrades to old data).
+        await syncPersonalData().catch(() => {});
         setShowCoach(true);
         voiceCoach.speak("Análisis post-partida listo");
       }, POST_GAME_DELAY_MS);
