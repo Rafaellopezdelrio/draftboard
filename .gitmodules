@@ -1,0 +1,4 @@
+[submodule "cloudflare-worker"]
+	path = cloudflare-worker
+	url = https://gitlab.com/rafael.lopez.serrano.99/draft_cloudflare.git
+	branch = main
