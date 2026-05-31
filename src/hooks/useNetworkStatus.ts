@@ -14,6 +14,25 @@ import {
   WORKER_HEALTH_URL,
 } from "../config";
 
+/** Consecutive failed probes required before flagging the worker unreachable.
+ *  Debounces transient misses (worker cold start, DNS spike, momentary wifi
+ *  drop) so the health banner doesn't flap on a single slow probe. */
+const HEALTH_FAIL_THRESHOLD = 2;
+
+/** Pure debounce reducer for the worker-health probe. A success clears the
+ *  failure streak and reports reachable. A failure increments the streak and
+ *  only reports unreachable once it reaches HEALTH_FAIL_THRESHOLD — so a lone
+ *  slow/failed probe is ignored. (OS-level offline is handled separately +
+ *  immediately via navigator.onLine, so real outages still surface fast.) */
+export function nextWorkerReachable(
+  probeOk: boolean,
+  consecutiveFails: number
+): { reachable: boolean; consecutiveFails: number } {
+  if (probeOk) return { reachable: true, consecutiveFails: 0 };
+  const fails = consecutiveFails + 1;
+  return { reachable: fails < HEALTH_FAIL_THRESHOLD, consecutiveFails: fails };
+}
+
 export interface NetworkStatus {
   /** OS-reported online state. Cheap, but unreliable on flaky networks. */
   online: boolean;
@@ -34,6 +53,9 @@ export function useNetworkStatus(): NetworkStatus {
   const [workerReachable, setWorkerReachable] = useState<boolean>(true);
   const [lastOkAt, setLastOkAt] = useState<number | null>(null);
   const cancelledRef = useRef(false);
+  // Consecutive failed probes — drives the debounce so a single miss can't
+  // flip workerReachable (see nextWorkerReachable).
+  const consecutiveFailsRef = useRef(0);
 
   // Listen to OS connectivity events.
   useEffect(() => {
@@ -50,6 +72,7 @@ export function useNetworkStatus(): NetworkStatus {
   /** One-shot worker probe. Exposed via `retry()` for the banner button
    * and reused by the periodic timer below. */
   const probe = useCallback(async (): Promise<boolean> => {
+    let ok = false;
     try {
       const ac = new AbortController();
       const t = setTimeout(() => ac.abort(), NETWORK_TIMEOUTS_MS.healthProbe);
@@ -58,15 +81,19 @@ export function useNetworkStatus(): NetworkStatus {
         cache: "no-store",
       });
       clearTimeout(t);
-      if (cancelledRef.current) return false;
-      const ok = res.ok;
-      setWorkerReachable(ok);
-      if (ok) setLastOkAt(Date.now());
-      return ok;
+      ok = res.ok;
     } catch {
-      if (!cancelledRef.current) setWorkerReachable(false);
-      return false;
+      ok = false;
     }
+    if (cancelledRef.current) return ok;
+    // Debounce transient misses: a lone failed/slow probe must not flip the
+    // banner — only flag degraded after HEALTH_FAIL_THRESHOLD consecutive
+    // misses; a success clears the streak instantly.
+    const next = nextWorkerReachable(ok, consecutiveFailsRef.current);
+    consecutiveFailsRef.current = next.consecutiveFails;
+    setWorkerReachable(next.reachable);
+    if (ok) setLastOkAt(Date.now());
+    return ok;
   }, []);
 
   // Periodic worker health probe.

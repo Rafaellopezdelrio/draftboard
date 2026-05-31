@@ -4,6 +4,7 @@
 // This pins down "online but worker unreachable → ok=false" cases.
 
 import { describe, it, expect } from "vitest";
+import { nextWorkerReachable } from "./useNetworkStatus";
 
 interface NetworkStatusLike {
   online: boolean;
@@ -38,5 +39,31 @@ describe("network status truth table", () => {
         expect(status(o, w).ok).toBe(o && w);
       }
     }
+  });
+});
+
+describe("nextWorkerReachable — health-probe debounce", () => {
+  it("a success reports reachable and clears the failure streak", () => {
+    expect(nextWorkerReachable(true, 0)).toEqual({ reachable: true, consecutiveFails: 0 });
+    expect(nextWorkerReachable(true, 5)).toEqual({ reachable: true, consecutiveFails: 0 });
+  });
+
+  it("a single miss does NOT flip reachable (transient blip absorbed)", () => {
+    expect(nextWorkerReachable(false, 0)).toEqual({ reachable: true, consecutiveFails: 1 });
+  });
+
+  it("flags unreachable only after 2 consecutive misses", () => {
+    const first = nextWorkerReachable(false, 0); // 1st miss
+    expect(first.reachable).toBe(true);
+    const second = nextWorkerReachable(false, first.consecutiveFails); // 2nd miss
+    expect(second).toEqual({ reachable: false, consecutiveFails: 2 });
+  });
+
+  it("stays unreachable while misses continue", () => {
+    expect(nextWorkerReachable(false, 2)).toEqual({ reachable: false, consecutiveFails: 3 });
+  });
+
+  it("recovers instantly on the next success", () => {
+    expect(nextWorkerReachable(true, 3)).toEqual({ reachable: true, consecutiveFails: 0 });
   });
 });
