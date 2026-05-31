@@ -1,0 +1,41 @@
+# Line-ending policy. The repo stores LF; with Windows core.autocrlf=true and
+# no explicit attributes, git kept wanting to rewrite the working tree to CRLF,
+# leaving src-tauri/*.rs perpetually "modified" with no real content diff.
+# Forcing eol=lf makes LF canonical in BOTH the index and the working tree, so
+# the working tree stops drifting regardless of a contributor's autocrlf.
+
+# Default: auto-detect text vs binary, but pin text files to LF on checkout.
+* text=auto eol=lf
+
+# Explicit text types (belt-and-suspenders over auto-detection).
+*.rs    text eol=lf
+*.ts    text eol=lf
+*.tsx   text eol=lf
+*.js    text eol=lf
+*.mjs   text eol=lf
+*.cjs   text eol=lf
+*.json  text eol=lf
+*.jsonc text eol=lf
+*.md    text eol=lf
+*.sql   text eol=lf
+*.css   text eol=lf
+*.html  text eol=lf
+*.toml  text eol=lf
+*.yml   text eol=lf
+*.yaml  text eol=lf
+*.sh    text eol=lf
+
+# Binary assets — never normalize.
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.webp  binary
+*.ico   binary
+*.icns  binary
+*.exe   binary
+*.sig   binary
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
+*.otf   binary
