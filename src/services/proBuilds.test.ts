@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 const mockFetch = vi.fn();
 
@@ -24,12 +24,21 @@ function ok(body: unknown) {
 
 describe("fetchProBuilds", () => {
   beforeEach(() => {
+    // Fake ONLY setTimeout/clearTimeout so withRetry's backoff (sleep) and
+    // per-attempt timeout resolve instantly under our control — no real
+    // wall-clock waits, no flaking under CPU load. Date stays real so the
+    // proBuilds cache TTL (Date.now-based) keeps working.
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     mockFetch.mockReset();
     Object.defineProperty(globalThis, "__TAURI_INTERNALS__", {
       value: {},
       writable: true,
       configurable: true,
     });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("hits worker with championId + mapped role", async () => {
@@ -66,15 +75,20 @@ describe("fetchProBuilds", () => {
   it("returns null on HTTP error (never throws)", async () => {
     mockFetch.mockResolvedValue({ ok: false, status: 502 } as Response);
     const fetchProBuilds = await loadFetcher();
-    const out = await fetchProBuilds(266, "TOP");
-    expect(out).toBeNull();
+    // 502 is a retriable 5xx → withRetry sleeps between 3 attempts. Drive the
+    // fake backoff timers to completion instead of waiting ~1.5s of real time.
+    const p = fetchProBuilds(266, "TOP");
+    await vi.runAllTimersAsync();
+    expect(await p).toBeNull();
   });
 
   it("returns null when fetch throws (network down)", async () => {
     mockFetch.mockRejectedValue(new Error("network"));
     const fetchProBuilds = await loadFetcher();
-    const out = await fetchProBuilds(266, "TOP");
-    expect(out).toBeNull();
+    // Network error retries the same way — advance the backoff timers.
+    const p = fetchProBuilds(266, "TOP");
+    await vi.runAllTimersAsync();
+    expect(await p).toBeNull();
   });
 
   it("caches subsequent calls for the same (championId, role)", async () => {
