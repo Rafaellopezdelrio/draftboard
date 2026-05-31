@@ -50,6 +50,38 @@ const ROLE_TO_OPGG: Record<Role, string> = {
 };
 
 /**
+ * Map the player's solo-queue tier (LCU `rank.tier`, e.g. "GOLD", "DIAMOND")
+ * to the op.gg matchup bracket. op.gg's `_plus` buckets aggregate "that tier
+ * and above" — the most relevant *and* well-sampled matchup data for the
+ * player's own elo (every bracket iron→diamond carries 10k+ games). Bounds:
+ *   - Floor silver_plus: op.gg has no iron/bronze `_plus` bucket and their raw
+ *     brackets are thin.
+ *   - Cap diamond_plus: master+ brackets thin to ~2k games and get noisy, so
+ *     diamond_plus's richer sample is the better signal up there.
+ *   - Unknown / unranked → emerald_plus (the proven neutral default).
+ * Keeping data tier-relevant matters: a champ's matchups genuinely differ by
+ * elo, so a Gold player gets Gold+ numbers instead of a flat Emerald+ view.
+ */
+const RANK_TO_OPGG_TIER: Record<string, string> = {
+  IRON: "silver_plus",
+  BRONZE: "silver_plus",
+  SILVER: "silver_plus",
+  GOLD: "gold_plus",
+  PLATINUM: "platinum_plus",
+  EMERALD: "emerald_plus",
+  DIAMOND: "diamond_plus",
+  MASTER: "diamond_plus",
+  GRANDMASTER: "diamond_plus",
+  CHALLENGER: "diamond_plus",
+};
+
+export function opggTierForRank(rankTier?: string | null): string {
+  if (!rankTier) return "emerald_plus";
+  const tier = rankTier.toUpperCase().split(/\s+/)[0]; // "DIAMOND II" → "DIAMOND"
+  return RANK_TO_OPGG_TIER[tier] ?? "emerald_plus";
+}
+
+/**
  * Fetch all matchups for `championDdId` in `role` at `tier`. Returns an
  * empty array if the proxy is unreachable or op.gg returned nothing —
  * never throws.
@@ -139,14 +171,20 @@ export function findMatchup(
 }
 
 /**
- * Convert a Data Dragon champion id to op.gg's slug. Mostly lowercase,
- * with a handful of special cases that op.gg renames (MonkeyKing→wukong,
- * apostrophe stripping, etc).
+ * Convert a Data Dragon champion id to op.gg's slug. op.gg slugs are the
+ * lowercased DDragon id with no separators — which already matches every
+ * champion, INCLUDING the tricky ones (MonkeyKing→monkeyking, KSante→ksante,
+ * Kaisa→kaisa). The map below is kept as an explicit allow-list of the
+ * verified-tricky ids so a future op.gg rename is caught here, not silently.
+ *
+ * NB: op.gg uses "monkeyking" (Wukong's internal id), NOT the display
+ * "wukong" — /champions/wukong 404s. An earlier mapping had this inverted,
+ * which silently zeroed every Wukong matchup. See opggMatchups.test.ts.
  */
 export function ddIdToOpggKey(ddId: string): string {
   const lower = ddId.toLowerCase();
   const special: Record<string, string> = {
-    monkeyking: "wukong",
+    monkeyking: "monkeyking",
     belveth: "belveth",
     chogath: "chogath",
     khazix: "khazix",

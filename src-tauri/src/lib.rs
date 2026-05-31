@@ -95,6 +95,12 @@ pub fn run() {
             sql: include_str!("../../src/db/migrations/006_ai_matchup_tips_cache.sql"),
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 7,
+            description: "aggregate patch indexes (meta + counter)",
+            sql: include_str!("../../src/db/migrations/007_aggregate_patch_indexes.sql"),
+            kind: MigrationKind::Up,
+        },
     ];
 
     tauri::Builder::default()

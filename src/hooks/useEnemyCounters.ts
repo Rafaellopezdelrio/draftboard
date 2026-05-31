@@ -8,15 +8,20 @@
 
 import { useEffect, useState } from "react";
 import { fetchEnemyCounters } from "../services/enemyCounters";
+import { opggTierForRank } from "../services/opggMatchups";
 import type { ChampionDb, CounterEntry, Role } from "../types/champion";
 
 export function useEnemyCounters(
   db: ChampionDb | null,
   enemyKeys: string[],
-  role: Role | null
+  role: Role | null,
+  rankTier?: string | null
 ): CounterEntry[] {
   const [counters, setCounters] = useState<CounterEntry[]>([]);
   const enemyKey = enemyKeys.join(",");
+  // Fetch matchups at the player's own elo bracket (falls back to emerald_plus
+  // when unranked) so counter WRs reflect the games they actually play.
+  const tier = opggTierForRank(rankTier);
 
   useEffect(() => {
     const keys = enemyKey ? enemyKey.split(",") : [];
@@ -25,7 +30,7 @@ export function useEnemyCounters(
       return;
     }
     let cancelled = false;
-    fetchEnemyCounters(db, keys, role)
+    fetchEnemyCounters(db, keys, role, tier)
       .then((c) => {
         if (!cancelled) setCounters(c);
       })
@@ -35,7 +40,7 @@ export function useEnemyCounters(
     return () => {
       cancelled = true;
     };
-  }, [db, role, enemyKey]);
+  }, [db, role, enemyKey, tier]);
 
   return counters;
 }

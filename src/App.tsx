@@ -430,7 +430,8 @@ function App() {
 
   // Live op.gg matchup counters for the current enemies — feeds the engine's
   // counter dimension with broad data (the personal db.counters is too sparse).
-  const liveCounters = useEnemyCounters(db, enemyKeys, myRole);
+  // rankTier picks the op.gg bracket so WRs match the player's own elo.
+  const liveCounters = useEnemyCounters(db, enemyKeys, myRole, rankTier);
 
   const suggestions = useSuggestions({
     db,
