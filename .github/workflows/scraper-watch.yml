@@ -1,0 +1,45 @@
+name: Scraper health watch
+
+# Proactively catch op.gg / dpm.lol / u.gg layout breaks. The Cloudflare Worker
+# scrapes HTML + MCP, so an upstream markup change can silently zero our
+# counter / build / meta data and the app degrades quietly. This probes the
+# LIVE worker on a schedule and fails — so the repo owner gets a notification —
+# the moment a data source goes dark, instead of finding out mid-draft.
+#
+# Cheap: verify-data.mjs has no dependencies (global fetch), so there's no
+# install step, and it only hits the public worker URL — no secrets.
+
+on:
+  schedule:
+    - cron: "0 */6 * * *" # every 6 hours
+  workflow_dispatch: {} # manual run from the Actions tab
+
+permissions:
+  contents: read
+
+concurrency:
+  group: scraper-watch
+  cancel-in-progress: true
+
+jobs:
+  probe:
+    name: Probe live data layer
+    runs-on: ubuntu-latest
+    steps:
+      # No submodules: verify-data.mjs lives in scripts/ and hits the deployed
+      # worker over HTTP — the worker source isn't needed here.
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      # Retry once after a short pause so a transient upstream blip (op.gg 5xx,
+      # worker edge cold-start) doesn't page us — only a sustained break fails.
+      # Override the target with WORKER_BASE_URL if the prod URL ever changes.
+      - name: Probe worker (counters / build / meta / Wukong slug)
+        run: |
+          node scripts/verify-data.mjs && exit 0
+          echo "::warning::First probe failed — retrying in 30s to filter transient blips"
+          sleep 30
+          node scripts/verify-data.mjs
