@@ -145,8 +145,8 @@ import { PlaystylePanel } from "./components/PlaystylePanel";
 import { WinConditionsPanel } from "./components/WinConditionsPanel";
 import { TipCarousel } from "./components/TipCarousel";
 import { TradeSuggestionPanel } from "./components/TradeSuggestionPanel";
-import { CommandPalette, type Command } from "./components/CommandPalette";
-import { setOverlayVisible, setOverlayPosition } from "./services/overlay";
+import { CommandPalette } from "./components/CommandPalette";
+import { buildAppCommands } from "./components/appCommands";
 import { HeaderMenu } from "./components/ui/HeaderMenu";
 import { useAppShortcuts } from "./hooks/useAppShortcuts";
 import { useScheduledJobs } from "./state/scheduledJobs";
@@ -276,54 +276,25 @@ function App() {
     paletteOpen: showPalette,
   });
 
-  const commands: Command[] = [
-    { id: "tier", label: "Tier List", action: () => setShowTierList(true) },
-    { id: "lookup", label: "Buscar jugador (Riot ID)", action: () => setShowLookup(true) },
-    { id: "pro", label: "Pro Players (LCK / LEC / LCS)", action: () => setShowProPlayers(true) },
-    { id: "coach", label: "Abrir Coach (post-game)", action: () => setShowCoach(true) },
-    { id: "lesson", label: "Plan de mejora 7 días", action: () => setShowLessonPlan(true) },
-    { id: "live", label: "Partida en directo (live)", action: () => setShowLiveGame(true) },
-    { id: "chat", label: "Hablar con AI Coach", action: () => setShowChat(true) },
-    { id: "trends", label: "Ver tendencias", action: () => setShowTrends(true) },
-    { id: "history", label: "Historial", action: () => setShowHistory(true) },
-    { id: "prefs", label: "Preferencias", action: () => setShowPrefs(true) },
-    { id: "diag", label: "Diagnóstico de conexión", action: () => setShowDiag(true) },
-    { id: "privacy", label: "Mis datos / privacidad", action: () => setShowPrivacy(true) },
-    { id: "settings", label: "Configuración Riot", action: () => setShowSettings(true) },
-    // Diagnostic: force the overlay window visible regardless of in-game
-    // detection. Lets us tell apart "overlay never opened" (Tauri config
-    // bug) from "overlay open but hidden under fullscreen-exclusive game"
-    // (LoL window-mode issue — user needs Borderless).
-    {
-      id: "overlay-force",
-      label: "🔍 Forzar overlay visible (test)",
-      action: async () => {
-        // Center-ish position so it can't be off-screen on multi-monitor
-        // setups with weird DPI scaling.
-        await setOverlayPosition(200, 200);
-        await setOverlayVisible(true);
-      },
-    },
-    {
-      id: "overlay-hide",
-      label: "Ocultar overlay",
-      action: () => setOverlayVisible(false),
-    },
-    { id: "about", label: "ℹ️ Acerca de / Versión / Buscar updates", action: () => setShowAbout(true) },
-    { id: "shortcuts", label: "⌨️ Atajos de teclado (Ctrl+/)", action: () => setShowShortcuts(true) },
-    {
-      id: "center-window",
-      label: "🪟 Centrar ventana principal",
-      action: async () => {
-        try {
-          const { invoke } = await import("@tauri-apps/api/core");
-          await invoke("center_main_window");
-        } catch {
-          /* command may not exist outside Tauri */
-        }
-      },
-    },
-  ];
+  // Command-palette entries (Ctrl+K). The list itself lives in
+  // components/appCommands so App.tsx stays focused on layout.
+  const commands = buildAppCommands({
+    setShowTierList,
+    setShowLookup,
+    setShowProPlayers,
+    setShowCoach,
+    setShowLessonPlan,
+    setShowLiveGame,
+    setShowChat,
+    setShowTrends,
+    setShowHistory,
+    setShowPrefs,
+    setShowDiag,
+    setShowPrivacy,
+    setShowSettings,
+    setShowAbout,
+    setShowShortcuts,
+  });
 
   // Sync UI locale pref → i18next whenever it changes. main.tsx already
   // seeded the initial locale from localStorage for first-paint; this
