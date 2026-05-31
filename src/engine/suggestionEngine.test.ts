@@ -324,4 +324,36 @@ describe("suggestionEngine", () => {
     const ori = result.find((s) => s.champion.key === ORIANNA_KEY);
     expect(ori!.breakdown.counter).toBeCloseTo(0.62, 5);
   });
+
+  it("liveCounters REORDER suggestions (same pair flips on which one is countered)", () => {
+    // The headline counter-pick promise: as enemies lock in, suggestions move.
+    // Orianna and Yasuo are identical MIDDLE candidates (same tier, no ally /
+    // mastery / personal signal), so the counter dimension is the ONLY thing
+    // that can separate them. Run the SAME draft twice, moving a strong op.gg
+    // counter from one to the other: the ranked order must flip. Symmetric =
+    // weight- and fixture-order-independent (no reliance on tie-break order).
+    const db = mkDb([meta(ORIANNA_KEY, "MIDDLE"), meta(YASUO_KEY, "MIDDLE")]);
+    const base = {
+      db,
+      role: "MIDDLE" as Role,
+      allyKeys: [] as string[],
+      enemyKeys: [ZED_KEY],
+      bannedKeys: [] as string[],
+    };
+    const counterFor = (key: string) => ({
+      championKey: key,
+      vsChampionKey: ZED_KEY,
+      role: "MIDDLE" as Role,
+      winRate: 0.7,
+      sampleSize: 1000,
+    });
+    const rank = (res: ReturnType<typeof suggest>, key: string) =>
+      res.findIndex((s) => s.champion.key === key);
+
+    const oriFav = suggest({ ...base, liveCounters: [counterFor(ORIANNA_KEY)] });
+    expect(rank(oriFav, ORIANNA_KEY)).toBeLessThan(rank(oriFav, YASUO_KEY));
+
+    const yasFav = suggest({ ...base, liveCounters: [counterFor(YASUO_KEY)] });
+    expect(rank(yasFav, YASUO_KEY)).toBeLessThan(rank(yasFav, ORIANNA_KEY));
+  });
 });
