@@ -7,15 +7,16 @@
 
 import { useMemo } from "react";
 import { predictDraftWinrate } from "../engine/draftWinrateEngine";
-import type { ChampionDb } from "../types/champion";
+import type { ChampionDb, CounterEntry } from "../types/champion";
 
 export function useDraftPrediction(
   db: ChampionDb | null,
   allyKeys: string[],
-  enemyKeys: string[]
+  enemyKeys: string[],
+  liveCounters: CounterEntry[] = []
 ): ReturnType<typeof predictDraftWinrate> | null {
   return useMemo(() => {
     if (!db || allyKeys.length === 0 || enemyKeys.length === 0) return null;
-    return predictDraftWinrate({ db, allyKeys, enemyKeys });
-  }, [db, allyKeys, enemyKeys]);
+    return predictDraftWinrate({ db, allyKeys, enemyKeys, liveCounters });
+  }, [db, allyKeys, enemyKeys, liveCounters]);
 }

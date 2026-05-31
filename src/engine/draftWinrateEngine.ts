@@ -1,10 +1,14 @@
-import type { ChampionDb } from "../types/champion";
+import type { ChampionDb, CounterEntry } from "../types/champion";
 import { detectMissingArchetypes } from "./suggestionEngine";
 
 interface PredictArgs {
   db: ChampionDb;
   allyKeys: string[];
   enemyKeys: string[];
+  /** Broad op.gg matchup counters (candidate vs enemy), fetched live for the
+   *  current enemies. Merged ahead of the sparse personal db.counters so the
+   *  counter factor reflects real matchup data instead of a flat 0. */
+  liveCounters?: CounterEntry[];
 }
 
 export interface DraftPrediction {
@@ -16,9 +20,15 @@ export function predictDraftWinrate({
   db,
   allyKeys,
   enemyKeys,
+  liveCounters = [],
 }: PredictArgs): DraftPrediction {
   const reasons: string[] = [];
   let score = 0.5;
+  // Prefer broad op.gg matchup data (dense) over the sparse personal
+  // db.counters — same merge the suggestion engine uses, so the counter
+  // factor below isn't dead when the user has little personal history.
+  const counters: CounterEntry[] =
+    liveCounters.length > 0 ? [...liveCounters, ...db.counters] : db.counters;
 
   // Meta tier comparison
   const allyMeta = avgMetaWinrate(db, allyKeys);
@@ -42,7 +52,7 @@ export function predictDraftWinrate({
   }
 
   // Counter check
-  const counterScore = avgCounterScore(db, allyKeys, enemyKeys);
+  const counterScore = avgCounterScore(counters, allyKeys, enemyKeys);
   if (counterScore > 0.5) {
     reasons.push("Buenos matchups");
     score += (counterScore - 0.5) * 0.3;
@@ -73,17 +83,17 @@ function avgMetaWinrate(db: ChampionDb, keys: string[]): number {
 }
 
 function avgCounterScore(
-  db: ChampionDb,
+  counters: CounterEntry[],
   allyKeys: string[],
   enemyKeys: string[]
 ): number {
-  if (db.counters.length === 0 || allyKeys.length === 0 || enemyKeys.length === 0)
+  if (counters.length === 0 || allyKeys.length === 0 || enemyKeys.length === 0)
     return 0;
   let sum = 0;
   let n = 0;
   for (const ak of allyKeys) {
     for (const ek of enemyKeys) {
-      const c = db.counters.find(
+      const c = counters.find(
         (x) => x.championKey === ak && x.vsChampionKey === ek
       );
       if (c) {

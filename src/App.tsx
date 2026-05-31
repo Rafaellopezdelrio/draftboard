@@ -399,7 +399,7 @@ function App() {
     liveCounters,
   });
 
-  const draftPrediction = useDraftPrediction(db, allyKeys, enemyKeys);
+  const draftPrediction = useDraftPrediction(db, allyKeys, enemyKeys, liveCounters);
 
   // Record each completed draft (on lock-in) for advice-adherence tracking —
   // personalDataSync links it to the match outcome later.

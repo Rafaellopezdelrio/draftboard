@@ -84,6 +84,37 @@ describe("predictDraftWinrate", () => {
     expect(p.winrate).toBeGreaterThanOrEqual(0);
   });
 
+  it("uses liveCounters (op.gg) when personal db.counters is empty — revives the dead factor", () => {
+    const db = mkDb({
+      champs: [ch("1", "A"), ch("2", "B")],
+      meta: [meta("1", "MIDDLE", 0.5), meta("2", "MIDDLE", 0.5)],
+      counters: [], // no personal history → counter factor was previously dead
+    });
+    const p = predictDraftWinrate({
+      db,
+      allyKeys: ["1"],
+      enemyKeys: ["2"],
+      liveCounters: [counter("1", "2", "MIDDLE", 0.62)],
+    });
+    expect(p.winrate).toBeGreaterThan(0.5);
+    expect(p.reasons.some((r) => /matchups/i.test(r))).toBe(true);
+  });
+
+  it("liveCounters take priority over sparse db.counters for the same pair", () => {
+    const db = mkDb({
+      champs: [ch("1", "A"), ch("2", "B")],
+      meta: [meta("1", "MIDDLE", 0.5), meta("2", "MIDDLE", 0.5)],
+      counters: [counter("1", "2", "MIDDLE", 0.3)], // personal (4 games) says we lose
+    });
+    const p = predictDraftWinrate({
+      db,
+      allyKeys: ["1"],
+      enemyKeys: ["2"],
+      liveCounters: [counter("1", "2", "MIDDLE", 0.65)], // op.gg (1000s games) says we win
+    });
+    expect(p.winrate).toBeGreaterThan(0.5);
+  });
+
   it("ignores meta entries for champions not in roles list", () => {
     // Champion has only TOP role, but meta has him in MIDDLE — should NOT count
     const db = mkDb({
