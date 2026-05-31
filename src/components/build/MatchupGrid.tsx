@@ -16,16 +16,24 @@
 
 import { useEffect, useState } from "react";
 import type { Role } from "../../types/champion";
-import { fetchOpggMatchups, type OpggMatchup } from "../../services/opggMatchups";
+import {
+  fetchOpggMatchups,
+  findMatchup,
+  ddIdToOpggKey,
+  type OpggMatchup,
+} from "../../services/opggMatchups";
 
 interface Props {
   /** DDragon-style champion id (e.g. "LeeSin"). */
   championDdId: string;
   /** Role we want matchups for — op.gg keys by role. */
   role: Role;
+  /** DDragon ids of the current draft's enemies. Used to surface the WR
+   *  against the actual lane opponent(s), not just the generic grid. */
+  enemyDdIds?: string[];
 }
 
-export function MatchupGrid({ championDdId, role }: Props) {
+export function MatchupGrid({ championDdId, role, enemyDdIds = [] }: Props) {
   const [matchups, setMatchups] = useState<OpggMatchup[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(false);
@@ -69,8 +77,44 @@ export function MatchupGrid({ championDdId, role }: Props) {
   const totalAvailable = wins.length + losses.length;
   const isExpandable = totalAvailable > 8;
 
+  // Surface the matchup(s) against the CURRENT draft's lane opponent(s) — the
+  // single most actionable number in champ select. op.gg's list is for OUR
+  // champion in OUR role, so only same-lane enemies resolve here; off-lane
+  // enemies self-filter out (no entry in this role). No extra fetch — it's a
+  // lookup over the data we already have.
+  const enemyMatchups = enemyDdIds
+    .map((id) => findMatchup(matchups, ddIdToOpggKey(id)))
+    .filter((m): m is OpggMatchup => m !== null);
+
   return (
     <div className="border-t border-white/5 pt-2 space-y-1.5">
+      {enemyMatchups.length > 0 && (
+        <div className="rounded-md ring-1 ring-accent/30 bg-accent/5 px-2 py-1.5">
+          <p className="text-[10px] uppercase tracking-widest text-accent/80 mb-1">
+            Contra tu línea
+          </p>
+          <ul className="space-y-0.5">
+            {enemyMatchups.map((m) => (
+              <li
+                key={m.championKey}
+                className="flex items-center justify-between gap-1.5 text-[11px]"
+                title={`${m.play.toLocaleString()} partidas`}
+              >
+                <span className="truncate pr-1 flex-1 text-white/85 font-medium">
+                  {m.championName}
+                </span>
+                <span
+                  className={`tabular-nums text-[11px] font-semibold ${
+                    m.winRate >= 50 ? "text-good" : "text-bad"
+                  }`}
+                >
+                  {m.winRate.toFixed(0)}%
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       <div className="grid grid-cols-2 gap-3">
         <MatchupColumn title="Ganas vs" color="text-good" entries={youBeat} />
         <MatchupColumn title="Pierdes vs" color="text-bad" entries={youLose} />

@@ -230,6 +230,9 @@ function BuildPanelInner({ db, championKey, role, enemyKeys = [] }: Props) {
           role={role}
           adaptations={adaptations}
           inGameSuggestions={inGameSuggestions}
+          enemyDdIds={enemyKeys
+            .map((k) => db.champions[k]?.id)
+            .filter((id): id is string => Boolean(id))}
         />
       )}
 

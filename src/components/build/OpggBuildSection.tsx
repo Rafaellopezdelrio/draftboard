@@ -41,6 +41,9 @@ interface Props {
   role: Role;
   adaptations: BuildAdaptation[];
   inGameSuggestions: InGameSuggestion[];
+  /** DDragon ids of the current draft's enemies — forwarded to MatchupGrid
+   *  to highlight the WR vs the actual lane opponent(s). */
+  enemyDdIds?: string[];
 }
 
 export function OpggBuildSection({
@@ -50,6 +53,7 @@ export function OpggBuildSection({
   role,
   adaptations,
   inGameSuggestions,
+  enemyDdIds,
 }: Props) {
   // OPTIMAL build: highest WR with significant sample (not just most
   // popular). Falls back to most-popular if no option meets the
@@ -390,7 +394,7 @@ export function OpggBuildSection({
       )}
 
       {/* Matchup grid — top-4 wins / top-4 losses with threat tiers. */}
-      <MatchupGrid championDdId={champion.id} role={role} />
+      <MatchupGrid championDdId={champion.id} role={role} enemyDdIds={enemyDdIds} />
 
       {/* Pro builds — clustered variants from u.gg pro match data. */}
       <ProBuildsSection
