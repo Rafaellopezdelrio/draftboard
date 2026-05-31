@@ -148,7 +148,7 @@ import { TradeSuggestionPanel } from "./components/TradeSuggestionPanel";
 import { CommandPalette, type Command } from "./components/CommandPalette";
 import { setOverlayVisible, setOverlayPosition } from "./services/overlay";
 import { HeaderMenu } from "./components/ui/HeaderMenu";
-import { useEscape, useGlobalShortcut } from "./hooks/useKeyboardShortcuts";
+import { useAppShortcuts } from "./hooks/useAppShortcuts";
 import { useScheduledJobs } from "./state/scheduledJobs";
 import { useGamePhase } from "./state/inGameDetection";
 import { useLiveGame } from "./hooks/useLiveGame";
@@ -265,35 +265,16 @@ function App() {
   useThemeAccent();
 
 
-  // Ctrl+K to open command palette
-  useGlobalShortcut({ key: "k", ctrl: true }, () => setShowPalette(true));
-  // Ctrl+/ to open the shortcuts help. Standard convention (Slack,
-  // GitHub, GitLab, Linear, etc all use this binding for the same thing).
-  useGlobalShortcut({ key: "/", ctrl: true }, () => setShowShortcuts(true));
-  // 1-5 to pick role quickly (documented in ShortcutsHelp). Bare-key
-  // bindings — skip when user is typing in an input/textarea so they
-  // don't accidentally swap role while typing a Riot ID.
-  const setRoleHotkey = (role: Role) => () => {
-    const el = document.activeElement;
-    const tag = el?.tagName;
-    if (tag === "INPUT" || tag === "TEXTAREA") return;
-    setMyRole(role);
-  };
-  useGlobalShortcut({ key: "1" }, setRoleHotkey("TOP"));
-  useGlobalShortcut({ key: "2" }, setRoleHotkey("JUNGLE"));
-  useGlobalShortcut({ key: "3" }, setRoleHotkey("MIDDLE"));
-  useGlobalShortcut({ key: "4" }, setRoleHotkey("BOTTOM"));
-  useGlobalShortcut({ key: "5" }, setRoleHotkey("UTILITY"));
-  // R = reset draft (same input-guard).
-  useGlobalShortcut({ key: "r" }, () => {
-    const el = document.activeElement;
-    const tag = el?.tagName;
-    if (tag === "INPUT" || tag === "TEXTAREA") return;
-    reset();
+  // Global keyboard shortcuts (palette, role hotkeys, reset, esc) — extracted
+  // to useAppShortcuts so App.tsx stays focused on layout.
+  useAppShortcuts({
+    setMyRole,
+    reset,
+    openPalette: () => setShowPalette(true),
+    openShortcuts: () => setShowShortcuts(true),
+    closePalette: () => setShowPalette(false),
+    paletteOpen: showPalette,
   });
-
-  // Esc closes palette
-  useEscape(() => setShowPalette(false), showPalette);
 
   const commands: Command[] = [
     { id: "tier", label: "Tier List", action: () => setShowTierList(true) },
