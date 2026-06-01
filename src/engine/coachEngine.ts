@@ -101,7 +101,7 @@ export function analyzeMatch({
   out.push(...checkKillParticipation(me, team));
   out.push(...checkDamageShare(me, team, role));
   out.push(...checkObjectives(me, myTeamId, timeline));
-  out.push(...checkBuildVsEnemy(me, enemy));
+  out.push(...checkBuildVsEnemy(enemy));
   out.push(...checkGoldEfficiency(me, team, minutes));
   out.push(...checkDamagePerGold(me, role));
   out.push(...checkFirstBlood(me, myParticipantId, timeline));
@@ -484,10 +484,42 @@ function checkLanePhase(
   return [];
 }
 
-function checkBuildVsEnemy(me: MatchParticipant, enemy: MatchParticipant[]): Insight[] {
-  // Very rough magic vs physical heuristic by champion id parity won't work — skip.
-  // Use damage taken as proxy for whether your build matched.
-  // For now placeholder; can be expanded with item DB.
-  if (me.totalDamageTaken === 0 || enemy.length === 0) return [];
+function checkBuildVsEnemy(enemy: MatchParticipant[]): Insight[] {
+  if (enemy.length === 0) return [];
+  // Aggregate the enemy team's actual damage profile (magic vs physical). A
+  // decisive skew means the concrete takeaway is to prioritise the matching
+  // resist next game — real, actionable build advice instead of the old no-op.
+  let magic = 0;
+  let physical = 0;
+  for (const e of enemy) {
+    magic += e.magicDamageDealtToChampions;
+    physical += e.physicalDamageDealtToChampions;
+  }
+  const total = magic + physical;
+  if (total === 0) return [];
+  const magicShare = magic / total;
+  // Only fire on a decisive skew — a balanced team gives no clear priority.
+  if (magicShare >= 0.65) {
+    return [
+      {
+        category: "build",
+        severity: "info",
+        title: "Enemigo mayormente mágico",
+        detail: `El equipo enemigo hizo ${(magicShare * 100).toFixed(0)}% de su daño como mágico.`,
+        action: "Prioriza resistencia mágica (MR) en tu build contra esta comp.",
+      },
+    ];
+  }
+  if (magicShare <= 0.35) {
+    return [
+      {
+        category: "build",
+        severity: "info",
+        title: "Enemigo mayormente físico",
+        detail: `El equipo enemigo hizo ${((1 - magicShare) * 100).toFixed(0)}% de su daño como físico.`,
+        action: "Prioriza armadura en tu build contra esta comp.",
+      },
+    ];
+  }
   return [];
 }

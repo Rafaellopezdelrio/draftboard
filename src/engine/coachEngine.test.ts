@@ -20,6 +20,8 @@ function mkParticipant(overrides: Partial<MatchParticipant> = {}): MatchParticip
     cs: 200,
     goldEarned: 12000,
     totalDamageDealtToChampions: 18000,
+    magicDamageDealtToChampions: 9000,
+    physicalDamageDealtToChampions: 9000,
     totalDamageTaken: 22000,
     visionScore: 25,
     wardsPlaced: 10,
@@ -122,6 +124,31 @@ describe("coachEngine", () => {
       myPuuid: "me",
     });
     expect(insights.some((i) => i.category === "farming" && i.severity === "good")).toBe(true);
+  });
+
+  it("flags an enemy magic-damage skew with a build insight (revives the dead no-op)", () => {
+    const me = mkParticipant();
+    const match = mkMatch(me);
+    // Skew the enemy team's damage heavily toward magic.
+    for (const p of match.participants) {
+      if (p.teamId !== me.teamId) {
+        p.magicDamageDealtToChampions = 12_000;
+        p.physicalDamageDealtToChampions = 2_000;
+      }
+    }
+    const insights = analyzeMatch({ match, timeline: mkTimeline(), myPuuid: "me" });
+    const build = insights.find((i) => i.category === "build");
+    expect(build).toBeDefined();
+    expect(build!.detail).toMatch(/mágico/);
+  });
+
+  it("gives no build insight when enemy damage is balanced", () => {
+    const insights = analyzeMatch({
+      match: mkMatch(mkParticipant()),
+      timeline: mkTimeline(),
+      myPuuid: "me",
+    });
+    expect(insights.some((i) => i.category === "build")).toBe(false);
   });
 
   it("skips CS analysis for UTILITY role (support farming nuance)", () => {

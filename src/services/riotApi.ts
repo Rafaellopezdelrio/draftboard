@@ -358,6 +358,8 @@ export interface MatchParticipant {
   cs: number;
   goldEarned: number;
   totalDamageDealtToChampions: number;
+  magicDamageDealtToChampions: number;
+  physicalDamageDealtToChampions: number;
   totalDamageTaken: number;
   visionScore: number;
   wardsPlaced: number;
@@ -403,6 +405,8 @@ interface MatchDto {
       teamPosition: string;
       goldEarned: number;
       totalDamageDealtToChampions: number;
+      magicDamageDealtToChampions: number;
+      physicalDamageDealtToChampions: number;
       totalDamageTaken: number;
       visionScore: number;
       wardsPlaced: number;
@@ -518,6 +522,8 @@ export async function getMatchFull(
       cs: p.totalMinionsKilled + p.neutralMinionsKilled,
       goldEarned: p.goldEarned,
       totalDamageDealtToChampions: p.totalDamageDealtToChampions,
+      magicDamageDealtToChampions: p.magicDamageDealtToChampions,
+      physicalDamageDealtToChampions: p.physicalDamageDealtToChampions,
       totalDamageTaken: p.totalDamageTaken,
       visionScore: p.visionScore,
       wardsPlaced: p.wardsPlaced,

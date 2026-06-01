@@ -23,6 +23,8 @@ const mkPart = (over: Partial<MatchParticipant> & Pick<MatchParticipant, "puuid"
   cs: 200,
   goldEarned: 12_000,
   totalDamageDealtToChampions: 20_000,
+  magicDamageDealtToChampions: 10_000,
+  physicalDamageDealtToChampions: 10_000,
   totalDamageTaken: 18_000,
   visionScore: 25,
   wardsPlaced: 10,
