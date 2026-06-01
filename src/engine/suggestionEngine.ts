@@ -229,6 +229,9 @@ function scoreChampion(c: Champion, ctx: ScoreCtx): ScoredSuggestion {
   else if (isComfort) reasons.push(`comfort`);
   if (personal > 0.6) reasons.push(`tu winrate ${(personal * 100).toFixed(0)}%`);
   if (counter > 0.55) reasons.push(`countra a enemigos`);
+  // Surface the trade-off: a pick can top the list on meta/mastery yet have a
+  // losing lane. Flag it so "best overall" doesn't read as "best matchup".
+  else if (counter < 0.45) reasons.push(`⚠ matchup difícil`);
   if (synergy > 0.55) reasons.push(`sinergia con tu equipo`);
   if (meta > 0.55) reasons.push(`fuerte en el meta`);
   if (archetype > 0) reasons.push(`aporta lo que falta`);

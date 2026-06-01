@@ -382,4 +382,27 @@ describe("suggestionEngine", () => {
     const redundant = result.find((s) => s.champion.key === "3");
     expect(engager!.breakdown.synergy).toBeGreaterThan(redundant!.breakdown.synergy);
   });
+
+  it("flags a hard matchup in the reasons (best-overall ≠ best-matchup coherence)", () => {
+    const db = mkDb([meta(ORIANNA_KEY, "MIDDLE")]);
+    const result = suggest({
+      db,
+      role: "MIDDLE",
+      allyKeys: [],
+      enemyKeys: [ZED_KEY],
+      bannedKeys: [],
+      liveCounters: [
+        {
+          championKey: ORIANNA_KEY,
+          vsChampionKey: ZED_KEY,
+          role: "MIDDLE",
+          winRate: 0.35, // op.gg says Orianna loses this lane
+          sampleSize: 1000,
+        },
+      ],
+    });
+    const ori = result.find((s) => s.champion.key === ORIANNA_KEY);
+    expect(ori!.breakdown.counter).toBeLessThan(0.45);
+    expect(ori!.reasons.some((r) => r.includes("matchup difícil"))).toBe(true);
+  });
 });

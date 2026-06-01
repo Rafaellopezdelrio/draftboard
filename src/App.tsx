@@ -4,6 +4,7 @@ import { useDraftStore } from "./state/draftStore";
 import type { Role } from "./types/champion";
 import { DraftBoard } from "./components/DraftBoard";
 import { SuggestionPanel } from "./components/SuggestionPanel";
+import { DraftCoachPanel } from "./components/DraftCoachPanel";
 import { CompAnalysis } from "./components/CompAnalysis";
 import { useLcuSync } from "./state/lcuSync";
 import { EnemyScoutPanel } from "./components/EnemyScoutPanel";
@@ -652,6 +653,19 @@ function App() {
                 hasRole={!!myRole}
                 hasDraft={allyKeys.length > 0 || enemyKeys.length > 0}
               />
+            )}
+            {prefs.showSuggestions && buildChampionKey && myRole && (
+              <PanelBoundary name="DraftCoachPanel">
+                <DraftCoachPanel
+                  db={db}
+                  myChampionKey={buildChampionKey}
+                  role={myRole}
+                  allyKeys={allyKeys}
+                  enemyKeys={enemyKeys}
+                  liveCounters={liveCounters}
+                  suggestions={suggestions}
+                />
+              </PanelBoundary>
             )}
             {prefs.showBuildPanel && buildChampionKey && myRole && (
               <PanelBoundary name="BuildPanel">
