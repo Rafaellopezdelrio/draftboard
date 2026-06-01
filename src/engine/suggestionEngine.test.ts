@@ -356,4 +356,30 @@ describe("suggestionEngine", () => {
     const yasFav = suggest({ ...base, liveCounters: [counterFor(YASUO_KEY)] });
     expect(rank(yasFav, YASUO_KEY)).toBeLessThan(rank(yasFav, ORIANNA_KEY));
   });
+
+  it("synergy rewards a complementary pick over a redundant one", () => {
+    // Ally is a sustain-dps carry. An engage/frontline pick complements it
+    // (engage→dps, frontline→dps); another sustain-dps is redundant.
+    const db: ChampionDb = {
+      patch: "16.10",
+      champions: {
+        "1": champ("1", "Engager", ["MIDDLE"], { archetypes: ["frontline", "engage"] }),
+        "2": champ("2", "Carry", ["MIDDLE"], { archetypes: ["sustain-dps"] }),
+        "3": champ("3", "Redundant", ["MIDDLE"], { archetypes: ["sustain-dps"] }),
+      },
+      counters: [],
+      meta: [],
+      fetchedAt: 0,
+    };
+    const result = suggest({
+      db,
+      role: "MIDDLE",
+      allyKeys: ["2"], // the sustain-dps carry, already picked
+      enemyKeys: [],
+      bannedKeys: [],
+    });
+    const engager = result.find((s) => s.champion.key === "1");
+    const redundant = result.find((s) => s.champion.key === "3");
+    expect(engager!.breakdown.synergy).toBeGreaterThan(redundant!.breakdown.synergy);
+  });
 });

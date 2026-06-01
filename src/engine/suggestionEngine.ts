@@ -307,23 +307,41 @@ function masteryScore(
   return score;
 }
 
+// Complementary archetype pairings — established comp synergies where one side
+// sets up or protects the other: engage enables burst/dps, a peeler protects a
+// hypercarry dps, a frontline lets backline carries deal damage safely. This
+// replaces the old "shared archetype = synergy" rule, which wrongly rewarded
+// REDUNDANCY (two engage tanks scored as synergistic).
+const SYNERGY_PAIRS: ReadonlyArray<readonly [Archetype, Archetype]> = [
+  ["engage", "burst"],
+  ["engage", "sustain-dps"],
+  ["peel", "sustain-dps"],
+  ["frontline", "sustain-dps"],
+  ["frontline", "poke"],
+];
+
 function synergyScore(
   c: Champion,
   allyKeys: string[],
   db: ChampionDb
 ): number {
   if (allyKeys.length === 0) return 0.5;
-  const myArch = new Set(c.archetypes);
-  let overlap = 0;
+  const mine = new Set(c.archetypes);
+  let pairings = 0;
   for (const k of allyKeys) {
     const ally = db.champions[k];
     if (!ally) continue;
-    for (const a of ally.archetypes) if (myArch.has(a)) overlap++;
+    const theirs = new Set(ally.archetypes);
+    for (const [a, b] of SYNERGY_PAIRS) {
+      if ((mine.has(a) && theirs.has(b)) || (mine.has(b) && theirs.has(a))) {
+        pairings++;
+        break; // count each ally once — don't over-reward a multi-tag ally
+      }
+    }
   }
-  // Some overlap = synergy; too much = redundancy. Sweet spot around 1-2.
-  if (overlap === 0) return 0.4;
-  if (overlap <= 2) return 0.7;
-  return 0.5;
+  // Neutral 0.5; each ally this pick complements nudges up. Bounded so synergy
+  // (a 0.10-weight dimension) can't swamp meta/counter.
+  return Math.min(0.85, 0.5 + pairings * 0.1);
 }
 
 function metaScore(key: string, role: Role, db: ChampionDb): number {

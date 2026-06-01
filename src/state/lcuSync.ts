@@ -281,9 +281,17 @@ function applySession(s: LcuChampSelectSession | null | undefined) {
     if (locked === null && intent === null && !lastBlindWarnedCell) {
       lastBlindWarnedCell = myCell;
       // eslint-disable-next-line no-console
+      // Log the ACTUAL values, not just field names — custom games + new
+      // queue shapes need this to tell apart "championId genuinely 0" from a
+      // localPlayerCellId / cellId mismatch (my cell points at the wrong slot).
       console.warn(
-        `[lcuSync] my cell ${myCell} has no champ in myTeam OR actions — Riot fields:`,
-        Object.keys(myPlayer ?? {}).join(",")
+        `[lcuSync] my cell ${myCell} has no champ in myTeam OR actions —`,
+        `championId=${myPlayer.championId}`,
+        `pickIntent=${myPlayer.championPickIntent}`,
+        `localPlayerCellId=${s.localPlayerCellId}`,
+        `myTeamCells=[${myTeam.map((p) => `${p.cellId}:${p.championId}`).join(",")}]`,
+        `actionPickCells=[${[...cellPickMap.keys()].join(",") || "none"}]`,
+        `fields=${Object.keys(myPlayer ?? {}).join(",")}`
       );
     }
     if (locked !== null) lastBlindWarnedCell = null;
