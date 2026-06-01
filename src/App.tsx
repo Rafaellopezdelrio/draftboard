@@ -742,6 +742,7 @@ function App() {
               <TipCarousel
                 champion={buildChampionKey ? db.champions[buildChampionKey] ?? null : null}
                 role={myRole}
+                patch={db.patch}
               />
             </PanelBoundary>
             <PlaystylePanel />

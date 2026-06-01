@@ -4,17 +4,22 @@
 // rotates every ~6 seconds so the user catches multiple tips while
 // they're picking spells / staring at the queue.
 //
-// All tips are static — no API call, no AI cost. Curated for ~30 most
-// common picks per archetype with a generic fallback per role.
+// Tips come from 3 layers, best first: AI-generated per-champion tips (cached
+// in SQLite via championTips — covers all ~170), then a small hand-curated map,
+// then a generic per-role fallback. The AI fetch is cache-first + debounced, so
+// it's free after the first generation and never blocks the carousel.
 
 import { useEffect, useState } from "react";
 import { Lightbulb } from "lucide-react";
 import { Panel } from "./ui/Panel";
+import { usePrefsStore } from "../state/prefsStore";
+import { getChampionTips } from "../services/championTips";
 import type { Champion, Role } from "../types/champion";
 
 interface Props {
   champion: Champion | null;
   role: Role | null;
+  patch: string;
 }
 
 // Per-champion tips. Add more as we see specific user demand. Each entry
@@ -90,15 +95,53 @@ function getTipsFor(champion: Champion | null, role: Role | null): string[] {
 
 const ROTATE_MS = 6000;
 
-export function TipCarousel({ champion, role }: Props) {
-  const tips = getTipsFor(champion, role);
+export function TipCarousel({ champion, role, patch }: Props) {
+  const provider = usePrefsStore((s) => s.prefs.aiProvider);
+  const apiKey = usePrefsStore((s) =>
+    s.prefs.aiProvider === "groq"
+      ? s.prefs.groqApiKey
+      : s.prefs.aiProvider === "gemini"
+        ? s.prefs.geminiApiKey
+        : s.prefs.anthropicApiKey
+  );
+  const lang = usePrefsStore((s) => s.prefs.aiCoachLanguage);
+  const champKey = champion?.key ?? null;
+  const champName = champion?.name ?? null;
+  const [aiTips, setAiTips] = useState<string[]>([]);
+  const tips = [...aiTips, ...getTipsFor(champion, role)];
   const [idx, setIdx] = useState(0);
 
+  // AI tips (cache-first) for the active champion+role. Debounced so a
+  // reordering suggestion list can't fire a burst of generations; the cache
+  // makes repeats instant. Best-effort — failure leaves the curated/role tips.
+  useEffect(() => {
+    setAiTips([]);
+    if (!champKey || !champName || !role) return;
+    let cancelled = false;
+    const t = setTimeout(() => {
+      getChampionTips({
+        provider,
+        apiKey: apiKey ?? "",
+        championId: Number(champKey),
+        championName: champName,
+        role,
+        patch,
+        language: lang === "en" ? "en" : "es",
+      }).then((res) => {
+        if (!cancelled) setAiTips(res);
+      });
+    }, 600);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [champKey, champName, role, patch, provider, apiKey, lang]);
+
   // Rotate every ROTATE_MS so the user sees multiple tips per pick phase.
-  // Resets to 0 when champion/role changes so the new context starts fresh.
+  // Resets to 0 when the champion/role or the AI tips change.
   useEffect(() => {
     setIdx(0);
-  }, [champion?.key, role]);
+  }, [champKey, role, aiTips.length]);
 
   useEffect(() => {
     if (tips.length <= 1) return;

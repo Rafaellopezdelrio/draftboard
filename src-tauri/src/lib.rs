@@ -107,6 +107,12 @@ pub fn run() {
             sql: include_str!("../../src/db/migrations/008_chat_history.sql"),
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 9,
+            description: "ai champion tips cache",
+            sql: include_str!("../../src/db/migrations/009_champion_tips.sql"),
+            kind: MigrationKind::Up,
+        },
     ];
 
     tauri::Builder::default()
