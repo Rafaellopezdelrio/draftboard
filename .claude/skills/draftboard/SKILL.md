@@ -88,6 +88,27 @@ so a `WHERE patch=?`-only query needs its own index (see migration 007).
 - Auto-updater manifest = Worker `LATEST_VERSION`; must match tauri.conf.json +
   Cargo.toml versions (guarded by `cloudflare-worker/src/updater.test.js`).
 
+## Dead-wire audit (run proactively — don't wait to be told)
+
+Recurring bug class: a feature is wired + runs but reads empty/stub data, so its
+output is silently constant. Already found + fixed: counter dimension, draft
+win-prob counter factor, checkBuildVsEnemy, saveLessonPlan, the drafts table.
+Hunt these:
+
+- **Stubs feeding real features** — a fn called in a pipeline that always
+  returns `[]`/`null`/`0.5`. `grep -rn "return \[\];" src/engine src/services`.
+  (Was: `murderBridge.fetchCounters` → `db.counters` permanently empty.)
+- **Constant scorers** — an engine factor reading a sparse/never-populated
+  source (db.counters before liveCounters; personal stats for a new user) so its
+  weight changes nothing. Trace each scoring dimension to its data source.
+- **Dropped upstream data** — a richer field exists but isn't mapped (match-v5
+  magic/physical damage was discarded → checkBuildVsEnemy stayed a no-op).
+- **Never-called writers** — a save/persist fn defined but never invoked
+  (saveLessonPlan; drafts). grep the writer name for call sites.
+
+Fix: feed the real data, map the dropped field, or delete the dead code
+honestly — never leave a no-op pretending to work.
+
 ## Verified INFEASIBLE — don't re-attempt
 
 - **Synergy from op.gg MCP:** `data.synergies` samples are single-digit games

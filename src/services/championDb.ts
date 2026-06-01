@@ -1,6 +1,5 @@
 import type { ChampionDb, MetaTier } from "../types/champion";
 import { fetchChampions, fetchLatestPatch } from "./dataDragon";
-import { fetchCounters } from "./murderBridge";
 import { buildMetaList } from "../data/metaTierList";
 import { loadAggregatedCounters, loadAggregatedMeta } from "./aggregateRepo";
 import { fetchOpggMetaAllRoles } from "./opggMeta";
@@ -67,9 +66,8 @@ export async function loadChampionDb(force = false): Promise<ChampionDb> {
       ? fetchDpmMeta(dpmTier, dpmPlatform, dpmTimeframe, nameToKey)
       : Promise.resolve([]);
 
-  const [fallbackCounters, opggMeta, soloqMeta, proplayMeta, aggCounters, dpmMeta] =
+  const [opggMeta, soloqMeta, proplayMeta, aggCounters, dpmMeta] =
     await Promise.all([
-      fetchCounters(patch),
       fetchOpggMetaAllRoles(nameToKey), // op.gg MCP — 170 champs with real games data
       loadAggregatedMeta(patch), // SoloQ Master+ (our own sync)
       loadAggregatedMeta(proPatch), // Pro play (our own sync)
@@ -171,7 +169,7 @@ export async function loadChampionDb(force = false): Promise<ChampionDb> {
         : " (no pro data yet — will refine after auto-sync)")
   );
 
-  const counters = aggCounters.length > 0 ? aggCounters : fallbackCounters;
+  const counters = aggCounters;
   const db: ChampionDb = {
     patch,
     champions,

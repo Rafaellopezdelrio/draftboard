@@ -1,19 +1,9 @@
-import type { CounterEntry, MetaTier, Role } from "../types/champion";
+import type { CounterEntry, Role } from "../types/champion";
 
-// MurderBridge / community endpoints often change. We wrap the call so the
-// rest of the app does not care if we swap the source.
-//
-// For now: stub that returns empty arrays so the rest of the engine can run.
-// Phase 2.1 will wire up the real source (likely a community JSON mirror or
-// a small backend that scrapes op.gg).
-export async function fetchCounters(_patch: string): Promise<CounterEntry[]> {
-  return [];
-}
-
-export async function fetchMeta(_patch: string): Promise<MetaTier[]> {
-  return [];
-}
-
+// Counter-pick scoring. The "fetch" side of this module was a long-dead stub
+// (always returned []); counter data now flows in from services/enemyCounters
+// (live op.gg matchups) + the counter_aggregate table. What remains is the
+// pure scorer the suggestion engine actually uses.
 export function counterScore(
   championKey: string,
   enemyKeys: string[],
