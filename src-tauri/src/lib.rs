@@ -101,6 +101,12 @@ pub fn run() {
             sql: include_str!("../../src/db/migrations/007_aggregate_patch_indexes.sql"),
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 8,
+            description: "ai chat history (conversations + messages)",
+            sql: include_str!("../../src/db/migrations/008_chat_history.sql"),
+            kind: MigrationKind::Up,
+        },
     ];
 
     tauri::Builder::default()

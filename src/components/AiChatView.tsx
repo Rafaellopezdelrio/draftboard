@@ -1,6 +1,24 @@
 import { useEffect, useRef, useState } from "react";
 import { useFocusTrap } from "../hooks/useFocusTrap";
-import { Bot, Send, Sparkles, User as UserIcon, Trash2 } from "lucide-react";
+import {
+  Bot,
+  Send,
+  Sparkles,
+  User as UserIcon,
+  Trash2,
+  History,
+  Plus,
+  Search,
+} from "lucide-react";
+import {
+  createConversation,
+  appendMessage,
+  listConversations,
+  loadMessages,
+  searchConversations,
+  deleteConversation,
+  type ConversationMeta,
+} from "../services/chatRepo";
 
 const AI_CHAT_TITLE_ID = "ai-chat-view-title";
 import { usePrefsStore } from "../state/prefsStore";
@@ -30,6 +48,18 @@ const SUGGESTED_PROMPTS = [
   "Dame un plan de práctica para esta semana",
 ];
 
+function relativeTime(ts: number): string {
+  const s = Math.max(0, (Date.now() - ts) / 1000);
+  if (s < 60) return "ahora";
+  const m = Math.floor(s / 60);
+  if (m < 60) return `hace ${m} min`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `hace ${h} h`;
+  const d = Math.floor(h / 24);
+  if (d < 7) return `hace ${d} d`;
+  return new Date(ts).toLocaleDateString();
+}
+
 export function AiChatView({ db, onClose }: Props) {
   useEscape(onClose);
   const provider = usePrefsStore((s) => s.prefs.aiProvider);
@@ -46,6 +76,12 @@ export function AiChatView({ db, onClose }: Props) {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [context, setContext] = useState<ChatContext | null>(null);
+  // Persistence: the conversation we're appending to (null = unsaved/new) +
+  // the history browser (list view with search).
+  const [convId, setConvId] = useState<number | null>(null);
+  const [view, setView] = useState<"chat" | "history">("chat");
+  const [conversations, setConversations] = useState<ConversationMeta[]>([]);
+  const [search, setSearch] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -90,15 +126,74 @@ export function AiChatView({ db, onClose }: Props) {
     setMessages(next);
     setInput("");
     setLoading(true);
+    // Persist best-effort — a DB hiccup must never break the chat itself.
+    // cid 0 = unsaved/new (createConversation also returns 0 outside Tauri).
+    let cid = convId ?? 0;
+    try {
+      if (cid <= 0) {
+        cid = await createConversation(text);
+        setConvId(cid);
+      }
+      await appendMessage(cid, "user", text);
+    } catch {
+      /* ignore persistence failure */
+    }
     try {
       const reply = await chatWithCoach(provider, apiKey, next, context, lang);
       setMessages((m) => [...m, { role: "assistant", content: reply }]);
+      try {
+        await appendMessage(cid, "assistant", reply);
+      } catch {
+        /* ignore */
+      }
     } catch (e) {
       setErr(String(e));
     } finally {
       setLoading(false);
     }
   }
+
+  /** Open the history browser (load the recent list). */
+  async function openHistory() {
+    setSearch("");
+    setConversations(await listConversations());
+    setView("history");
+  }
+
+  /** Load a saved conversation back into the chat. */
+  async function resumeConversation(id: number) {
+    const msgs = await loadMessages(id);
+    setMessages(msgs);
+    setConvId(id);
+    setErr(null);
+    setView("chat");
+  }
+
+  /** Start a fresh conversation (the current one is already saved). */
+  function newChat() {
+    setMessages([]);
+    setConvId(null);
+    setErr(null);
+    setView("chat");
+  }
+
+  async function removeConversation(id: number) {
+    await deleteConversation(id);
+    if (id === convId) newChat();
+    setConversations(await searchConversations(search));
+  }
+
+  // Debounced-ish search: re-query whenever the term changes while browsing.
+  useEffect(() => {
+    if (view !== "history") return;
+    let cancelled = false;
+    searchConversations(search).then((c) => {
+      if (!cancelled) setConversations(c);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [search, view]);
 
   const dialogRef = useRef<HTMLDivElement | null>(null);
   useFocusTrap(dialogRef, true);
@@ -130,17 +225,71 @@ export function AiChatView({ db, onClose }: Props) {
               </p>
             </div>
           </div>
-          <button
-            onClick={() => setMessages([])}
-            disabled={messages.length === 0}
-            className="text-[10px] uppercase tracking-wider px-2 py-1 rounded ring-1 ring-border-subtle bg-bg-card/60 text-white/55 hover:text-bad hover:ring-bad/50 transition disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1"
-            title="Limpia el historial de la conversación actual"
-          >
-            <Trash2 className="w-3 h-3" />
-            Limpiar
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={openHistory}
+              className="text-[10px] uppercase tracking-wider px-2 py-1 rounded ring-1 ring-border-subtle bg-bg-card/60 text-white/60 hover:text-accent hover:ring-accent/40 transition inline-flex items-center gap-1"
+              title="Ver y buscar conversaciones pasadas"
+            >
+              <History className="w-3 h-3" />
+              Historial
+            </button>
+            <button
+              onClick={newChat}
+              disabled={messages.length === 0 && convId === null}
+              className="text-[10px] uppercase tracking-wider px-2 py-1 rounded ring-1 ring-border-subtle bg-bg-card/60 text-white/60 hover:text-accent hover:ring-accent/40 transition disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1"
+              title="Nueva conversación"
+            >
+              <Plus className="w-3 h-3" />
+              Nueva
+            </button>
+          </div>
         </div>
 
+        {view === "history" && (
+          <div className="flex-1 overflow-y-auto p-4 space-y-2">
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 text-white/40 absolute left-2.5 top-1/2 -translate-y-1/2" />
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                autoFocus
+                placeholder="Buscar en tus conversaciones…"
+                className="w-full bg-bg-elev/60 pl-8 pr-3 py-2 rounded-md outline-none ring-1 ring-border-subtle focus:ring-accent text-white text-sm transition"
+              />
+            </div>
+            {conversations.length === 0 && (
+              <p className="text-xs text-white/40 italic px-1 py-3">
+                {search ? "Sin resultados." : "Aún no hay conversaciones guardadas."}
+              </p>
+            )}
+            {conversations.map((c) => (
+              <div
+                key={c.id}
+                className="group flex items-center gap-2 px-3 py-2 rounded-md bg-bg-card/50 border border-border-subtle hover:border-accent/40 transition"
+              >
+                <button
+                  onClick={() => resumeConversation(c.id)}
+                  className="flex-1 text-left min-w-0"
+                  title="Retomar esta conversación"
+                >
+                  <p className="text-sm text-white/85 truncate">{c.title}</p>
+                  <p className="text-[10px] text-white/40">{relativeTime(c.updatedTsMs)}</p>
+                </button>
+                <button
+                  onClick={() => removeConversation(c.id)}
+                  className="opacity-0 group-hover:opacity-100 text-white/40 hover:text-bad transition shrink-0"
+                  title="Borrar conversación"
+                  aria-label="Borrar conversación"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {view === "chat" && (
         <div
           ref={scrollRef}
           role="log"
@@ -243,7 +392,9 @@ export function AiChatView({ db, onClose }: Props) {
             </div>
           )}
         </div>
+        )}
 
+        {view === "chat" && (
         <div className="p-3 border-t border-border-subtle bg-bg-elev/30">
           <form
             onSubmit={(e) => {
@@ -275,6 +426,7 @@ export function AiChatView({ db, onClose }: Props) {
             </p>
           )}
         </div>
+        )}
       </div>
     </div>
   );
