@@ -118,6 +118,23 @@ describe("coachLiveGame", () => {
     ]);
   });
 
+  it("nudges a retreat at critically low HP, but not when healthy", () => {
+    const low = coachLiveGame({
+      ...base,
+      me: p({ position: "JUNGLE" }),
+      myHpPct: 0.15,
+    });
+    expect(low).toContainEqual(
+      expect.objectContaining({ key: "low-hp", severity: "warn" })
+    );
+    const healthy = coachLiveGame({
+      ...base,
+      me: p({ position: "JUNGLE" }),
+      myHpPct: 0.6,
+    });
+    expect(healthy.some((i) => i.key === "low-hp")).toBe(false);
+  });
+
   it("raises a critical soul-deny when the enemy is on soul point", () => {
     const r = coachLiveGame({
       ...base,

@@ -199,6 +199,10 @@ export function LiveGamePanel({ db }: LiveGamePanelProps = {}) {
     dragonsByTeam: control?.dragonsByTeam ?? null,
     lastBaronTeam: control?.lastBaronTeam ?? null,
     lastBaronAt: control?.lastBaronAt ?? null,
+    myHpPct:
+      me?.championStats && me.championStats.maxHealth > 0
+        ? me.championStats.currentHealth / me.championStats.maxHealth
+        : null,
   });
 
   return (

@@ -38,6 +38,9 @@ export interface LiveCoachArgs {
   /** Most recent Baron taker + time, for the buff-active window. */
   lastBaronTeam?: "ORDER" | "CHAOS" | null;
   lastBaronAt?: number | null;
+  /** Current HP fraction (0-1) from activePlayer.championStats, for a retreat
+   *  nudge. Omit when unavailable. */
+  myHpPct?: number | null;
 }
 
 const LANES = new Set(["TOP", "MIDDLE", "BOTTOM"]);
@@ -50,6 +53,7 @@ const BARON_PREP_WINDOW = 60;
 const RECALL_GOLD = 2000;
 const SOUL_POINT = 3; // a team on 3 dragons takes Soul on its next dragon
 const BARON_BUFF_SEC = 180; // Baron buff lasts ~3min
+const LOW_HP_PCT = 0.2; // retreat nudge below 20% HP
 
 const RANK: Record<LiveCoachSeverity, number> = {
   critical: 0,
@@ -73,6 +77,7 @@ export function coachLiveGame(args: LiveCoachArgs): LiveCoachInsight[] {
     dragonsByTeam,
     lastBaronTeam,
     lastBaronAt,
+    myHpPct,
   } = args;
   if (!me || gameTime < MIN_GAME_TIME) return [];
 
@@ -95,6 +100,15 @@ export function coachLiveGame(args: LiveCoachArgs): LiveCoachInsight[] {
       key: "deaths-warn",
       severity: "warn",
       text: `Mueres más de lo que aportas (${k}/${d}/${a}). Juega seguro y farmea.`,
+    });
+  }
+
+  // --- Survival: retreat nudge on critically low HP --------------------
+  if (typeof myHpPct === "number" && !me.isDead && myHpPct <= LOW_HP_PCT) {
+    out.push({
+      key: "low-hp",
+      severity: "warn",
+      text: `HP al ${Math.round(myHpPct * 100)}%: retírate o recall, evita trades.`,
     });
   }
 
