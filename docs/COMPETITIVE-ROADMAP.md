@@ -25,7 +25,11 @@ Ratings are our own estimate (codebase vs known public competitor features),
 
 **Phase 1 — land cheap wins + unlock built work**
 - [x] Scout synthesis (8: 5→7.5): Porofessor-style verdicts from data we already fetch. Enemies → `scoutInsights.ts` (per-enemy threat + OTP/smurf/streak + team summary) in EnemyScoutPanel. Allies/lobby → `lobbyInsights.ts` (carry to play around, liability to cover, top enemy threat, team rank balance) in LobbyScoutPanel.
-- [ ] Overlay v2 (9: 4→7): unlocks the live coaching already built. Needs a live-validation session (Win32 click-through/positioning).
+- [~] Live coach delivery (2: 6→7): voice coaching landed — critical live insights
+  (soul-deny, heavy deaths) are spoken aloud hands-free, so the value lands even
+  without a visual overlay. `LiveVoice` in LiveGamePanel, reuses voiceCoach.
+- [ ] Overlay v2 (9: 4→7): the VISUAL container. Unlocks the full live coaching
+  surface. Needs a live-validation session (Win32 click-through/positioning).
 
 **Phase 2 — depth where we're close**
 - [~] Post-game GPI expansion (4: 6→7): `scoreObjectives` now uses real objective

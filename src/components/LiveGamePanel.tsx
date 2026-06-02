@@ -23,8 +23,29 @@ import { displayGameMode } from "../data/gameModeNames";
 import { setOverlayVisible } from "../services/overlay";
 import { usePrefsStore } from "../state/prefsStore";
 import { suggestInGameAdaptations } from "../engine/inGameAdapter";
-import { coachLiveGame, type LiveCoachSeverity } from "../engine/liveCoachEngine";
+import {
+  coachLiveGame,
+  type LiveCoachSeverity,
+  type LiveCoachInsight,
+} from "../engine/liveCoachEngine";
+import { voiceCoach } from "../services/voiceCoach";
 import type { ChampionDb } from "../types/champion";
+
+// Speaks the CRITICAL live-coach insights aloud (soul-deny, heavy deaths) so
+// the user gets a hands-free alert even without an on-screen overlay. Mounted
+// only while in-game; unmount (game over) resets the per-session dedup so the
+// next game alerts again. Respects the global voice toggle via voiceCoach.
+function LiveVoice({ insights }: { insights: LiveCoachInsight[] }) {
+  const criticals = insights.filter((c) => c.severity === "critical");
+  const sig = criticals.map((c) => c.key).join(",");
+  useEffect(() => {
+    for (const c of criticals) voiceCoach.speak(c.text, `live-${c.key}`);
+    // criticals derived from `insights`; sig captures the meaningful change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sig]);
+  useEffect(() => () => voiceCoach.resetSession(), []);
+  return null;
+}
 
 // Severity -> tailwind classes for the live coach rows (literals so JIT scans).
 function coachSevClass(sev: LiveCoachSeverity): string {
@@ -247,6 +268,9 @@ export function LiveGamePanel({ db }: LiveGamePanelProps = {}) {
           </div>
         </div>
       )}
+
+      {/* Hands-free audio for the critical alerts (no overlay needed). */}
+      <LiveVoice insights={liveCoach} />
 
       {/* Live coach — laning / deaths / objective / reset prompts */}
       {liveCoach.length > 0 && (
