@@ -48,6 +48,8 @@ export interface AiTrendsInput {
   /** Optional auto-detected playstyle (archetype + key traits) so the AI tunes
    *  advice to HOW you play, not just your results. */
   playstyleSummary?: string;
+  /** Optional rank-relative benchmark summary (your stats vs your bracket). */
+  benchmarkSummary?: string;
   language?: "es" | "en";
 }
 
@@ -136,14 +138,17 @@ export function buildTrendsPrompts(input: AiTrendsInput): {
   const styleBlock = input.playstyleSummary
     ? `\n\nTu estilo de juego (auto-detectado):\n${input.playstyleSummary}\n`
     : "";
+  const benchBlock = input.benchmarkSummary
+    ? `\n\nVs tu rango (estimado):\n${input.benchmarkSummary}\n`
+    : "";
 
   const user = `Analiza la TENDENCIA de mis últimas ${input.matches.length} partidas:
 
 Winrate: ${wins}/${input.matches.length} (${((wins / input.matches.length) * 100).toFixed(0)}%)
 
 Partidas (más recientes primero):
-${lines}${leakBlock}${styleBlock}
-Identifica patrones (campeones que rinden mejor, roles fuertes/débiles, fugas de LP, hábitos repetidos). Si tienes el análisis estadístico, ÚSALO como ancla del patrón principal. Adapta el consejo a mi estilo de juego. Responde como un coach humano: foco en el patrón principal, NO listes todo. Dame 2-3 acciones concretas.`;
+${lines}${leakBlock}${styleBlock}${benchBlock}
+Identifica patrones (campeones que rinden mejor, roles fuertes/débiles, fugas de LP, hábitos repetidos). Si tienes el análisis estadístico, ÚSALO como ancla del patrón principal. Adapta el consejo a mi estilo de juego. Si tienes comparación con tu rango, prioriza cerrar las métricas por debajo de tu rango. Responde como un coach humano: foco en el patrón principal, NO listes todo. Dame 2-3 acciones concretas.`;
 
   return { system, user };
 }

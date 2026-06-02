@@ -41,10 +41,20 @@ describe("buildTrendsPrompts", () => {
     expect(user).toMatch(/Adapta el consejo a mi estilo/);
   });
 
+  it("injects the rank-benchmark block and tells the coach to close the gaps", () => {
+    const { user } = buildTrendsPrompts(
+      input({ benchmarkSummary: "Rango Gold-Plat (MIDDLE): CS/min 5.2 vs 6.8 (below)." })
+    );
+    expect(user).toContain("Vs tu rango");
+    expect(user).toContain("CS/min 5.2 vs 6.8 (below)");
+    expect(user).toMatch(/por debajo de tu rango/);
+  });
+
   it("omits the optional blocks when not provided", () => {
     const { user } = buildTrendsPrompts(input());
     expect(user).not.toContain("Análisis estadístico");
     expect(user).not.toContain("Tu estilo de juego");
+    expect(user).not.toContain("Vs tu rango");
   });
 
   it("respects the language in the system prompt", () => {

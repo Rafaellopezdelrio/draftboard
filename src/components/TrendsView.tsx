@@ -236,12 +236,22 @@ export function TrendsView({ db, onClose, rankTier }: Props) {
             1
           )}, muertes/min ${profile.metrics.avgDeathsPerMin.toFixed(2)}.`
         : undefined;
+      const benchmarkSummary =
+        benchmarks && benchmarks.list.length > 0
+          ? `Rango ${bracketLabel(benchmarks.bracket)} (${benchmarks.role}): ${benchmarks.list
+              .map(
+                (b) =>
+                  `${b.label} ${fmtBench(b.key, b.value)} vs ${fmtBench(b.key, b.expected)} (${b.verdict})`
+              )
+              .join("; ")}.`
+          : undefined;
       const text = await aiTrendsAnalysis({
         provider: aiProvider,
         apiKey,
         matches: summary,
         leakSummary: leak ? summarizeLeakForAi(leak) : undefined,
         playstyleSummary,
+        benchmarkSummary,
         language: aiLang,
       });
       setAiText(text);

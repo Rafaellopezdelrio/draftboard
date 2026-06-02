@@ -48,9 +48,10 @@ Ratings are our own estimate (codebase vs known public competitor features),
   leak memory ✓ (`leakMemory.ts`), playstyle grounding ✓ (trends coach now gets
   your archetype + traits → advice fits HOW you play). Pure `buildTrendsPrompts`
   extracted + tested. Still TODO: voice coaching, multi-session synthesis report.
-- [x] Analytics rank benchmarks (5: 7.5→8.5): `rankBenchmarks.ts` — your CS/min,
+- [x] Analytics rank benchmarks (5: 7.5→9): `rankBenchmarks.ts` — your CS/min,
   vision/min, deaths/min, KDA vs an estimated baseline for your bracket+role
-  (from LCU rank). Shown in TrendsView as "vs tu rango (estimado)". Curated
+  (from LCU rank). Shown in TrendsView as "vs tu rango (estimado)" AND fed to the
+  AI trends coach so it prioritizes closing the metrics below your rank. Curated
   baselines, labeled as estimates — honest, not faked precision.
 
 **Phase 4 — data scale (hardest, partial)**
