@@ -19,6 +19,7 @@ import {
 import { PowerSpikesBars } from "./PowerSpikesBars";
 import { fetchOpggBuild, type OpggBuild } from "../services/opggBuilds";
 import { suggestInGameAdaptations, type InGameSuggestion } from "../engine/inGameAdapter";
+import { aramAdvice } from "../engine/aramEngine";
 import { useLiveGame } from "../hooks/useLiveGame";
 import { findMyPlayer } from "../services/liveClient";
 import { useToast } from "./ui/ToastContainer";
@@ -180,14 +181,22 @@ function BuildPanelInner({ db, championKey, role, enemyKeys = [] }: Props) {
         * advice may not apply on Howling Abyss. Cheap, honest UX cue
         * until the full ARAM engine ships. */}
       {isAram && (
-        <div className="rounded-md border border-accent/40 bg-accent/10 p-2 flex items-start gap-2 text-[11px]">
-          <span className="text-accent text-base leading-none">⚔</span>
-          <div className="flex-1">
-            <p className="text-accent font-semibold">Modo ARAM detectado</p>
-            <p className="text-white/65 leading-tight">
-              Build óptima abajo es de SoloQ. ARAM-specific recs llegarán en próximo update.
-            </p>
+        <div className="rounded-md border border-accent/40 bg-accent/10 p-2 text-[11px] space-y-1.5">
+          <div className="flex items-center gap-2">
+            <span className="text-accent text-base leading-none">⚔</span>
+            <p className="text-accent font-semibold">Consejo ARAM · {champ.name}</p>
           </div>
+          <ul className="space-y-1 pl-1">
+            {aramAdvice(champ).map((t, i) => (
+              <li key={i} className="text-white/75 leading-tight flex gap-1.5">
+                <span className="text-accent/70 shrink-0">•</span>
+                <span>{t}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="text-white/40 text-[10px] leading-tight">
+            Los items de abajo son de SoloQ — adapta hacia sustain/poke.
+          </p>
         </div>
       )}
 

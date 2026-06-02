@@ -44,6 +44,9 @@ Ratings are our own estimate (codebase vs known public competitor features),
 - [x] Draft win-prob calibration (1: 7→8): re-weighted meta/archetype/counter
   factors so a lopsided draft reads ~32–68% instead of always ~50%. Test locks it.
 - [ ] Build auto-import 1-click parity (3: 6→8).
+- [x] ARAM advisor (product gap): `aramEngine.ts` — Howling Abyss-specific advice
+  (poke/sustain/no-recall/anti-heal/tenacity by champion class) replaces the old
+  "ARAM recs coming" placeholder in BuildPanel. Most tools ignore ARAM; we don't.
 
 **Phase 3 — widen the moat (surpass)**
 - [~] AI best-in-class (6: 8→9): deeper grounding — leaks/vision ✓, persistent
