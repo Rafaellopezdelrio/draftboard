@@ -8,7 +8,27 @@ import { toast } from "./Toaster";
 import { voiceCoach } from "../services/voiceCoach";
 import { Panel, PanelHeader } from "./ui/Panel";
 import { RankBadge } from "./ui/RankBadge";
+import {
+  assessThreat,
+  summarizeEnemies,
+  type PlayerThreat,
+  type ThreatLevel,
+} from "../engine/scoutInsights";
 import { Eye, Flame, Snowflake, Crown, Target, AlertTriangle } from "lucide-react";
+
+// Threat level -> text/dot classes (literals so Tailwind JIT scans them).
+function threatStyle(level: ThreatLevel): { text: string; dot: string } {
+  switch (level) {
+    case "danger":
+      return { text: "text-bad", dot: "bg-bad" };
+    case "elevated":
+      return { text: "text-meh", dot: "bg-meh" };
+    case "weak":
+      return { text: "text-good", dot: "bg-good" };
+    default:
+      return { text: "text-white/55", dot: "bg-white/40" };
+  }
+}
 
 interface Props {
   db: ChampionDb;
@@ -98,6 +118,25 @@ function EnemyScoutPanelInner({
 
   const filledCount = enemySummonerIds.filter((s) => s > 0).length;
 
+  // Synthesize a threat read per loaded enemy (+ a team verdict). Reuses the
+  // data we already fetched — no extra API calls.
+  const threatBySid: Record<number, PlayerThreat> = {};
+  const threatList: PlayerThreat[] = [];
+  for (let i = 0; i < enemySummonerIds.length; i++) {
+    const sid = enemySummonerIds[i];
+    const r = scouts[sid];
+    if (sid <= 0 || !r || r === "loading" || r === "error") continue;
+    const cid = enemyChampionIds[i] ?? null;
+    const t = assessThreat({
+      scout: r,
+      pickedChampionId: cid,
+      championName: cid ? db.champions[String(cid)]?.name ?? null : null,
+    });
+    threatBySid[sid] = t;
+    threatList.push(t);
+  }
+  const summary = threatList.length > 0 ? summarizeEnemies(threatList) : null;
+
   return (
     <Panel padding="sm">
       <PanelHeader
@@ -109,6 +148,17 @@ function EnemyScoutPanelInner({
           </span>
         }
       />
+      {summary && (
+        <div
+          className={`mb-1.5 px-2 py-1 rounded text-[11px] font-medium ${
+            summary.dangerCount > 0
+              ? "bg-bad/10 text-bad border border-bad/30"
+              : "bg-good/10 text-good border border-good/30"
+          }`}
+        >
+          {summary.text}
+        </div>
+      )}
       <div className="space-y-1.5">
         {enemySummonerIds.map((sid, i) => {
           if (sid <= 0)
@@ -131,7 +181,15 @@ function EnemyScoutPanelInner({
                 Slot {i + 1}: sin datos
               </p>
             );
-          return <ScoutCard key={sid} db={db} r={r} highlightHot={notifyHot} />;
+          return (
+            <ScoutCard
+              key={sid}
+              db={db}
+              r={r}
+              threat={threatBySid[sid]}
+              highlightHot={notifyHot}
+            />
+          );
         })}
       </div>
     </Panel>
@@ -141,10 +199,12 @@ function EnemyScoutPanelInner({
 function ScoutCard({
   db,
   r,
+  threat,
   highlightHot,
 }: {
   db: ChampionDb;
   r: ScoutResult;
+  threat: PlayerThreat | undefined;
   highlightHot: boolean;
 }) {
   const main = r.mainChampionId ? db.champions[String(r.mainChampionId)] : null;
@@ -196,6 +256,17 @@ function ScoutCard({
           </p>
         </div>
       </div>
+
+      {threat && (
+        <div
+          className={`mt-1.5 flex items-start gap-1.5 text-[11px] ${threatStyle(threat.level).text}`}
+        >
+          <span
+            className={`mt-1 w-1.5 h-1.5 rounded-full shrink-0 ${threatStyle(threat.level).dot}`}
+          />
+          <span className="leading-snug">{threat.note}</span>
+        </div>
+      )}
 
       {pickedChamp && pm && (
         <div className="mt-1.5 flex items-center gap-1.5 text-[11px]">

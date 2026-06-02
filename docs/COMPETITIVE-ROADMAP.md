@@ -1,0 +1,60 @@
+# Competitive Roadmap — Mission: parity, then surpass
+
+Goal: reach **at least parity** with the best competitor in every sector, then
+progressively pass them. We don't out-scrape op.gg/U.GG (impossible solo) — we
+win on **AI + analysis + native LCU/live integration**, where we already lead
+or can lead.
+
+Ratings are our own estimate (codebase vs known public competitor features),
+1–10 vs the *best* rival in that sector.
+
+| # | Sector | Now | Rival (best) | Target | Status |
+|---|--------|:---:|--------------|:------:|--------|
+| 1 | Draft / champ-select (counters, suggestions, bans, win-prob, Draft AI Coach) | 7 | Mobalytics 8 | 8→9 | close |
+| 2 | Live in-game coaching | 6 | Porofessor 8 | 8 | logic done, overlay-gated |
+| 3 | Builds / runes (pro builds, item-adapt, LCU apply) | 6 | Blitz 9 | 8 | needs polish |
+| 4 | Post-game (matchAnalytics, GPI, AI match coach + memory) | 6 | Mobalytics 9 | 8 | expand GPI |
+| 5 | Personal analytics / trends / leaks | 7 | Mobalytics 8 | 9 | leak engine + vision/gold ✓ |
+| 6 | **AI coaching** (draft/trends/match/lesson/tips/chat+memory) | 8 | Blitz 5 | 9+ | **our moat** |
+| 7 | Meta / tier list / champion data | 4 | op.gg/U.GG 10 | 6 | data-scale; partial only |
+| 8 | Lobby / enemy scout pre-game | 5 | Porofessor 10 | 8 | data fetched, needs synthesis |
+| 9 | Overlay / in-game UX | 4 | Blitz/Porofessor 9 | 7 | hard-disabled (Win32 v2) |
+| 10 | Infra / data freshness (worker, scraper-cron, MCP, auto-update) | 5 | op.gg 9 | 7 | scale-bound |
+
+## Phases (ROI-ordered)
+
+**Phase 1 — land cheap wins + unlock built work**
+- [x] Scout synthesis (8: 5→7): Porofessor-style per-enemy threat + OTP/smurf/streak + team verdict, from data we already fetch. `scoutInsights.ts` → EnemyScoutPanel. Next: same for allies (carry potential) + team rank-delta.
+- [ ] Overlay v2 (9: 4→7): unlocks the live coaching already built. Needs a live-validation session (Win32 click-through/positioning).
+
+**Phase 2 — depth where we're close**
+- [ ] Post-game GPI expansion (4: 6→8): more dimensions, rank-relative benchmarks.
+- [ ] Draft polish + win-prob calibration (1: 7→8).
+- [ ] Build auto-import 1-click parity (3: 6→8).
+
+**Phase 3 — widen the moat (surpass)**
+- [ ] AI best-in-class (6: 8→9+): deeper grounding (leaks/vision feeding ✓), cross-game memory, voice.
+- [ ] Analytics best (5: 7→9): rank-relative benchmarks ("your vision/min vs your rank avg").
+
+**Phase 4 — data scale (hardest, partial)**
+- [ ] Meta pipeline depth (7,10: 4→6): more patches/regions via worker; never full op.gg parity.
+
+## Identity (read this before building anything)
+Parity means matching their **level of value in a sector, not copying their
+features**. We level up 1→2 like a *different character* — same power tier,
+different kit. Our kit:
+
+- **Synthesis over raw data** — they dump stats; we give the verdict + the
+  "now what" (e.g. scout shows rank/WR; we say "OTP, don't 1v1 early, ping jungle").
+- **AI coaching grounded in your data** — our moat, not a bolt-on.
+- **Native LCU / Live Client integration** — real-time, in your client.
+- **Local-first & private** — your data stays on your machine.
+- **ToS-safe always** — official APIs only (LCU, Live Client, Riot API). No
+  memory reads, no OCR, nothing bannable.
+
+So for every sector: don't ask "how do we copy op.gg" — ask "what's *our* way to
+hit their level here?" If a feature would just be a worse clone of theirs, find
+the version only we would ship.
+
+## Principle
+Fight on AI + analysis + integration, not on data scale.
