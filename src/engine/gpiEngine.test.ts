@@ -113,15 +113,25 @@ describe("computeGpi", () => {
     expect(s.categories.farming).toBe(50);
   });
 
-  it("CS-heavy game vs target gives high farming score", () => {
-    // Mid target = 7.5 CS/min. 30 min match. 7.5 * 30 = 225 CS = target.
+  it("CS-heavy game at the bracket target gives ~75 farming", () => {
+    // Emerald MID target = 7.5 CS/min. 30 min match. 7.5 * 30 = 225 CS = target.
     // Score formula: (cspm / target) * 75 → exactly 75 at target.
     const m = mkMatch([
       mkParticipant({ puuid: "me", position: "MIDDLE", cs: 225 }),
       mkParticipant({ puuid: "x" }),
     ]);
-    const s = computeGpi(m, "me")!;
+    const s = computeGpi(m, "me", "EMERALD")!;
     expect(s.categories.farming).toBe(75);
+  });
+
+  it("scores farming relative to rank — same CS reads lower at higher rank", () => {
+    const m = mkMatch([
+      mkParticipant({ puuid: "me", position: "MIDDLE", cs: 225 }),
+      mkParticipant({ puuid: "x" }),
+    ]);
+    const gold = computeGpi(m, "me", "GOLD")!.categories.farming;
+    const master = computeGpi(m, "me", "MASTER")!.categories.farming;
+    expect(gold).toBeGreaterThan(master);
   });
 
   it("kill participation drives aggression", () => {

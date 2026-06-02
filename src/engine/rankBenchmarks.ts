@@ -83,6 +83,15 @@ const BASELINES: Record<RankBracket, Record<Role, RoleBaseline>> = {
   },
 };
 
+/** The raw per-minute baseline for a bracket+role. Exported so the GPI engine
+ *  can score farming/vision against rank-appropriate targets. */
+export function baselineFor(
+  bracket: RankBracket,
+  role: Role
+): { cspm: number; vspm: number; dpm: number; kda: number } {
+  return BASELINES[bracket][role];
+}
+
 export type BenchmarkKey = "cspm" | "vspm" | "dpm" | "kda";
 export type BenchmarkVerdict = "above" | "at" | "below";
 

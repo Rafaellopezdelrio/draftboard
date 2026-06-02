@@ -97,14 +97,15 @@ export function CoachView({ db, onClose }: Props) {
       try {
         const cfg = await loadSettings();
         if (!cfg || !cfg.puuid) throw new Error("Configura primero tu Riot ID en ⚙");
-        const [full, timeline] = await Promise.all([
+        const [full, timeline, rank] = await Promise.all([
           getMatchFull(cfg, matchId),
           getMatchTimeline(cfg, matchId),
+          lcuRank().catch(() => null),
         ]);
         setMatchFull(full);
         setMatchTimeline(timeline);
         setInsights(analyzeMatch({ match: full, timeline, myPuuid: cfg.puuid }));
-        setGpi(computeGpi(full, cfg.puuid));
+        setGpi(computeGpi(full, cfg.puuid, rank?.tier ?? null));
       } catch (e) {
         setErr(String(e));
       } finally {

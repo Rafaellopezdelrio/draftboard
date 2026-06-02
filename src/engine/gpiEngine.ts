@@ -2,6 +2,13 @@ import type {
   MatchFull,
   MatchParticipant,
 } from "../services/riotApi";
+import type { Role } from "../types/champion";
+import { bracketForTier, baselineFor } from "./rankBenchmarks";
+
+const ROLES = new Set<Role>(["TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY"]);
+function asRole(p: string): Role {
+  return ROLES.has(p as Role) ? (p as Role) : "MIDDLE";
+}
 
 export type GpiCategory =
   | "farming"
@@ -17,33 +24,22 @@ export interface GpiScore {
   matchId: string;
 }
 
-const CSPM_TARGETS: Record<string, number> = {
-  TOP: 7,
-  JUNGLE: 5.5,
-  MIDDLE: 7.5,
-  BOTTOM: 8,
-  UTILITY: 1.5,
-};
-
-const VSPM_TARGETS: Record<string, number> = {
-  TOP: 0.7,
-  JUNGLE: 0.9,
-  MIDDLE: 0.8,
-  BOTTOM: 0.7,
-  UTILITY: 1.6,
-};
-
 export function computeGpi(
   match: MatchFull,
-  myPuuid: string
+  myPuuid: string,
+  rankTier?: string | null
 ): GpiScore | null {
   const me = match.participants.find((p) => p.puuid === myPuuid);
   if (!me) return null;
   const team = match.participants.filter((p) => p.teamId === me.teamId);
   const minutes = match.durationSec / 60;
+  // Score farming/vision against the baseline for the player's rank bracket
+  // (defaults to the median bracket when rank is unknown) — a Gold CS/min that
+  // is "good" reads differently than the same number in Master.
+  const bracket = bracketForTier(rankTier);
 
-  const farming = scoreFarming(me, minutes);
-  const vision = scoreVision(me, minutes);
+  const farming = scoreFarming(me, minutes, bracket);
+  const vision = scoreVision(me, minutes, bracket);
   const aggression = scoreAggression(me, team);
   const survivability = scoreSurvivability(me, minutes);
   const objectives = scoreObjectives(me, team);
@@ -71,15 +67,23 @@ export function computeGpi(
   };
 }
 
-function scoreFarming(me: MatchParticipant, minutes: number): number {
+function scoreFarming(
+  me: MatchParticipant,
+  minutes: number,
+  bracket: Parameters<typeof baselineFor>[0]
+): number {
   if (me.position === "UTILITY") return 50; // not relevant
-  const target = CSPM_TARGETS[me.position] ?? 6;
+  const target = baselineFor(bracket, asRole(me.position)).cspm;
   const cspm = me.cs / minutes;
   return (cspm / target) * 75;
 }
 
-function scoreVision(me: MatchParticipant, minutes: number): number {
-  const target = VSPM_TARGETS[me.position] ?? 0.8;
+function scoreVision(
+  me: MatchParticipant,
+  minutes: number,
+  bracket: Parameters<typeof baselineFor>[0]
+): number {
+  const target = baselineFor(bracket, asRole(me.position)).vspm;
   const vspm = me.visionScore / minutes;
   return (vspm / target) * 75;
 }
