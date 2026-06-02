@@ -3,10 +3,11 @@
 // "smurf?" flag for accounts that look fresh. Replaces a manual lookup
 // in Porofessor: you see immediately who's reliable on your team.
 
-import { memo, useEffect, useState } from "react";
-import { Shield, Users } from "lucide-react";
+import { memo, useEffect, useState, type ReactNode } from "react";
+import { Shield, Users, Star, ShieldAlert, Swords } from "lucide-react";
 import { Panel } from "./ui/Panel";
 import { scoutTeam, type ScoutedPlayer } from "../services/lobbyScout";
+import { readLobby } from "../engine/lobbyInsights";
 import type { LcuChampSelectSession, LcuPlayer } from "../services/lcuService";
 import type { ChampionDb } from "../types/champion";
 
@@ -66,6 +67,13 @@ function LobbyScoutPanelInner({ session, db }: Props) {
     ) : null;
   }
 
+  const read = readLobby(
+    myTeam.filter((p): p is ScoutedPlayer => Boolean(p)),
+    theirTeam.filter((p): p is ScoutedPlayer => Boolean(p))
+  );
+  const hasRead =
+    read.carry || read.liability || read.topThreat || read.balance;
+
   return (
     <Panel padding="sm">
       <div className="flex items-center gap-2 mb-2">
@@ -74,6 +82,40 @@ function LobbyScoutPanelInner({ session, db }: Props) {
           Lobby scout
         </p>
       </div>
+
+      {hasRead && (
+        <div className="mb-2 space-y-1">
+          {read.carry && (
+            <Callout
+              icon={<Star className="w-3 h-3 text-good shrink-0" />}
+              name={read.carry.name}
+              reason={read.carry.reason}
+              nameClass="text-good"
+            />
+          )}
+          {read.liability && (
+            <Callout
+              icon={<ShieldAlert className="w-3 h-3 text-meh shrink-0" />}
+              name={read.liability.name}
+              reason={read.liability.reason}
+              nameClass="text-meh"
+            />
+          )}
+          {read.topThreat && (
+            <Callout
+              icon={<Swords className="w-3 h-3 text-bad shrink-0" />}
+              name={read.topThreat.name}
+              reason={read.topThreat.reason}
+              nameClass="text-bad"
+            />
+          )}
+          {read.balance && (
+            <p className="text-[11px] text-white/70 leading-snug pl-[18px]">
+              {read.balance.text}
+            </p>
+          )}
+        </div>
+      )}
 
       <TeamColumn label="Tu equipo" team={myTeam} db={db} colorClass="text-blue-300" />
       {theirTeam.some((p) => p) && (
@@ -87,6 +129,28 @@ function LobbyScoutPanelInner({ session, db }: Props) {
         </div>
       )}
     </Panel>
+  );
+}
+
+function Callout({
+  icon,
+  name,
+  reason,
+  nameClass,
+}: {
+  icon: ReactNode;
+  name: string;
+  reason: string;
+  nameClass: string;
+}) {
+  return (
+    <div className="flex items-start gap-1.5 text-[11px] leading-snug">
+      <span className="mt-0.5">{icon}</span>
+      <span className="min-w-0">
+        <span className={`font-semibold ${nameClass}`}>{name}</span>
+        <span className="text-white/60"> — {reason}</span>
+      </span>
+    </div>
   );
 }
 

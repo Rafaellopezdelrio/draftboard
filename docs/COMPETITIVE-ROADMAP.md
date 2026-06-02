@@ -24,7 +24,7 @@ Ratings are our own estimate (codebase vs known public competitor features),
 ## Phases (ROI-ordered)
 
 **Phase 1 — land cheap wins + unlock built work**
-- [x] Scout synthesis (8: 5→7): Porofessor-style per-enemy threat + OTP/smurf/streak + team verdict, from data we already fetch. `scoutInsights.ts` → EnemyScoutPanel. Next: same for allies (carry potential) + team rank-delta.
+- [x] Scout synthesis (8: 5→7.5): Porofessor-style verdicts from data we already fetch. Enemies → `scoutInsights.ts` (per-enemy threat + OTP/smurf/streak + team summary) in EnemyScoutPanel. Allies/lobby → `lobbyInsights.ts` (carry to play around, liability to cover, top enemy threat, team rank balance) in LobbyScoutPanel.
 - [ ] Overlay v2 (9: 4→7): unlocks the live coaching already built. Needs a live-validation session (Win32 click-through/positioning).
 
 **Phase 2 — depth where we're close**
