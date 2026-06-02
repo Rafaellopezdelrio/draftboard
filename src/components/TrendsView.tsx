@@ -121,7 +121,6 @@ export function TrendsView({ db, onClose }: Props) {
           win: m.win,
           kda: `${m.kills}/${m.deaths}/${m.assists}`,
           cspm: m.cs / (m.durationSec / 60),
-          visionScore: 0,
           durationMin: m.durationSec / 60,
           queueId: m.queueId,
         };

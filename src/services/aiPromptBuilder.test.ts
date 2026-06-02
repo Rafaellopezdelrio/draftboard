@@ -27,7 +27,7 @@ function mkAnalytics(overrides: Partial<ProMatchAnalytics> = {}): ProMatchAnalyt
     damagePerGold: 1.5, damagePerDeath: 3000, killParticipation: 0.5,
     damageShare: 0.27, damageTakenShare: 0.2,
     firstItemTime: 600000, itemsPurchasedCount: 15, hadStopwatch: true, hadQss: false,
-    longestDeathStreak: 2, longestKillStreak: 3, recallsBeforeDeath: 1,
+    longestDeathStreak: 2, longestKillStreak: 3,
     myChampionId: 238, myChampionName: "Zed",
     laneOpponentChampionId: 90, laneOpponentChampionName: "Malzahar",
     position: "MIDDLE",

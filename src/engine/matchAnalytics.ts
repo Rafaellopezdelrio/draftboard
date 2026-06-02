@@ -72,7 +72,6 @@ export interface ProMatchAnalytics {
   // Gameplay flow
   longestDeathStreak: number;
   longestKillStreak: number;
-  recallsBeforeDeath: number;
 
   // Champion identification
   myChampionId: number;
@@ -171,8 +170,6 @@ export function buildProAnalytics(
   let curDeathStreak = 0;
   let longestKillStreak = 0;
   let curKillStreak = 0;
-  let lastEventBeforeDeath: "kill" | "death" | "recall" | null = null;
-  let recallsBeforeDeath = 0;
 
   const objectiveTrades: ObjectiveTrade[] = [];
 
@@ -211,15 +208,11 @@ export function buildProAnalytics(
             curDeathStreak++;
             longestDeathStreak = Math.max(longestDeathStreak, curDeathStreak);
             curKillStreak = 0;
-            // recallsBeforeDeath is computed elsewhere (timeline lacks explicit recall events).
-            void lastEventBeforeDeath;
-            lastEventBeforeDeath = "death";
           } else if (e.killerId === myPid) {
             if (t < 10) killsBy10++;
             curKillStreak++;
             longestKillStreak = Math.max(longestKillStreak, curKillStreak);
             curDeathStreak = 0;
-            lastEventBeforeDeath = "kill";
           }
           break;
         }
@@ -362,7 +355,6 @@ export function buildProAnalytics(
 
     longestDeathStreak,
     longestKillStreak,
-    recallsBeforeDeath,
 
     myChampionId: me.championId,
     myChampionName: championNamesById.get(me.championId) ?? `#${me.championId}`,

@@ -38,7 +38,6 @@ export interface AiTrendsInput {
     win: boolean;
     kda: string;
     cspm: number;
-    visionScore: number;
     durationMin: number;
     queueId: number;
   }>;
@@ -119,7 +118,7 @@ export async function aiTrendsAnalysis(input: AiTrendsInput): Promise<string> {
   const lines = input.matches
     .map(
       (m) =>
-        `- ${m.championName} ${m.position}: ${m.win ? "W" : "L"} ${m.kda} | ${m.cspm.toFixed(1)} CS/m | VS ${m.visionScore} | ${m.durationMin.toFixed(0)}min`
+        `- ${m.championName} ${m.position}: ${m.win ? "W" : "L"} ${m.kda} | ${m.cspm.toFixed(1)} CS/m | ${m.durationMin.toFixed(0)}min`
     )
     .join("\n");
 
