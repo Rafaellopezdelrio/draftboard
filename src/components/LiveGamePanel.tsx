@@ -16,6 +16,7 @@ import { useLiveGame, useLiveGameTime } from "../hooks/useLiveGame";
 import {
   findMyPlayer,
   attributeObjectives,
+  liveChampionKey,
   type LiveGameEvent,
 } from "../services/liveClient";
 import { displayGameMode } from "../data/gameModeNames";
@@ -165,11 +166,12 @@ export function LiveGamePanel({ db }: LiveGamePanelProps = {}) {
   // grievous wounds, anti-armor, anti-MR, anti-crit recs as enemies
   // itemise. Returns [] before MIN_GAME_TIME so we don't suggest Mortal
   // Reminder during minute 2 based on starting Doran's.
-  const myChamp = myRecord && db
-    ? Object.values(db.champions).find(
-        (c) => c.id === myRecord.rawChampionName || c.id === myRecord.championName
-      )
-    : null;
+  // Resolve via liveChampionKey (rawChampionName suffix === DDragon id) — a
+  // plain `c.id === rawChampionName` never matches ("game_character_..." vs
+  // "Ahri") and display-name matching breaks for off-name champs (Wukong's id
+  // is MonkeyKing), so the item-counter suggestions silently never fired.
+  const myChampKey = myRecord && db ? liveChampionKey(db, myRecord) : null;
+  const myChamp = myChampKey && db ? db.champions[myChampKey] : null;
   const enemyPlayers = snapshot.allPlayers.filter((p) => p.team !== myTeamColor);
   const inGameSuggestions = myChamp
     ? suggestInGameAdaptations({
