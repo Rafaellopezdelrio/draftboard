@@ -10,7 +10,7 @@
 // adapter based on enemy items, etc).
 
 import { useEffect, useMemo } from "react";
-import { Activity, Crown, Sparkles, Timer, Shield } from "lucide-react";
+import { Activity, Crown, Sparkles, Timer, Shield, Zap } from "lucide-react";
 import { Panel } from "./ui/Panel";
 import { useLiveGame, useLiveGameTime } from "../hooks/useLiveGame";
 import { findMyPlayer, type LiveGameEvent } from "../services/liveClient";
@@ -18,7 +18,22 @@ import { displayGameMode } from "../data/gameModeNames";
 import { setOverlayVisible } from "../services/overlay";
 import { usePrefsStore } from "../state/prefsStore";
 import { suggestInGameAdaptations } from "../engine/inGameAdapter";
+import { coachLiveGame, type LiveCoachSeverity } from "../engine/liveCoachEngine";
 import type { ChampionDb } from "../types/champion";
+
+// Severity -> tailwind classes for the live coach rows (literals so JIT scans).
+function coachSevClass(sev: LiveCoachSeverity): string {
+  switch (sev) {
+    case "critical":
+      return "bg-bad/10 border border-bad/40 text-bad";
+    case "warn":
+      return "bg-meh/10 border border-meh/40 text-meh";
+    case "good":
+      return "bg-good/10 border border-good/40 text-good";
+    default:
+      return "bg-bg-card border border-border-subtle text-white/80";
+  }
+}
 
 // Riot's respawn timers (seconds after kill). Values match the live game
 // timers shown on the in-game minimap, sourced from Riot's published patch
@@ -167,6 +182,21 @@ export function LiveGamePanel({ db }: LiveGamePanelProps = {}) {
       })
     : [];
 
+  // Live coaching — laning state, death discipline, objective prep, resets.
+  // Derived purely from the official Live Client snapshot (ToS-safe).
+  const laneOpponent =
+    enemyPlayers.find(
+      (p) => myRecord?.position && p.position === myRecord.position
+    ) ?? null;
+  const liveCoach = coachLiveGame({
+    me: myRecord,
+    laneOpponent,
+    gameTime,
+    nextDragonAt: timers?.nextDragonAt ?? null,
+    nextBaronAt: timers?.nextBaronAt ?? null,
+    currentGold: me?.currentGold ?? 0,
+  });
+
   return (
     <Panel padding="sm">
       <div className="flex items-center justify-between mb-2">
@@ -207,6 +237,26 @@ export function LiveGamePanel({ db }: LiveGamePanelProps = {}) {
             <Stat label="Gold" value={me.currentGold.toFixed(0)} />
             <Stat label="Lvl" value={String(me.level)} />
           </div>
+        </div>
+      )}
+
+      {/* Live coach — laning / deaths / objective / reset prompts */}
+      {liveCoach.length > 0 && (
+        <div className="border-t border-white/5 pt-2 mb-2 space-y-1">
+          <div className="flex items-center gap-1.5 mb-1">
+            <Zap className="w-3 h-3 text-accent" />
+            <p className="text-[10px] uppercase tracking-widest text-accent font-semibold">
+              Coach en vivo
+            </p>
+          </div>
+          {liveCoach.map((c) => (
+            <div
+              key={c.key}
+              className={`p-1.5 rounded text-[11px] leading-snug ${coachSevClass(c.severity)}`}
+            >
+              {c.text}
+            </div>
+          ))}
         </div>
       )}
 
