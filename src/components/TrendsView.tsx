@@ -5,6 +5,7 @@ import {
   detectWeakestArea,
 } from "../engine/trendsEngine";
 import { analyzeLeaks, summarizeLeakForAi } from "../engine/leakEngine";
+import { recordLeak } from "../services/leakMemory";
 import type { ChampionDb, Role } from "../types/champion";
 import { usePrefsStore } from "../state/prefsStore";
 import { aiTrendsAnalysis } from "../services/aiCoach";
@@ -80,6 +81,22 @@ export function TrendsView({ db, onClose }: Props) {
   // whole filtered sample. Supersedes the single-threshold `weakest` box when
   // there are enough games on both sides.
   const leak = useMemo(() => analyzeLeaks(filtered), [filtered]);
+  // Persist the current #1 leak to AI memory (so the coach references it across
+  // sessions) and surface a note when it has shifted since last time.
+  const [leakProgress, setLeakProgress] = useState<string | null>(null);
+  useEffect(() => {
+    if (!leak) {
+      setLeakProgress(null);
+      return;
+    }
+    let cancelled = false;
+    recordLeak(leak).then((p) => {
+      if (!cancelled) setLeakProgress(p);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [leak]);
 
   // Rolling window series for the SparkLine charts. Chronological
   // (oldest -> newest), so the line reads left-to-right naturally.
@@ -189,6 +206,9 @@ export function TrendsView({ db, onClose }: Props) {
               Patrón cruzado · victorias vs derrotas
             </p>
             <p className="font-medium text-white mt-1">{leak.headline}</p>
+            {leakProgress && (
+              <p className="text-[11px] text-good mt-1">📈 {leakProgress}</p>
+            )}
             {!leak.macro && (
               <p className="text-sm text-white/80 mt-1">{leak.topLeak.advice}</p>
             )}
