@@ -31,7 +31,8 @@ Ratings are our own estimate (codebase vs known public competitor features),
 - [~] Post-game GPI expansion (4: 6→7): `scoreObjectives` now uses real objective
   damage share (was a fake re-use of kills+assists). Still TODO: rank-relative
   benchmarks, a laning-phase dimension.
-- [ ] Draft polish + win-prob calibration (1: 7→8).
+- [x] Draft win-prob calibration (1: 7→8): re-weighted meta/archetype/counter
+  factors so a lopsided draft reads ~32–68% instead of always ~50%. Test locks it.
 - [ ] Build auto-import 1-click parity (3: 6→8).
 
 **Phase 3 — widen the moat (surpass)**

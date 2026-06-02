@@ -35,7 +35,10 @@ export function predictDraftWinrate({
   const enemyMeta = avgMetaWinrate(db, enemyKeys);
   if (allyMeta > 0 && enemyMeta > 0) {
     const diff = allyMeta - enemyMeta;
-    score += diff * 0.5;
+    // Calibration: draft is a real but bounded factor (player skill dominates),
+    // so the combined swing across all factors targets ~±0.18 → a 32–68% range
+    // for lopsided drafts instead of the old mushy ~45–55% that always read 50%.
+    score += diff * 0.8;
     if (diff > 0.02) reasons.push("Tienes mejor meta tier");
     else if (diff < -0.02) reasons.push("Equipo enemigo más meta");
   }
@@ -43,7 +46,7 @@ export function predictDraftWinrate({
   // Archetype completeness
   const allyMissing = detectMissingArchetypes(db, allyKeys);
   const enemyMissing = detectMissingArchetypes(db, enemyKeys);
-  const archetypeDelta = (enemyMissing.size - allyMissing.size) * 0.03;
+  const archetypeDelta = (enemyMissing.size - allyMissing.size) * 0.04;
   score += archetypeDelta;
   if (allyMissing.size === 0 && enemyMissing.size > 0) {
     reasons.push("Tu comp está completa, la enemiga no");
@@ -55,10 +58,10 @@ export function predictDraftWinrate({
   const counterScore = avgCounterScore(counters, allyKeys, enemyKeys);
   if (counterScore > 0.5) {
     reasons.push("Buenos matchups");
-    score += (counterScore - 0.5) * 0.3;
+    score += (counterScore - 0.5) * 0.6;
   } else if (counterScore < 0.5 && counterScore > 0) {
     reasons.push("Matchups desfavorables");
-    score += (counterScore - 0.5) * 0.3;
+    score += (counterScore - 0.5) * 0.6;
   }
 
   return { winrate: clamp01(score), reasons };

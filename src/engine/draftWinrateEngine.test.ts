@@ -115,6 +115,30 @@ describe("predictDraftWinrate", () => {
     expect(p.winrate).toBeGreaterThan(0.5);
   });
 
+  it("calibration: a lopsided draft moves out of the ~50% mush", () => {
+    const favored = predictDraftWinrate({
+      db: mkDb({
+        champs: [ch("1", "A"), ch("2", "B")],
+        meta: [meta("1", "MIDDLE", 0.56), meta("2", "MIDDLE", 0.46)],
+        counters: [counter("1", "2", "MIDDLE", 0.62)],
+      }),
+      allyKeys: ["1"],
+      enemyKeys: ["2"],
+    });
+    expect(favored.winrate).toBeGreaterThan(0.6);
+
+    const losing = predictDraftWinrate({
+      db: mkDb({
+        champs: [ch("1", "A"), ch("2", "B")],
+        meta: [meta("1", "MIDDLE", 0.46), meta("2", "MIDDLE", 0.56)],
+        counters: [counter("1", "2", "MIDDLE", 0.38)],
+      }),
+      allyKeys: ["1"],
+      enemyKeys: ["2"],
+    });
+    expect(losing.winrate).toBeLessThan(0.4);
+  });
+
   it("ignores meta entries for champions not in roles list", () => {
     // Champion has only TOP role, but meta has him in MIDDLE — should NOT count
     const db = mkDb({
