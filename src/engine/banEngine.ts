@@ -7,11 +7,21 @@ export interface BanSuggestion {
   iconUrl: string;
   reason: string;
   severity: "high" | "medium" | "low";
-  source: "personal" | "global" | "blend";
+  source: "personal" | "global" | "blend" | "scout";
   personalGames?: number;
   personalWinRate?: number;
   globalWinRate?: number;
 }
+
+/** A high-mastery champion a specific enemy is likely to play (from scouting
+ *  the lobby) — a prime ban target to deny their comfort pick. */
+export interface EnemyMain {
+  championId: number;
+  points: number;
+  summonerName?: string;
+}
+
+const MAIN_MIN_POINTS = 80_000; // below this it's not really a "main"
 
 interface SuggestArgs {
   db: ChampionDb;
@@ -19,6 +29,8 @@ interface SuggestArgs {
   matchups: PersonalMatchupStat[]; // your worst matchups in this role
   bannedKeys: string[];
   pickedKeys: string[]; // already picked / locked, can't ban
+  /** High-mastery enemy mains (from lobby scout) — deny their comfort pick. */
+  enemyMains?: EnemyMain[];
   limit?: number;
 }
 
@@ -28,11 +40,31 @@ export function suggestBans({
   matchups,
   bannedKeys,
   pickedKeys,
+  enemyMains = [],
   limit = 5,
 }: SuggestArgs): BanSuggestion[] {
   const taken = new Set([...bannedKeys, ...pickedKeys]);
 
   const suggestions: BanSuggestion[] = [];
+
+  // 0. Enemy comfort picks — deny a high-mastery main a scouted enemy is
+  // likely to play. Strongest signal when it lands, so it leads.
+  for (const m of [...enemyMains].sort((a, b) => b.points - a.points)) {
+    if (m.points < MAIN_MIN_POINTS) continue;
+    const key = String(m.championId);
+    if (taken.has(key)) continue;
+    if (suggestions.some((s) => s.championKey === key)) continue;
+    const champ = db.champions[key];
+    if (!champ) continue;
+    suggestions.push({
+      championKey: key,
+      championName: champ.name,
+      iconUrl: champ.iconUrl,
+      reason: `Main enemigo${m.summonerName ? ` (${m.summonerName})` : ""}: ${Math.round(m.points / 1000)}k maestría`,
+      severity: m.points > 300_000 ? "high" : m.points > 150_000 ? "medium" : "low",
+      source: "scout",
+    });
+  }
 
   // 1. Personal nightmares — your worst matchups
   for (const m of matchups) {

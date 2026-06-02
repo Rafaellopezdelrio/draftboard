@@ -688,6 +688,7 @@ function App() {
                 role={myRole}
                 bannedKeys={bans.ally.concat(bans.enemy)}
                 pickedKeys={[...allyKeys, ...enemyKeys]}
+                enemySummonerIds={enemySummonerIds}
               />
             </PanelBoundary>
           </div>

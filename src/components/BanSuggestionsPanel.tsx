@@ -5,6 +5,7 @@ import {
   type PersonalMatchupStat,
 } from "../services/matchRepo";
 import { suggestBans, type BanSuggestion } from "../engine/banEngine";
+import { useEnemyMains } from "../hooks/useEnemyMains";
 import { Panel, PanelHeader } from "./ui/Panel";
 import { Ban } from "lucide-react";
 
@@ -13,6 +14,8 @@ interface Props {
   role: Role | null;
   bannedKeys: string[];
   pickedKeys: string[];
+  /** Enemy summoner ids (lobby cells) → used to scout their comfort mains. */
+  enemySummonerIds?: number[];
 }
 
 export function BanSuggestionsPanel({
@@ -20,8 +23,10 @@ export function BanSuggestionsPanel({
   role,
   bannedKeys,
   pickedKeys,
+  enemySummonerIds = [],
 }: Props) {
   const [matchups, setMatchups] = useState<PersonalMatchupStat[]>([]);
+  const enemyMains = useEnemyMains(enemySummonerIds);
 
   useEffect(() => {
     if (!role) {
@@ -48,6 +53,7 @@ export function BanSuggestionsPanel({
     matchups,
     bannedKeys,
     pickedKeys,
+    enemyMains,
     limit: 5,
   });
 
@@ -83,6 +89,7 @@ function BanCard({ s }: { s: BanSuggestion }) {
     personal: "bg-bad/15 text-bad ring-bad/30",
     global: "bg-meh/15 text-meh ring-meh/30",
     blend: "bg-accent/15 text-accent ring-accent/30",
+    scout: "bg-bad/15 text-bad ring-bad/30",
   };
   // Severity → letter badge so the user sees the threat tier at a glance
   // alongside the source. High = critical ban target, Low = nice-to-have.
@@ -99,7 +106,9 @@ function BanCard({ s }: { s: BanSuggestion }) {
       ? `Personal: ${s.reason}. Banearlo elimina tu peor matchup directo.`
       : s.source === "global"
         ? `Meta: ${s.reason}. Threat alto que ningún jugador quiere enfrentar.`
-        : `Combinado: ${s.reason}. Threat global + dolor personal.`;
+        : s.source === "scout"
+          ? `Scout: ${s.reason}. Niega el pick cómodo del rival.`
+          : `Combinado: ${s.reason}. Threat global + dolor personal.`;
   return (
     <div
       className={`flex items-center gap-2 p-2 rounded ring-1 ${colors[s.severity]}`}
@@ -126,7 +135,7 @@ function BanCard({ s }: { s: BanSuggestion }) {
       <span
         className={`text-[9px] uppercase tracking-widest font-bold px-1.5 py-0.5 rounded ring-1 ${tagColors[s.source]}`}
       >
-        {s.source === "personal" ? "tú" : "meta"}
+        {s.source === "personal" ? "tú" : s.source === "scout" ? "rival" : "meta"}
       </span>
     </div>
   );

@@ -24,7 +24,7 @@ Ratings are our own estimate (codebase vs known public competitor features),
 ## Phases (ROI-ordered)
 
 **Phase 1 — land cheap wins + unlock built work**
-- [x] Scout synthesis (8: 5→8): Porofessor-style verdicts from data we already fetch. Enemies → `scoutInsights.ts` (per-enemy threat + OTP/smurf/streak + team summary) in EnemyScoutPanel. Allies/lobby → `lobbyInsights.ts` (carry to play around, liability to cover, top enemy threat, team rank balance) in LobbyScoutPanel. Danger-level enemies are also spoken aloud at champ select (voiceCoach).
+- [x] Scout synthesis (8: 5→9): Porofessor-style verdicts from data we already fetch. Enemies → `scoutInsights.ts` (per-enemy threat + OTP/smurf/streak + team summary) in EnemyScoutPanel. Allies/lobby → `lobbyInsights.ts` (carry to play around, liability to cover, top enemy threat, team rank balance) in LobbyScoutPanel. Danger-level enemies are spoken aloud at champ select (voiceCoach). Scout→bans: `useEnemyMains` feeds each enemy's #1 mastery champ into banEngine so it suggests denying their comfort pick.
 - [~] Live coach delivery (2: 6→7): voice coaching landed — critical live insights
   (soul-deny, heavy deaths) are spoken aloud hands-free, so the value lands even
   without a visual overlay. `LiveVoice` in LiveGamePanel, reuses voiceCoach.

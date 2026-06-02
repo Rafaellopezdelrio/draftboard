@@ -125,6 +125,45 @@ describe("suggestBans", () => {
     expect(result.length).toBe(0);
   });
 
+  it("suggests banning a high-mastery enemy main (scout source)", () => {
+    const result = suggestBans({
+      db,
+      role: "MIDDLE",
+      matchups: [],
+      bannedKeys: [],
+      pickedKeys: [],
+      enemyMains: [{ championId: 2, points: 350_000, summonerName: "Faker" }],
+    });
+    const hit = result.find((s) => s.championKey === "2");
+    expect(hit?.source).toBe("scout");
+    expect(hit?.severity).toBe("high");
+    expect(hit?.reason).toMatch(/Faker/);
+  });
+
+  it("ignores low-mastery enemy picks (not a real main)", () => {
+    const result = suggestBans({
+      db,
+      role: "MIDDLE",
+      matchups: [],
+      bannedKeys: [],
+      pickedKeys: [],
+      enemyMains: [{ championId: 1, points: 40_000 }],
+    });
+    expect(result.find((s) => s.championKey === "1")).toBeUndefined();
+  });
+
+  it("does not suggest an enemy main that's already banned", () => {
+    const result = suggestBans({
+      db,
+      role: "MIDDLE",
+      matchups: [],
+      bannedKeys: ["2"],
+      pickedKeys: [],
+      enemyMains: [{ championId: 2, points: 350_000 }],
+    });
+    expect(result.find((s) => s.championKey === "2")).toBeUndefined();
+  });
+
   it("severity escalates with worse personal WR", () => {
     const result = suggestBans({
       db: {
