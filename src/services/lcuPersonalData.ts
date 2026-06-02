@@ -44,6 +44,8 @@ interface LcuMatchHistoryResponse {
           assists: number;
           totalMinionsKilled: number;
           neutralMinionsKilled: number;
+          visionScore?: number;
+          goldEarned?: number;
           // Newer fields, sometimes present
           teamPosition?: string;
           individualPosition?: string;
@@ -136,6 +138,8 @@ export async function lcuRecentMatches(
       queueId: g.queueId,
       position: myPosition,
       opponentChampionId: opponent?.championId ?? 0,
+      visionScore: me.stats.visionScore ?? null,
+      goldEarned: me.stats.goldEarned ?? null,
     });
   }
   return out;

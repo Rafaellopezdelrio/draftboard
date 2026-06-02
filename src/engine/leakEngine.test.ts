@@ -64,6 +64,21 @@ describe("analyzeLeaks", () => {
     expect(keys).not.toContain("cspm");
     expect(keys).not.toContain("kp");
   });
+
+  it("skips vision/gold when the rows carry no such data (pre-010 matches)", () => {
+    const r = analyzeLeaks([...winsLowDeaths, ...lossesHighDeaths]);
+    const keys = r!.leaks.map((l) => l.key);
+    expect(keys).not.toContain("vision");
+    expect(keys).not.toContain("gold");
+  });
+
+  it("ranks a vision deficit as the #1 leak once vision data exists", () => {
+    const wins = [35, 40, 45, 40, 40].map((v) => m({ visionScore: v, win: true }));
+    const losses = [12, 15, 18, 15, 15].map((v) => m({ visionScore: v, win: false }));
+    const r = analyzeLeaks([...wins, ...losses]);
+    expect(r!.topLeak.key).toBe("vision");
+    expect(r!.topLeak.lossAvg).toBeLessThan(r!.topLeak.winAvg);
+  });
 });
 
 describe("summarizeLeakForAi", () => {

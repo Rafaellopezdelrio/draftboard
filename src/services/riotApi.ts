@@ -59,6 +59,10 @@ export interface MatchSummary {
   queueId: number;
   position: string;
   opponentChampionId: number;
+  /** Vision score + total gold. Optional/null because rows synced before the
+   *  010 migration lack them; the leak engine skips null rather than reading 0. */
+  visionScore?: number | null;
+  goldEarned?: number | null;
 }
 
 class RateLimiter {
@@ -491,6 +495,8 @@ export async function getMatch(
     queueId: m.queueId,
     position: me.position,
     opponentChampionId: opponent?.championId ?? 0,
+    visionScore: me.visionScore,
+    goldEarned: me.goldEarned,
   };
 }
 

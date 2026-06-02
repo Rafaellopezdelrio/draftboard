@@ -21,8 +21,8 @@ export async function saveMatch(m: MatchSummary): Promise<void> {
   const db = await getDb();
   await db.execute(
     `INSERT OR REPLACE INTO matches
-     (match_id, champion_id, win, kills, deaths, assists, cs, duration_sec, end_ts_ms, queue_id, position, opponent_champion_id)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+     (match_id, champion_id, win, kills, deaths, assists, cs, duration_sec, end_ts_ms, queue_id, position, opponent_champion_id, vision_score, gold_earned)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
     [
       m.matchId,
       m.championId,
@@ -36,6 +36,8 @@ export async function saveMatch(m: MatchSummary): Promise<void> {
       m.queueId,
       m.position,
       m.opponentChampionId,
+      m.visionScore ?? null,
+      m.goldEarned ?? null,
     ]
   );
 }
@@ -74,6 +76,8 @@ export async function recentMatches(
       queue_id: number;
       position: string;
       opponent_champion_id: number | null;
+      vision_score: number | null;
+      gold_earned: number | null;
     }>
   >(sql, params);
   return rows.map((r) => ({
@@ -89,6 +93,8 @@ export async function recentMatches(
     queueId: r.queue_id,
     position: r.position,
     opponentChampionId: r.opponent_champion_id ?? 0,
+    visionScore: r.vision_score ?? null,
+    goldEarned: r.gold_earned ?? null,
   }));
 }
 

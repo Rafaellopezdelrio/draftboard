@@ -11,7 +11,7 @@
 
 import type { MatchRow } from "../services/matchRepo";
 
-export type LeakKey = "deaths" | "kda" | "cspm" | "kp";
+export type LeakKey = "deaths" | "kda" | "cspm" | "kp" | "vision" | "gold";
 
 export interface Leak {
   key: LeakKey;
@@ -95,6 +95,31 @@ const METRICS: MetricDef[] = [
     format: (v) => `${v.toFixed(2)}/min`,
     advice:
       "Acércate a objetivos y rotaciones — en tus derrotas juegas aislado del equipo.",
+  },
+  {
+    key: "vision",
+    label: "Visión (score/min)",
+    higherIsBetter: true,
+    // Nullable: pre-010 rows have no vision data -> skipped, never read as 0.
+    value: (m) =>
+      m.visionScore == null
+        ? null
+        : m.visionScore / Math.max(1, m.durationSec / 60),
+    format: (v) => `${v.toFixed(2)}/min`,
+    advice:
+      "Compra control wards, wardea antes de objetivos y limpia la visión enemiga.",
+  },
+  {
+    key: "gold",
+    label: "Oro/min",
+    higherIsBetter: true,
+    value: (m) =>
+      m.goldEarned == null
+        ? null
+        : m.goldEarned / Math.max(1, m.durationSec / 60),
+    format: (v) => `${Math.round(v)}/min`,
+    advice:
+      "Sube tu economía: no pierdas oleadas y recoge plates / objetivos para no quedarte sin ítems.",
   },
 ];
 

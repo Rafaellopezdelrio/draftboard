@@ -113,6 +113,12 @@ pub fn run() {
             sql: include_str!("../../src/db/migrations/009_champion_tips.sql"),
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 10,
+            description: "match vision score + gold earned",
+            sql: include_str!("../../src/db/migrations/010_match_vision_gold.sql"),
+            kind: MigrationKind::Up,
+        },
     ];
 
     tauri::Builder::default()
