@@ -13,6 +13,39 @@ import {
 } from "./aiPromptBuilder";
 import { buildMemoryContext, saveMemory } from "./aiMemory";
 import { saveLessonPlan } from "./lessonPlanRepo";
+import {
+  bracketForTier,
+  bracketLabel,
+  benchmarkStats,
+} from "../engine/rankBenchmarks";
+import type { Role } from "../types/champion";
+
+const LANE_ROLES = ["TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY"];
+
+/** One-line rank-relative read of a single match (this game vs your bracket).
+ *  Empty string when the player isn't found. Pure + exported for tests. */
+export function buildMatchBenchmarkLine(
+  match: MatchFull,
+  myPuuid: string,
+  rankTier: string | null
+): string {
+  const me = match.participants.find((p) => p.puuid === myPuuid);
+  if (!me) return "";
+  const minutes = Math.max(1, match.durationSec / 60);
+  const role = (LANE_ROLES.includes(me.position) ? me.position : "MIDDLE") as Role;
+  const bracket = bracketForTier(rankTier);
+  const list = benchmarkStats({
+    bracket,
+    role,
+    cspm: me.cs / minutes,
+    vspm: me.visionScore / minutes,
+    dpm: me.deaths / minutes,
+    kda: (me.kills + me.assists) / Math.max(1, me.deaths),
+  });
+  if (list.length === 0) return "";
+  const parts = list.map((b) => `${b.label} ${b.verdict}`).join(", ");
+  return `Esta partida vs tu rango (${bracketLabel(bracket)}): ${parts}.`;
+}
 
 export interface AiCoachInput {
   provider: AiProvider;
@@ -84,12 +117,18 @@ export async function aiCoachAnalysis(input: AiCoachInput): Promise<string> {
   });
   const systemPrompt = baseSystem + memoryContext;
 
-  const userPrompt = professionalMatchPrompt(
-    analytics,
-    input.insights,
-    input.language ?? "es",
-    input.rank ?? null
+  const benchLine = buildMatchBenchmarkLine(
+    input.match,
+    input.myPuuid,
+    input.rank?.tier ?? null
   );
+  const userPrompt =
+    professionalMatchPrompt(
+      analytics,
+      input.insights,
+      input.language ?? "es",
+      input.rank ?? null
+    ) + (benchLine ? `\n\n${benchLine}` : "");
 
   const response = await callAi({
     provider: input.provider,

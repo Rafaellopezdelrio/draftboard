@@ -37,10 +37,11 @@ Ratings are our own estimate (codebase vs known public competitor features),
   path is live so we tune against real behavior instead of flying blind.
 
 **Phase 2 — depth where we're close**
-- [x] Post-game GPI expansion (4: 6→8): `scoreObjectives` uses real objective
+- [x] Post-game GPI expansion (4: 6→8.5): `scoreObjectives` uses real objective
   damage share (was a fake kills+assists re-use); farming + vision now score
   against rank-bracket baselines (`baselineFor`) so the same CS/min reads
-  differently in Gold vs Master. Still optional: a dedicated laning-phase dimension.
+  differently in Gold vs Master. The post-game AI coach also gets a per-match
+  rank-benchmark line (`buildMatchBenchmarkLine`). Optional: a laning-phase dimension.
 - [x] Draft win-prob calibration (1: 7→8): re-weighted meta/archetype/counter
   factors so a lopsided draft reads ~32–68% instead of always ~50%. Test locks it.
 - [ ] Build auto-import 1-click parity (3: 6→8).

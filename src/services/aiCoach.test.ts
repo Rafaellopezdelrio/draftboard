@@ -1,5 +1,27 @@
 import { describe, it, expect } from "vitest";
-import { buildTrendsPrompts, type AiTrendsInput } from "./aiCoach";
+import { buildTrendsPrompts, buildMatchBenchmarkLine, type AiTrendsInput } from "./aiCoach";
+import type { MatchFull, MatchParticipant } from "./riotApi";
+
+function mkMatch(): MatchFull {
+  return {
+    matchId: "m",
+    durationSec: 1800,
+    endTsMs: 0,
+    queueId: 420,
+    teams: [],
+    participants: [
+      {
+        puuid: "me",
+        position: "MIDDLE",
+        cs: 90, // 3 CS/min — well below the Gold baseline
+        visionScore: 12,
+        deaths: 8,
+        kills: 2,
+        assists: 3,
+      } as unknown as MatchParticipant,
+    ],
+  };
+}
 
 function input(over: Partial<AiTrendsInput> = {}): AiTrendsInput {
   return {
@@ -60,5 +82,17 @@ describe("buildTrendsPrompts", () => {
   it("respects the language in the system prompt", () => {
     expect(buildTrendsPrompts(input({ language: "en" })).system).toMatch(/English/);
     expect(buildTrendsPrompts(input({ language: "es" })).system).toMatch(/Español/);
+  });
+});
+
+describe("buildMatchBenchmarkLine", () => {
+  it("reads this match's stats vs the player's bracket", () => {
+    const line = buildMatchBenchmarkLine(mkMatch(), "me", "GOLD");
+    expect(line).toMatch(/CS\/min below/);
+    expect(line).toMatch(/Gold/);
+  });
+
+  it("returns empty when the player isn't in the match", () => {
+    expect(buildMatchBenchmarkLine(mkMatch(), "ghost", "GOLD")).toBe("");
   });
 });
