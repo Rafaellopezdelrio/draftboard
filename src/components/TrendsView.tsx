@@ -4,6 +4,7 @@ import {
   computeTrends,
   detectWeakestArea,
 } from "../engine/trendsEngine";
+import { analyzeLeaks, summarizeLeakForAi } from "../engine/leakEngine";
 import type { ChampionDb, Role } from "../types/champion";
 import { usePrefsStore } from "../state/prefsStore";
 import { aiTrendsAnalysis } from "../services/aiCoach";
@@ -75,6 +76,10 @@ export function TrendsView({ db, onClose }: Props) {
 
   const trends = computeTrends(filtered);
   const weakest = detectWeakestArea(filtered);
+  // Cross-game leak: what statistically separates wins from losses across the
+  // whole filtered sample. Supersedes the single-threshold `weakest` box when
+  // there are enough games on both sides.
+  const leak = useMemo(() => analyzeLeaks(filtered), [filtered]);
 
   // Rolling window series for the SparkLine charts. Chronological
   // (oldest -> newest), so the line reads left-to-right naturally.
@@ -125,6 +130,7 @@ export function TrendsView({ db, onClose }: Props) {
         provider: aiProvider,
         apiKey,
         matches: summary,
+        leakSummary: leak ? summarizeLeakForAi(leak) : undefined,
         language: aiLang,
       });
       setAiText(text);
@@ -178,14 +184,50 @@ export function TrendsView({ db, onClose }: Props) {
           </select>
         </div>
 
-        {weakest && (
-          <div className="mb-3 p-3 rounded border border-bad/60 bg-bad/10">
+        {leak ? (
+          <div className="mb-3 p-3 rounded border border-accent/40 bg-accent/5">
             <p className="text-xs uppercase text-white/50 tracking-wide">
-              Tu mayor problema {role !== "ALL" ? `en ${role}` : "esta semana"}
+              Patrón cruzado · victorias vs derrotas
             </p>
-            <p className="font-medium text-white mt-1">{weakest.category}</p>
-            <p className="text-sm text-white/80">{weakest.detail}</p>
+            <p className="font-medium text-white mt-1">{leak.headline}</p>
+            {!leak.macro && (
+              <p className="text-sm text-white/80 mt-1">{leak.topLeak.advice}</p>
+            )}
+            <div className="mt-2 space-y-1.5">
+              {leak.leaks.map((l) => (
+                <div key={l.key}>
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-white/80">{l.insight}</span>
+                    <span className="text-white/40 tabular-nums ml-2">
+                      d{l.effect.toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="h-1.5 bg-white/5 rounded overflow-hidden mt-0.5">
+                    <div
+                      className={
+                        l.severity === "bad"
+                          ? "h-full bg-bad/70"
+                          : l.severity === "warn"
+                            ? "h-full bg-meh/70"
+                            : "h-full bg-white/30"
+                      }
+                      style={{ width: `${Math.min(100, l.effect * 60)}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
+        ) : (
+          weakest && (
+            <div className="mb-3 p-3 rounded border border-bad/60 bg-bad/10">
+              <p className="text-xs uppercase text-white/50 tracking-wide">
+                Tu mayor problema {role !== "ALL" ? `en ${role}` : "esta semana"}
+              </p>
+              <p className="font-medium text-white mt-1">{weakest.category}</p>
+              <p className="text-sm text-white/80">{weakest.detail}</p>
+            </div>
+          )
         )}
 
         {aiEnabled && filtered.length >= 5 && (

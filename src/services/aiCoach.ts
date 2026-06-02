@@ -42,6 +42,10 @@ export interface AiTrendsInput {
     durationMin: number;
     queueId: number;
   }>;
+  /** Optional full-sample leak statistics (from leakEngine.summarizeLeakForAi).
+   *  Grounds the AI in the win/loss deltas across ALL games, not just the
+   *  15-match window it sees, so it can't hallucinate the main pattern. */
+  leakSummary?: string;
   language?: "es" | "en";
 }
 
@@ -121,14 +125,17 @@ export async function aiTrendsAnalysis(input: AiTrendsInput): Promise<string> {
 
   const systemPrompt = `Eres un coach profesional de League of Legends. Analizas TENDENCIAS, no partidas individuales. Identifica el patrón principal que explica los resultados (winrate, comportamiento, errores recurrentes, fortalezas) y da 2-3 acciones concretas para subir LP. Máximo 250 palabras. Idioma: ${input.language === "en" ? "English" : "Español"}.`;
 
+  const leakBlock = input.leakSummary
+    ? `\n\nAnálisis estadístico (muestra completa, no solo las de arriba):\n${input.leakSummary}\n`
+    : "";
+
   const userPrompt = `Analiza la TENDENCIA de mis últimas ${input.matches.length} partidas:
 
 Winrate: ${wins}/${input.matches.length} (${((wins / input.matches.length) * 100).toFixed(0)}%)
 
 Partidas (más recientes primero):
-${lines}
-
-Identifica patrones (campeones que rinden mejor, roles fuertes/débiles, fugas de LP, hábitos repetidos). Responde como un coach humano: foco en el patrón principal, NO listes todo. Dame 2-3 acciones concretas.`;
+${lines}${leakBlock}
+Identifica patrones (campeones que rinden mejor, roles fuertes/débiles, fugas de LP, hábitos repetidos). Si tienes el análisis estadístico, ÚSALO como ancla del patrón principal. Responde como un coach humano: foco en el patrón principal, NO listes todo. Dame 2-3 acciones concretas.`;
 
   return callAi({
     provider: input.provider,
