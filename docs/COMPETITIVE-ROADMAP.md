@@ -36,9 +36,10 @@ Ratings are our own estimate (codebase vs known public competitor features),
 - [ ] Build auto-import 1-click parity (3: 6→8).
 
 **Phase 3 — widen the moat (surpass)**
-- [~] AI best-in-class (6: 8→8.5): deeper grounding (leaks/vision feeding ✓);
-  persistent leak memory ✓ (`leakMemory.ts` → AI remembers your #1 leak across
-  sessions + flags when it shifts). Still TODO: cross-game synthesis, voice.
+- [~] AI best-in-class (6: 8→9): deeper grounding — leaks/vision ✓, persistent
+  leak memory ✓ (`leakMemory.ts`), playstyle grounding ✓ (trends coach now gets
+  your archetype + traits → advice fits HOW you play). Pure `buildTrendsPrompts`
+  extracted + tested. Still TODO: voice coaching, multi-session synthesis report.
 - [ ] Analytics best (5: 7→9): rank-relative benchmarks ("your vision/min vs your rank avg").
 
 **Phase 4 — data scale (hardest, partial)**

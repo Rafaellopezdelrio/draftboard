@@ -6,6 +6,7 @@ import {
 } from "../engine/trendsEngine";
 import { analyzeLeaks, summarizeLeakForAi } from "../engine/leakEngine";
 import { recordLeak } from "../services/leakMemory";
+import { buildPlaystyleProfile, getArchetypeMeta } from "../engine/playstyleEngine";
 import type { ChampionDb, Role } from "../types/champion";
 import { usePrefsStore } from "../state/prefsStore";
 import { aiTrendsAnalysis } from "../services/aiCoach";
@@ -142,11 +143,20 @@ export function TrendsView({ db, onClose }: Props) {
           queueId: m.queueId,
         };
       });
+      const profile = buildPlaystyleProfile(filtered);
+      const playstyleSummary = profile
+        ? `Arquetipo: ${getArchetypeMeta(profile.archetype).label}. ${profile.traits
+            .slice(0, 3)
+            .join(". ")}. KDA ${profile.metrics.avgKda.toFixed(2)}, CS/min ${profile.metrics.avgCspm.toFixed(
+            1
+          )}, muertes/min ${profile.metrics.avgDeathsPerMin.toFixed(2)}.`
+        : undefined;
       const text = await aiTrendsAnalysis({
         provider: aiProvider,
         apiKey,
         matches: summary,
         leakSummary: leak ? summarizeLeakForAi(leak) : undefined,
+        playstyleSummary,
         language: aiLang,
       });
       setAiText(text);

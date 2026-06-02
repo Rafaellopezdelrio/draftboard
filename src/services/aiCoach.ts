@@ -45,6 +45,9 @@ export interface AiTrendsInput {
    *  Grounds the AI in the win/loss deltas across ALL games, not just the
    *  15-match window it sees, so it can't hallucinate the main pattern. */
   leakSummary?: string;
+  /** Optional auto-detected playstyle (archetype + key traits) so the AI tunes
+   *  advice to HOW you play, not just your results. */
+  playstyleSummary?: string;
   language?: "es" | "en";
 }
 
@@ -110,10 +113,13 @@ export async function aiCoachAnalysis(input: AiCoachInput): Promise<string> {
   return response;
 }
 
-export async function aiTrendsAnalysis(input: AiTrendsInput): Promise<string> {
-  if (input.matches.length < 5) {
-    throw new Error("Se necesitan al menos 5 partidas");
-  }
+/** Pure prompt builder for the trends coach — exported for tests. Grounds the
+ *  model in the match list + (when available) the full-sample leak stats and
+ *  the player's auto-detected playstyle, so the advice fits HOW you play. */
+export function buildTrendsPrompts(input: AiTrendsInput): {
+  system: string;
+  user: string;
+} {
   const wins = input.matches.filter((m) => m.win).length;
   const lines = input.matches
     .map(
@@ -122,25 +128,36 @@ export async function aiTrendsAnalysis(input: AiTrendsInput): Promise<string> {
     )
     .join("\n");
 
-  const systemPrompt = `Eres un coach profesional de League of Legends. Analizas TENDENCIAS, no partidas individuales. Identifica el patrón principal que explica los resultados (winrate, comportamiento, errores recurrentes, fortalezas) y da 2-3 acciones concretas para subir LP. Máximo 250 palabras. Idioma: ${input.language === "en" ? "English" : "Español"}.`;
+  const system = `Eres un coach profesional de League of Legends. Analizas TENDENCIAS, no partidas individuales. Identifica el patrón principal que explica los resultados (winrate, comportamiento, errores recurrentes, fortalezas) y da 2-3 acciones concretas para subir LP. Máximo 250 palabras. Idioma: ${input.language === "en" ? "English" : "Español"}.`;
 
   const leakBlock = input.leakSummary
     ? `\n\nAnálisis estadístico (muestra completa, no solo las de arriba):\n${input.leakSummary}\n`
     : "";
+  const styleBlock = input.playstyleSummary
+    ? `\n\nTu estilo de juego (auto-detectado):\n${input.playstyleSummary}\n`
+    : "";
 
-  const userPrompt = `Analiza la TENDENCIA de mis últimas ${input.matches.length} partidas:
+  const user = `Analiza la TENDENCIA de mis últimas ${input.matches.length} partidas:
 
 Winrate: ${wins}/${input.matches.length} (${((wins / input.matches.length) * 100).toFixed(0)}%)
 
 Partidas (más recientes primero):
-${lines}${leakBlock}
-Identifica patrones (campeones que rinden mejor, roles fuertes/débiles, fugas de LP, hábitos repetidos). Si tienes el análisis estadístico, ÚSALO como ancla del patrón principal. Responde como un coach humano: foco en el patrón principal, NO listes todo. Dame 2-3 acciones concretas.`;
+${lines}${leakBlock}${styleBlock}
+Identifica patrones (campeones que rinden mejor, roles fuertes/débiles, fugas de LP, hábitos repetidos). Si tienes el análisis estadístico, ÚSALO como ancla del patrón principal. Adapta el consejo a mi estilo de juego. Responde como un coach humano: foco en el patrón principal, NO listes todo. Dame 2-3 acciones concretas.`;
 
+  return { system, user };
+}
+
+export async function aiTrendsAnalysis(input: AiTrendsInput): Promise<string> {
+  if (input.matches.length < 5) {
+    throw new Error("Se necesitan al menos 5 partidas");
+  }
+  const { system, user } = buildTrendsPrompts(input);
   return callAi({
     provider: input.provider,
     apiKey: input.apiKey,
-    systemPrompt,
-    userPrompt,
+    systemPrompt: system,
+    userPrompt: user,
     maxTokens: 700,
   });
 }
