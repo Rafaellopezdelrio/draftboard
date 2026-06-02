@@ -206,6 +206,69 @@ export function liveChampionKey(
   return null;
 }
 
+export interface ObjectiveControl {
+  /** Dragons taken by each team. The Live Client event log carries no team on
+   *  events, so this is the ONLY way to know dragon-soul state. */
+  dragonsByTeam: { ORDER: number; CHAOS: number };
+  /** Team that took the most recent Baron + when (game-seconds), or null when
+   *  no Baron has fallen or the killer couldn't be attributed. */
+  lastBaronTeam: "ORDER" | "CHAOS" | null;
+  lastBaronAt: number | null;
+}
+
+/**
+ * Attribute epic-monster kills to a team by joining each event's `KillerName`
+ * to `allPlayers[].team`. Live Client events don't carry team, so without this
+ * join dragon/baron control is unknowable — the previous `deriveTimers` left
+ * `dragonsByTeam` hard-coded at 0/0 (a documented "phase 2" gap).
+ *
+ * Killer names are matched with the same tolerant normalization as
+ * `findMyPlayer` (Riot-ID vs summonerName shapes differ across patches).
+ * Unmatched killers (rare monster executes, name edge-cases) are skipped
+ * rather than mis-attributed, so we never falsely claim a soul point.
+ */
+export function attributeObjectives(
+  events: LiveGameEvent[],
+  allPlayers: LiveGamePlayer[]
+): ObjectiveControl {
+  const norm = (s: string | undefined | null): string =>
+    (s ?? "").toLowerCase().replace(/\s+/g, "").trim();
+  const stripTag = (s: string | undefined | null): string => {
+    const n = norm(s);
+    const h = n.indexOf("#");
+    return h >= 0 ? n.slice(0, h) : n;
+  };
+
+  const teamByName = new Map<string, "ORDER" | "CHAOS">();
+  for (const p of allPlayers) {
+    const variants = [
+      norm(p.summonerName),
+      stripTag(p.summonerName),
+      norm(p.riotIdGameName),
+      p.riotIdGameName && p.riotIdTagLine
+        ? norm(`${p.riotIdGameName}#${p.riotIdTagLine}`)
+        : "",
+    ];
+    for (const v of variants) if (v) teamByName.set(v, p.team);
+  }
+  const teamOf = (killer: string | undefined): "ORDER" | "CHAOS" | null =>
+    teamByName.get(norm(killer)) ?? teamByName.get(stripTag(killer)) ?? null;
+
+  const dragonsByTeam = { ORDER: 0, CHAOS: 0 };
+  let lastBaronTeam: "ORDER" | "CHAOS" | null = null;
+  let lastBaronAt: number | null = null;
+  for (const ev of events) {
+    if (ev.EventName === "DragonKill") {
+      const t = teamOf(ev.KillerName);
+      if (t) dragonsByTeam[t]++;
+    } else if (ev.EventName === "BaronKill") {
+      if (typeof ev.EventTime === "number") lastBaronAt = ev.EventTime;
+      lastBaronTeam = teamOf(ev.KillerName);
+    }
+  }
+  return { dragonsByTeam, lastBaronTeam, lastBaronAt };
+}
+
 /**
  * One-shot fetch of the current game data. Resolves `null` if we're not in a
  * game (connection refused / 404) — that's the EXPECTED state most of the

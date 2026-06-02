@@ -13,7 +13,11 @@ import { useEffect, useMemo } from "react";
 import { Activity, Crown, Sparkles, Timer, Shield, Zap } from "lucide-react";
 import { Panel } from "./ui/Panel";
 import { useLiveGame, useLiveGameTime } from "../hooks/useLiveGame";
-import { findMyPlayer, type LiveGameEvent } from "../services/liveClient";
+import {
+  findMyPlayer,
+  attributeObjectives,
+  type LiveGameEvent,
+} from "../services/liveClient";
 import { displayGameMode } from "../data/gameModeNames";
 import { setOverlayVisible } from "../services/overlay";
 import { usePrefsStore } from "../state/prefsStore";
@@ -55,10 +59,6 @@ interface DerivedTimers {
   /** Game time in seconds when the next dragon should be killable. */
   nextDragonAt: number | null;
   nextBaronAt: number | null;
-  /** Score by team. */
-  orderKills: number;
-  chaosKills: number;
-  dragonsByTeam: { ORDER: number; CHAOS: number };
 }
 
 function deriveTimers(
@@ -67,21 +67,15 @@ function deriveTimers(
 ): DerivedTimers {
   let lastDragonKill: number | null = null;
   let lastBaronKill: number | null = null;
-  let orderKills = 0;
-  let chaosKills = 0;
-  const dragonsByTeam = { ORDER: 0, CHAOS: 0 };
 
+  // Team attribution of objective kills lives in liveClient.attributeObjectives
+  // (joins KillerName -> allPlayers[].team). Here we only need the last-kill
+  // timestamps to project the next spawn.
   for (const ev of events) {
     if (ev.EventName === "DragonKill" && typeof ev.EventTime === "number") {
       lastDragonKill = ev.EventTime;
-      // Naive team attribution by killer name suffix; the live API doesn't
-      // expose team directly on events. We'll refine in phase 2 by joining
-      // killer to allPlayers[].team.
-    } else if (ev.EventName === "BaronKill") {
+    } else if (ev.EventName === "BaronKill" && typeof ev.EventTime === "number") {
       lastBaronKill = ev.EventTime;
-    } else if (ev.EventName === "ChampionKill") {
-      // Without team join we can't tell who got the kill. Phase 2.
-      void ev;
     }
   }
 
@@ -94,13 +88,7 @@ function deriveTimers(
   const nextBaronAt =
     lastBaronKill !== null ? lastBaronKill + BARON_RESPAWN_SEC : null;
 
-  return {
-    nextDragonAt,
-    nextBaronAt,
-    orderKills,
-    chaosKills,
-    dragonsByTeam,
-  };
+  return { nextDragonAt, nextBaronAt };
 }
 
 interface LiveGamePanelProps {
@@ -124,6 +112,16 @@ export function LiveGamePanel({ db }: LiveGamePanelProps = {}) {
     if (!snapshot) return null;
     return deriveTimers(snapshot.events, snapshot.gameData.gameTime);
   }, [snapshot]);
+
+  // Team-attributed objective control (dragon soul + baron) — joins event
+  // killer names to player teams since the event log carries no team itself.
+  const control = useMemo(
+    () =>
+      snapshot
+        ? attributeObjectives(snapshot.events, snapshot.allPlayers)
+        : null,
+    [snapshot]
+  );
 
   // OVERLAY TEMPORARILY DISABLED — current Win32 transparent topmost
   // approach has UX issues users report (click-through edge cases,
@@ -195,6 +193,10 @@ export function LiveGamePanel({ db }: LiveGamePanelProps = {}) {
     nextDragonAt: timers?.nextDragonAt ?? null,
     nextBaronAt: timers?.nextBaronAt ?? null,
     currentGold: me?.currentGold ?? 0,
+    myTeam: myTeamColor,
+    dragonsByTeam: control?.dragonsByTeam ?? null,
+    lastBaronTeam: control?.lastBaronTeam ?? null,
+    lastBaronAt: control?.lastBaronAt ?? null,
   });
 
   return (

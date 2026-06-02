@@ -9,7 +9,9 @@ import {
   fetchLiveGameSnapshot,
   findMyPlayer,
   liveChampionKey,
+  attributeObjectives,
   type LiveGameActivePlayer,
+  type LiveGameEvent,
   type LiveGamePlayer,
 } from "./liveClient";
 import type { ChampionDb } from "../types/champion";
@@ -185,5 +187,53 @@ describe("liveChampionKey — live player → ChampionDb key", () => {
     expect(
       liveChampionKey(db, { rawChampionName: "game_character_displayname_Aatrox" })
     ).toBeNull();
+  });
+});
+
+describe("attributeObjectives — join event killers to teams", () => {
+  const ev = (
+    EventName: string,
+    KillerName: string,
+    EventTime: number
+  ): LiveGameEvent => ({ EventID: 1, EventName, KillerName, EventTime });
+
+  it("counts dragons per team by matching killer to player team", () => {
+    const players = [
+      mkPlayer({ summonerName: "Rafa", team: "CHAOS" }),
+      mkPlayer({ summonerName: "Foe", team: "ORDER" }),
+    ];
+    const events = [
+      ev("DragonKill", "Rafa", 305),
+      ev("DragonKill", "Rafa", 612),
+      ev("DragonKill", "Foe", 900),
+    ];
+    const r = attributeObjectives(events, players);
+    expect(r.dragonsByTeam).toEqual({ ORDER: 1, CHAOS: 2 });
+  });
+
+  it("attributes the most recent Baron taker + time", () => {
+    const players = [mkPlayer({ summonerName: "Rafa", team: "CHAOS" })];
+    const r = attributeObjectives([ev("BaronKill", "Rafa", 1500)], players);
+    expect(r.lastBaronTeam).toBe("CHAOS");
+    expect(r.lastBaronAt).toBe(1500);
+  });
+
+  it("skips unmatched killers rather than mis-attributing", () => {
+    const players = [mkPlayer({ summonerName: "Rafa", team: "CHAOS" })];
+    const r = attributeObjectives([ev("DragonKill", "SomeMinion", 305)], players);
+    expect(r.dragonsByTeam).toEqual({ ORDER: 0, CHAOS: 0 });
+  });
+
+  it("matches across Riot-ID name shapes (killer gameName vs summonerName#tag)", () => {
+    const players = [
+      mkPlayer({
+        summonerName: "Rafa#EUW",
+        riotIdGameName: "Rafa",
+        riotIdTagLine: "EUW",
+        team: "ORDER",
+      }),
+    ];
+    const r = attributeObjectives([ev("DragonKill", "Rafa", 305)], players);
+    expect(r.dragonsByTeam).toEqual({ ORDER: 1, CHAOS: 0 });
   });
 });

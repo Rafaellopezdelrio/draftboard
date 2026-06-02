@@ -117,4 +117,52 @@ describe("coachLiveGame", () => {
       expect.objectContaining({ key: "recall", severity: "info" }),
     ]);
   });
+
+  it("raises a critical soul-deny when the enemy is on soul point", () => {
+    const r = coachLiveGame({
+      ...base,
+      me: p({ position: "JUNGLE" }),
+      myTeam: "ORDER",
+      dragonsByTeam: { ORDER: 1, CHAOS: 3 },
+    });
+    expect(r).toContainEqual(
+      expect.objectContaining({ key: "soul-deny", severity: "critical" })
+    );
+  });
+
+  it("flags our own soul point as a good objective to force", () => {
+    const r = coachLiveGame({
+      ...base,
+      me: p({ position: "JUNGLE" }),
+      myTeam: "ORDER",
+      dragonsByTeam: { ORDER: 3, CHAOS: 0 },
+    });
+    expect(r).toContainEqual(
+      expect.objectContaining({ key: "soul-take", severity: "good" })
+    );
+  });
+
+  it("warns while the enemy Baron buff is active, then stops once it expires", () => {
+    const active = coachLiveGame({
+      ...base,
+      me: p({ position: "JUNGLE" }),
+      gameTime: 1500,
+      myTeam: "ORDER",
+      lastBaronTeam: "CHAOS",
+      lastBaronAt: 1440, // 60s ago -> still active
+    });
+    expect(active).toContainEqual(
+      expect.objectContaining({ key: "baron-enemy", severity: "warn" })
+    );
+
+    const expired = coachLiveGame({
+      ...base,
+      me: p({ position: "JUNGLE" }),
+      gameTime: 1700,
+      myTeam: "ORDER",
+      lastBaronTeam: "CHAOS",
+      lastBaronAt: 1440, // 260s ago -> buff gone
+    });
+    expect(expired.some((i) => i.key === "baron-enemy")).toBe(false);
+  });
 });

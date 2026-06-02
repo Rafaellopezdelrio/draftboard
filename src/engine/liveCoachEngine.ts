@@ -30,6 +30,14 @@ export interface LiveCoachArgs {
   nextBaronAt: number | null;
   /** activePlayer.currentGold — unspent gold on hand. */
   currentGold: number;
+  /** My team side. Required for soul/baron-control coaching; omit for the
+   *  basic laning insights. */
+  myTeam?: "ORDER" | "CHAOS" | null;
+  /** Dragons per team (from attributeObjectives) for soul-point awareness. */
+  dragonsByTeam?: { ORDER: number; CHAOS: number } | null;
+  /** Most recent Baron taker + time, for the buff-active window. */
+  lastBaronTeam?: "ORDER" | "CHAOS" | null;
+  lastBaronAt?: number | null;
 }
 
 const LANES = new Set(["TOP", "MIDDLE", "BOTTOM"]);
@@ -40,6 +48,8 @@ const CS_AHEAD = 25; // CS lead worth converting to map pressure
 const DRAGON_PREP_WINDOW = 45; // seconds before spawn to start prepping
 const BARON_PREP_WINDOW = 60;
 const RECALL_GOLD = 2000;
+const SOUL_POINT = 3; // a team on 3 dragons takes Soul on its next dragon
+const BARON_BUFF_SEC = 180; // Baron buff lasts ~3min
 
 const RANK: Record<LiveCoachSeverity, number> = {
   critical: 0,
@@ -52,8 +62,18 @@ const RANK: Record<LiveCoachSeverity, number> = {
  *  so it's trivially testable and safe to call every poll. Returns at most 3,
  *  highest severity first, so the overlay stays readable. */
 export function coachLiveGame(args: LiveCoachArgs): LiveCoachInsight[] {
-  const { me, laneOpponent, gameTime, nextDragonAt, nextBaronAt, currentGold } =
-    args;
+  const {
+    me,
+    laneOpponent,
+    gameTime,
+    nextDragonAt,
+    nextBaronAt,
+    currentGold,
+    myTeam,
+    dragonsByTeam,
+    lastBaronTeam,
+    lastBaronAt,
+  } = args;
   if (!me || gameTime < MIN_GAME_TIME) return [];
 
   const out: LiveCoachInsight[] = [];
@@ -134,6 +154,45 @@ export function coachLiveGame(args: LiveCoachArgs): LiveCoachInsight[] {
         severity: "warn",
         text: `Dragón en ${eta}s: empuja tu oleada y wardea el río.`,
       });
+    }
+  }
+
+  // --- Objective control: dragon soul + active Baron buff ---------------
+  const other =
+    myTeam === "ORDER" ? "CHAOS" : myTeam === "CHAOS" ? "ORDER" : null;
+  if (myTeam && other && dragonsByTeam) {
+    const mine = dragonsByTeam[myTeam];
+    const theirs = dragonsByTeam[other];
+    if (theirs >= SOUL_POINT && theirs < 4) {
+      out.push({
+        key: "soul-deny",
+        severity: "critical",
+        text: `Enemigo a 1 dragón del ALMA. Niega el próximo dragón a toda costa.`,
+      });
+    } else if (mine >= SOUL_POINT && mine < 4) {
+      out.push({
+        key: "soul-take",
+        severity: "good",
+        text: `A 1 dragón del ALMA. Forzad el próximo con visión y prioridad de oleada.`,
+      });
+    }
+  }
+  if (myTeam && other && lastBaronTeam && typeof lastBaronAt === "number") {
+    const remaining = Math.round(BARON_BUFF_SEC - (gameTime - lastBaronAt));
+    if (remaining > 0) {
+      if (lastBaronTeam === other) {
+        out.push({
+          key: "baron-enemy",
+          severity: "warn",
+          text: `Enemigo con Barón (${remaining}s). No peleéis en campo abierto; defended bajo torres.`,
+        });
+      } else {
+        out.push({
+          key: "baron-mine",
+          severity: "good",
+          text: `Tenéis Barón (${remaining}s). Empujad calles con la oleada y cerrad el mapa.`,
+        });
+      }
     }
   }
 
