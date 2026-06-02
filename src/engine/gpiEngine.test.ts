@@ -27,6 +27,7 @@ const mkParticipant = (over: Partial<MatchParticipant> & Pick<MatchParticipant, 
   magicDamageDealtToChampions: 10000,
   physicalDamageDealtToChampions: 10000,
   totalDamageTaken: 18000,
+  damageDealtToObjectives: 8000,
   visionScore: 25,
   wardsPlaced: 10,
   wardsKilled: 3,
@@ -151,11 +152,31 @@ describe("computeGpi", () => {
     expect(Number.isFinite(s.categories.aggression)).toBe(true);
   });
 
-  it("scoreObjectives returns 50 baseline when team has no kills", () => {
-    const me = mkParticipant({ puuid: "me", kills: 0, assists: 0 });
-    const ally = mkParticipant({ puuid: "ally", kills: 0 });
+  it("scoreObjectives returns 50 baseline when team dealt no objective damage", () => {
+    const me = mkParticipant({ puuid: "me", damageDealtToObjectives: 0 });
+    const ally = mkParticipant({ puuid: "ally", damageDealtToObjectives: 0 });
     const s = computeGpi(mkMatch([me, ally]), "me")!;
     expect(s.categories.objectives).toBe(50);
+  });
+
+  it("scores objectives by share of team objective damage", () => {
+    // me 4000 of (4000+16000) = 0.2 share -> 50; me 16000 -> 0.8 -> clamp 100.
+    const lowShare = computeGpi(
+      mkMatch([
+        mkParticipant({ puuid: "me", damageDealtToObjectives: 4000 }),
+        mkParticipant({ puuid: "ally", damageDealtToObjectives: 16000 }),
+      ]),
+      "me"
+    )!;
+    expect(lowShare.categories.objectives).toBe(50);
+    const highShare = computeGpi(
+      mkMatch([
+        mkParticipant({ puuid: "me", damageDealtToObjectives: 16000 }),
+        mkParticipant({ puuid: "ally", damageDealtToObjectives: 4000 }),
+      ]),
+      "me"
+    )!;
+    expect(highShare.categories.objectives).toBe(100);
   });
 
   it("total is weighted average of categories (manually checked)", () => {

@@ -100,11 +100,15 @@ function scoreSurvivability(me: MatchParticipant, minutes: number): number {
 }
 
 function scoreObjectives(me: MatchParticipant, team: MatchParticipant[]): number {
-  // Use damage to objectives + assists on plays — proxied by team total kills + me's assists
-  const teamKills = team.reduce((a, p) => a + p.kills, 0);
-  if (teamKills === 0) return 50;
-  const ratio = (me.assists + me.kills) / teamKills;
-  return ratio * 80;
+  // Real objective contribution: your share of the team's damage to objectives
+  // (turrets, epic monsters, etc.). Previously this just re-used kills+assists,
+  // double-counting aggression — now it measures actual objective focus.
+  const teamObj = team.reduce((a, p) => a + (p.damageDealtToObjectives ?? 0), 0);
+  if (teamObj === 0) return 50;
+  const share = (me.damageDealtToObjectives ?? 0) / teamObj;
+  // Even split across 5 players = 0.2. Reward above-average focus:
+  // 0.2 share -> 50, 0.4 -> 100.
+  return clamp(share * 250);
 }
 
 function scoreVersatility(me: MatchParticipant): number {

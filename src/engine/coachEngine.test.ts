@@ -23,6 +23,7 @@ function mkParticipant(overrides: Partial<MatchParticipant> = {}): MatchParticip
     magicDamageDealtToChampions: 9000,
     physicalDamageDealtToChampions: 9000,
     totalDamageTaken: 22000,
+    damageDealtToObjectives: 8000,
     visionScore: 25,
     wardsPlaced: 10,
     wardsKilled: 4,

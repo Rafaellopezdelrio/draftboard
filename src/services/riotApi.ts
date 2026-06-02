@@ -365,6 +365,7 @@ export interface MatchParticipant {
   magicDamageDealtToChampions: number;
   physicalDamageDealtToChampions: number;
   totalDamageTaken: number;
+  damageDealtToObjectives: number;
   visionScore: number;
   wardsPlaced: number;
   wardsKilled: number;
@@ -412,6 +413,7 @@ interface MatchDto {
       magicDamageDealtToChampions: number;
       physicalDamageDealtToChampions: number;
       totalDamageTaken: number;
+      damageDealtToObjectives: number;
       visionScore: number;
       wardsPlaced: number;
       wardsKilled: number;
@@ -531,6 +533,7 @@ export async function getMatchFull(
       magicDamageDealtToChampions: p.magicDamageDealtToChampions,
       physicalDamageDealtToChampions: p.physicalDamageDealtToChampions,
       totalDamageTaken: p.totalDamageTaken,
+      damageDealtToObjectives: p.damageDealtToObjectives,
       visionScore: p.visionScore,
       wardsPlaced: p.wardsPlaced,
       wardsKilled: p.wardsKilled,

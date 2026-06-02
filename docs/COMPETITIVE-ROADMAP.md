@@ -28,12 +28,16 @@ Ratings are our own estimate (codebase vs known public competitor features),
 - [ ] Overlay v2 (9: 4→7): unlocks the live coaching already built. Needs a live-validation session (Win32 click-through/positioning).
 
 **Phase 2 — depth where we're close**
-- [ ] Post-game GPI expansion (4: 6→8): more dimensions, rank-relative benchmarks.
+- [~] Post-game GPI expansion (4: 6→7): `scoreObjectives` now uses real objective
+  damage share (was a fake re-use of kills+assists). Still TODO: rank-relative
+  benchmarks, a laning-phase dimension.
 - [ ] Draft polish + win-prob calibration (1: 7→8).
 - [ ] Build auto-import 1-click parity (3: 6→8).
 
 **Phase 3 — widen the moat (surpass)**
-- [ ] AI best-in-class (6: 8→9+): deeper grounding (leaks/vision feeding ✓), cross-game memory, voice.
+- [~] AI best-in-class (6: 8→8.5): deeper grounding (leaks/vision feeding ✓);
+  persistent leak memory ✓ (`leakMemory.ts` → AI remembers your #1 leak across
+  sessions + flags when it shifts). Still TODO: cross-game synthesis, voice.
 - [ ] Analytics best (5: 7→9): rank-relative benchmarks ("your vision/min vs your rank avg").
 
 **Phase 4 — data scale (hardest, partial)**
