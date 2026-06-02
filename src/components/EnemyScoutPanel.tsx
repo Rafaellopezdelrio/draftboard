@@ -107,6 +107,21 @@ function EnemyScoutPanelInner({
               ttlMs: 7000,
             });
           }
+          // Audio alert for the genuinely scary enemies — hands-free at champ
+          // select. Reuses the same threat synthesis the cards show.
+          if (notifyHot) {
+            const champName = champId
+              ? db.champions[String(champId)]?.name ?? null
+              : null;
+            const threat = assessThreat({
+              scout: r,
+              pickedChampionId: champId ?? null,
+              championName: champName,
+            });
+            if (threat.level === "danger") {
+              voiceCoach.speak(`Amenaza: ${threat.note}`, `threat-${sid}`);
+            }
+          }
         } catch {
           setScouts((s) => ({ ...s, [sid]: "error" }));
         }
