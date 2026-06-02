@@ -24,8 +24,29 @@ import {
   setOverlaySize,
   setOverlayVisible,
 } from "./services/overlay";
-import { findMyPlayer, type LiveGamePlayer } from "./services/liveClient";
+import {
+  findMyPlayer,
+  attributeObjectives,
+  type LiveGamePlayer,
+} from "./services/liveClient";
+import {
+  coachLiveGame,
+  type LiveCoachSeverity,
+} from "./engine/liveCoachEngine";
 import { displayGameMode } from "./data/gameModeNames";
+
+function ovCoachColor(sev: LiveCoachSeverity): string {
+  switch (sev) {
+    case "critical":
+      return "text-bad";
+    case "warn":
+      return "text-meh";
+    case "good":
+      return "text-good";
+    default:
+      return "text-white/70";
+  }
+}
 
 const DRAGON_RESPAWN_SEC = 5 * 60;
 const BARON_RESPAWN_SEC = 6 * 60;
@@ -185,6 +206,30 @@ export function OverlayApp() {
     : "0/0/0";
   const ward = myRecord?.scores.wardScore ?? 0;
 
+  // Live coaching in the overlay — same engine as the main panel, so the
+  // overlay actually COACHES (soul/baron/deaths/lane/HP) instead of only
+  // mirroring the scoreboard. Derived from the official Live Client snapshot.
+  const laneOpponent =
+    enemies.find((p) => myRecord?.position && p.position === myRecord.position) ??
+    null;
+  const control = attributeObjectives(snapshot.events, snapshot.allPlayers);
+  const liveCoach = coachLiveGame({
+    me: myRecord,
+    laneOpponent,
+    gameTime,
+    nextDragonAt: timers?.nextDragonAt ?? null,
+    nextBaronAt: timers?.nextBaronAt ?? null,
+    currentGold: me?.currentGold ?? 0,
+    myTeam,
+    dragonsByTeam: control.dragonsByTeam,
+    lastBaronTeam: control.lastBaronTeam,
+    lastBaronAt: control.lastBaronAt,
+    myHpPct:
+      me?.championStats && me.championStats.maxHealth > 0
+        ? me.championStats.currentHealth / me.championStats.maxHealth
+        : null,
+  });
+
   const close = async () => {
     await setOverlayVisible(false);
   };
@@ -252,6 +297,20 @@ export function OverlayApp() {
             {theirKills}
           </span>
         </div>
+
+        {/* Live coach — the actionable layer (soul/baron/deaths/lane/HP). */}
+        {liveCoach.length > 0 && (
+          <div className="border-t border-white/10 pt-1.5 space-y-0.5">
+            {liveCoach.map((c) => (
+              <p
+                key={c.key}
+                className={`text-[10px] leading-tight ${ovCoachColor(c.severity)}`}
+              >
+                • {c.text}
+              </p>
+            ))}
+          </div>
+        )}
 
         {/* Your personal stats — KDA + CS + Gold + Lvl + Ward */}
         {me && (
