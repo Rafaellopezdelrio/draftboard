@@ -55,7 +55,7 @@ describe("computeGpi", () => {
     expect(computeGpi(m, "missing")).toBeNull();
   });
 
-  it("returns a score with all 6 GPI categories filled", () => {
+  it("returns a score with all GPI categories filled", () => {
     const m = mkMatch([mkParticipant({ puuid: "me" })]);
     const score = computeGpi(m, "me");
     expect(score).not.toBeNull();
@@ -63,11 +63,32 @@ describe("computeGpi", () => {
     expect(Object.keys(score!.categories).sort()).toEqual([
       "aggression",
       "farming",
+      "laning",
       "objectives",
       "survivability",
       "versatility",
       "vision",
     ]);
+  });
+
+  it("scores laning by CS + gold lead over the direct opponent", () => {
+    const aheadGpi = computeGpi(
+      mkMatch([
+        mkParticipant({ puuid: "me", position: "MIDDLE", cs: 250, goldEarned: 15_000 }),
+        mkParticipant({ puuid: "opp", teamId: 200, position: "MIDDLE", cs: 180, goldEarned: 11_000 }),
+      ]),
+      "me"
+    )!.categories.laning;
+    const behindGpi = computeGpi(
+      mkMatch([
+        mkParticipant({ puuid: "me", position: "MIDDLE", cs: 180, goldEarned: 11_000 }),
+        mkParticipant({ puuid: "opp", teamId: 200, position: "MIDDLE", cs: 250, goldEarned: 15_000 }),
+      ]),
+      "me"
+    )!.categories.laning;
+    expect(aheadGpi).toBeGreaterThan(50);
+    expect(behindGpi).toBeLessThan(50);
+    expect(aheadGpi).toBeGreaterThan(behindGpi);
   });
 
   it("clamps all category scores between 0 and 100", () => {

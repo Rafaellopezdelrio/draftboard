@@ -12,6 +12,7 @@ const CATEGORIES: Array<keyof GpiScore["categories"]> = [
   "survivability",
   "objectives",
   "versatility",
+  "laning",
 ];
 
 const LABELS: Record<keyof GpiScore["categories"], string> = {
@@ -21,6 +22,7 @@ const LABELS: Record<keyof GpiScore["categories"], string> = {
   survivability: "Supervivencia",
   objectives: "Objetivos",
   versatility: "Versatilidad",
+  laning: "Carril",
 };
 
 export function GpiRadar({ score }: Props) {

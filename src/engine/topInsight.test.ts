@@ -12,6 +12,7 @@ const baseGpi = (overrides: Partial<GpiScore["categories"]>): GpiScore => ({
     survivability: 70,
     objectives: 70,
     versatility: 70,
+    laning: 70,
     ...overrides,
   },
 });

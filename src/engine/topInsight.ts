@@ -28,6 +28,7 @@ const CATEGORY_LABELS: Record<GpiCategory, string> = {
   survivability: "Supervivencia",
   objectives: "Objetivos",
   versatility: "Versatilidad",
+  laning: "Carril",
 };
 
 const TIPS: Record<GpiCategory, { critical: string; needsWork: string }> = {
@@ -66,6 +67,12 @@ const TIPS: Record<GpiCategory, { critical: string; needsWork: string }> = {
       "Champ pool muy limitado. Aprende 2-3 más en tu rol para counter-pick y evitar bans hostiles.",
     needsWork:
       "Pool justo pero limitado. Expande con 1 pick más por archetype (tank/bruiser/AP) para flex.",
+  },
+  laning: {
+    critical:
+      "Perdiste tu carril claro. Respeta el matchup, farmea bajo torre y pide ganks en vez de forzar trades perdedores.",
+    needsWork:
+      "Empata o gana tu carril. Mejora wave management y castiga los CDs del rival para sacar ventaja temprana.",
   },
 };
 

@@ -16,7 +16,8 @@ export type GpiCategory =
   | "aggression"
   | "survivability"
   | "objectives"
-  | "versatility";
+  | "versatility"
+  | "laning";
 
 export interface GpiScore {
   total: number; // 0-100
@@ -44,14 +45,16 @@ export function computeGpi(
   const survivability = scoreSurvivability(me, minutes);
   const objectives = scoreObjectives(me, team);
   const versatility = scoreVersatility(me);
+  const laning = scoreLaning(me, match.participants);
 
   const total =
-    farming * 0.2 +
-    vision * 0.15 +
-    aggression * 0.2 +
-    survivability * 0.2 +
-    objectives * 0.15 +
-    versatility * 0.1;
+    farming * 0.18 +
+    vision * 0.13 +
+    aggression * 0.18 +
+    survivability * 0.18 +
+    objectives * 0.13 +
+    versatility * 0.07 +
+    laning * 0.13;
 
   return {
     total: clamp(Math.round(total)),
@@ -63,8 +66,22 @@ export function computeGpi(
       survivability: clamp(Math.round(survivability)),
       objectives: clamp(Math.round(objectives)),
       versatility: clamp(Math.round(versatility)),
+      laning: clamp(Math.round(laning)),
     },
   };
+}
+
+// Matchup dominance vs your direct lane opponent (CS + gold lead by game end).
+// A proxy for "did you win your lane" without needing the timeline. Even = 50;
+// a big CS + gold lead pushes toward 100, falling behind toward 0.
+function scoreLaning(me: MatchParticipant, all: MatchParticipant[]): number {
+  const opp = all.find(
+    (p) => p.teamId !== me.teamId && p.position === me.position && me.position !== ""
+  );
+  if (!opp) return 50; // no resolvable opponent (ARAM / role mismatch)
+  const csDiff = me.cs - opp.cs;
+  const goldDiff = me.goldEarned - opp.goldEarned;
+  return clamp(50 + csDiff * 0.3 + goldDiff / 200);
 }
 
 function scoreFarming(
