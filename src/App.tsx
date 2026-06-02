@@ -797,7 +797,7 @@ function App() {
         )}
         {showTrends && (
           <ViewBoundary viewName="TrendsView" onClose={() => setShowTrends(false)}>
-            <TrendsView db={db} onClose={() => setShowTrends(false)} />
+            <TrendsView db={db} onClose={() => setShowTrends(false)} rankTier={rankTier} />
           </ViewBoundary>
         )}
         {showPrefs && (

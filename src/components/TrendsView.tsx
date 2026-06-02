@@ -7,6 +7,13 @@ import {
 import { analyzeLeaks, summarizeLeakForAi } from "../engine/leakEngine";
 import { recordLeak } from "../services/leakMemory";
 import { buildPlaystyleProfile, getArchetypeMeta } from "../engine/playstyleEngine";
+import {
+  bracketForTier,
+  bracketLabel,
+  benchmarkStats,
+  type BenchmarkKey,
+  type BenchmarkVerdict,
+} from "../engine/rankBenchmarks";
 import type { ChampionDb, Role } from "../types/champion";
 import { usePrefsStore } from "../state/prefsStore";
 import { aiTrendsAnalysis } from "../services/aiCoach";
@@ -19,6 +26,43 @@ import { TrendingUp } from "lucide-react";
 interface Props {
   db: ChampionDb;
   onClose: () => void;
+  /** Riot tier name (e.g. "GOLD") for rank-relative benchmarks; null when
+   *  the LCU isn't connected — benchmarks fall back to a median bracket. */
+  rankTier?: string | null;
+}
+
+const LANE_ROLES = new Set<Role>(["TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY"]);
+
+function dominantRole(matches: MatchRow[]): Role | null {
+  const counts = new Map<Role, number>();
+  for (const m of matches) {
+    if (LANE_ROLES.has(m.position as Role)) {
+      counts.set(m.position as Role, (counts.get(m.position as Role) ?? 0) + 1);
+    }
+  }
+  let best: Role | null = null;
+  let bestN = 0;
+  for (const [r, n] of counts) {
+    if (n > bestN) {
+      bestN = n;
+      best = r;
+    }
+  }
+  return best;
+}
+
+function fmtBench(key: BenchmarkKey, v: number): string {
+  return key === "cspm" ? v.toFixed(1) : v.toFixed(2);
+}
+function benchArrow(verdict: BenchmarkVerdict): string {
+  return verdict === "above" ? "↑" : verdict === "below" ? "↓" : "≈";
+}
+function benchColor(verdict: BenchmarkVerdict): string {
+  return verdict === "above"
+    ? "text-good"
+    : verdict === "below"
+      ? "text-bad"
+      : "text-white/40";
 }
 
 const ROLE_OPTIONS: Array<{ value: Role | "ALL"; label: string }> = [
@@ -45,7 +89,7 @@ const QUEUE_OPTIONS: Array<{ value: number | "ALL"; label: string }> = [
   { value: 1400, label: "Spellbook" },
 ];
 
-export function TrendsView({ db, onClose }: Props) {
+export function TrendsView({ db, onClose, rankTier }: Props) {
   useEscape(onClose);
   const [matches, setMatches] = useState<MatchRow[]>([]);
   const [role, setRole] = useState<Role | "ALL">("ALL");
@@ -98,6 +142,47 @@ export function TrendsView({ db, onClose }: Props) {
       cancelled = true;
     };
   }, [leak]);
+
+  // Rank-relative benchmarks: aggregate per-minute stats vs an estimated
+  // baseline for the player's bracket + role.
+  const benchmarks = useMemo(() => {
+    if (filtered.length < 5) return null;
+    const benchRole: Role | null = role !== "ALL" ? role : dominantRole(filtered);
+    if (!benchRole) return null;
+    let sumMin = 0,
+      sumCS = 0,
+      sumD = 0,
+      sumK = 0,
+      sumA = 0,
+      sumVis = 0,
+      visMin = 0;
+    for (const m of filtered) {
+      const min = m.durationSec / 60;
+      sumMin += min;
+      sumCS += m.cs;
+      sumD += m.deaths;
+      sumK += m.kills;
+      sumA += m.assists;
+      if (m.visionScore != null) {
+        sumVis += m.visionScore;
+        visMin += min;
+      }
+    }
+    if (sumMin === 0) return null;
+    const bracket = bracketForTier(rankTier);
+    return {
+      bracket,
+      role: benchRole,
+      list: benchmarkStats({
+        bracket,
+        role: benchRole,
+        cspm: sumCS / sumMin,
+        vspm: visMin > 0 ? sumVis / visMin : null,
+        dpm: sumD / sumMin,
+        kda: (sumK + sumA) / Math.max(1, sumD),
+      }),
+    };
+  }, [filtered, role, rankTier]);
 
   // Rolling window series for the SparkLine charts. Chronological
   // (oldest -> newest), so the line reads left-to-right naturally.
@@ -257,6 +342,34 @@ export function TrendsView({ db, onClose }: Props) {
               <p className="text-sm text-white/80">{weakest.detail}</p>
             </div>
           )
+        )}
+
+        {benchmarks && benchmarks.list.length > 0 && (
+          <div className="mb-3 p-3 rounded border border-border-subtle bg-bg-card/40">
+            <p className="text-xs uppercase text-white/50 tracking-wide">
+              vs tu rango · {bracketLabel(benchmarks.bracket)} · {benchmarks.role}{" "}
+              <span className="text-white/30 normal-case">(estimado)</span>
+            </p>
+            <div className="mt-2 space-y-1">
+              {benchmarks.list.map((b) => (
+                <div
+                  key={b.key}
+                  className="flex items-center justify-between text-[11px]"
+                >
+                  <span className="text-white/70">{b.label}</span>
+                  <span className="flex items-center gap-2 tabular-nums">
+                    <span className="text-white/85">{fmtBench(b.key, b.value)}</span>
+                    <span className="text-white/35">
+                      vs {fmtBench(b.key, b.expected)}
+                    </span>
+                    <span className={`${benchColor(b.verdict)} w-3 text-center`}>
+                      {benchArrow(b.verdict)}
+                    </span>
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
 
         {aiEnabled && filtered.length >= 5 && (

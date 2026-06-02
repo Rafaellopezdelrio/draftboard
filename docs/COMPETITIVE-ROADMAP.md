@@ -44,7 +44,10 @@ Ratings are our own estimate (codebase vs known public competitor features),
   leak memory ✓ (`leakMemory.ts`), playstyle grounding ✓ (trends coach now gets
   your archetype + traits → advice fits HOW you play). Pure `buildTrendsPrompts`
   extracted + tested. Still TODO: voice coaching, multi-session synthesis report.
-- [ ] Analytics best (5: 7→9): rank-relative benchmarks ("your vision/min vs your rank avg").
+- [x] Analytics rank benchmarks (5: 7.5→8.5): `rankBenchmarks.ts` — your CS/min,
+  vision/min, deaths/min, KDA vs an estimated baseline for your bracket+role
+  (from LCU rank). Shown in TrendsView as "vs tu rango (estimado)". Curated
+  baselines, labeled as estimates — honest, not faked precision.
 
 **Phase 4 — data scale (hardest, partial)**
 - [ ] Meta pipeline depth (7,10: 4→6): more patches/regions via worker; never full op.gg parity.
