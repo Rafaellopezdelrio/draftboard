@@ -145,18 +145,16 @@ export function LiveGamePanel({ db }: LiveGamePanelProps = {}) {
     [snapshot]
   );
 
-  // OVERLAY TEMPORARILY DISABLED — current Win32 transparent topmost
-  // approach has UX issues users report (click-through edge cases,
-  // positioning drift, doesn't survive alt-tab cleanly). Hard-disabled
-  // until we ship a polished v2. We still call setOverlayVisible(false)
-  // unconditionally so any window state lingering from a previous
-  // session gets cleared.
+  // Overlay v2 — opt-in via `showInGameOverlay` (default OFF, so this changes
+  // nothing for users who don't enable it). When enabled, the transparent
+  // overlay window shows ONLY while in a live game and hides otherwise.
   //
-  // Pref `showInGameOverlay` is preserved for the user's choice when
-  // v2 ships — they don't have to re-opt-in.
-  void showOverlay; // pref still read so the dependency array stays meaningful
+  // EXPERIMENTAL: the Win32 topmost / click-through / positioning still needs
+  // in-game tuning — re-enabling the render path here is what lets us validate
+  // and refine it live instead of flying blind. The overlay content already
+  // renders the live coach + scoreboard + timers (see OverlayApp).
   useEffect(() => {
-    setOverlayVisible(false);
+    setOverlayVisible(inGame && showOverlay);
   }, [inGame, showOverlay]);
 
   if (!inGame || !snapshot) return null;

@@ -28,11 +28,13 @@ Ratings are our own estimate (codebase vs known public competitor features),
 - [~] Live coach delivery (2: 6→7): voice coaching landed — critical live insights
   (soul-deny, heavy deaths) are spoken aloud hands-free, so the value lands even
   without a visual overlay. `LiveVoice` in LiveGamePanel, reuses voiceCoach.
-- [~] Overlay v2 (9: 4→7): CONTENT ready — OverlayApp now renders the live coach
-  (soul/baron/deaths/lane/HP) on top of the score/stats/timers/teams, same engine
-  as the main panel. PENDING (needs you in-game): re-enable the Win32 window
-  (currently hard-disabled) + tune click-through/positioning/topmost. Code is
-  staged so when we validate together it just works.
+- [~] Overlay v2 (9: 4→6): CONTENT ready — OverlayApp renders the live coach
+  (soul/baron/deaths/lane/HP) + score/stats/timers/teams. RE-ENABLED behind the
+  opt-in `showInGameOverlay` pref (default OFF → zero regression): when on, the
+  window shows only in a live game (LiveGamePanel no longer force-hides it).
+  PENDING — live tuning session (you in-game): verify topmost survives alt-tab,
+  click-through on empty zones, anchor/position vs the LoL window. The render
+  path is live so we tune against real behavior instead of flying blind.
 
 **Phase 2 — depth where we're close**
 - [x] Post-game GPI expansion (4: 6→8): `scoreObjectives` uses real objective

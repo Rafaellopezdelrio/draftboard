@@ -133,8 +133,8 @@ export const SECTIONS: Section[] = [
       { key: "liveScoutRefresh", label: "Refrescar scout enemigos cada 60s" },
       {
         key: "showInGameOverlay",
-        label: "Overlay transparente in-game",
-        detail: "Ventana pequeña always-on-top con timer, scores y objetivos. Click-through automático en zonas vacías. Aparece solo durante partidas reales.",
+        label: "Overlay transparente in-game (experimental)",
+        detail: "Ventana always-on-top con coach en vivo (alma/barón/muertes/HP), scores, objetivos y timers. Aparece solo durante partidas reales. Experimental: posición y click-through aún en ajuste — actívalo para probarlo en partida.",
       },
     ],
   },
