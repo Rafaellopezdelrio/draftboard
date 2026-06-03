@@ -64,7 +64,13 @@ export function useLcuSync() {
     const pollId = setInterval(async () => {
       if (cancelled) return;
       const s = await fetchCurrentChampSelect();
-      if (cancelled || !s) return;
+      if (cancelled) return;
+      // s === null means champ select has ended (404 / not in select). We must
+      // let that through so applySession(null) resets the board. The WebSocket
+      // doesn't always deliver an exit frame (it can just go silent), so this
+      // poll is the only thing that clears a finished draft — previously the
+      // `!s` early-return swallowed the null and the dead draft (teams, bans,
+      // local pick) stayed frozen on screen until a manual Ctrl+R / reload.
       if (applyIfChanged(s)) setSession(s);
     }, CHAMP_SELECT_RESYNC_MS);
 
