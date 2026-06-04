@@ -34,6 +34,7 @@ import {
   type LiveCoachSeverity,
 } from "./engine/liveCoachEngine";
 import { displayGameMode } from "./data/gameModeNames";
+import { getPowerSpikes } from "./data/powerSpikes";
 
 function ovCoachColor(sev: LiveCoachSeverity): string {
   switch (sev) {
@@ -228,6 +229,7 @@ export function OverlayApp() {
       me?.championStats && me.championStats.maxHealth > 0
         ? me.championStats.currentHealth / me.championStats.maxHealth
         : null,
+    spikeProfile: getPowerSpikes(myRecord?.rawChampionName?.split("_").pop()),
   });
 
   const close = async () => {

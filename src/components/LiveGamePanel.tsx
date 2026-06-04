@@ -23,6 +23,7 @@ import { displayGameMode } from "../data/gameModeNames";
 import { setOverlayVisible } from "../services/overlay";
 import { usePrefsStore } from "../state/prefsStore";
 import { suggestInGameAdaptations } from "../engine/inGameAdapter";
+import { getPowerSpikes } from "../data/powerSpikes";
 import {
   coachLiveGame,
   type LiveCoachSeverity,
@@ -222,6 +223,7 @@ export function LiveGamePanel({ db }: LiveGamePanelProps = {}) {
       me?.championStats && me.championStats.maxHealth > 0
         ? me.championStats.currentHealth / me.championStats.maxHealth
         : null,
+    spikeProfile: myChamp ? getPowerSpikes(myChamp.id) : null,
   });
 
   return (

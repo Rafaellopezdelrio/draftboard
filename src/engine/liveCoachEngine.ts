@@ -8,6 +8,7 @@
 // no OCR, nothing against Riot's third-party policy.
 
 import type { LiveGamePlayer } from "../services/liveClient";
+import type { PowerSpikeProfile } from "../data/powerSpikes";
 
 export type LiveCoachSeverity = "critical" | "warn" | "good" | "info";
 
@@ -41,6 +42,17 @@ export interface LiveCoachArgs {
   /** Current HP fraction (0-1) from activePlayer.championStats, for a retreat
    *  nudge. Omit when unavailable. */
   myHpPct?: number | null;
+  /** Champion power-spike profile (from powerSpikes data) for spike timing. */
+  spikeProfile?: PowerSpikeProfile | null;
+}
+
+/** Champion strength (0-10) at the current game window, keyed off level. */
+function spikeRatingAt(p: PowerSpikeProfile, level: number): number {
+  if (level <= 3) return p.level1to3;
+  if (level <= 6) return p.level4to6;
+  if (level <= 10) return p.firstItem;
+  if (level <= 13) return p.twoItems;
+  return p.fullBuild;
 }
 
 const LANES = new Set(["TOP", "MIDDLE", "BOTTOM"]);
@@ -78,6 +90,7 @@ export function coachLiveGame(args: LiveCoachArgs): LiveCoachInsight[] {
     lastBaronTeam,
     lastBaronAt,
     myHpPct,
+    spikeProfile,
   } = args;
   if (!me || gameTime < MIN_GAME_TIME) return [];
 
@@ -207,6 +220,24 @@ export function coachLiveGame(args: LiveCoachArgs): LiveCoachInsight[] {
           text: `Tenéis Barón (${remaining}s). Empujad calles con la oleada y cerrad el mapa.`,
         });
       }
+    }
+  }
+
+  // --- Power-spike timing ----------------------------------------------
+  if (spikeProfile) {
+    const rating = spikeRatingAt(spikeProfile, me.level);
+    if (rating >= 8) {
+      out.push({
+        key: "spike-strong",
+        severity: "good",
+        text: `Pico de poder (${rating}/10): fuerza peleas y objetivos ahora.`,
+      });
+    } else if (rating <= 4) {
+      out.push({
+        key: "spike-weak",
+        severity: "warn",
+        text: `Débil ahora (${rating}/10): ${spikeProfile.summary}. Juega seguro hasta tu pico.`,
+      });
     }
   }
 

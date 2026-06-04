@@ -25,9 +25,10 @@ Ratings are our own estimate (codebase vs known public competitor features),
 
 **Phase 1 — land cheap wins + unlock built work**
 - [x] Scout synthesis (8: 5→9): Porofessor-style verdicts from data we already fetch. Enemies → `scoutInsights.ts` (per-enemy threat + OTP/smurf/streak + team summary) in EnemyScoutPanel. Allies/lobby → `lobbyInsights.ts` (carry to play around, liability to cover, top enemy threat, team rank balance) in LobbyScoutPanel. Danger-level enemies are spoken aloud at champ select (voiceCoach). Scout→bans: `useEnemyMains` feeds each enemy's #1 mastery champ into banEngine so it suggests denying their comfort pick.
-- [~] Live coach delivery (2: 6→7): voice coaching landed — critical live insights
-  (soul-deny, heavy deaths) are spoken aloud hands-free, so the value lands even
-  without a visual overlay. `LiveVoice` in LiveGamePanel, reuses voiceCoach.
+- [~] Live coach (2: 6→8): voice coaching (critical insights spoken hands-free,
+  `LiveVoice`); power-spike timing (`spikeProfile` → "pico de poder, fuerza pelea"
+  / "débil ahora, juega seguro" from powerSpikes data) in both LiveGamePanel and
+  the overlay. Logic is now deep; 8→9 is the visual overlay delivery (your playtest).
 - [~] Overlay v2 (9: 4→6): CONTENT ready — OverlayApp renders the live coach
   (soul/baron/deaths/lane/HP) + score/stats/timers/teams. RE-ENABLED behind the
   opt-in `showInGameOverlay` pref (default OFF → zero regression): when on, the

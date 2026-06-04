@@ -1,6 +1,19 @@
 import { describe, it, expect } from "vitest";
 import { coachLiveGame } from "./liveCoachEngine";
 import type { LiveGamePlayer, LiveGameScores } from "../services/liveClient";
+import type { PowerSpikeProfile } from "../data/powerSpikes";
+
+function spike(over: Partial<PowerSpikeProfile>): PowerSpikeProfile {
+  return {
+    level1to3: 5,
+    level4to6: 6,
+    firstItem: 7,
+    twoItems: 9,
+    fullBuild: 8,
+    summary: "test spike",
+    ...over,
+  };
+}
 
 function sc(o: Partial<LiveGameScores>): LiveGameScores {
   return { assists: 0, creepScore: 0, deaths: 0, kills: 0, wardScore: 0, ...o };
@@ -133,6 +146,28 @@ describe("coachLiveGame", () => {
       myHpPct: 0.6,
     });
     expect(healthy.some((i) => i.key === "low-hp")).toBe(false);
+  });
+
+  it("flags a power spike as a good aggression window", () => {
+    const r = coachLiveGame({
+      ...base,
+      me: p({ position: "JUNGLE", level: 12 }),
+      spikeProfile: spike({ twoItems: 9 }),
+    });
+    expect(r).toContainEqual(
+      expect.objectContaining({ key: "spike-strong", severity: "good" })
+    );
+  });
+
+  it("warns during a weak power window", () => {
+    const r = coachLiveGame({
+      ...base,
+      me: p({ position: "JUNGLE", level: 2 }),
+      spikeProfile: spike({ level1to3: 2 }),
+    });
+    expect(r).toContainEqual(
+      expect.objectContaining({ key: "spike-weak", severity: "warn" })
+    );
   });
 
   it("raises a critical soul-deny when the enemy is on soul point", () => {
