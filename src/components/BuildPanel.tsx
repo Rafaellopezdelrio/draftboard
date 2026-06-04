@@ -20,6 +20,8 @@ import { PowerSpikesBars } from "./PowerSpikesBars";
 import { fetchOpggBuild, type OpggBuild } from "../services/opggBuilds";
 import { suggestInGameAdaptations, type InGameSuggestion } from "../engine/inGameAdapter";
 import { aramAdvice } from "../engine/aramEngine";
+import { runeAdvice } from "../engine/runeAdvice";
+import type { Champion } from "../types/champion";
 import { useLiveGame } from "../hooks/useLiveGame";
 import { findMyPlayer } from "../services/liveClient";
 import { useToast } from "./ui/ToastContainer";
@@ -89,6 +91,21 @@ function BuildPanelInner({ db, championKey, role, enemyKeys = [] }: Props) {
   const adaptations: BuildAdaptation[] = useMemo(
     () => (champ ? suggestBuildAdaptations({ db, champion: champ, enemyKeys }) : []),
     [db, champ, enemyKeys]
+  );
+
+  // Situational rune/shard tweaks for the enemy comp (MR vs AP, tenacity vs
+  // CC, sustain vs poke). Layered next to the aggregate rune page.
+  const runeTips = useMemo(
+    () =>
+      champ
+        ? runeAdvice(
+            champ,
+            enemyKeys
+              .map((k) => db.champions[k])
+              .filter((c): c is Champion => Boolean(c))
+          )
+        : [],
+    [champ, enemyKeys, db]
   );
 
   // Live in-game contextual adapter — reads enemy item snapshots from
@@ -358,6 +375,25 @@ function BuildPanelInner({ db, championKey, role, enemyKeys = [] }: Props) {
           {importStatus && (
             <p className="text-xs text-white/60">{importStatus}</p>
           )}
+        </div>
+      )}
+
+      {runeTips.length > 0 && (
+        <div className="rounded-md border border-accent/20 bg-accent/5 p-2">
+          <p className="text-[10px] uppercase tracking-wide text-accent/80 font-semibold mb-1">
+            Runas vs su comp
+          </p>
+          <ul className="space-y-1">
+            {runeTips.map((t, i) => (
+              <li
+                key={i}
+                className="text-[11px] text-white/75 leading-tight flex gap-1.5"
+              >
+                <span className="text-accent/70 shrink-0">•</span>
+                <span>{t}</span>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
     </div>

@@ -45,7 +45,10 @@ Ratings are our own estimate (codebase vs known public competitor features),
   (`buildMatchBenchmarkLine`) + a laning improvement tip in `topInsight`.
 - [x] Draft win-prob calibration (1: 7→8): re-weighted meta/archetype/counter
   factors so a lopsided draft reads ~32–68% instead of always ~50%. Test locks it.
-- [ ] Build auto-import 1-click parity (3: 6→8).
+- [~] Builds (3: 7→8): `runeAdvice.ts` — situational rune/shard tweaks for the
+  enemy comp (MR vs AP, armor+Bone Plating vs AD, sustain vs poke, tenacity vs
+  CC) shown in BuildPanel next to the aggregate page. Remaining for 9: push
+  adaptive items into the LCU shop set (validation-gated, needs in-game check).
 - [x] ARAM advisor (product gap): `aramEngine.ts` — Howling Abyss-specific advice
   (poke/sustain/no-recall/anti-heal/tenacity by champion class) replaces the old
   "ARAM recs coming" placeholder in BuildPanel. Most tools ignore ARAM; we don't.
