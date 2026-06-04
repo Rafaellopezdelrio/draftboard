@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Sparkles, Loader2 } from "lucide-react";
 import { usePrefsStore } from "../state/prefsStore";
 import { explainDraft } from "../services/draftCoach";
+import { useEnemyMains } from "../hooks/useEnemyMains";
 import type { ChampionDb, CounterEntry, Role } from "../types/champion";
 import type { ScoredSuggestion } from "../engine/suggestionEngine";
 
@@ -17,6 +18,8 @@ interface Props {
   enemyKeys: string[];
   liveCounters: CounterEntry[];
   suggestions: ScoredSuggestion[];
+  /** Enemy lobby cell ids → scout their comfort mains for the AI prompt. */
+  enemySummonerIds?: number[];
 }
 
 export function DraftCoachPanel({
@@ -27,6 +30,7 @@ export function DraftCoachPanel({
   enemyKeys,
   liveCounters,
   suggestions,
+  enemySummonerIds = [],
 }: Props) {
   const provider = usePrefsStore((s) => s.prefs.aiProvider);
   const apiKey = usePrefsStore((s) =>
@@ -40,6 +44,7 @@ export function DraftCoachPanel({
   const [advice, setAdvice] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const enemyMains = useEnemyMains(enemySummonerIds);
 
   if (!myChampionKey || !role) return null;
   const me = db.champions[myChampionKey];
@@ -74,6 +79,10 @@ export function DraftCoachPanel({
         topSuggestions: suggestions
           .slice(0, 3)
           .map((s) => ({ name: s.champion.name, reasons: s.reasons })),
+        enemyMains: enemyMains.map((m) => ({
+          championName: db.champions[String(m.championId)]?.name ?? `#${m.championId}`,
+          summonerName: m.summonerName,
+        })),
         language: lang === "en" ? "en" : "es",
       });
       setAdvice(out);

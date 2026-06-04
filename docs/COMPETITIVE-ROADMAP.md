@@ -44,8 +44,9 @@ Ratings are our own estimate (codebase vs known public competitor features),
   direct opponent) so the radar now covers lane dominance — full Mobalytics-GPI
   parity. Post-game AI coach also gets a per-match rank-benchmark line
   (`buildMatchBenchmarkLine`) + a laning improvement tip in `topInsight`.
-- [x] Draft win-prob calibration (1: 7→8): re-weighted meta/archetype/counter
-  factors so a lopsided draft reads ~32–68% instead of always ~50%. Test locks it.
+- [x] Draft (1: 7→8.5): win-prob calibrated (lopsided draft reads ~32–68% not
+  always ~50%); the Draft AI Coach now also factors the scouted enemy comfort
+  mains (`useEnemyMains` → "su mid mainea Yasuo, espéralo"). Tests lock both.
 - [~] Builds (3: 7→8): `runeAdvice.ts` — situational rune/shard tweaks for the
   enemy comp (MR vs AP, armor+Bone Plating vs AD, sustain vs poke, tenacity vs
   CC) shown in BuildPanel next to the aggregate page. Remaining for 9: push

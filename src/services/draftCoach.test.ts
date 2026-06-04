@@ -34,6 +34,20 @@ describe("buildDraftCoachPrompts", () => {
     expect(user).not.toMatch(/mi WR/);
   });
 
+  it("injects scouted enemy mains when present", () => {
+    const { user } = buildDraftCoachPrompts({
+      ...base,
+      enemyMains: [{ championName: "Yasuo", summonerName: "Faker" }],
+    });
+    expect(user).toMatch(/Mains enemigos/);
+    expect(user).toContain("Yasuo");
+    expect(user).toContain("Faker");
+  });
+
+  it("omits the enemy-mains line when none provided", () => {
+    expect(buildDraftCoachPrompts(base).user).not.toMatch(/Mains enemigos/);
+  });
+
   it("handles an empty draft without crashing", () => {
     const { user } = buildDraftCoachPrompts({
       myChampion: "Ahri",

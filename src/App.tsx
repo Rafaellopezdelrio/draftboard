@@ -664,6 +664,7 @@ function App() {
                   enemyKeys={enemyKeys}
                   liveCounters={liveCounters}
                   suggestions={suggestions}
+                  enemySummonerIds={enemySummonerIds}
                 />
               </PanelBoundary>
             )}

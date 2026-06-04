@@ -18,6 +18,8 @@ export interface DraftCoachInput {
   laneMatchupWinRate: number | null;
   /** Top engine suggestions with their reason tags, for grounding. */
   topSuggestions: Array<{ name: string; reasons: string[] }>;
+  /** Scouted enemy comfort mains (from lobby mastery) — what they likely play. */
+  enemyMains?: Array<{ championName: string; summonerName?: string }>;
   language: "es" | "en";
 }
 
@@ -54,6 +56,15 @@ export function buildDraftCoachPrompts(input: DraftCoachInput): {
           .map((s) => `${s.name} [${s.reasons.join(", ") || "sin tags"}]`)
           .join(" · ") +
         `.`
+    );
+  }
+  if (input.enemyMains?.length) {
+    lines.push(
+      `Mains enemigos scouteados: ` +
+        input.enemyMains
+          .map((m) => `${m.championName}${m.summonerName ? ` (${m.summonerName})` : ""}`)
+          .join(", ") +
+        `. Ten en cuenta lo que probablemente jueguen.`
     );
   }
   return { system, user: lines.join("\n") };
