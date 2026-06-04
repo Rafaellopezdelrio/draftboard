@@ -1,6 +1,16 @@
 import { describe, it, expect } from "vitest";
-import { readLobby } from "./lobbyInsights";
+import { readLobby, dodgeHint, type LobbyRead } from "./lobbyInsights";
 import type { ScoutedPlayer } from "../services/lobbyScout";
+
+function read(over: Partial<LobbyRead>): LobbyRead {
+  return {
+    carry: null,
+    liability: null,
+    topThreat: null,
+    balance: { delta: 0, text: "" },
+    ...over,
+  };
+}
 
 let nextId = 1;
 function sp(over: Partial<ScoutedPlayer>): ScoutedPlayer {
@@ -64,5 +74,31 @@ describe("readLobby", () => {
       sp({ summonerName: "B", soloRank: "GOLD III", soloWinRate: 0.5, soloGames: 50 }),
     ];
     expect(readLobby(my, []).carry).toBeNull();
+  });
+});
+
+describe("dodgeHint", () => {
+  it("fires when heavily outranked (~3 tiers)", () => {
+    expect(dodgeHint(read({ balance: { delta: -12, text: "" } }))?.severity).toBe("warn");
+  });
+
+  it("fires when outranked plus a liability ally", () => {
+    expect(
+      dodgeHint(
+        read({ balance: { delta: -8, text: "" }, liability: { name: "X", reason: "" } })
+      )
+    ).not.toBeNull();
+  });
+
+  it("stays quiet when only mildly outranked with no extra signal", () => {
+    expect(dodgeHint(read({ balance: { delta: -8, text: "" } }))).toBeNull();
+  });
+
+  it("stays quiet on an even lobby", () => {
+    expect(dodgeHint(read({ balance: { delta: 0, text: "" } }))).toBeNull();
+  });
+
+  it("stays quiet without balance data", () => {
+    expect(dodgeHint(read({ balance: null }))).toBeNull();
   });
 });

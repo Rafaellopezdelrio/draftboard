@@ -54,6 +54,9 @@ Ratings are our own estimate (codebase vs known public competitor features),
 - [x] ARAM advisor (product gap): `aramEngine.ts` — Howling Abyss-specific advice
   (poke/sustain/no-recall/anti-heal/tenacity by champion class) replaces the old
   "ARAM recs coming" placeholder in BuildPanel. Most tools ignore ARAM; we don't.
+- [x] Dodge advisor (product gap): `dodgeHint` — when the enemy clearly outranks
+  AND there's an extra negative signal (or a huge gap), the lobby panel surfaces a
+  non-pushy "uphill game, valora dodge" read. Nobody else makes the dodge call.
 
 **Phase 3 — widen the moat (surpass)**
 - [~] AI best-in-class (6: 8→9): deeper grounding — leaks/vision ✓, persistent

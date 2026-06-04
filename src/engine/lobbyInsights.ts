@@ -125,6 +125,37 @@ function minByReliability(arr: ScoutedPlayer[]): ScoutedPlayer | null {
   return maxBy(arr, (p) => -reliability(p));
 }
 
+export interface DodgeHint {
+  severity: "warn";
+  text: string;
+}
+
+// Rank gap (in rankValue units, ~4 per tier) that makes a game an uphill climb.
+const OUTRANKED = 8; // ~2 tiers behind
+const HEAVILY_OUTRANKED = 12; // ~3 tiers behind
+
+/** A non-pushy "this is an uphill game, maybe dodge" read, derived purely from
+ *  the lobby data we already computed. Only fires when the enemy clearly
+ *  outranks AND there's an extra negative signal (or the gap is huge) — so it
+ *  stays rare and meaningful, not spammy. Dodging costs LP; we only surface it
+ *  when the matchup is genuinely lopsided. */
+export function dodgeHint(read: LobbyRead): DodgeHint | null {
+  if (!read.balance) return null;
+  const delta = read.balance.delta; // mine - theirs (negative = enemy stronger)
+  const heavy = delta <= -HEAVILY_OUTRANKED;
+  const outranked = delta <= -OUTRANKED;
+  if (!heavy && !(outranked && (read.liability || read.topThreat))) return null;
+
+  const tiers = Math.round(Math.abs(delta) / 4);
+  const bits = [`enemigo ~+${tiers} tiers`];
+  if (read.topThreat) bits.push("amenaza fuerte");
+  if (read.liability) bits.push("aliado flojo");
+  return {
+    severity: "warn",
+    text: `Partida cuesta arriba (${bits.join(", ")}). Valora dodgear: a veces -LP sale más barato que una derrota probable.`,
+  };
+}
+
 function teamBalance(
   allies: ScoutedPlayer[],
   enemies: ScoutedPlayer[]

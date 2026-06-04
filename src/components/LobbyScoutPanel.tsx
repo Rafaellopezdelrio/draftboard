@@ -7,7 +7,7 @@ import { memo, useEffect, useState, type ReactNode } from "react";
 import { Shield, Users, Star, ShieldAlert, Swords } from "lucide-react";
 import { Panel } from "./ui/Panel";
 import { scoutTeam, type ScoutedPlayer } from "../services/lobbyScout";
-import { readLobby } from "../engine/lobbyInsights";
+import { readLobby, dodgeHint } from "../engine/lobbyInsights";
 import type { LcuChampSelectSession, LcuPlayer } from "../services/lcuService";
 import type { ChampionDb } from "../types/champion";
 
@@ -73,6 +73,7 @@ function LobbyScoutPanelInner({ session, db }: Props) {
   );
   const hasRead =
     read.carry || read.liability || read.topThreat || read.balance;
+  const dodge = dodgeHint(read);
 
   return (
     <Panel padding="sm">
@@ -82,6 +83,12 @@ function LobbyScoutPanelInner({ session, db }: Props) {
           Lobby scout
         </p>
       </div>
+
+      {dodge && (
+        <div className="mb-2 px-2 py-1.5 rounded text-[11px] font-medium bg-bad/10 text-bad border border-bad/40 leading-snug">
+          ⚠ {dodge.text}
+        </div>
+      )}
 
       {hasRead && (
         <div className="mb-2 space-y-1">
