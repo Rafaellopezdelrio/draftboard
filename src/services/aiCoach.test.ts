@@ -72,11 +72,21 @@ describe("buildTrendsPrompts", () => {
     expect(user).toMatch(/por debajo de tu rango/);
   });
 
+  it("injects the progress block and tells the coach to use the direction", () => {
+    const { user } = buildTrendsPrompts(
+      input({ progressSummary: "Tendencia general: improving." })
+    );
+    expect(user).toContain("Evolución temporal");
+    expect(user).toContain("Tendencia general: improving.");
+    expect(user).toMatch(/reconoce lo que YA mejoró/);
+  });
+
   it("omits the optional blocks when not provided", () => {
     const { user } = buildTrendsPrompts(input());
     expect(user).not.toContain("Análisis estadístico");
     expect(user).not.toContain("Tu estilo de juego");
     expect(user).not.toContain("Vs tu rango");
+    expect(user).not.toContain("Evolución temporal");
   });
 
   it("respects the language in the system prompt", () => {

@@ -5,6 +5,7 @@ import {
   detectWeakestArea,
 } from "../engine/trendsEngine";
 import { analyzeLeaks, summarizeLeakForAi } from "../engine/leakEngine";
+import { analyzeProgress, summarizeProgressForAi } from "../engine/progressEngine";
 import { recordLeak } from "../services/leakMemory";
 import { buildPlaystyleProfile, getArchetypeMeta } from "../engine/playstyleEngine";
 import {
@@ -126,6 +127,9 @@ export function TrendsView({ db, onClose, rankTier }: Props) {
   // whole filtered sample. Supersedes the single-threshold `weakest` box when
   // there are enough games on both sides.
   const leak = useMemo(() => analyzeLeaks(filtered), [filtered]);
+  // Longitudinal trend: are the metrics moving up or down over time (older
+  // half vs newer half)? Complements the static leak read with direction.
+  const progress = useMemo(() => analyzeProgress(filtered), [filtered]);
   // Persist the current #1 leak to AI memory (so the coach references it across
   // sessions) and surface a note when it has shifted since last time.
   const [leakProgress, setLeakProgress] = useState<string | null>(null);
@@ -252,6 +256,7 @@ export function TrendsView({ db, onClose, rankTier }: Props) {
         leakSummary: leak ? summarizeLeakForAi(leak) : undefined,
         playstyleSummary,
         benchmarkSummary,
+        progressSummary: progress ? summarizeProgressForAi(progress) : undefined,
         language: aiLang,
       });
       setAiText(text);
@@ -375,6 +380,55 @@ export function TrendsView({ db, onClose, rankTier }: Props) {
                     <span className={`${benchColor(b.verdict)} w-3 text-center`}>
                       {benchArrow(b.verdict)}
                     </span>
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {progress && (
+          <div className="mb-3 p-3 rounded border border-border-subtle bg-bg-card/40">
+            <p className="text-xs uppercase text-white/50 tracking-wide">
+              Evolución ·{" "}
+              <span
+                className={
+                  progress.trend === "improving"
+                    ? "text-good"
+                    : progress.trend === "declining"
+                      ? "text-bad"
+                      : "text-white/60"
+                }
+              >
+                {progress.trend === "improving"
+                  ? "en subida"
+                  : progress.trend === "declining"
+                    ? "bajón"
+                    : progress.trend === "mixed"
+                      ? "mixto"
+                      : "estable"}
+              </span>
+            </p>
+            <p className="text-sm text-white/85 mt-1">{progress.headline}</p>
+            <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1">
+              {progress.metrics.map((m) => (
+                <div
+                  key={m.key}
+                  className="flex items-center justify-between text-[11px]"
+                >
+                  <span className="text-white/70">{m.label}</span>
+                  <span
+                    className={`tabular-nums ${
+                      m.direction === "up"
+                        ? "text-good"
+                        : m.direction === "down"
+                          ? "text-bad"
+                          : "text-white/40"
+                    }`}
+                  >
+                    {m.direction === "up" ? "↑" : m.direction === "down" ? "↓" : "≈"}{" "}
+                    {m.pctChange >= 0 ? "+" : ""}
+                    {Math.round(m.pctChange * 100)}%
                   </span>
                 </div>
               ))}
