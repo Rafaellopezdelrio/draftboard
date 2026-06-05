@@ -64,4 +64,37 @@ describe("deriveWinConditions", () => {
     });
     expect(out.length).toBeLessThanOrEqual(4);
   });
+
+  it("adds an ADC positioning read vs a dive/pick comp", () => {
+    const out = deriveWinConditions({
+      db: mockDb(),
+      myChampionKey: "1",
+      myRole: "BOTTOM",
+      allyKeys: ["1"],
+      enemyKeys: ["7"], // Zed = pick-burst / dive
+    });
+    expect(out.some((c) => c.text.startsWith("ADC:"))).toBe(true);
+  });
+
+  it("gives a jungle tempo tip tied to the comp", () => {
+    const out = deriveWinConditions({
+      db: mockDb(),
+      myChampionKey: null,
+      myRole: "JUNGLE",
+      allyKeys: ["1"],
+      enemyKeys: ["3"],
+    });
+    expect(out.some((c) => c.text.startsWith("Jungla:"))).toBe(true);
+  });
+
+  it("gives no role tip when role is null", () => {
+    const out = deriveWinConditions({
+      db: mockDb(),
+      myChampionKey: null,
+      myRole: null,
+      allyKeys: ["1"],
+      enemyKeys: ["3"],
+    });
+    expect(out.some((c) => /^(ADC|Jungla|Support|Mid|Top):/.test(c.text))).toBe(false);
+  });
 });

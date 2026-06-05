@@ -255,6 +255,10 @@ export function deriveWinConditions({
     });
   }
 
+  // ---- Role-specific, comp-tied tip (uses myRole) ----
+  const roleTip = roleCondition(myRole, myChamp, allies, enemies);
+  if (roleTip) conditions.push(roleTip);
+
   // ---- Default if comp is mixed ----
   if (conditions.length === 0) {
     conditions.push({
@@ -272,6 +276,96 @@ export function deriveWinConditions({
   });
 
   // Cap at 4 — too many bullets and the user stops reading.
-  void myRole; // myRole kept for future role-specific tips
   return conditions.slice(0, 4);
+}
+
+/**
+ * One role-specific win condition, tied to the comp shape so it stays a
+ * concrete read ("ward flanks vs their pick comp") instead of a platitude
+ * ("play safe"). Returns null when a more specific condition already covers it.
+ */
+function roleCondition(
+  myRole: Role | null,
+  myChamp: Champion | null,
+  allies: CompProfile,
+  enemies: CompProfile
+): WinCondition | null {
+  switch (myRole) {
+    case "JUNGLE":
+      if (allies.archetype === "scaling-late")
+        return {
+          text: "Jungla: trackea su jungla y farmea seguro — no fuerces ganks que retrasen el escalado de tu equipo.",
+          phase: "early",
+          priority: 2,
+        };
+      if (enemies.archetype === "early-skirmish" || enemies.diveScore >= 2)
+        return {
+          text: "Jungla: su comp pelea early — vive en las lanes, contra-gankea y niégales el tempo.",
+          phase: "early",
+          priority: 2,
+        };
+      return {
+        text: "Jungla: marcas el tempo de objetivos — empareja cada spawn de dragón con prio de carril.",
+        phase: "any",
+        priority: 3,
+      };
+    case "UTILITY":
+      if (enemies.archetype === "pick-burst" || enemies.diveScore >= 2)
+        return {
+          text: "Support: tu visión rompe sus picks — wardea flancos y ríos ANTES de cada objetivo.",
+          phase: "mid",
+          priority: 2,
+        };
+      if (allies.engageScore >= 2)
+        return {
+          text: "Support: tienes engage — busca el primer pick en objetivos, no en lane vacía.",
+          phase: "mid",
+          priority: 2,
+        };
+      return {
+        text: "Support: ganas el mapa con visión — control ward en cada recall y limpia la suya.",
+        phase: "any",
+        priority: 3,
+      };
+    case "MIDDLE":
+      if (enemies.archetype === "poke-siege")
+        return {
+          text: "Mid: presiona oleadas para robar tempo y roamea cuando empujen tu torre.",
+          phase: "mid",
+          priority: 3,
+        };
+      return {
+        text: "Mid: tras shovear, roamea con prio a side/objetivos — tu impacto está en el mapa.",
+        phase: "mid",
+        priority: 3,
+      };
+    case "BOTTOM":
+      if (enemies.diveScore >= 2 || enemies.archetype === "pick-burst")
+        return {
+          text: "ADC: posición lo es todo vs su dive/pick — no des flancos y guarda summoner defensivo para peleas.",
+          phase: "late",
+          priority: 1,
+        };
+      return {
+        text: "ADC: encuentra tu zona de daño cada pelea — pega desde la última posición segura.",
+        phase: "late",
+        priority: 2,
+      };
+    case "TOP":
+      // Split tip already covered when the champ is a split pusher.
+      if (myChamp && SPLIT_PUSHERS.has(myChamp.name)) return null;
+      if (enemies.diveScore >= 2)
+        return {
+          text: "Top: guarda TP para flanquear peleas — tu mayor impacto es girar con TP, no quedarte aislado.",
+          phase: "mid",
+          priority: 2,
+        };
+      return {
+        text: "Top: elige split o agrupar según el objetivo — comunica TP antes de cada dragón/Baron.",
+        phase: "mid",
+        priority: 3,
+      };
+    default:
+      return null;
+  }
 }
