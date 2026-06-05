@@ -1,4 +1,5 @@
 import { getDb, isTauri } from "../db/client";
+import { buildBatchInserts } from "../db/batchInsert";
 import {
   getMasterLeague,
   getMatchFull,
@@ -251,70 +252,81 @@ export async function aggregateFromMaster(
     }
   }
 
-  // Persist with totals for pick-rate calc
-  const totalGamesByPos = new Map<string, number>();
+  // Total games drives pick-rate (games for a champ ÷ total games sampled).
   const totalGamesAll = matches.length;
-  for (const [k, v] of meta) {
-    const pos = k.split("|")[1];
-    totalGamesByPos.set(pos, (totalGamesByPos.get(pos) ?? 0) + v.games);
-  }
 
   onProgress({ phase: "Guardando", done: 0, total: 1 });
 
-  // Use a transaction-like approach: clear current patch, then insert
-  await db.execute("DELETE FROM meta_aggregate WHERE patch = $1", [patch]);
+  // Per table: clear the current patch, then re-insert as a few multi-row
+  // statements (see db/batchInsert). tauri-plugin-sql can't reliably hold a
+  // BEGIN/COMMIT across execute() calls (pooled connections), so batching is
+  // how we get both speed (≈N/chunk round trips instead of N) and a much
+  // smaller partial-write window if a sync is interrupted.
+  const runInserts = async (table: string, columns: string[], rows: unknown[][]) => {
+    await db.execute(`DELETE FROM ${table} WHERE patch = $1`, [patch]);
+    for (const chunk of buildBatchInserts(table, columns, rows)) {
+      await db.execute(chunk.sql, chunk.params);
+    }
+  };
+
+  const metaRows: unknown[][] = [];
   for (const [k, v] of meta) {
     const [championId, position] = k.split("|");
     const wr = v.games > 0 ? v.wins / v.games : 0;
     const pickRate = v.games / Math.max(1, totalGamesAll);
-    await db.execute(
-      `INSERT INTO meta_aggregate (champion_id, position, games, wins, win_rate, pick_rate, ban_rate, patch, updated_ts_ms)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
-      [Number(championId), position, v.games, v.wins, wr, pickRate, 0, patch, now]
-    );
+    metaRows.push([Number(championId), position, v.games, v.wins, wr, pickRate, 0, patch, now]);
   }
+  await runInserts(
+    "meta_aggregate",
+    ["champion_id", "position", "games", "wins", "win_rate", "pick_rate", "ban_rate", "patch", "updated_ts_ms"],
+    metaRows
+  );
 
-  await db.execute("DELETE FROM counter_aggregate WHERE patch = $1", [patch]);
+  const counterRows: unknown[][] = [];
   for (const [k, v] of counters) {
     if (v.games < 3) continue;
     const [a, b, pos] = k.split("|");
-    await db.execute(
-      `INSERT INTO counter_aggregate (champion_id, vs_champion_id, position, games, wins, win_rate, patch, updated_ts_ms)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-      [Number(a), Number(b), pos, v.games, v.wins, v.wins / v.games, patch, now]
-    );
+    counterRows.push([Number(a), Number(b), pos, v.games, v.wins, v.wins / v.games, patch, now]);
   }
+  await runInserts(
+    "counter_aggregate",
+    ["champion_id", "vs_champion_id", "position", "games", "wins", "win_rate", "patch", "updated_ts_ms"],
+    counterRows
+  );
 
-  await db.execute("DELETE FROM build_aggregate WHERE patch = $1", [patch]);
+  const buildRows: unknown[][] = [];
   for (const [k, v] of builds) {
     if (v.games < 2) continue;
     const [champ, pos, items] = k.split("|");
-    await db.execute(
-      `INSERT INTO build_aggregate (champion_id, position, item_ids, games, wins, patch, updated_ts_ms)
-       VALUES ($1,$2,$3,$4,$5,$6,$7)`,
-      [Number(champ), pos, items, v.games, v.wins, patch, now]
-    );
+    buildRows.push([Number(champ), pos, items, v.games, v.wins, patch, now]);
   }
+  await runInserts(
+    "build_aggregate",
+    ["champion_id", "position", "item_ids", "games", "wins", "patch", "updated_ts_ms"],
+    buildRows
+  );
 
-  await db.execute("DELETE FROM rune_aggregate WHERE patch = $1", [patch]);
+  const runeRows: unknown[][] = [];
   for (const v of runes.values()) {
     if (v.games < 2) continue;
-    await db.execute(
-      `INSERT INTO rune_aggregate (champion_id, position, primary_style, sub_style, perks, shards, games, wins, patch, updated_ts_ms)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
-      [v.champ, v.pos, v.primary, v.sub, v.perks, v.shards, v.games, v.wins, patch, now]
-    );
+    runeRows.push([v.champ, v.pos, v.primary, v.sub, v.perks, v.shards, v.games, v.wins, patch, now]);
   }
+  await runInserts(
+    "rune_aggregate",
+    ["champion_id", "position", "primary_style", "sub_style", "perks", "shards", "games", "wins", "patch", "updated_ts_ms"],
+    runeRows
+  );
 
-  await db.execute("DELETE FROM skill_order_aggregate WHERE patch = $1", [patch]);
+  const skillRows: unknown[][] = [];
   for (const v of skills.values()) {
     if (v.games < 2) continue;
-    await db.execute(
-      `INSERT INTO skill_order_aggregate (champion_id, position, first_three, max_order, games, wins, patch, updated_ts_ms)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-      [v.champ, v.pos, v.first3, v.maxOrder, v.games, v.wins, patch, now]
-    );
+    skillRows.push([v.champ, v.pos, v.first3, v.maxOrder, v.games, v.wins, patch, now]);
   }
+  await runInserts(
+    "skill_order_aggregate",
+    ["champion_id", "position", "first_three", "max_order", "games", "wins", "patch", "updated_ts_ms"],
+    skillRows
+  );
 
   await db.execute(
     `INSERT INTO aggregation_meta (key, value) VALUES ('last_run', $1)
