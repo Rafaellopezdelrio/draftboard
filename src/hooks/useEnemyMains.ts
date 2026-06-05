@@ -17,6 +17,7 @@ import type { EnemyMain } from "../engine/banEngine";
 const CACHE = new Map<string, { ts: number; mains: EnemyMain[] }>();
 const INFLIGHT = new Map<string, Promise<EnemyMain[]>>();
 const CACHE_TTL = 5 * 60 * 1000;
+const MAX_CACHE = 50; // bound growth over a long session (1 entry per lobby)
 
 async function fetchEnemyMains(ids: number[]): Promise<EnemyMain[]> {
   const cfg = await loadSettings();
@@ -53,6 +54,11 @@ export function getEnemyMains(key: string, ids: number[]): Promise<EnemyMain[]> 
     p = fetchEnemyMains(ids)
       .then((mains) => {
         CACHE.set(key, { ts: Date.now(), mains });
+        // FIFO-evict the oldest entry so the cache can't grow unbounded.
+        if (CACHE.size > MAX_CACHE) {
+          const oldest = CACHE.keys().next().value;
+          if (oldest !== undefined) CACHE.delete(oldest);
+        }
         return mains;
       })
       .finally(() => INFLIGHT.delete(key));

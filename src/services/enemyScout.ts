@@ -25,6 +25,7 @@ export interface ScoutResult {
 
 const CACHE = new Map<string, { ts: number; result: ScoutResult }>();
 const CACHE_TTL = 5 * 60 * 1000;
+const MAX_CACHE = 100; // bound growth over a long session
 
 export async function scoutPlayer(
   cfg: RiotConfig,
@@ -121,6 +122,10 @@ export async function scoutPlayer(
     pickedChampionMastery,
   };
   CACHE.set(cacheKey, { ts: Date.now(), result });
+  if (CACHE.size > MAX_CACHE) {
+    const oldest = CACHE.keys().next().value;
+    if (oldest !== undefined) CACHE.delete(oldest);
+  }
   return result;
 }
 
