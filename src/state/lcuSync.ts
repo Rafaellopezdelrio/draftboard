@@ -284,7 +284,10 @@ function applySession(s: LcuChampSelectSession | null | undefined) {
     // Diagnostic — still warn once if BOTH paths returned null, which
     // would mean Riot's session shape is unrecognised (new queue type,
     // schema change). Helps catch regressions vs the silent-empty state.
-    if (locked === null && intent === null && !lastBlindWarnedCell) {
+    // Dedup on `=== null`, NOT `!lastBlindWarnedCell`: cell 0 is falsy, so the
+    // truthy check re-warned every poll for the local player at cellId 0 (the
+    // common case) — flooding the log with identical "no champ" warnings.
+    if (locked === null && intent === null && lastBlindWarnedCell === null) {
       lastBlindWarnedCell = myCell;
       // eslint-disable-next-line no-console
       // Log the ACTUAL values, not just field names — custom games + new
