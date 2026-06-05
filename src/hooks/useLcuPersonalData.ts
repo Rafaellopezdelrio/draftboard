@@ -12,7 +12,12 @@
 import { useEffect, useState } from "react";
 import { lcuMasteries, lcuRank } from "../services/lcuPersonalData";
 import { loadSettings } from "../services/settingsRepo";
-import { getTopMasteries, type ChampionMasteryDto } from "../services/riotApi";
+import {
+  getTopMasteries,
+  getLeagueEntriesByPuuid,
+  getRiotProxyUrl,
+  type ChampionMasteryDto,
+} from "../services/riotApi";
 import { setCoachEloBucket } from "../engine/coachEngine";
 
 interface LcuPersonalData {
@@ -33,29 +38,44 @@ export function useLcuPersonalData(lcuConnected: boolean): LcuPersonalData {
     // and bail before every setState.
     let cancelled = false;
     (async () => {
+      // Riot fallback is available when a personal key OR the shared proxy is
+      // configured — most users run proxy-only (no personal key), so gating on
+      // apiKey alone left them with NO masteries/rank when the client is closed.
+      const cfg = await loadSettings();
+      if (cancelled) return;
+      const hasRiotAccess = !!cfg?.puuid && (!!cfg.apiKey || !!getRiotProxyUrl());
+
       // ── Masteries: LCU first (no key needed), Riot API fallback ──
       const fromLcu = await lcuMasteries();
       if (cancelled) return;
       if (fromLcu.length > 0) {
         setMasteries(fromLcu);
-      } else {
-        const cfg = await loadSettings();
-        if (cancelled) return;
-        if (cfg?.puuid && cfg.apiKey) {
-          getTopMasteries(cfg, cfg.puuid, 20)
-            .then((m) => {
-              if (!cancelled) setMasteries(m);
-            })
-            .catch(() => {});
-        }
+      } else if (hasRiotAccess) {
+        getTopMasteries(cfg!, cfg!.puuid!, 20)
+          .then((m) => {
+            if (!cancelled) setMasteries(m);
+          })
+          .catch(() => {});
       }
 
-      // ── Rank: feeds coach calibration + suggestion engine ──
-      const rank = await lcuRank();
+      // ── Rank: feeds coach calibration + suggestion engine + benchmarks ──
+      // LCU first, Riot API fallback (solo-queue tier) so the rank-dependent
+      // features use the real bracket instead of defaults when LoL is closed.
+      let tier: string | null = (await lcuRank())?.tier ?? null;
       if (cancelled) return;
-      if (rank) {
-        setCoachEloBucket(rank.tier);
-        setRankTier(rank.tier);
+      if (!tier && hasRiotAccess) {
+        try {
+          const entries = await getLeagueEntriesByPuuid(cfg!, cfg!.puuid!);
+          if (cancelled) return;
+          tier = entries.find((e) => e.queueType === "RANKED_SOLO_5x5")?.tier ?? null;
+        } catch {
+          // no rank available — fall through to null
+        }
+      }
+      if (cancelled) return;
+      if (tier) {
+        setCoachEloBucket(tier);
+        setRankTier(tier);
       } else {
         setRankTier(null);
       }
