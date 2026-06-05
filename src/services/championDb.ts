@@ -204,9 +204,11 @@ function blendMetaSources(pro: MetaTier[], soloq: MetaTier[]): MetaTier[] {
       map.set(k, { ...p });
       continue;
     }
-    // Pro-weight scales with sample size: 5+ pro games = 60% weight, 10+ = 75%
-    const proGames = (p as MetaTier & { games?: number }).pickRate ?? 0;
-    const proWeight = Math.min(0.75, 0.4 + proGames * 5);
+    // Weight the pro winrate by its pro PICK RATE — MetaTier carries no raw
+    // game count, so pick rate is our proxy for "how much pro signal exists".
+    // 0.4 floor + pickRate*5, capped at 0.75 so SoloQ volume always keeps a say.
+    const proPickRate = p.pickRate ?? 0;
+    const proWeight = Math.min(0.75, 0.4 + proPickRate * 5);
     const blended: MetaTier = {
       championKey: p.championKey,
       role: p.role,
