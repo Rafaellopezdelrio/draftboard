@@ -18,6 +18,7 @@ export interface CompProfile {
   hardCC: number; // count of champs with reliable hard CC
   burstThreats: number; // assassins / mages
   divers: number; // tanks/fighters that engage
+  healers: number; // champs whose kit leans on heavy heal/lifesteal sustain
 }
 
 export function profileEnemyComp(
@@ -29,6 +30,7 @@ export function profileEnemyComp(
   let cc = 0;
   let burst = 0;
   let dive = 0;
+  let heal = 0;
 
   for (const k of enemyKeys) {
     const c = db.champions[k];
@@ -51,6 +53,8 @@ export function profileEnemyComp(
       (t.has("Fighter") && DIVERS.has(c.id))
     )
       dive++;
+    // Heavy sustain — flags the need for Grievous Wounds
+    if (HEALERS.has(c.id)) heal++;
   }
   const total = Math.max(1, ap + ad);
   return {
@@ -59,6 +63,7 @@ export function profileEnemyComp(
     hardCC: cc,
     burstThreats: burst,
     divers: dive,
+    healers: heal,
   };
 }
 
@@ -97,6 +102,27 @@ const DIVERS = new Set([
   "Diana",
   "Wukong",
   "Olaf",
+]);
+// Champions whose kit leans hard on healing / lifesteal sustain — these are the
+// matchups where buying Grievous Wounds swings the fight. Curated (c.id form).
+const HEALERS = new Set([
+  "Soraka",
+  "Aatrox",
+  "Vladimir",
+  "DrMundo",
+  "Sylas",
+  "Swain",
+  "Warwick",
+  "Nasus",
+  "Yuumi",
+  "Sona",
+  "Briar",
+  "Fiddlesticks",
+  "Zac",
+  "Kayn",
+  "Illaoi",
+  "Renekton",
+  "Volibear",
 ]);
 
 interface SuggestArgs {
@@ -205,6 +231,64 @@ export function suggestBuildAdaptations({
       reason: "Mercury's: tenacidad + MR contra AP+CC",
       priority: "core",
     });
+  }
+
+  // Grievous Wounds vs heavy sustain. One big healer already warrants the
+  // early component; two or more makes a full anti-heal item core. The exact
+  // item depends on the SHOPPER's damage type, not the enemy's.
+  if (comp.healers >= 1) {
+    const core = comp.healers >= 2;
+    const plural = comp.healers >= 2 ? `${comp.healers} fuentes de curación` : "curación fuerte";
+    const isTanky = champion.tags.includes("Tank");
+    if (isTanky) {
+      // Tanks/frontliners: Thornmail gives armor and applies Grievous on-hit.
+      out.push({
+        itemId: 3075, // Thornmail
+        itemName: "Thornmail",
+        reason: `${plural} enemiga — Thornmail aplica Grievous y da armadura`,
+        priority: core ? "core" : "situational",
+      });
+    } else if (isAdScaling) {
+      out.push(
+        core
+          ? {
+              itemId: 3033, // Mortal Reminder
+              itemName: "Mortal Reminder",
+              reason: `${plural} enemiga — Grievous Wounds de AD`,
+              priority: "core",
+            }
+          : {
+              itemId: 3123, // Executioner's Calling
+              itemName: "Executioner's Calling",
+              reason: `${plural} enemiga — anti-heal temprano barato`,
+              priority: "situational",
+            }
+      );
+    } else if (isMagicScaling) {
+      out.push(
+        core
+          ? {
+              itemId: 3165, // Morellonomicon
+              itemName: "Morellonomicon",
+              reason: `${plural} enemiga — Grievous Wounds de AP`,
+              priority: "core",
+            }
+          : {
+              itemId: 3916, // Oblivion Orb
+              itemName: "Oblivion Orb",
+              reason: `${plural} enemiga — anti-heal temprano de AP`,
+              priority: "situational",
+            }
+      );
+    } else {
+      // Enchanters / non-damage carriers default to Thornmail too.
+      out.push({
+        itemId: 3075, // Thornmail
+        itemName: "Thornmail",
+        reason: `${plural} enemiga — Thornmail aplica Grievous y da armadura`,
+        priority: core ? "core" : "situational",
+      });
+    }
   }
 
   return out;

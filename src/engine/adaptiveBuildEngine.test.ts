@@ -49,6 +49,7 @@ describe("profileEnemyComp", () => {
       hardCC: 0,
       burstThreats: 0,
       divers: 0,
+      healers: 0,
     });
   });
 
@@ -225,6 +226,49 @@ describe("suggestBuildAdaptations", () => {
     // Each share is 0.5 (below the 0.55 threshold) — no FoN, no Randuin core.
     expect(out.find((a) => a.itemName === "Force of Nature")).toBeUndefined();
     expect(out.find((a) => a.itemName === "Randuin's Omen")).toBeUndefined();
+  });
+
+  it("counts healers (Aatrox, Soraka) for anti-heal detection", () => {
+    const soraka = mkChamp({ id: "Soraka", key: "16", tags: ["Support", "Mage"] });
+    const db = mkDb([aatrox, soraka]);
+    const p = profileEnemyComp(db, ["266", "16"]);
+    expect(p.healers).toBe(2);
+  });
+
+  it("1 healer -> situational Grievous component for the shopper's dmg type", () => {
+    const soraka = mkChamp({ id: "Soraka", key: "16", tags: ["Support", "Mage"] });
+    const db = mkDb([meAdc, soraka, ahri]);
+    const out = suggestBuildAdaptations({ db, champion: meAdc, enemyKeys: ["16", "103"] });
+    expect(out.some((a) => a.itemName === "Executioner's Calling" && a.priority === "situational")).toBe(true);
+  });
+
+  it("2+ healers vs AD shopper -> Mortal Reminder core", () => {
+    const soraka = mkChamp({ id: "Soraka", key: "16", tags: ["Support", "Mage"] });
+    const db = mkDb([meAdc, soraka, aatrox]);
+    const out = suggestBuildAdaptations({ db, champion: meAdc, enemyKeys: ["16", "266"] });
+    expect(out.some((a) => a.itemName === "Mortal Reminder" && a.priority === "core")).toBe(true);
+  });
+
+  it("2+ healers vs AP shopper -> Morellonomicon core", () => {
+    const soraka = mkChamp({ id: "Soraka", key: "16", tags: ["Support", "Mage"] });
+    const vlad = mkChamp({ id: "Vladimir", key: "8", tags: ["Mage"] });
+    const db = mkDb([meSquishyMage, soraka, vlad]);
+    const out = suggestBuildAdaptations({ db, champion: meSquishyMage, enemyKeys: ["16", "8"] });
+    expect(out.some((a) => a.itemName === "Morellonomicon" && a.priority === "core")).toBe(true);
+  });
+
+  it("2+ healers vs tank shopper -> Thornmail", () => {
+    const vlad = mkChamp({ id: "Vladimir", key: "8", tags: ["Mage"] });
+    const aatroxHeal = mkChamp({ id: "Aatrox", key: "266", tags: ["Fighter", "Tank"] });
+    const db = mkDb([meTank, vlad, aatroxHeal]);
+    const out = suggestBuildAdaptations({ db, champion: meTank, enemyKeys: ["8", "266"] });
+    expect(out.some((a) => a.itemName === "Thornmail")).toBe(true);
+  });
+
+  it("no healers -> no anti-heal item", () => {
+    const db = mkDb([meAdc, ahri, ezreal]);
+    const out = suggestBuildAdaptations({ db, champion: meAdc, enemyKeys: ["103", "81"] });
+    expect(out.some((a) => /Mortal Reminder|Morellonomicon|Executioner|Oblivion|Thornmail/.test(a.itemName))).toBe(false);
   });
 
   it("every adaptation has a non-empty reason string for UI display", () => {
