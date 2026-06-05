@@ -153,7 +153,10 @@ export function DiagnosticsView({ onClose }: Props) {
                 : provider === "gemini" ? p.geminiApiKey
                   : p.anthropicApiKey;
             aiKey = aiKey ?? "";
-          } catch {}
+          } catch {
+            // Corrupt prefs blob — keep the groq/empty defaults set above so
+            // the diagnostics check still runs instead of throwing.
+          }
         }
         return aiKey
           ? { name: "AI provider key", status: "ok", detail: `Configurada (${provider})` }
