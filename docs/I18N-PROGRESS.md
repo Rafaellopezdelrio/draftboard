@@ -31,9 +31,13 @@ DiagnosticsView, HistoryView, PreferencesView, SettingsView, ConfirmDialog, View
 ### Chrome (A)
 ProPlayersView · AiChatView · LessonPlanView · SummonerLookupView ·
 LiveGameView · OnboardingView · ChampionPoolPanel · PlaystylePanel ·
-PatchImpactPanel · OwnMasteriesPanel · GpiRadar · misc banners/modals
-(Done: MatchupTipsPanel, CoachView, TierListView, LiveGamePanel, DraftCoachPanel,
-TermsGate, PatchNewBanner. Suggestion reasons + LCU status localized.)
+PatchImpactPanel · OwnMasteriesPanel · GpiRadar · ShortcutsHelp · DiagnosticsView ·
+FeedbackModal · LogViewerModal · DataPrivacyView · TipCarousel · InfoTooltip ·
+ChampionGuideView · AboutModal · prefs/* fields · misc banners
+(NetworkStatusBanner, OverlayCompatBanner, UpdateBanner, TrackingStatusBar,
+FirstRunHealthBanner)
+(Done: SettingsView, MatchupTipsPanel, CoachView, TierListView, LiveGamePanel,
+DraftCoachPanel, TermsGate, PatchNewBanner. Suggestion reasons + LCU status.)
 
 ### 🐛 FIXED: language toggle revert bug
 Async boot race in setUiLocale reverted the locale to Spanish on reload.
