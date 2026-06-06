@@ -16,7 +16,10 @@ export interface LiveCoachInsight {
   /** Stable key so the UI can keep React keys steady across polls. */
   key: string;
   severity: LiveCoachSeverity;
-  text: string;
+  /** i18n key (liveCoach.*) resolved by the panel/overlay via t(); the spoken
+   *  version uses the i18n.t singleton. */
+  textKey: string;
+  params?: Record<string, string | number>;
 }
 
 export interface LiveCoachArgs {
@@ -106,13 +109,15 @@ export function coachLiveGame(args: LiveCoachArgs): LiveCoachInsight[] {
     out.push({
       key: "deaths-critical",
       severity: "critical",
-      text: `Mueres demasiado (${k}/${d}/${a}). Prioriza NO morir sobre conseguir kills.`,
+      textKey: "liveCoach.deathsCritical",
+      params: { k, d, a },
     });
   } else if (d >= 4 && d > k + a) {
     out.push({
       key: "deaths-warn",
       severity: "warn",
-      text: `Mueres más de lo que aportas (${k}/${d}/${a}). Juega seguro y farmea.`,
+      textKey: "liveCoach.deathsWarn",
+      params: { k, d, a },
     });
   }
 
@@ -121,7 +126,8 @@ export function coachLiveGame(args: LiveCoachArgs): LiveCoachInsight[] {
     out.push({
       key: "low-hp",
       severity: "warn",
-      text: `HP al ${Math.round(myHpPct * 100)}%: retírate o recall, evita trades.`,
+      textKey: "liveCoach.lowHp",
+      params: { hp: Math.round(myHpPct * 100) },
     });
   }
 
@@ -134,20 +140,23 @@ export function coachLiveGame(args: LiveCoachArgs): LiveCoachInsight[] {
         out.push({
           key: "lane-behind",
           severity: "warn",
-          text: `Vas ${diff} CS vs ${laneOpponent.championName}. Farmea seguro bajo torre y recupera oleadas.`,
+          textKey: "liveCoach.laneBehind",
+          params: { diff, champ: laneOpponent.championName },
         });
       } else if (diff >= CS_AHEAD) {
         out.push({
           key: "lane-ahead",
           severity: "good",
-          text: `Vas +${diff} CS vs ${laneOpponent.championName}. Transfiere la ventaja: roam u objetivo.`,
+          textKey: "liveCoach.laneAhead",
+          params: { diff, champ: laneOpponent.championName },
         });
       }
       if (me.level <= laneOpponent.level - 2) {
         out.push({
           key: "lvl-behind",
           severity: "warn",
-          text: `−${laneOpponent.level - me.level} niveles vs ${laneOpponent.championName}. No cedas XP, quédate en la oleada.`,
+          textKey: "liveCoach.lvlBehind",
+          params: { levels: laneOpponent.level - me.level, champ: laneOpponent.championName },
         });
       }
     } else if (minutes >= 5) {
@@ -156,7 +165,8 @@ export function coachLiveGame(args: LiveCoachArgs): LiveCoachInsight[] {
         out.push({
           key: "cs-pace",
           severity: "warn",
-          text: `Farm bajo: ${me.scores.creepScore} CS en ${Math.floor(minutes)}min (~${expected} esperado). Recupera oleadas entre jugadas.`,
+          textKey: "liveCoach.csPace",
+          params: { cs: me.scores.creepScore, min: Math.floor(minutes), expected },
         });
       }
     }
@@ -169,7 +179,8 @@ export function coachLiveGame(args: LiveCoachArgs): LiveCoachInsight[] {
       out.push({
         key: "obj-baron",
         severity: "warn",
-        text: `Barón en ${eta}s: pon visión YA y no facechequees el foso.`,
+        textKey: "liveCoach.objBaron",
+        params: { eta },
       });
     }
   }
@@ -179,7 +190,8 @@ export function coachLiveGame(args: LiveCoachArgs): LiveCoachInsight[] {
       out.push({
         key: "obj-dragon",
         severity: "warn",
-        text: `Dragón en ${eta}s: empuja tu oleada y wardea el río.`,
+        textKey: "liveCoach.objDragon",
+        params: { eta },
       });
     }
   }
@@ -194,13 +206,13 @@ export function coachLiveGame(args: LiveCoachArgs): LiveCoachInsight[] {
       out.push({
         key: "soul-deny",
         severity: "critical",
-        text: `Enemigo a 1 dragón del ALMA. Niega el próximo dragón a toda costa.`,
+        textKey: "liveCoach.soulDeny",
       });
     } else if (mine >= SOUL_POINT && mine < 4) {
       out.push({
         key: "soul-take",
         severity: "good",
-        text: `A 1 dragón del ALMA. Forzad el próximo con visión y prioridad de oleada.`,
+        textKey: "liveCoach.soulTake",
       });
     }
   }
@@ -211,13 +223,15 @@ export function coachLiveGame(args: LiveCoachArgs): LiveCoachInsight[] {
         out.push({
           key: "baron-enemy",
           severity: "warn",
-          text: `Enemigo con Barón (${remaining}s). No peleéis en campo abierto; defended bajo torres.`,
+          textKey: "liveCoach.baronEnemy",
+          params: { sec: remaining },
         });
       } else {
         out.push({
           key: "baron-mine",
           severity: "good",
-          text: `Tenéis Barón (${remaining}s). Empujad calles con la oleada y cerrad el mapa.`,
+          textKey: "liveCoach.baronMine",
+          params: { sec: remaining },
         });
       }
     }
@@ -230,13 +244,15 @@ export function coachLiveGame(args: LiveCoachArgs): LiveCoachInsight[] {
       out.push({
         key: "spike-strong",
         severity: "good",
-        text: `Pico de poder (${rating}/10): fuerza peleas y objetivos ahora.`,
+        textKey: "liveCoach.spikeStrong",
+        params: { rating },
       });
     } else if (rating <= 4) {
       out.push({
         key: "spike-weak",
         severity: "warn",
-        text: `Débil ahora (${rating}/10): ${spikeProfile.summary}. Juega seguro hasta tu pico.`,
+        textKey: "liveCoach.spikeWeak",
+        params: { rating, summary: spikeProfile.summary },
       });
     }
   }
@@ -246,7 +262,8 @@ export function coachLiveGame(args: LiveCoachArgs): LiveCoachInsight[] {
     out.push({
       key: "recall",
       severity: "info",
-      text: `Tienes ${Math.round(currentGold)} de oro sin gastar. Recall en la próxima ventana de oleada.`,
+      textKey: "liveCoach.recall",
+      params: { gold: Math.round(currentGold) },
     });
   }
 

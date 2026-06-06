@@ -112,6 +112,25 @@
       "gold": "Grow your economy: don't lose waves and grab plates / objectives so you don't fall behind on items."
     }
   },
+  "liveCoach": {
+    "header": "Live coach",
+    "deathsCritical": "You're dying too much ({{k}}/{{d}}/{{a}}). Prioritize NOT dying over getting kills.",
+    "deathsWarn": "You die more than you contribute ({{k}}/{{d}}/{{a}}). Play safe and farm.",
+    "lowHp": "HP at {{hp}}%: retreat or recall, avoid trades.",
+    "laneBehind": "You're {{diff}} CS vs {{champ}}. Farm safe under tower and pick waves back up.",
+    "laneAhead": "You're +{{diff}} CS vs {{champ}}. Convert the lead: roam or take an objective.",
+    "lvlBehind": "−{{levels}} levels vs {{champ}}. Don't give up XP, stay in the wave.",
+    "csPace": "Low farm: {{cs}} CS in {{min}}min (~{{expected}} expected). Pick waves back up between plays.",
+    "objBaron": "Baron in {{eta}}s: place vision NOW and don't facecheck the pit.",
+    "objDragon": "Dragon in {{eta}}s: push your wave and ward the river.",
+    "soulDeny": "Enemy is 1 dragon from SOUL. Deny the next dragon at all costs.",
+    "soulTake": "1 dragon from SOUL. Force the next one with vision and wave priority.",
+    "baronEnemy": "Enemy has Baron ({{sec}}s). Don't fight in the open; defend under towers.",
+    "baronMine": "You have Baron ({{sec}}s). Push lanes with the wave and close the map.",
+    "spikeStrong": "Power spike ({{rating}}/10): force fights and objectives now.",
+    "spikeWeak": "Weak right now ({{rating}}/10): {{summary}}. Play safe until your spike.",
+    "recall": "You have {{gold}} unspent gold. Recall in the next wave window."
+  },
   "runeAdvice": {
     "apHeavy": "AP-heavy comp: MR shard (row 3) instead of armor.",
     "adHeavy": "AD-heavy comp: armor shard; Bone Plating/Second Skin if they all-in you.",

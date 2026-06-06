@@ -10,8 +10,10 @@
 // adapter based on enemy items, etc).
 
 import { useEffect, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { Activity, Crown, Sparkles, Timer, Shield, Zap } from "lucide-react";
 import { Panel } from "./ui/Panel";
+import { i18n } from "../i18n";
 import { useLiveGame, useLiveGameTime } from "../hooks/useLiveGame";
 import {
   findMyPlayer,
@@ -40,7 +42,9 @@ function LiveVoice({ insights }: { insights: LiveCoachInsight[] }) {
   const criticals = insights.filter((c) => c.severity === "critical");
   const sig = criticals.map((c) => c.key).join(",");
   useEffect(() => {
-    for (const c of criticals) voiceCoach.speak(c.text, `live-${c.key}`);
+    // i18n.t singleton (not the hook) so this effect needn't depend on t.
+    for (const c of criticals)
+      voiceCoach.speak(i18n.t(c.textKey, c.params), `live-${c.key}`);
     // criticals derived from `insights`; sig captures the meaningful change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sig]);
@@ -122,6 +126,7 @@ interface LiveGamePanelProps {
 }
 
 export function LiveGamePanel({ db }: LiveGamePanelProps = {}) {
+  const { t } = useTranslation();
   const liveState = useLiveGame(true);
   const { inGame, snapshot } = liveState;
   // Smooth 1s tick interpolated from the 2s-stale snapshot — keeps the
@@ -278,7 +283,7 @@ export function LiveGamePanel({ db }: LiveGamePanelProps = {}) {
           <div className="flex items-center gap-1.5 mb-1">
             <Zap className="w-3 h-3 text-accent" />
             <p className="text-[10px] uppercase tracking-widest text-accent font-semibold">
-              Coach en vivo
+              {t("liveCoach.header")}
             </p>
           </div>
           {liveCoach.map((c) => (
@@ -286,7 +291,7 @@ export function LiveGamePanel({ db }: LiveGamePanelProps = {}) {
               key={c.key}
               className={`p-1.5 rounded text-[11px] leading-snug ${coachSevClass(c.severity)}`}
             >
-              {c.text}
+              {t(c.textKey, c.params)}
             </div>
           ))}
         </div>

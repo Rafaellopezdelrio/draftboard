@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { coachLiveGame } from "./liveCoachEngine";
 import type { LiveGamePlayer, LiveGameScores } from "../services/liveClient";
 import type { PowerSpikeProfile } from "../data/powerSpikes";
+import es from "../i18n/locales/es.json";
 
 function spike(over: Partial<PowerSpikeProfile>): PowerSpikeProfile {
   return {
@@ -216,5 +217,41 @@ describe("coachLiveGame", () => {
       lastBaronAt: 1440, // 260s ago -> buff gone
     });
     expect(expired.some((i) => i.key === "baron-enemy")).toBe(false);
+  });
+
+  it("every emitted textKey resolves to a real translation", () => {
+    const notes = (es as { liveCoach: Record<string, string> }).liveCoach;
+    const scenarios = [
+      { me: p({ scores: sc({ deaths: 8 }) }) },
+      { me: p({ scores: sc({ deaths: 5 }) }) },
+      { me: p({ position: "JUNGLE" }), myHpPct: 0.1 },
+      {
+        me: p({ position: "MIDDLE", scores: sc({ creepScore: 80 }) }),
+        laneOpponent: p({ position: "MIDDLE", scores: sc({ creepScore: 115 }), level: 9 }),
+        gameTime: 900,
+      },
+      {
+        me: p({ position: "MIDDLE", scores: sc({ creepScore: 120 }) }),
+        laneOpponent: p({ position: "MIDDLE", scores: sc({ creepScore: 90 }) }),
+        gameTime: 900,
+      },
+      { me: p({ position: "MIDDLE", scores: sc({ creepScore: 10 }) }), gameTime: 600 },
+      { me: p({ position: "JUNGLE" }), nextBaronAt: 1230 },
+      { me: p({ position: "JUNGLE" }), nextDragonAt: 1230 },
+      { me: p({ position: "JUNGLE" }), myTeam: "ORDER" as const, dragonsByTeam: { ORDER: 1, CHAOS: 3 } },
+      { me: p({ position: "JUNGLE" }), myTeam: "ORDER" as const, dragonsByTeam: { ORDER: 3, CHAOS: 0 } },
+      { me: p({ position: "JUNGLE", level: 12 }), spikeProfile: spike({ twoItems: 9 }) },
+      { me: p({ position: "JUNGLE", level: 2 }), spikeProfile: spike({ level1to3: 2 }) },
+      { me: p({ position: "JUNGLE" }), currentGold: 2500 },
+    ];
+    const seen = new Set<string>();
+    for (const s of scenarios) {
+      for (const i of coachLiveGame({ ...base, ...s })) seen.add(i.textKey);
+    }
+    const orphans = [...seen].filter(
+      (k) => !(k.replace("liveCoach.", "") in notes)
+    );
+    expect(orphans).toEqual([]);
+    expect(seen.size).toBeGreaterThan(8);
   });
 });

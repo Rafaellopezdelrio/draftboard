@@ -8,6 +8,7 @@
 // numbers, same source.
 
 import { useEffect, useMemo, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Activity,
   Crown,
@@ -61,6 +62,7 @@ function formatTime(seconds: number): string {
 }
 
 export function OverlayApp() {
+  const { t } = useTranslation();
   const liveState = useLiveGame(true);
   const { inGame, snapshot } = liveState;
   // Smooth 1s interpolation of the 2s-poll gameTime — used by the
@@ -308,7 +310,7 @@ export function OverlayApp() {
                 key={c.key}
                 className={`text-[10px] leading-tight ${ovCoachColor(c.severity)}`}
               >
-                • {c.text}
+                • {t(c.textKey, c.params)}
               </p>
             ))}
           </div>

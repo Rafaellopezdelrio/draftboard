@@ -112,6 +112,25 @@
       "gold": "Sube tu economía: no pierdas oleadas y recoge plates / objetivos para no quedarte sin ítems."
     }
   },
+  "liveCoach": {
+    "header": "Coach en vivo",
+    "deathsCritical": "Mueres demasiado ({{k}}/{{d}}/{{a}}). Prioriza NO morir sobre conseguir kills.",
+    "deathsWarn": "Mueres más de lo que aportas ({{k}}/{{d}}/{{a}}). Juega seguro y farmea.",
+    "lowHp": "HP al {{hp}}%: retírate o recall, evita trades.",
+    "laneBehind": "Vas {{diff}} CS vs {{champ}}. Farmea seguro bajo torre y recupera oleadas.",
+    "laneAhead": "Vas +{{diff}} CS vs {{champ}}. Transfiere la ventaja: roam u objetivo.",
+    "lvlBehind": "−{{levels}} niveles vs {{champ}}. No cedas XP, quédate en la oleada.",
+    "csPace": "Farm bajo: {{cs}} CS en {{min}}min (~{{expected}} esperado). Recupera oleadas entre jugadas.",
+    "objBaron": "Barón en {{eta}}s: pon visión YA y no facechequees el foso.",
+    "objDragon": "Dragón en {{eta}}s: empuja tu oleada y wardea el río.",
+    "soulDeny": "Enemigo a 1 dragón del ALMA. Niega el próximo dragón a toda costa.",
+    "soulTake": "A 1 dragón del ALMA. Forzad el próximo con visión y prioridad de oleada.",
+    "baronEnemy": "Enemigo con Barón ({{sec}}s). No peleéis en campo abierto; defended bajo torres.",
+    "baronMine": "Tenéis Barón ({{sec}}s). Empujad calles con la oleada y cerrad el mapa.",
+    "spikeStrong": "Pico de poder ({{rating}}/10): fuerza peleas y objetivos ahora.",
+    "spikeWeak": "Débil ahora ({{rating}}/10): {{summary}}. Juega seguro hasta tu pico.",
+    "recall": "Tienes {{gold}} de oro sin gastar. Recall en la próxima ventana de oleada."
+  },
   "runeAdvice": {
     "apHeavy": "Comp AP-heavy: shard de MR (fila 3) en vez de armadura.",
     "adHeavy": "Comp AD-heavy: shard de armadura; Bone Plating/Segunda Piel si te all-inean.",
