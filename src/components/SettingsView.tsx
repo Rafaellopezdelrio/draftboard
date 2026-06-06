@@ -72,7 +72,7 @@ export function SettingsView({ onClose }: Props) {
   async function resyncAll() {
     setConfirmResync(false);
     setBusy(true);
-    setStatus("Guardando configuración...");
+    setStatus(t("settings.savingConfig"));
     try {
       // Save current input values FIRST so sync uses the latest API key.
       // If user just regenerated the key but didn't click "Guardar", resync
@@ -85,21 +85,21 @@ export function SettingsView({ onClose }: Props) {
           setPuuid(account.puuid);
           await saveSettings({ ...cfg, puuid: account.puuid });
         } catch (e) {
-          setStatus(`Error validando Riot ID: ${String(e)}`);
+          setStatus(t("settings.errorValidatingRiotId", { error: String(e) }));
           setBusy(false);
           return;
         }
       } else if (apiKey) {
         await saveSettings({ apiKey, region, riotIdName, riotIdTag, puuid });
       }
-      setStatus("Borrando partidas viejas...");
+      setStatus(t("settings.deletingOldMatches"));
       await clearAllMatches();
       const result = await syncPersonalData((p) =>
         setStatus(`${p.source}: ${p.message ?? `${p.done}/${p.total}`}`)
       );
-      setStatus(`Resincronizado ✓ (${result.matches} partidas vía ${result.source})`);
+      setStatus(t("settings.resyncDone", { matches: result.matches, source: result.source }));
     } catch (e) {
-      setStatus(`Error: ${String(e)}`);
+      setStatus(t("settings.error", { error: String(e) }));
     } finally {
       setBusy(false);
     }
@@ -107,16 +107,16 @@ export function SettingsView({ onClose }: Props) {
 
   async function syncMeta() {
     setBusy(true);
-    setStatus("Sincronizando meta SoloQ...");
+    setStatus(t("settings.syncingMetaSoloq"));
     try {
       const cfg = { apiKey, region, riotIdName, riotIdTag };
       const patch = await fetchLatestPatch();
       await aggregateFromMaster(cfg, patch, (p) =>
         setStatus(`${p.phase}: ${p.done}/${p.total}`)
       );
-      setStatus("Meta SoloQ sincronizado ✓ (recarga la app para usarlo)");
+      setStatus(t("settings.metaSoloqDone"));
     } catch (e) {
-      setStatus(`Error: ${String(e)}`);
+      setStatus(t("settings.error", { error: String(e) }));
     } finally {
       setBusy(false);
     }
@@ -129,16 +129,16 @@ export function SettingsView({ onClose }: Props) {
     // server-side so the local store stays empty for proxy users.
     if (!hasRiotAccess) return;
     setBusy(true);
-    setStatus("Multi-región KR + EUW + NA (esto tarda ~30 min)...");
+    setStatus(t("settings.syncingMultiRegion"));
     try {
       const cfg = { apiKey, region, riotIdName, riotIdTag };
       const patch = await fetchLatestPatch();
       await aggregateMultiRegion(cfg, patch, (p) =>
         setStatus(`${p.phase}: ${p.done}/${p.total}`)
       );
-      setStatus("Meta multi-región sincronizado ✓ (recarga la app)");
+      setStatus(t("settings.multiRegionDone"));
     } catch (e) {
-      setStatus(`Error multi-región: ${String(e)}`);
+      setStatus(t("settings.errorMultiRegion", { error: String(e) }));
     } finally {
       setBusy(false);
     }
@@ -146,7 +146,7 @@ export function SettingsView({ onClose }: Props) {
 
   async function syncProMeta() {
     setBusy(true);
-    setStatus("Descargando partidas pro (LCK/LEC/LCS/LPL)...");
+    setStatus(t("settings.downloadingPro"));
     try {
       const db = await loadChampionDb(true);
       const patch = await fetchLatestPatch();
@@ -154,20 +154,20 @@ export function SettingsView({ onClose }: Props) {
         setStatus(`${p.phase}: ${p.done}/${p.total}`)
       );
       setStatus(
-        `Pro meta sincronizado ✓ ${result.games} partidas pro · ${result.rows} entradas champ/rol. Recarga.`
+        t("settings.proMetaDone", { games: result.games, rows: result.rows })
       );
     } catch (e) {
-      setStatus(`Error pro meta: ${String(e)}`);
+      setStatus(t("settings.errorProMeta", { error: String(e) }));
     } finally {
       setBusy(false);
     }
   }
 
   async function autoDetect() {
-    setStatus("Detectando cuenta del cliente...");
+    setStatus(t("settings.detectingAccount"));
     const s = await getCurrentSummoner();
     if (!s) {
-      setStatus("Cliente no abierto. Abre LoL primero.");
+      setStatus(t("settings.clientNotOpen"));
       return;
     }
     if (s.gameName) setRiotIdName(s.gameName);
@@ -177,12 +177,17 @@ export function SettingsView({ onClose }: Props) {
       const r = s.region.toLowerCase() as Region;
       if (REGIONS.some((x) => x.value === r)) setRegion(r);
     }
-    setStatus(`Detectado: ${s.gameName ?? s.displayName ?? "?"}#${s.tagLine ?? "?"}`);
+    setStatus(
+      t("settings.detected", {
+        name: s.gameName ?? s.displayName ?? "?",
+        tag: s.tagLine ?? "?",
+      })
+    );
   }
 
   async function handleSaveAndSync() {
     setBusy(true);
-    setStatus("Sincronizando...");
+    setStatus(t("settings.syncing"));
     try {
       // Validate Riot ID via Riot API (works with personal apiKey OR proxy).
       // This refreshes the encrypted puuid in storage — critical if the user
@@ -198,12 +203,12 @@ export function SettingsView({ onClose }: Props) {
         setStatus(`${p.source}: ${p.message ?? `${p.done}/${p.total}`}`)
       );
       if (result.source === "none") {
-        setStatus("Abre el cliente de LoL y reintenta — sin LCU ni proxy/key no puedo sincronizar");
+        setStatus(t("settings.openClientRetry"));
       } else {
-        setStatus(`Listo ✓ (${result.matches} partidas vía ${result.source})`);
+        setStatus(t("settings.syncDoneReady", { matches: result.matches, source: result.source }));
       }
     } catch (e) {
-      setStatus(`Error: ${String(e)}`);
+      setStatus(t("settings.error", { error: String(e) }));
     } finally {
       setBusy(false);
     }
@@ -231,33 +236,26 @@ export function SettingsView({ onClose }: Props) {
 
         <div className="bg-bg-card border border-good/30 rounded p-3 text-xs text-white/80">
           <p className="font-medium text-good mb-1">
-            ✓ Modo automático (recomendado)
+            {t("settings.autoModeTitle")}
           </p>
-          <p>
-            Con el cliente de LoL abierto, la app detecta tu cuenta y partidas
-            automáticamente. No necesitas hacer nada más.
-          </p>
+          <p>{t("settings.autoModeBody")}</p>
           <p className="mt-1.5 text-white/55">
-            ¿Quieres scout enemigo, lookup de jugadores y meta multi-región sin
-            renovar key cada 24h? Configura un{" "}
-            <strong className="text-accent">proxy Cloudflare</strong> en
-            Preferencias (gratis, 5 min).
+            {t("settings.autoModeProxyPrefix")}{" "}
+            <strong className="text-accent">{t("settings.autoModeProxyName")}</strong>{" "}
+            {t("settings.autoModeProxySuffix")}
           </p>
         </div>
 
         <details className="bg-bg-card border border-border-subtle rounded p-3 text-xs text-white/70">
           <summary className="cursor-pointer text-white/80 font-medium">
-            ⚙️ Opciones avanzadas (API key Riot)
+            {t("settings.advancedOptions")}
           </summary>
           <div className="mt-3 space-y-3">
-            <p>
-              Solo necesario para: scout de enemigos en champ select, agregación
-              global del meta, y para usar la app sin tener el cliente abierto.
-            </p>
+            <p>{t("settings.advancedBody")}</p>
 
             <Field
-              label="Riot API Key (opcional)"
-              hint="Solo necesaria si NO usas el proxy. Las dev keys caducan en 24h. Las personal application keys (PAK) duran ~1 año."
+              label={t("settings.apiKeyLabel")}
+              hint={t("settings.apiKeyHint")}
             >
               <input
                 type="password"
@@ -274,7 +272,7 @@ export function SettingsView({ onClose }: Props) {
               />
               {apiKey && !apiKey.startsWith("RGAPI-") && (
                 <p className="text-[11px] text-bad mt-1">
-                  ⚠️ Las keys Riot empiezan por <code>RGAPI-</code>. Verifica que copiaste la correcta (no la de Groq).
+                  {t("settings.apiKeyWarningPrefix")} <code>RGAPI-</code>{t("settings.apiKeyWarningSuffix")}
                 </p>
               )}
               <div className="flex items-center justify-between gap-2">
@@ -284,11 +282,11 @@ export function SettingsView({ onClose }: Props) {
                   className="text-xs text-accent/80 hover:text-accent"
                   rel="noreferrer"
                 >
-                  Obtén tu key en developer.riotgames.com →
+                  {t("settings.getKey")}
                 </a>
                 {apiKey && (
                   <span className="text-xs text-meh">
-                    ⚠️ Las dev keys caducan cada 24h
+                    {t("settings.devKeysExpire")}
                   </span>
                 )}
               </div>
@@ -301,15 +299,15 @@ export function SettingsView({ onClose }: Props) {
         </Field>
 
         <Field
-          label="Canal de actualizaciones"
-          hint="Stable = releases oficiales solo. Beta = pre-releases para early testers (más bugs, features nuevas antes). Por defecto Stable."
+          label={t("settings.updateChannel")}
+          hint={t("settings.updateChannelHint")}
         >
           <UpdateChannelPicker />
         </Field>
 
         <Field
-          label="Región"
-          hint="Servidor de Riot donde está tu cuenta. EUW para Europa Occidental, NA para Norteamérica, KR para Corea, etc. Determina dónde se buscan tus matches."
+          label={t("settings.regionLabel")}
+          hint={t("settings.regionHint")}
         >
           <select
             value={region}
@@ -325,8 +323,8 @@ export function SettingsView({ onClose }: Props) {
         </Field>
 
         <Field
-          label="Riot ID"
-          hint="Tu nombre completo Riot: Faker#KR1, NombreDeInvocador#EUW, etc. El número/letras tras # es el tag. Lo encuentras en cliente LoL → arriba derecha del perfil."
+          label={t("settings.riotIdLabel")}
+          hint={t("settings.riotIdHint")}
         >
           <div className="flex gap-2">
             <input
@@ -350,7 +348,7 @@ export function SettingsView({ onClose }: Props) {
             type="button"
             className="text-xs text-accent/80 hover:text-accent mt-1"
           >
-            🔍 Auto-detectar desde el cliente de LoL
+            {t("settings.autoDetect")}
           </button>
         </Field>
 
@@ -360,7 +358,7 @@ export function SettingsView({ onClose }: Props) {
 
         {status && (
           <p
-            className={`text-sm ${status.startsWith("Error") ? "text-bad" : status.startsWith("Listo") ? "text-good" : "text-white/70"}`}
+            className={`text-sm ${/rror/.test(status) ? "text-bad" : status.includes("✓") ? "text-good" : "text-white/70"}`}
           >
             {status}
           </p>
@@ -371,14 +369,14 @@ export function SettingsView({ onClose }: Props) {
             onClick={onClose}
             className="px-4 py-2 text-white/70 hover:text-white"
           >
-            Cancelar
+            {t("common.cancel")}
           </button>
           <button
             disabled={busy}
             onClick={requestResync}
             type="button"
             className="px-3 py-2 bg-bg-card border border-bad/40 rounded text-bad/90 hover:border-bad disabled:opacity-50"
-            title="Borra y vuelve a descargar tus partidas (útil tras actualizar la app)"
+            title={t("settings.resyncTooltip")}
           >
             Re-sync
           </button>
@@ -387,9 +385,9 @@ export function SettingsView({ onClose }: Props) {
             onClick={syncProMeta}
             type="button"
             className="px-3 py-2 bg-accent/10 border border-accent/40 rounded text-accent hover:bg-accent/20 disabled:opacity-50"
-            title="Descarga últimas partidas LCK/LEC/LCS/LPL desde Leaguepedia (sin key)"
+            title={t("settings.syncProTooltip")}
           >
-            🏆 Sync meta PRO
+            {t("settings.syncProMeta")}
           </button>
           <button
             disabled={busy || !hasRiotAccess}
@@ -398,11 +396,11 @@ export function SettingsView({ onClose }: Props) {
             className="px-3 py-2 bg-bg-card border border-border-subtle rounded text-white/80 hover:border-accent disabled:opacity-50"
             title={
               hasRiotAccess
-                ? "Agrega Master+ SoloQ a la base de datos meta"
-                : "Necesita API key Riot o proxy configurado"
+                ? t("settings.syncMetaTooltip")
+                : t("settings.needKeyOrProxy")
             }
           >
-            Sync meta SoloQ
+            {t("settings.syncMetaSoloq")}
           </button>
           <button
             disabled={busy || !hasRiotAccess}
@@ -411,11 +409,11 @@ export function SettingsView({ onClose }: Props) {
             className="px-3 py-2 bg-bg-card border border-purple-400/40 rounded text-purple-300 hover:bg-purple-400/10 disabled:opacity-50"
             title={
               hasRiotAccess
-                ? "KR + EUW + NA. Tarda ~30 min, máxima calidad de datos"
-                : "Necesita API key Riot o proxy configurado"
+                ? t("settings.multiRegionTooltip")
+                : t("settings.needKeyOrProxy")
             }
           >
-            🌍 Multi-región
+            {t("settings.multiRegion")}
           </button>
           <button
             disabled={busy || !hasRiotAccess || !riotIdName || !riotIdTag}
@@ -423,21 +421,21 @@ export function SettingsView({ onClose }: Props) {
             className="px-4 py-2 bg-accent text-black font-medium rounded disabled:opacity-50"
             title={
               !hasRiotAccess
-                ? "Necesita API key Riot o proxy"
+                ? t("settings.needKeyOrProxyShort")
                 : !riotIdName || !riotIdTag
-                  ? "Completa Riot ID + tag arriba"
-                  : "Valida tu cuenta y sincroniza tu historial"
+                  ? t("settings.completeRiotId")
+                  : t("settings.saveSyncTooltip")
             }
           >
-            {busy ? "..." : "Guardar y sincronizar"}
+            {busy ? "..." : t("settings.saveAndSync")}
           </button>
         </div>
       </div>
       {confirmResync && (
         <ConfirmDialog
-          title="¿Resincronizar todo?"
-          message="Esto borra todas tus partidas guardadas localmente y vuelve a descargar el historial desde Riot. Tu cuenta de Riot no se toca. Puede tardar unos minutos."
-          confirmLabel="Resincronizar"
+          title={t("settings.resyncConfirmTitle")}
+          message={t("settings.resyncConfirmMsg")}
+          confirmLabel={t("settings.resyncConfirmLabel")}
           destructive
           onConfirm={resyncAll}
           onCancel={() => setConfirmResync(false)}
@@ -453,6 +451,7 @@ export function SettingsView({ onClose }: Props) {
  * matching manifest URL — flipping this triggers a new check on next
  * mount of useUpdateCheck. */
 function UpdateChannelPicker() {
+  const { t } = useTranslation();
   const channel = usePrefsStore((s) => s.prefs.updateChannel);
   const setPref = usePrefsStore((s) => s.set);
   return (
@@ -461,11 +460,11 @@ function UpdateChannelPicker() {
       onChange={(e) =>
         setPref("updateChannel", e.target.value as "stable" | "beta")
       }
-      aria-label="Canal de actualizaciones"
+      aria-label={t("settings.updateChannel")}
       className="w-full bg-bg px-3 py-2 rounded border border-border-subtle text-white"
     >
-      <option value="stable">Stable (recomendado)</option>
-      <option value="beta">Beta (acceso anticipado)</option>
+      <option value="stable">{t("settings.stableOption")}</option>
+      <option value="beta">{t("settings.betaOption")}</option>
     </select>
   );
 }
@@ -475,13 +474,14 @@ function UpdateChannelPicker() {
  * picker dumb means future locale additions only need a new entry in
  * SUPPORTED_LOCALES — no UI changes here. */
 function LocalePicker() {
+  const { t } = useTranslation();
   const uiLocale = usePrefsStore((s) => s.prefs.uiLocale);
   const setPref = usePrefsStore((s) => s.set);
   return (
     <select
       value={uiLocale}
       onChange={(e) => setPref("uiLocale", e.target.value as UiLocale)}
-      aria-label="Idioma de la interfaz"
+      aria-label={t("settings.languageHint")}
       className="w-full bg-bg px-3 py-2 rounded border border-border-subtle text-white"
     >
       {SUPPORTED_LOCALES.map((loc) => (
@@ -494,17 +494,18 @@ function LocalePicker() {
 }
 
 function ProxyOrLcuStatusBanner() {
+  const { t } = useTranslation();
   const proxyUrl = usePrefsStore((s) => s.prefs.riotProxyUrl);
   if (proxyUrl.trim().length === 0) return null;
   return (
     <div className="bg-bg-card border border-purple-400/40 rounded p-3 text-xs text-white/85">
       <p className="font-medium text-purple-300 mb-1">
-        🌟 Modo proxy premium activo
+        {t("settings.proxyActiveTitle")}
       </p>
       <p>
-        Las features que necesitan Riot API funcionan sin que tú configures key.
-        El proxy <code className="text-accent">{shortUrl(proxyUrl)}</code> se
-        encarga.
+        {t("settings.proxyActiveBodyPrefix")}{" "}
+        <code className="text-accent">{shortUrl(proxyUrl)}</code>{" "}
+        {t("settings.proxyActiveBodySuffix")}
       </p>
     </div>
   );
