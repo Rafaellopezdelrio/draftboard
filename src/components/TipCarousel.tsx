@@ -10,6 +10,7 @@
 // it's free after the first generation and never blocks the carousel.
 
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Lightbulb } from "lucide-react";
 import { Panel } from "./ui/Panel";
 import { usePrefsStore } from "../state/prefsStore";
@@ -96,6 +97,7 @@ function getTipsFor(champion: Champion | null, role: Role | null): string[] {
 const ROTATE_MS = 6000;
 
 export function TipCarousel({ champion, role, patch }: Props) {
+  const { t } = useTranslation();
   const provider = usePrefsStore((s) => s.prefs.aiProvider);
   const apiKey = usePrefsStore((s) =>
     s.prefs.aiProvider === "groq"
@@ -166,7 +168,7 @@ export function TipCarousel({ champion, role, patch }: Props) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between mb-1">
             <p className="text-[10px] uppercase tracking-widest text-accent font-semibold">
-              Tip · {champion?.name ?? role}
+              {t("tipCarousel.label")} · {champion?.name ?? role}
             </p>
             {tips.length > 1 && (
               <span className="text-[9px] text-white/35 tabular-nums">

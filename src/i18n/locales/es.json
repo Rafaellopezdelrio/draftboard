@@ -410,6 +410,9 @@
     "syncedSummary": "{{account}}#{{tag}} — {{matches}} partidas + {{masteries}} maestrías sincronizadas vía {{source}}.",
     "manualSummary": "Modo manual activado. Cuando abras el cliente de LoL, la app detectará tu cuenta automáticamente."
   },
+  "tipCarousel": {
+    "label": "Tip"
+  },
   "playstyle": {
     "title": "Tu estilo"
   },
