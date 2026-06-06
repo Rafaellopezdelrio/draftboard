@@ -371,6 +371,12 @@
     "backendDown": "Backend caído",
     "backendDownDetail": "El backend de Draftboard no responde. Funcionalidad limitada hasta que vuelva."
   },
+  "playstyle": {
+    "title": "Tu estilo"
+  },
+  "masteries": {
+    "title": "Tus mejores campeones"
+  },
   "overlayCompat": {
     "title": "Overlay no funcionará en Fullscreen",
     "bodyPrefix": "LoL está en modo",

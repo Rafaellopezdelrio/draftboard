@@ -371,6 +371,12 @@
     "backendDown": "Backend down",
     "backendDownDetail": "Draftboard's backend isn't responding. Limited functionality until it returns."
   },
+  "playstyle": {
+    "title": "Your style"
+  },
+  "masteries": {
+    "title": "Your best champions"
+  },
   "overlayCompat": {
     "title": "Overlay won't work in Fullscreen",
     "bodyPrefix": "LoL is in",

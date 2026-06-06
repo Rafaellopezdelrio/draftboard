@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import type { GpiScore } from "../engine/gpiEngine";
 import { InfoTooltip } from "./InfoTooltip";
 
@@ -15,17 +16,8 @@ const CATEGORIES: Array<keyof GpiScore["categories"]> = [
   "laning",
 ];
 
-const LABELS: Record<keyof GpiScore["categories"], string> = {
-  farming: "Farm",
-  vision: "Visión",
-  aggression: "Agresión",
-  survivability: "Supervivencia",
-  objectives: "Objetivos",
-  versatility: "Versatilidad",
-  laning: "Carril",
-};
-
 export function GpiRadar({ score }: Props) {
+  const { t } = useTranslation();
   const cx = 100;
   const cy = 100;
   const r = 80;
@@ -58,7 +50,7 @@ export function GpiRadar({ score }: Props) {
         textAnchor="middle"
         dominantBaseline="middle"
       >
-        {LABELS[cat]}
+        {t(`coach.category.${cat}`)}
       </text>
     );
   });

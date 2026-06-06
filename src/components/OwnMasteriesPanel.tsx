@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import type { ChampionDb } from "../types/champion";
 import type { ChampionMasteryDto } from "../services/riotApi";
 import type { ChampionPersonalStat } from "../services/matchRepo";
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export function OwnMasteriesPanel({ db, masteries, personalStats }: Props) {
+  const { t } = useTranslation();
   if (masteries.length === 0) return null;
 
   const wrById = new Map(personalStats.map((p) => [p.championId, p]));
@@ -19,7 +21,7 @@ export function OwnMasteriesPanel({ db, masteries, personalStats }: Props) {
     <Panel padding="sm">
       <PanelHeader
         icon={<Star className="w-3 h-3" />}
-        title="Tus mejores campeones"
+        title={t("masteries.title")}
       />
       <div className="space-y-1">
         {masteries.slice(0, 5).map((m, idx) => {
