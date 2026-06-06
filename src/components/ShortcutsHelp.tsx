@@ -3,6 +3,7 @@
 // of truth — when we add a new shortcut, update the SHORTCUTS table here.
 
 import { Keyboard, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useEscape } from "../hooks/useKeyboardShortcuts";
 
 interface Shortcut {
@@ -16,45 +17,46 @@ interface Group {
   items: Shortcut[];
 }
 
-const GROUPS: Group[] = [
-  {
-    title: "Navegación",
-    items: [
-      { keys: "Ctrl + K", label: "Abrir paleta de comandos" },
-      { keys: "Ctrl + /", label: "Ver este panel de atajos" },
-      { keys: "Esc", label: "Cerrar modal / cancelar acción" },
-    ],
-  },
-  {
-    title: "Draft",
-    items: [
-      { keys: "1 – 5", label: "Seleccionar rol", detail: "TOP, JUNGLE, MID, BOT, SUP" },
-      { keys: "R", label: "Reset draft" },
-    ],
-  },
-  {
-    title: "Overlay in-game",
-    items: [
-      { keys: "Arrastrar barra superior", label: "Mover ventana overlay" },
-      { keys: "X (en chip)", label: "Ocultar overlay" },
-      { keys: "Ctrl + K → Forzar overlay", label: "Mostrar manualmente sin partida" },
-    ],
-  },
-  {
-    title: "Diálogos",
-    items: [
-      { keys: "Enter", label: "Confirmar acción" },
-      { keys: "Esc", label: "Cancelar" },
-    ],
-  },
-];
-
 interface Props {
   onClose: () => void;
 }
 
 export function ShortcutsHelp({ onClose }: Props) {
+  const { t } = useTranslation();
   useEscape(onClose);
+
+  const GROUPS: Group[] = [
+    {
+      title: t("shortcuts.groupNav"),
+      items: [
+        { keys: "Ctrl + K", label: t("shortcuts.openPalette") },
+        { keys: "Ctrl + /", label: t("shortcuts.viewShortcuts") },
+        { keys: "Esc", label: t("shortcuts.closeModal") },
+      ],
+    },
+    {
+      title: t("shortcuts.groupDraft"),
+      items: [
+        { keys: "1 – 5", label: t("shortcuts.selectRole"), detail: "TOP, JUNGLE, MID, BOT, SUP" },
+        { keys: "R", label: t("shortcuts.resetDraft") },
+      ],
+    },
+    {
+      title: t("shortcuts.groupOverlay"),
+      items: [
+        { keys: t("shortcuts.dragTopBar"), label: t("shortcuts.moveOverlay") },
+        { keys: t("shortcuts.xOnChip"), label: t("shortcuts.hideOverlay") },
+        { keys: t("shortcuts.forceOverlayKeys"), label: t("shortcuts.forceOverlay") },
+      ],
+    },
+    {
+      title: t("shortcuts.groupDialogs"),
+      items: [
+        { keys: "Enter", label: t("shortcuts.confirmAction") },
+        { keys: "Esc", label: t("shortcuts.cancel") },
+      ],
+    },
+  ];
 
   return (
     <div
@@ -69,12 +71,12 @@ export function ShortcutsHelp({ onClose }: Props) {
           <div className="flex items-center gap-2">
             <Keyboard className="w-5 h-5 text-accent" />
             <h2 className="text-lg font-semibold text-white">
-              Atajos de teclado
+              {t("shortcuts.title")}
             </h2>
           </div>
           <button
             onClick={onClose}
-            aria-label="Cerrar"
+            aria-label={t("common.close")}
             className="text-white/40 hover:text-white"
           >
             <X className="w-4 h-4" />
@@ -112,7 +114,7 @@ export function ShortcutsHelp({ onClose }: Props) {
         </div>
 
         <p className="text-[10px] text-white/40 text-center pt-2 border-t border-border-subtle">
-          ¿Falta uno? Reporta y lo añadimos.
+          {t("shortcuts.footer")}
         </p>
       </div>
     </div>

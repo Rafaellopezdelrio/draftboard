@@ -419,6 +419,27 @@
   "championPool": {
     "title": "Tu pool"
   },
+  "shortcuts": {
+    "title": "Atajos de teclado",
+    "footer": "¿Falta uno? Reporta y lo añadimos.",
+    "groupNav": "Navegación",
+    "groupDraft": "Draft",
+    "groupOverlay": "Overlay in-game",
+    "groupDialogs": "Diálogos",
+    "openPalette": "Abrir paleta de comandos",
+    "viewShortcuts": "Ver este panel de atajos",
+    "closeModal": "Cerrar modal / cancelar acción",
+    "selectRole": "Seleccionar rol",
+    "resetDraft": "Reset draft",
+    "moveOverlay": "Mover ventana overlay",
+    "hideOverlay": "Ocultar overlay",
+    "forceOverlay": "Mostrar manualmente sin partida",
+    "confirmAction": "Confirmar acción",
+    "cancel": "Cancelar",
+    "dragTopBar": "Arrastrar barra superior",
+    "xOnChip": "X (en chip)",
+    "forceOverlayKeys": "Ctrl + K → Forzar overlay"
+  },
   "glossary": {
     "GPI": "Gameplay Performance Index. Score 0-100 que combina farm, visión, agresión, supervivencia, objetivos y versatilidad.",
     "KDA": "Kills + Assists ÷ Deaths. >2 es decente, >4 es excelente.",
