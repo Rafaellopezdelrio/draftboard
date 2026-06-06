@@ -371,6 +371,51 @@
     "backendDown": "Backend caído",
     "backendDownDetail": "El backend de Draftboard no responde. Funcionalidad limitada hasta que vuelva."
   },
+  "overlayCompat": {
+    "title": "Overlay no funcionará en Fullscreen",
+    "bodyPrefix": "LoL está en modo",
+    "bodyMiddle": ". Cambia a",
+    "bodySuffix": "en Settings → Video (mismo aspecto, permite overlays).",
+    "dontShow": "No mostrar más"
+  },
+  "update": {
+    "available": "Versión nueva disponible:",
+    "current": "(actual {{version}})",
+    "install": "Instalar"
+  },
+  "tracking": {
+    "phaseLabel": "Fase",
+    "missing": "FALTA",
+    "lcuOn": "Cliente LoL detectado",
+    "lcuOff": "Cliente LoL no detectado",
+    "draftDetected": "{{bans}} bans + {{picks}} picks detectados",
+    "draftNone": "Sin datos de champ select. Si estás en lobby, espera unos segundos.",
+    "phaseTitle": "Gameflow phase del LCU: {{phase}}",
+    "phaseNone": "no detectada",
+    "liveOk": "Live Client API respondiendo OK",
+    "liveStale": "Snapshot live > 10s sin refrescar — Live Client API puede estar caído",
+    "liveMissing": "Phase=InProgress pero no recibimos datos del Live Client API. ¿Está LoL fullscreen?",
+    "liveIdle": "Live Client API solo activo durante partida real"
+  },
+  "firstRun": {
+    "offline": "Sin conexión a internet",
+    "backendDown": "Backend no responde (Cloudflare Worker)",
+    "title": "Problemas detectados al arrancar",
+    "lcuNote": "(LoL client no detectado — normal si no lo has abierto)",
+    "openDiag": "Abrir diagnóstico"
+  },
+  "net": {
+    "never": "nunca",
+    "agoSec": "hace {{n}}s",
+    "agoMin": "hace {{n}}min",
+    "agoHr": "hace {{n}}h",
+    "offline": "Sin conexión a Internet",
+    "backendDown": "Backend no disponible",
+    "limited": "Conexión limitada",
+    "offlineDetail": "Mostrando datos en caché. Reconectamos al volver online.",
+    "staleDetail": "Tier list, builds y pro-data pueden estar desactualizados.",
+    "lastConnection": "Última conexión {{time}}"
+  },
   "common": {
     "retry": "Reintentar",
     "close": "Cerrar",

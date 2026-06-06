@@ -371,6 +371,51 @@
     "backendDown": "Backend down",
     "backendDownDetail": "Draftboard's backend isn't responding. Limited functionality until it returns."
   },
+  "overlayCompat": {
+    "title": "Overlay won't work in Fullscreen",
+    "bodyPrefix": "LoL is in",
+    "bodyMiddle": "mode. Switch to",
+    "bodySuffix": "in Settings → Video (same look, allows overlays).",
+    "dontShow": "Don't show again"
+  },
+  "update": {
+    "available": "New version available:",
+    "current": "(current {{version}})",
+    "install": "Install"
+  },
+  "tracking": {
+    "phaseLabel": "Phase",
+    "missing": "MISSING",
+    "lcuOn": "LoL client detected",
+    "lcuOff": "LoL client not detected",
+    "draftDetected": "{{bans}} bans + {{picks}} picks detected",
+    "draftNone": "No champ select data. If you're in lobby, wait a few seconds.",
+    "phaseTitle": "LCU gameflow phase: {{phase}}",
+    "phaseNone": "not detected",
+    "liveOk": "Live Client API responding OK",
+    "liveStale": "Live snapshot > 10s without refresh — Live Client API may be down",
+    "liveMissing": "Phase=InProgress but no data from the Live Client API. Is LoL fullscreen?",
+    "liveIdle": "Live Client API only active during a real match"
+  },
+  "firstRun": {
+    "offline": "No internet connection",
+    "backendDown": "Backend not responding (Cloudflare Worker)",
+    "title": "Problems detected at startup",
+    "lcuNote": "(LoL client not detected — normal if you haven't opened it)",
+    "openDiag": "Open diagnostics"
+  },
+  "net": {
+    "never": "never",
+    "agoSec": "{{n}}s ago",
+    "agoMin": "{{n}}min ago",
+    "agoHr": "{{n}}h ago",
+    "offline": "No internet connection",
+    "backendDown": "Backend unavailable",
+    "limited": "Limited connection",
+    "offlineDetail": "Showing cached data. We'll reconnect when you're back online.",
+    "staleDetail": "Tier list, builds and pro-data may be out of date.",
+    "lastConnection": "Last connection {{time}}"
+  },
   "common": {
     "retry": "Retry",
     "close": "Close",

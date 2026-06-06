@@ -9,6 +9,7 @@
 // the failure directly from the screen instead of digging logs.
 
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Wifi, WifiOff, Swords, Activity, Clock } from "lucide-react";
 import type { LcuStatus } from "../services/lcuService";
 import type { GamePhase } from "../state/inGameDetection";
@@ -21,6 +22,7 @@ interface Props {
 }
 
 export function TrackingStatusBar({ lcuStatus, gamePhase }: Props) {
+  const { t } = useTranslation();
   const draftState = useDraftStore();
   const liveGame = useLiveGame(true);
 
@@ -63,7 +65,7 @@ export function TrackingStatusBar({ lcuStatus, gamePhase }: Props) {
         label="LCU"
         value={lcuStatus.connected ? "OK" : "OFF"}
         color={lcuStatus.connected ? "good" : "bad"}
-        title={lcuStatus.reason ?? (lcuStatus.connected ? "Cliente LoL detectado" : "Cliente LoL no detectado")}
+        title={lcuStatus.reason ?? (lcuStatus.connected ? t("tracking.lcuOn") : t("tracking.lcuOff"))}
       />
 
       {/* Champ select tracking */}
@@ -74,18 +76,18 @@ export function TrackingStatusBar({ lcuStatus, gamePhase }: Props) {
         color={hasDraftData ? "good" : "muted"}
         title={
           hasDraftData
-            ? `${banCount} bans + ${pickCount} picks detectados`
-            : "Sin datos de champ select. Si estás en lobby, espera unos segundos."
+            ? t("tracking.draftDetected", { bans: banCount, picks: pickCount })
+            : t("tracking.draftNone")
         }
       />
 
       {/* Game phase */}
       <Pill
         icon={<Clock className="w-3 h-3" />}
-        label="Fase"
+        label={t("tracking.phaseLabel")}
         value={gamePhase ?? "—"}
         color={gamePhase ? "info" : "muted"}
-        title={`Gameflow phase del LCU: ${gamePhase ?? "no detectada"}`}
+        title={t("tracking.phaseTitle", { phase: gamePhase ?? t("tracking.phaseNone") })}
       />
 
       {/* Live game */}
@@ -98,18 +100,18 @@ export function TrackingStatusBar({ lcuStatus, gamePhase }: Props) {
             : liveStale
               ? `stale ${liveFreshSec}s`
               : liveMissing
-                ? "FALTA"
+                ? t("tracking.missing")
                 : "—"
         }
         color={liveOK ? "good" : liveStale ? "warn" : liveMissing ? "bad" : "muted"}
         title={
           liveOK
-            ? "Live Client API respondiendo OK"
+            ? t("tracking.liveOk")
             : liveStale
-              ? "Snapshot live > 10s sin refrescar — Live Client API puede estar caído"
+              ? t("tracking.liveStale")
               : liveMissing
-                ? "Phase=InProgress pero no recibimos datos del Live Client API. ¿Está LoL fullscreen?"
-                : "Live Client API solo activo durante partida real"
+                ? t("tracking.liveMissing")
+                : t("tracking.liveIdle")
         }
       />
     </div>

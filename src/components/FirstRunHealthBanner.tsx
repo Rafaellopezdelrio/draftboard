@@ -13,6 +13,7 @@
 // re-evaluated on next launch.
 
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { AlertTriangle, X } from "lucide-react";
 import { useNetworkStatus } from "../hooks/useNetworkStatus";
 
@@ -31,6 +32,7 @@ interface Props {
 const SETTLE_DELAY_MS = 4000;
 
 export function FirstRunHealthBanner({ lcuConnected, onShowDiagnostics }: Props) {
+  const { t } = useTranslation();
   const net = useNetworkStatus();
   const [dismissed, setDismissed] = useState(false);
   const [settled, setSettled] = useState(false);
@@ -47,8 +49,8 @@ export function FirstRunHealthBanner({ lcuConnected, onShowDiagnostics }: Props)
   // enough to show the banner — that's normal (user opens app first,
   // launches LoL later).
   const issues: string[] = [];
-  if (!net.online) issues.push("Sin conexión a internet");
-  if (net.online && !net.workerReachable) issues.push("Backend no responde (Cloudflare Worker)");
+  if (!net.online) issues.push(t("firstRun.offline"));
+  if (net.online && !net.workerReachable) issues.push(t("firstRun.backendDown"));
   if (issues.length === 0) return null;
 
   return (
@@ -59,29 +61,27 @@ export function FirstRunHealthBanner({ lcuConnected, onShowDiagnostics }: Props)
     >
       <AlertTriangle className="w-4 h-4 text-white shrink-0 mt-0.5" aria-hidden="true" />
       <div className="flex-1 min-w-0 text-xs">
-        <p className="font-semibold text-white">Problemas detectados al arrancar</p>
+        <p className="font-semibold text-white">{t("firstRun.title")}</p>
         <ul className="text-white/85 list-disc list-inside mt-0.5 space-y-0.5">
           {issues.map((i) => (
             <li key={i}>{i}</li>
           ))}
         </ul>
         {!lcuConnected && (
-          <p className="text-white/60 mt-1">
-            (LoL client no detectado — normal si no lo has abierto)
-          </p>
+          <p className="text-white/60 mt-1">{t("firstRun.lcuNote")}</p>
         )}
         <button
           type="button"
           onClick={onShowDiagnostics}
           className="mt-1.5 text-[11px] underline underline-offset-2 text-white/90 hover:text-white"
         >
-          Abrir diagnóstico
+          {t("firstRun.openDiag")}
         </button>
       </div>
       <button
         type="button"
         onClick={() => setDismissed(true)}
-        aria-label="Cerrar"
+        aria-label={t("common.close")}
         className="text-white/60 hover:text-white shrink-0"
       >
         <X className="w-3.5 h-3.5" />

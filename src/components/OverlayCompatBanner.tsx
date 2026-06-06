@@ -6,11 +6,13 @@
 // annoy users who've explicitly acknowledged the limitation.
 
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { AlertTriangle, X } from "lucide-react";
 import { useLoLWindowMode } from "../hooks/useLoLWindowMode";
 import { usePrefsStore } from "../state/prefsStore";
 
 export function OverlayCompatBanner() {
+  const { t } = useTranslation();
   const mode = useLoLWindowMode();
   const acknowledged = usePrefsStore((s) => s.prefs.fullscreenWarningAck);
   const setPref = usePrefsStore((s) => s.set);
@@ -31,12 +33,12 @@ export function OverlayCompatBanner() {
         <AlertTriangle className="w-4 h-4 text-bad shrink-0 mt-0.5" />
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-bad">
-            Overlay no funcionará en Fullscreen
+            {t("overlayCompat.title")}
           </p>
           <p className="text-xs text-white/75 mt-1 leading-relaxed">
-            LoL está en modo <strong>Fullscreen exclusive</strong>. Cambia a{" "}
-            <strong>Borderless</strong> en Settings → Video (mismo aspecto,
-            permite overlays).
+            {t("overlayCompat.bodyPrefix")} <strong>Fullscreen exclusive</strong>
+            {t("overlayCompat.bodyMiddle")} <strong>Borderless</strong>{" "}
+            {t("overlayCompat.bodySuffix")}
           </p>
           <div className="flex gap-2 mt-2">
             <button
@@ -45,19 +47,19 @@ export function OverlayCompatBanner() {
               }}
               className="text-[10px] uppercase tracking-widest text-white/60 hover:text-white"
             >
-              No mostrar más
+              {t("overlayCompat.dontShow")}
             </button>
             <button
               onClick={() => setDismissedThisSession(true)}
               className="text-[10px] uppercase tracking-widest text-bad/70 hover:text-bad ml-auto"
             >
-              Cerrar
+              {t("common.close")}
             </button>
           </div>
         </div>
         <button
           onClick={() => setDismissedThisSession(true)}
-          aria-label="Cerrar"
+          aria-label={t("common.close")}
           className="text-white/40 hover:text-white/70"
         >
           <X className="w-3.5 h-3.5" />

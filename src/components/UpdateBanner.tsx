@@ -4,10 +4,12 @@
 // dismiss for the rest of this session.
 
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Download, X } from "lucide-react";
 import { useUpdateCheck, installUpdate } from "../services/appUpdater";
 
 export function UpdateBanner() {
+  const { t } = useTranslation();
   const info = useUpdateCheck(true);
   const [dismissed, setDismissed] = useState(false);
   const [installing, setInstalling] = useState(false);
@@ -35,9 +37,9 @@ export function UpdateBanner() {
       <Download className="w-4 h-4 text-accent shrink-0" />
       <div className="flex-1 min-w-0">
         <p className="text-xs font-medium text-white">
-          Versión nueva disponible: <span className="text-accent">{info.version}</span>
+          {t("update.available")} <span className="text-accent">{info.version}</span>
           {info.currentVersion && (
-            <span className="text-white/40"> (actual {info.currentVersion})</span>
+            <span className="text-white/40"> {t("update.current", { version: info.currentVersion })}</span>
           )}
         </p>
         {info.releaseNotes && (
@@ -59,13 +61,13 @@ export function UpdateBanner() {
         disabled={installing}
         className="text-[10px] uppercase tracking-widest font-bold px-3 py-1.5 rounded bg-accent text-black hover:bg-accent/90 transition disabled:opacity-50"
       >
-        {installing ? `${pct}%...` : "Instalar"}
+        {installing ? `${pct}%...` : t("update.install")}
       </button>
       <button
         onClick={() => setDismissed(true)}
         disabled={installing}
         className="p-1 rounded text-white/40 hover:text-white/70 hover:bg-white/5 transition"
-        aria-label="Cerrar"
+        aria-label={t("common.close")}
       >
         <X className="w-3.5 h-3.5" />
       </button>
