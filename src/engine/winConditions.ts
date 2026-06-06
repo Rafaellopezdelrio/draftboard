@@ -31,8 +31,11 @@ export interface CompProfile {
 }
 
 export interface WinCondition {
-  /** Concrete tactical objective the user can actually do. */
-  text: string;
+  /** i18n key for the tactical objective (winConditions.rules.*). The panel
+   *  resolves it via t() so advice is localized, not hardcoded Spanish. */
+  key: string;
+  /** Optional interpolation params for the key (e.g. champion name). */
+  params?: Record<string, string | number>;
   /** Phase of the game this applies to. UI sorts by phase. */
   phase: "early" | "mid" | "late" | "any";
   /** Priority — UI may bold the top 2 and grey the rest. */
@@ -154,105 +157,54 @@ export function deriveWinConditions({
 
   // ---- Macro: when to fight based on comp shape ----
   if (enemies.archetype === "poke-siege") {
-    conditions.push({
-      text: "Compra wards y evita peleas largas en lane. Fuerza all-ins cortos antes de que su poke acumule daño.",
-      phase: "mid",
-      priority: 1,
-    });
+    conditions.push({ key: "winConditions.rules.enemyPokeSiege", phase: "mid", priority: 1 });
   } else if (enemies.archetype === "engage-front-back") {
-    conditions.push({
-      text: "Posiciona detrás de tu frontline. Si te engagean primero, su comp gana la peleas. Espera su CD.",
-      phase: "mid",
-      priority: 1,
-    });
+    conditions.push({ key: "winConditions.rules.enemyEngageFrontBack", phase: "mid", priority: 1 });
   } else if (enemies.archetype === "pick-burst") {
-    conditions.push({
-      text: "Nunca vayas solo a wards. Pickean cualquier carry sin escolta. Agrupa minutos 14-30.",
-      phase: "mid",
-      priority: 1,
-    });
+    conditions.push({ key: "winConditions.rules.enemyPickBurst", phase: "mid", priority: 1 });
   } else if (enemies.archetype === "scaling-late") {
-    conditions.push({
-      text: "Eres más fuerte ahora. Fuerza objetivos y skirmishes ANTES del minuto 25. Late-game = pierdes.",
-      phase: "early",
-      priority: 1,
-    });
+    conditions.push({ key: "winConditions.rules.enemyScalingLate", phase: "early", priority: 1 });
   } else if (enemies.archetype === "early-skirmish") {
-    conditions.push({
-      text: "Su comp peaks 5-15min. Juega seguro la primera oleada, evita gankeo + espera mid-game.",
-      phase: "early",
-      priority: 1,
-    });
+    conditions.push({ key: "winConditions.rules.enemyEarlySkirmish", phase: "early", priority: 1 });
   } else if (enemies.archetype === "split-1-4") {
-    conditions.push({
-      text: "Vigila side-laner enemigo. Pinguea MIA si desaparece. Tu equipo debe forzar 4v4 en mid.",
-      phase: "mid",
-      priority: 2,
-    });
+    conditions.push({ key: "winConditions.rules.enemySplit14", phase: "mid", priority: 2 });
   }
 
   // ---- Ally-side game plan ----
   if (allies.archetype === "scaling-late") {
-    conditions.push({
-      text: "Tu equipo escala. Pierde lane controlada > muere por ganar. Stack farm + CS hasta el minuto 25.",
-      phase: "early",
-      priority: 1,
-    });
+    conditions.push({ key: "winConditions.rules.allyScalingLate", phase: "early", priority: 1 });
   }
   if (allies.archetype === "engage-front-back" && allies.engageScore >= 2) {
-    conditions.push({
-      text: "Tu equipo tiene engage hard. Pingea para forzar peleas en objetivos. No los desperdicies en skirmishes.",
-      phase: "mid",
-      priority: 2,
-    });
+    conditions.push({ key: "winConditions.rules.allyEngageHard", phase: "mid", priority: 2 });
   }
   if (allies.archetype === "split-1-4" || (myChamp && SPLIT_PUSHERS.has(myChamp.name))) {
-    conditions.push({
-      text: "Empuja side opuesto a objetivos. Crea presión 1-3-1. Tu equipo gana al absorber TP/ulti.",
-      phase: "late",
-      priority: 2,
-    });
+    conditions.push({ key: "winConditions.rules.allySplitPush", phase: "late", priority: 2 });
   }
 
   // ---- Damage type vs enemy durability ----
   if (enemies.apShare >= 0.55 && allies.adShare >= 0.6) {
-    conditions.push({
-      text: "Comp enemiga AP-heavy, vosotros AD-heavy. Tu Soporte/Tank debe comprar Mercurial/Wit's End. Coordinad MR temprano.",
-      phase: "mid",
-      priority: 2,
-    });
+    conditions.push({ key: "winConditions.rules.dmgApVsAd", phase: "mid", priority: 2 });
   }
   if (enemies.adShare >= 0.55 && allies.apShare >= 0.6) {
-    conditions.push({
-      text: "Equipo enemigo AD-heavy. Tank ally compra Plated/Randuin. Tú builda armor situational si squishy.",
-      phase: "mid",
-      priority: 2,
-    });
+    conditions.push({ key: "winConditions.rules.dmgAdVsAp", phase: "mid", priority: 2 });
   }
 
   // ---- True damage threat ----
   if (enemies.trueDmg >= 2) {
-    conditions.push({
-      text: "Múltiples enemigos con daño verdadero — HP raw NO te salva. Combina HP + resistencias + escapes.",
-      phase: "late",
-      priority: 2,
-    });
+    conditions.push({ key: "winConditions.rules.trueDmg", phase: "late", priority: 2 });
   }
 
   // ---- My champion-specific late game ----
   if (myChamp && HYPER_CARRY_LATE.has(myChamp.name)) {
     conditions.push({
-      text: `${myChamp.name} es hypercarry. Tu equipo debe peelearte. Pídeles peel y mantente atrás en teamfights.`,
+      key: "winConditions.rules.myHypercarry",
+      params: { name: myChamp.name },
       phase: "late",
       priority: 1,
     });
   }
   if (myChamp && LONG_RANGE.has(myChamp.name) && enemies.diveScore >= 2) {
-    conditions.push({
-      text: "Su comp tiene dive — ward río + buy Stopwatch/QSS. Su CD principal = tu ventana de peleas.",
-      phase: "mid",
-      priority: 2,
-    });
+    conditions.push({ key: "winConditions.rules.myLongRangeVsDive", phase: "mid", priority: 2 });
   }
 
   // ---- Role-specific, comp-tied tip (uses myRole) ----
@@ -261,11 +213,7 @@ export function deriveWinConditions({
 
   // ---- Default if comp is mixed ----
   if (conditions.length === 0) {
-    conditions.push({
-      text: "Comp equilibrada. Juega objetivos: Dragon stack > Baron tempo > Cierre con Soul/Elder.",
-      phase: "any",
-      priority: 2,
-    });
+    conditions.push({ key: "winConditions.rules.defaultMixed", phase: "any", priority: 2 });
   }
 
   // Sort by priority asc, then by phase order
@@ -293,78 +241,30 @@ function roleCondition(
   switch (myRole) {
     case "JUNGLE":
       if (allies.archetype === "scaling-late")
-        return {
-          text: "Jungla: trackea su jungla y farmea seguro — no fuerces ganks que retrasen el escalado de tu equipo.",
-          phase: "early",
-          priority: 2,
-        };
+        return { key: "winConditions.rules.roleJungleScaling", phase: "early", priority: 2 };
       if (enemies.archetype === "early-skirmish" || enemies.diveScore >= 2)
-        return {
-          text: "Jungla: su comp pelea early — vive en las lanes, contra-gankea y niégales el tempo.",
-          phase: "early",
-          priority: 2,
-        };
-      return {
-        text: "Jungla: marcas el tempo de objetivos — empareja cada spawn de dragón con prio de carril.",
-        phase: "any",
-        priority: 3,
-      };
+        return { key: "winConditions.rules.roleJungleEarly", phase: "early", priority: 2 };
+      return { key: "winConditions.rules.roleJungleDefault", phase: "any", priority: 3 };
     case "UTILITY":
       if (enemies.archetype === "pick-burst" || enemies.diveScore >= 2)
-        return {
-          text: "Support: tu visión rompe sus picks — wardea flancos y ríos ANTES de cada objetivo.",
-          phase: "mid",
-          priority: 2,
-        };
+        return { key: "winConditions.rules.roleSupportPick", phase: "mid", priority: 2 };
       if (allies.engageScore >= 2)
-        return {
-          text: "Support: tienes engage — busca el primer pick en objetivos, no en lane vacía.",
-          phase: "mid",
-          priority: 2,
-        };
-      return {
-        text: "Support: ganas el mapa con visión — control ward en cada recall y limpia la suya.",
-        phase: "any",
-        priority: 3,
-      };
+        return { key: "winConditions.rules.roleSupportEngage", phase: "mid", priority: 2 };
+      return { key: "winConditions.rules.roleSupportDefault", phase: "any", priority: 3 };
     case "MIDDLE":
       if (enemies.archetype === "poke-siege")
-        return {
-          text: "Mid: presiona oleadas para robar tempo y roamea cuando empujen tu torre.",
-          phase: "mid",
-          priority: 3,
-        };
-      return {
-        text: "Mid: tras shovear, roamea con prio a side/objetivos — tu impacto está en el mapa.",
-        phase: "mid",
-        priority: 3,
-      };
+        return { key: "winConditions.rules.roleMidPoke", phase: "mid", priority: 3 };
+      return { key: "winConditions.rules.roleMidDefault", phase: "mid", priority: 3 };
     case "BOTTOM":
       if (enemies.diveScore >= 2 || enemies.archetype === "pick-burst")
-        return {
-          text: "ADC: posición lo es todo vs su dive/pick — no des flancos y guarda summoner defensivo para peleas.",
-          phase: "late",
-          priority: 1,
-        };
-      return {
-        text: "ADC: encuentra tu zona de daño cada pelea — pega desde la última posición segura.",
-        phase: "late",
-        priority: 2,
-      };
+        return { key: "winConditions.rules.roleAdcDive", phase: "late", priority: 1 };
+      return { key: "winConditions.rules.roleAdcDefault", phase: "late", priority: 2 };
     case "TOP":
       // Split tip already covered when the champ is a split pusher.
       if (myChamp && SPLIT_PUSHERS.has(myChamp.name)) return null;
       if (enemies.diveScore >= 2)
-        return {
-          text: "Top: guarda TP para flanquear peleas — tu mayor impacto es girar con TP, no quedarte aislado.",
-          phase: "mid",
-          priority: 2,
-        };
-      return {
-        text: "Top: elige split o agrupar según el objetivo — comunica TP antes de cada dragón/Baron.",
-        phase: "mid",
-        priority: 3,
-      };
+        return { key: "winConditions.rules.roleTopDive", phase: "mid", priority: 2 };
+      return { key: "winConditions.rules.roleTopDefault", phase: "mid", priority: 3 };
     default:
       return null;
   }

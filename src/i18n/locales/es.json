@@ -23,7 +23,36 @@
   "winConditions": {
     "title": "Game plan",
     "subtitle": "prioridad táctica",
-    "phaseTooltip": "Fase {{phase}} · prioridad {{priority}}"
+    "phaseTooltip": "Fase {{phase}} · prioridad {{priority}}",
+    "rules": {
+      "enemyPokeSiege": "Compra wards y evita peleas largas en lane. Fuerza all-ins cortos antes de que su poke acumule daño.",
+      "enemyEngageFrontBack": "Posiciona detrás de tu frontline. Si te engagean primero, su comp gana las peleas. Espera su CD.",
+      "enemyPickBurst": "Nunca vayas solo a wards. Pickean cualquier carry sin escolta. Agrupa minutos 14-30.",
+      "enemyScalingLate": "Eres más fuerte ahora. Fuerza objetivos y skirmishes ANTES del minuto 25. Late-game = pierdes.",
+      "enemyEarlySkirmish": "Su comp peaks 5-15min. Juega seguro la primera oleada, evita gankeo + espera mid-game.",
+      "enemySplit14": "Vigila al side-laner enemigo. Pinguea MIA si desaparece. Tu equipo debe forzar 4v4 en mid.",
+      "allyScalingLate": "Tu equipo escala. Pierde lane controlada > muere por ganar. Stack farm + CS hasta el minuto 25.",
+      "allyEngageHard": "Tu equipo tiene engage hard. Pingea para forzar peleas en objetivos. No los desperdicies en skirmishes.",
+      "allySplitPush": "Empuja el side opuesto a objetivos. Crea presión 1-3-1. Tu equipo gana al absorber TP/ulti.",
+      "dmgApVsAd": "Comp enemiga AP-heavy, vosotros AD-heavy. Tu Soporte/Tank debe comprar Mercurial/Wit's End. Coordinad MR temprano.",
+      "dmgAdVsAp": "Equipo enemigo AD-heavy. Tank ally compra Plated/Randuin. Tú builda armor situacional si squishy.",
+      "trueDmg": "Múltiples enemigos con daño verdadero — HP raw NO te salva. Combina HP + resistencias + escapes.",
+      "myHypercarry": "{{name}} es hypercarry. Tu equipo debe peelearte. Pídeles peel y mantente atrás en teamfights.",
+      "myLongRangeVsDive": "Su comp tiene dive — ward río + buy Stopwatch/QSS. Su CD principal = tu ventana de peleas.",
+      "defaultMixed": "Comp equilibrada. Juega objetivos: Dragon stack > Baron tempo > Cierre con Soul/Elder.",
+      "roleJungleScaling": "Jungla: trackea su jungla y farmea seguro — no fuerces ganks que retrasen el escalado de tu equipo.",
+      "roleJungleEarly": "Jungla: su comp pelea early — vive en las lanes, contra-gankea y niégales el tempo.",
+      "roleJungleDefault": "Jungla: marcas el tempo de objetivos — empareja cada spawn de dragón con prio de carril.",
+      "roleSupportPick": "Support: tu visión rompe sus picks — wardea flancos y ríos ANTES de cada objetivo.",
+      "roleSupportEngage": "Support: tienes engage — busca el primer pick en objetivos, no en lane vacía.",
+      "roleSupportDefault": "Support: ganas el mapa con visión — control ward en cada recall y limpia la suya.",
+      "roleMidPoke": "Mid: presiona oleadas para robar tempo y roamea cuando empujen tu torre.",
+      "roleMidDefault": "Mid: tras shovear, roamea con prio a side/objetivos — tu impacto está en el mapa.",
+      "roleAdcDive": "ADC: la posición lo es todo vs su dive/pick — no des flancos y guarda summoner defensivo para peleas.",
+      "roleAdcDefault": "ADC: encuentra tu zona de daño cada pelea — pega desde la última posición segura.",
+      "roleTopDive": "Top: guarda TP para flanquear peleas — tu mayor impacto es girar con TP, no quedarte aislado.",
+      "roleTopDefault": "Top: elige split o agrupar según el objetivo — comunica TP antes de cada dragón/Baron."
+    }
   },
   "trade": {
     "title": "Sugerencia de trade",

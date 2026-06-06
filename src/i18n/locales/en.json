@@ -23,7 +23,36 @@
   "winConditions": {
     "title": "Game plan",
     "subtitle": "tactical priority",
-    "phaseTooltip": "Phase {{phase}} · priority {{priority}}"
+    "phaseTooltip": "Phase {{phase}} · priority {{priority}}",
+    "rules": {
+      "enemyPokeSiege": "Buy wards and avoid long lane fights. Force short all-ins before their poke stacks up.",
+      "enemyEngageFrontBack": "Position behind your frontline. If they engage on you first, their comp wins the fight. Wait out their CDs.",
+      "enemyPickBurst": "Never walk to wards alone. They pick off any unescorted carry. Group from minutes 14-30.",
+      "enemyScalingLate": "You're stronger now. Force objectives and skirmishes BEFORE minute 25. Late-game = you lose.",
+      "enemyEarlySkirmish": "Their comp peaks at 5-15min. Play the first wave safe, dodge ganks, wait for mid-game.",
+      "enemySplit14": "Watch the enemy side-laner. Ping MIA when they vanish. Your team must force a 4v4 mid.",
+      "allyScalingLate": "Your team scales. Losing lane under control > dying to win it. Stack farm + CS until minute 25.",
+      "allyEngageHard": "Your team has hard engage. Ping to force fights at objectives. Don't waste it on skirmishes.",
+      "allySplitPush": "Push the side opposite objectives. Create 1-3-1 pressure. Your team wins by soaking TP/ult.",
+      "dmgApVsAd": "Enemy comp is AP-heavy, you're AD-heavy. Your Support/Tank should buy Mercurial/Wit's End. Coordinate MR early.",
+      "dmgAdVsAp": "Enemy team is AD-heavy. Ally tank buys Plated/Randuin. Build situational armor if you're squishy.",
+      "trueDmg": "Multiple enemies deal true damage — raw HP won't save you. Mix HP + resistances + escapes.",
+      "myHypercarry": "{{name}} is a hypercarry. Your team must peel for you. Ask for peel and stay back in teamfights.",
+      "myLongRangeVsDive": "Their comp has dive — ward the river + buy Stopwatch/QSS. Their main CD = your fight window.",
+      "defaultMixed": "Balanced comp. Play objectives: Dragon stack > Baron tempo > close with Soul/Elder.",
+      "roleJungleScaling": "Jungle: track their jungler and farm safe — don't force ganks that delay your team's scaling.",
+      "roleJungleEarly": "Jungle: their comp fights early — live in the lanes, counter-gank and deny their tempo.",
+      "roleJungleDefault": "Jungle: you set the objective tempo — pair each dragon spawn with lane priority.",
+      "roleSupportPick": "Support: your vision breaks their picks — ward flanks and rivers BEFORE every objective.",
+      "roleSupportEngage": "Support: you have engage — look for the first pick at objectives, not in an empty lane.",
+      "roleSupportDefault": "Support: you win the map with vision — control ward every recall and clear theirs.",
+      "roleMidPoke": "Mid: shove waves to steal tempo and roam when they push your tower.",
+      "roleMidDefault": "Mid: after shoving, roam with priority to side/objectives — your impact is on the map.",
+      "roleAdcDive": "ADC: positioning is everything vs their dive/pick — don't give flanks and save a defensive summoner for fights.",
+      "roleAdcDefault": "ADC: find your damage zone every fight — deal damage from the last safe position.",
+      "roleTopDive": "Top: hold TP to flank fights — your biggest impact is rotating with TP, not getting isolated.",
+      "roleTopDefault": "Top: choose split or group based on the objective — call TP before every dragon/Baron."
+    }
   },
   "trade": {
     "title": "Trade suggestion",

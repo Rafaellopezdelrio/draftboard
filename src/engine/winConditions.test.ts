@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { deriveWinConditions } from "./winConditions";
-import type { ChampionDb } from "../types/champion";
+import type { ChampionDb, Role } from "../types/champion";
+import es from "../i18n/locales/es.json";
 
 function mockDb(): ChampionDb {
   const champs = {
@@ -40,7 +41,7 @@ describe("deriveWinConditions", () => {
       allyKeys: ["1"],
       enemyKeys: ["3", "4", "5"], // Cait + Lux + Xerath = 3 long-range
     });
-    expect(out.some((c) => c.text.includes("poke") || c.text.includes("all-ins"))).toBe(true);
+    expect(out.some((c) => c.key === "winConditions.rules.enemyPokeSiege")).toBe(true);
   });
 
   it("flags Vayne as hypercarry needing peel", () => {
@@ -51,7 +52,11 @@ describe("deriveWinConditions", () => {
       allyKeys: ["6", "2"],
       enemyKeys: ["7"],
     });
-    expect(out.some((c) => c.text.includes("Vayne") && c.text.includes("peel"))).toBe(true);
+    expect(
+      out.some(
+        (c) => c.key === "winConditions.rules.myHypercarry" && c.params?.name === "Vayne"
+      )
+    ).toBe(true);
   });
 
   it("caps at 4 conditions max", () => {
@@ -65,15 +70,15 @@ describe("deriveWinConditions", () => {
     expect(out.length).toBeLessThanOrEqual(4);
   });
 
-  it("adds an ADC positioning read vs a dive/pick comp", () => {
+  it("adds an ADC positioning read for a bottom-laner", () => {
     const out = deriveWinConditions({
       db: mockDb(),
       myChampionKey: "1",
       myRole: "BOTTOM",
       allyKeys: ["1"],
-      enemyKeys: ["7"], // Zed = pick-burst / dive
+      enemyKeys: ["7"], // Zed
     });
-    expect(out.some((c) => c.text.startsWith("ADC:"))).toBe(true);
+    expect(out.some((c) => c.key.startsWith("winConditions.rules.roleAdc"))).toBe(true);
   });
 
   it("gives a jungle tempo tip tied to the comp", () => {
@@ -84,7 +89,7 @@ describe("deriveWinConditions", () => {
       allyKeys: ["1"],
       enemyKeys: ["3"],
     });
-    expect(out.some((c) => c.text.startsWith("Jungla:"))).toBe(true);
+    expect(out.some((c) => c.key.startsWith("winConditions.rules.roleJungle"))).toBe(true);
   });
 
   it("gives no role tip when role is null", () => {
@@ -95,6 +100,44 @@ describe("deriveWinConditions", () => {
       allyKeys: ["1"],
       enemyKeys: ["3"],
     });
-    expect(out.some((c) => /^(ADC|Jungla|Support|Mid|Top):/.test(c.text))).toBe(false);
+    expect(out.some((c) => c.key.includes(".rules.role"))).toBe(false);
+  });
+
+  it("every emitted key resolves to a real translation (no orphan keys)", () => {
+    // Sweep many comp/role permutations, collect every key the engine can
+    // emit, and assert each one exists in es.json. Guards against an engine
+    // branch pointing at a key nobody added to the locale bundle.
+    const rules = (es as { winConditions: { rules: Record<string, string> } })
+      .winConditions.rules;
+    const roles: (Role | null)[] = [
+      null,
+      "TOP",
+      "JUNGLE",
+      "MIDDLE",
+      "BOTTOM",
+      "UTILITY",
+    ];
+    const champKeys = [null, "1", "2", "3", "4", "5", "6", "7"];
+    const enemySets = [[], ["3", "4", "5"], ["7"], ["3"], ["1", "6"], ["2"]];
+    const seen = new Set<string>();
+    for (const role of roles)
+      for (const ck of champKeys)
+        for (const en of enemySets)
+          for (const al of enemySets) {
+            for (const c of deriveWinConditions({
+              db: mockDb(),
+              myChampionKey: ck,
+              myRole: role,
+              allyKeys: al,
+              enemyKeys: en,
+            })) {
+              seen.add(c.key);
+            }
+          }
+    const orphans = [...seen].filter(
+      (k) => !(k.replace("winConditions.rules.", "") in rules)
+    );
+    expect(orphans).toEqual([]);
+    expect(seen.size).toBeGreaterThan(10); // sanity: we actually exercised many
   });
 });

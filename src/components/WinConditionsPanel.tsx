@@ -96,7 +96,7 @@ function WinConditionsPanelInner({
             {phaseIcon(c.phase)}
             <div className="flex-1 min-w-0">
               <p className={c.priority === 1 ? "text-white font-medium" : "text-white/80"}>
-                {c.text}
+                {t(c.key, c.params)}
               </p>
               <span className="text-[9px] uppercase tracking-wider text-white/35">
                 {phaseLabel(c.phase)} · #{c.priority}
