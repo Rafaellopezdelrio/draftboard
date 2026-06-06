@@ -21,20 +21,21 @@ DiagnosticsView, HistoryView, PreferencesView, SettingsView, ConfirmDialog, View
 - `winConditions.ts` → `winConditions.rules.*` (27 rules)
 - `scoutInsights.ts` → `scout.note.*` / `scout.summary.*` (note also spoken via i18n.t)
 - `lobbyInsights.ts` → `lobby.*` (dodgeHint returns structured; panel composes text)
+- `leakEngine.ts` → `trends.leak*` (additive keys; Spanish kept for AI-memory path)
+- `aramEngine.ts` → `aram.*` (returns keys; BuildPanel resolves)
+- `runeAdvice.ts` → `runeAdvice.*` (returns keys; BuildPanel resolves)
 
 ## Remaining
 ### Chrome (A)
-CoachView · MatchupTipsPanel · TierListView · ProPlayersView · AiChatView ·
-LessonPlanView · SummonerLookupView · LiveGamePanel · LiveGameView · OnboardingView ·
+CoachView · TierListView · ProPlayersView · AiChatView · LessonPlanView ·
+SummonerLookupView · LiveGamePanel · LiveGameView · OnboardingView ·
 ChampionPoolPanel · PlaystylePanel · PatchImpactPanel · OwnMasteriesPanel ·
 DraftCoachPanel · GpiRadar · misc banners/modals
+(MatchupTipsPanel chrome done; tip content already bilingual via data layer)
 
 ### Engine content (B)
 - `liveCoachEngine.ts` (live insights — also spoken)
-- `leakEngine.ts` (trends leak headlines/advice)
-- `aramEngine.ts` (ARAM tips)
-- `runeAdvice.ts` (rune/shard tweaks)
-- `topInsight.ts` / `gpiEngine.ts` (post-game tips)
+- `topInsight.ts` / `gpiEngine.ts` (post-game tips, GPI axis labels)
 - `trendsEngine.ts` (trend insights)
 - `playstyleEngine.ts` (archetype labels/traits)
 - `banEngine.ts` reasons · `suggestionEngine` reasons · `matchupTips` data
