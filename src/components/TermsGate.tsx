@@ -6,6 +6,7 @@
 // Once accepted the gate never shows again unless prefs are wiped.
 
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ScrollText, Shield, Database, Bot } from "lucide-react";
 import { usePrefsStore } from "../state/prefsStore";
 import { TERMS_VERSION } from "../config";
@@ -16,6 +17,7 @@ interface Props {
 }
 
 export function TermsGate({ children }: Props) {
+  const { t } = useTranslation();
   const acceptedAt = usePrefsStore((s) => s.prefs.termsAcceptedAt);
   const acceptedVersion = usePrefsStore((s) => s.prefs.termsAcceptedVersion);
   const setPref = usePrefsStore((s) => s.set);
@@ -42,69 +44,49 @@ export function TermsGate({ children }: Props) {
           <div className="flex items-center gap-3">
             <Shield className="w-6 h-6 text-accent" />
             <h1 className="text-xl font-semibold text-white">
-              {isReAcceptance
-                ? "Aviso legal actualizado"
-                : "Aviso legal y privacidad"}
+              {isReAcceptance ? t("terms.titleUpdated") : t("terms.titleNew")}
             </h1>
           </div>
           <p className="text-sm text-white/65 mt-2">
-            {isReAcceptance
-              ? "Hemos cambiado partes del aviso. Lee y vuelve a aceptar para continuar."
-              : "Antes de empezar, lee qué datos usamos y de quién."}
+            {isReAcceptance ? t("terms.subtitleUpdated") : t("terms.subtitleNew")}
           </p>
         </header>
 
         <div className="p-6 space-y-5 text-sm text-white/80 leading-relaxed">
-          <Section icon={Database} title="Datos que guardamos">
+          <Section icon={Database} title={t("terms.dataTitle")}>
             <ul className="list-disc pl-5 space-y-1 text-white/70">
               <li>
-                <strong>Tu cuenta de LoL</strong>: nombre, PUUID y región. Se
-                lee del cliente de LoL local (no compartimos).
+                <strong>{t("terms.dataAccountLabel")}</strong>: {t("terms.dataAccountDetail")}
               </li>
               <li>
-                <strong>Historial de partidas</strong>: KDA, CS, builds, items.
-                Almacenado en SQLite local en tu PC.
+                <strong>{t("terms.dataMatchesLabel")}</strong>: {t("terms.dataMatchesDetail")}
               </li>
               <li>
-                <strong>Preferencias</strong>: roles, ajustes UI, claves API
-                opcionales. Todo local.
+                <strong>{t("terms.dataPrefsLabel")}</strong>: {t("terms.dataPrefsDetail")}
               </li>
               <li>
-                <strong>Telemetría de errores</strong> (Sentry): solo crashes
-                anonimizados — sin nombres, sin chat, sin partidas.
+                <strong>{t("terms.dataTelemetryLabel")}</strong> {t("terms.dataTelemetryDetail")}
               </li>
             </ul>
-            <p className="text-white/55 text-xs mt-2">
-              Puedes exportar o borrar todo en Settings → Mis datos. Cumple con
-              GDPR (derechos de acceso, portabilidad y supresión).
+            <p className="text-white/55 text-xs mt-2">{t("terms.dataGdpr")}</p>
+          </Section>
+
+          <Section icon={Bot} title={t("terms.sourcesTitle")}>
+            <p className="text-white/70">
+              {t("terms.sourcesPrefix")}{" "}
+              <strong>Riot Data Dragon, op.gg, dpm.lol, u.gg, Leaguepedia</strong>,{" "}
+              {t("terms.sourcesSuffix")}
             </p>
           </Section>
 
-          <Section icon={Bot} title="Fuentes de datos externas">
-            <p className="text-white/70">
-              Draftboard consulta datos públicos de: <strong>Riot Data Dragon</strong>,
-              <strong> op.gg</strong>, <strong>dpm.lol</strong>, <strong>u.gg</strong>,{" "}
-              <strong>Leaguepedia</strong>, y opcionalmente proveedores de IA
-              (Groq/Anthropic/Gemini) cuando tú añades tu clave.
-            </p>
-          </Section>
-
-          <Section icon={ScrollText} title="Riot Games — no endorsado">
-            <p className="text-white/70">
-              Draftboard <strong>no está endorsado por Riot Games</strong> y no
-              refleja las opiniones de Riot Games ni de nadie oficialmente
-              involucrado en producir o gestionar League of Legends. League of
-              Legends y Riot Games son marcas registradas de Riot Games, Inc.
-            </p>
-            <p className="text-white/55 text-xs mt-2">
-              Solo usamos APIs oficiales (LCU + Live Client). No leemos memoria
-              del juego, no hay automatización ingame, nada bannable.
-            </p>
+          <Section icon={ScrollText} title={t("terms.notEndorsedTitle")}>
+            <p className="text-white/70">{t("terms.notEndorsedBody")}</p>
+            <p className="text-white/55 text-xs mt-2">{t("terms.notEndorsedSafe")}</p>
           </Section>
 
           <div className="bg-bg-elev border border-border-subtle rounded p-3 text-xs text-white/60">
-            Licencia MIT. Código fuente y términos completos en{" "}
-            <span className="text-accent">LICENSE</span> dentro del paquete.
+            {t("terms.licensePrefix")}{" "}
+            <span className="text-accent">LICENSE</span> {t("terms.licenseSuffix")}
           </div>
         </div>
 
@@ -116,10 +98,7 @@ export function TermsGate({ children }: Props) {
               onChange={(e) => setAgreeChecked(e.target.checked)}
               className="mt-0.5 w-4 h-4 accent-accent"
             />
-            <span className="text-sm text-white/80">
-              He leído y acepto el aviso de privacidad, el uso de datos y el
-              disclaimer de Riot Games.
-            </span>
+            <span className="text-sm text-white/80">{t("terms.agreeLabel")}</span>
           </label>
           <button
             onClick={() => {
@@ -131,7 +110,7 @@ export function TermsGate({ children }: Props) {
             disabled={!agreeChecked}
             className="w-full px-4 py-2.5 bg-accent text-black font-medium rounded hover:bg-accent-deep transition disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            {isReAcceptance ? "Acepto los cambios" : "Acepto y empezar"}
+            {isReAcceptance ? t("terms.acceptUpdated") : t("terms.acceptNew")}
           </button>
         </footer>
       </div>

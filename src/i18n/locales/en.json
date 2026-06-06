@@ -312,6 +312,33 @@
     "barSynergyNoData": "No allies in the draft",
     "barMeta": "Meta (patch tier)"
   },
+  "terms": {
+    "titleNew": "Legal notice & privacy",
+    "titleUpdated": "Legal notice updated",
+    "subtitleNew": "Before you start, read what data we use and from whom.",
+    "subtitleUpdated": "We've changed parts of the notice. Read it and accept again to continue.",
+    "dataTitle": "Data we store",
+    "dataAccountLabel": "Your LoL account",
+    "dataAccountDetail": "name, PUUID and region. Read from the local LoL client (we don't share it).",
+    "dataMatchesLabel": "Match history",
+    "dataMatchesDetail": "KDA, CS, builds, items. Stored in local SQLite on your PC.",
+    "dataPrefsLabel": "Preferences",
+    "dataPrefsDetail": "roles, UI settings, optional API keys. All local.",
+    "dataTelemetryLabel": "Error telemetry",
+    "dataTelemetryDetail": "(Sentry): only anonymized crashes — no names, no chat, no matches.",
+    "dataGdpr": "You can export or delete everything in Settings → My data. GDPR-compliant (access, portability and erasure rights).",
+    "sourcesTitle": "External data sources",
+    "sourcesPrefix": "Draftboard reads public data from:",
+    "sourcesSuffix": "and optionally AI providers (Groq/Anthropic/Gemini) when you add your key.",
+    "notEndorsedTitle": "Riot Games — not endorsed",
+    "notEndorsedBody": "Draftboard is not endorsed by Riot Games and doesn't reflect the views of Riot Games or anyone officially involved in producing or managing League of Legends. League of Legends and Riot Games are trademarks of Riot Games, Inc.",
+    "notEndorsedSafe": "We only use official APIs (LCU + Live Client). No game memory reads, no in-game automation, nothing bannable.",
+    "licensePrefix": "MIT license. Source code and full terms in",
+    "licenseSuffix": "inside the package.",
+    "agreeLabel": "I have read and accept the privacy notice, the data usage and the Riot Games disclaimer.",
+    "acceptNew": "Accept & start",
+    "acceptUpdated": "Accept the changes"
+  },
   "footer": {
     "versionTitle": "See what's new in this version",
     "disclaimer": "Not endorsed by Riot Games · LoL © Riot Games, Inc."

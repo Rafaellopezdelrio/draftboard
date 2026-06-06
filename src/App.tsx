@@ -302,10 +302,17 @@ function App() {
   // Sync UI locale pref → i18next whenever it changes. main.tsx already
   // seeded the initial locale from localStorage for first-paint; this
   // effect handles runtime changes (user picks a new locale in Settings).
+  //
+  // GATED ON `loaded`: before the prefs store hydrates, `uiLocale` is the
+  // DEFAULT ("es"). Firing setUiLocale("es") then setUiLocale("en") once the
+  // real pref loads created an async race (both await a dynamic import +
+  // changeLanguage) where the stale "es" call could resolve LAST and revert
+  // the language — the user picked English, reloaded, and got Spanish back.
+  // Waiting for `loaded` means we only ever apply the real persisted locale.
   const uiLocale = usePrefsStore((s) => s.prefs.uiLocale);
   useEffect(() => {
-    setUiLocale(uiLocale);
-  }, [uiLocale]);
+    if (prefsLoaded) setUiLocale(uiLocale);
+  }, [uiLocale, prefsLoaded]);
 
   // Sentry navigation breadcrumbs — one hook call per view modal.
   // Extracted from a wall of 10 useEffects that all did the same

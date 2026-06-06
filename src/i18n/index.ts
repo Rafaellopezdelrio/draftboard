@@ -76,13 +76,25 @@ export async function initI18n(initialLocale: UiLocale = "es"): Promise<void> {
   }
 }
 
+// Monotonic token so out-of-order async completions can't revert the locale.
+// Each call claims the next token; after the (async) bundle load only the
+// most-recent caller is allowed to flip changeLanguage. Prevents a stale
+// setUiLocale("es") that started first but resolved last from clobbering a
+// newer setUiLocale("en").
+let localeRequestSeq = 0;
+
 /** Imperatively change the UI locale. Fetches the bundle (if not yet
  * loaded) then flips i18next's active language — every
- * `useTranslation()` subscriber re-renders on the next tick. */
+ * `useTranslation()` subscriber re-renders on the next tick. Race-safe:
+ * if a newer call arrives while this one is loading its bundle, this one
+ * yields and does NOT change the language. */
 export async function setUiLocale(locale: UiLocale): Promise<void> {
   if (!SUPPORTED_LOCALES.includes(locale)) return;
+  const myToken = ++localeRequestSeq;
   await loadLocale(locale);
-  await i18n.changeLanguage(locale);
+  // A newer request superseded us while the bundle was loading — bail.
+  if (myToken !== localeRequestSeq) return;
+  if (i18n.language !== locale) await i18n.changeLanguage(locale);
 }
 
 /** Current active locale. Useful for non-component code (e.g. when

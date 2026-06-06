@@ -312,6 +312,33 @@
     "barSynergyNoData": "Sin aliados en el draft",
     "barMeta": "Meta (tier del parche)"
   },
+  "terms": {
+    "titleNew": "Aviso legal y privacidad",
+    "titleUpdated": "Aviso legal actualizado",
+    "subtitleNew": "Antes de empezar, lee qué datos usamos y de quién.",
+    "subtitleUpdated": "Hemos cambiado partes del aviso. Lee y vuelve a aceptar para continuar.",
+    "dataTitle": "Datos que guardamos",
+    "dataAccountLabel": "Tu cuenta de LoL",
+    "dataAccountDetail": "nombre, PUUID y región. Se lee del cliente de LoL local (no compartimos).",
+    "dataMatchesLabel": "Historial de partidas",
+    "dataMatchesDetail": "KDA, CS, builds, items. Almacenado en SQLite local en tu PC.",
+    "dataPrefsLabel": "Preferencias",
+    "dataPrefsDetail": "roles, ajustes UI, claves API opcionales. Todo local.",
+    "dataTelemetryLabel": "Telemetría de errores",
+    "dataTelemetryDetail": "(Sentry): solo crashes anonimizados — sin nombres, sin chat, sin partidas.",
+    "dataGdpr": "Puedes exportar o borrar todo en Settings → Mis datos. Cumple con GDPR (derechos de acceso, portabilidad y supresión).",
+    "sourcesTitle": "Fuentes de datos externas",
+    "sourcesPrefix": "Draftboard consulta datos públicos de:",
+    "sourcesSuffix": "y opcionalmente proveedores de IA (Groq/Anthropic/Gemini) cuando tú añades tu clave.",
+    "notEndorsedTitle": "Riot Games — no endorsado",
+    "notEndorsedBody": "Draftboard no está endorsado por Riot Games y no refleja las opiniones de Riot Games ni de nadie oficialmente involucrado en producir o gestionar League of Legends. League of Legends y Riot Games son marcas registradas de Riot Games, Inc.",
+    "notEndorsedSafe": "Solo usamos APIs oficiales (LCU + Live Client). No leemos memoria del juego, no hay automatización ingame, nada bannable.",
+    "licensePrefix": "Licencia MIT. Código fuente y términos completos en",
+    "licenseSuffix": "dentro del paquete.",
+    "agreeLabel": "He leído y acepto el aviso de privacidad, el uso de datos y el disclaimer de Riot Games.",
+    "acceptNew": "Acepto y empezar",
+    "acceptUpdated": "Acepto los cambios"
+  },
   "footer": {
     "versionTitle": "Ver novedades de esta versión",
     "disclaimer": "No endorsado por Riot Games · LoL © Riot Games, Inc."
