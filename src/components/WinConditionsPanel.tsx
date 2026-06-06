@@ -7,6 +7,7 @@
 // to surface). Lightweight — engine is pure heuristic, no API call.
 
 import { memo, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { Target, Flame, Hourglass, Sparkles } from "lucide-react";
 import { Panel, PanelHeader } from "./ui/Panel";
 import { deriveWinConditions, type WinCondition } from "../engine/winConditions";
@@ -50,6 +51,7 @@ function WinConditionsPanelInner({
   allyKeys,
   enemyKeys,
 }: Props) {
+  const { t } = useTranslation();
   const conditions = useMemo(
     () =>
       deriveWinConditions({
@@ -74,8 +76,8 @@ function WinConditionsPanelInner({
     <Panel padding="sm">
       <PanelHeader
         icon={<Target className="w-3 h-3" />}
-        title="Game plan"
-        subtitle="prioridad táctica"
+        title={t("winConditions.title")}
+        subtitle={t("winConditions.subtitle")}
       />
       <ul className="space-y-1.5">
         {conditions.map((c, i) => (
@@ -86,7 +88,10 @@ function WinConditionsPanelInner({
                 ? "bg-accent/10 border border-accent/30"
                 : "bg-bg-card/40 border border-border-subtle/40"
             }`}
-            title={`Fase ${phaseLabel(c.phase)} · prioridad ${c.priority}`}
+            title={t("winConditions.phaseTooltip", {
+              phase: phaseLabel(c.phase),
+              priority: c.priority,
+            })}
           >
             {phaseIcon(c.phase)}
             <div className="flex-1 min-w-0">

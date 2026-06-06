@@ -20,6 +20,17 @@
     "myRole": "Mi rol",
     "basicData": "Datos básicos"
   },
+  "winConditions": {
+    "title": "Game plan",
+    "subtitle": "prioridad táctica",
+    "phaseTooltip": "Fase {{phase}} · prioridad {{priority}}"
+  },
+  "draft": {
+    "yourTeam": "Tu equipo",
+    "enemies": "Enemigos",
+    "resetDraft": "Reiniciar draft",
+    "rightClickGuide": "Click derecho: ver guía de {{name}}"
+  },
   "suggestions": {
     "empty": "Selecciona algún campeón para ver sugerencias.",
     "topPicks": "Top picks",

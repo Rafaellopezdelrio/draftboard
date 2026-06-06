@@ -1,4 +1,5 @@
 import { useMemo, useState, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import type { ChampionDb } from "../types/champion";
 import { useDraftStore, type Side } from "../state/draftStore";
 import { ChampionPicker } from "./ChampionPicker";
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export function DraftBoard({ db, lcuConnected = false }: Props) {
+  const { t } = useTranslation();
   const { ally, enemy, bans, setPick, setBan, reset } = useDraftStore();
   const [picker, setPicker] = useState<
     | { kind: "pick"; side: Side; index: number }
@@ -61,7 +63,7 @@ export function DraftBoard({ db, lcuConnected = false }: Props) {
   return (
     <div className="grid grid-cols-2 gap-3">
       <SideColumn
-        title="Tu equipo"
+        title={t("draft.yourTeam")}
         side="ally"
         slots={ally}
         bans={bans.ally}
@@ -70,7 +72,7 @@ export function DraftBoard({ db, lcuConnected = false }: Props) {
         onBanClick={(i) => openBan("ally", i)}
       />
       <SideColumn
-        title="Enemigos"
+        title={t("draft.enemies")}
         side="enemy"
         slots={enemy}
         bans={bans.enemy}
@@ -86,7 +88,7 @@ export function DraftBoard({ db, lcuConnected = false }: Props) {
             className="inline-flex items-center gap-1.5 text-xs text-white/55 hover:text-white px-3 py-1.5 rounded-md ring-1 ring-border-subtle hover:ring-bad/50 hover:bg-bad/5 transition"
           >
             <RotateCcw className="w-3 h-3" />
-            Reiniciar draft
+            {t("draft.resetDraft")}
           </button>
         </div>
       )}
@@ -126,6 +128,7 @@ function SideColumn({
   onPickClick,
   onBanClick,
 }: SideColumnProps) {
+  const { t } = useTranslation();
   const isAlly = side === "ally";
   const accentRing = isAlly ? "ring-accent/30" : "ring-white/15";
   // Less aggressive enemy header — was "text-bad" (loud red), now softer slate
@@ -195,7 +198,7 @@ function SideColumn({
               key={slot.index}
               onClick={() => onPickClick(slot.index)}
               onContextMenu={handleContext}
-              title={champ ? `Click derecho: ver guía de ${champ.name}` : undefined}
+              title={champ ? t("draft.rightClickGuide", { name: champ.name }) : undefined}
               className={`relative w-full flex items-center gap-2.5 overflow-hidden ${
                 champ
                   ? "bg-bg-card/60 ring-1 " + accentRing + " hover:bg-bg-card"
