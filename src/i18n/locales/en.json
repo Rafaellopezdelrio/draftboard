@@ -206,6 +206,10 @@
     "aiTips": "AI tips"
   },
   "coach": {
+    "aiAnalyzing": "Analyzing...",
+    "aiAnalyze": "Analyze with AI",
+    "apiKeyHint": "Paste your API key ({{provider}}) in Prefs. Groq is free.",
+    "cleanGame": "No observations — clean game.",
     "secondaryPrefix": "Also check {{area}}:",
     "category": {
       "farming": "Farming",

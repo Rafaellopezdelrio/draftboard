@@ -303,12 +303,12 @@ export function CoachView({ db, onClose }: Props) {
                     disabled={aiLoading || !aiKey}
                     className="text-xs px-2 py-1 bg-accent text-black rounded disabled:opacity-50"
                   >
-                    {aiLoading ? "Analizando..." : "Analizar con AI"}
+                    {aiLoading ? t("coach.aiAnalyzing") : t("coach.aiAnalyze")}
                   </button>
                 </div>
                 {!aiKey && (
                   <p className="text-xs text-meh">
-                    Pega tu API key ({aiProvider}) en Prefs. Groq es gratis.
+                    {t("coach.apiKeyHint", { provider: aiProvider })}
                   </p>
                 )}
                 {aiErr && <p className="text-sm text-bad">{aiErr}</p>}
@@ -321,7 +321,7 @@ export function CoachView({ db, onClose }: Props) {
             )}
             {insights.length === 0 ? (
               <p className="text-white/50 text-center py-4">
-                Sin observaciones — partida limpia.
+                {t("coach.cleanGame")}
               </p>
             ) : (
               insights.map((ins, i) => <InsightCard key={i} insight={ins} />)
