@@ -432,7 +432,11 @@ export function TierListView({ db, onClose, onSelectChampion, onDbUpdate }: Prop
         {/* Footer */}
         {!isEmpty && (
           <div className="px-4 py-2 border-t border-border-subtle text-[10px] uppercase tracking-widest text-white/40 flex items-center justify-between">
-            <span>{rows.length} campeones · patch {displayPatch(db.patch)}</span>
+            <span>
+              {rows.length}{" "}
+              {rows.length === 1 ? t("tierList.champOne") : t("tierList.champMany")} · patch{" "}
+              {displayPatch(db.patch)}
+            </span>
             <span>{t("tierList.sortHint")}</span>
           </div>
         )}
