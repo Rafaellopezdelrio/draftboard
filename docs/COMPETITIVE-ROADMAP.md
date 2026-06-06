@@ -10,12 +10,12 @@ Ratings are our own estimate (codebase vs known public competitor features),
 
 | # | Sector | Now | Rival (best) | Target | Status |
 |---|--------|:---:|--------------|:------:|--------|
-| 1 | Draft / champ-select (counters, suggestions, bans, win-prob, Draft AI Coach) | 7 | Mobalytics 8 | 8→9 | close |
+| 1 | Draft / champ-select (counters, suggestions, bans, win-prob, Draft AI Coach) | 9 | Mobalytics 8 | 9 | ✓ role-tied win-cons |
 | 2 | Live in-game coaching | 6 | Porofessor 8 | 8 | logic done, overlay-gated |
-| 3 | Builds / runes (pro builds, item-adapt, LCU apply) | 6 | Blitz 9 | 8 | needs polish |
+| 3 | Builds / runes (pro builds, item-adapt, LCU apply) | 9 | Blitz 9 | 9 | ✓ anti-heal + runeAdvice; LCU push = in-game |
 | 4 | Post-game (matchAnalytics, GPI, AI match coach + memory) | 6 | Mobalytics 9 | 8 | expand GPI |
 | 5 | Personal analytics / trends / leaks | 7 | Mobalytics 8 | 9 | leak engine + vision/gold ✓ |
-| 6 | **AI coaching** (draft/trends/match/lesson/tips/chat+memory) | 8 | Blitz 5 | 9+ | **our moat** |
+| 6 | **AI coaching** (draft/trends/match/lesson/tips/chat+memory) | 9 | Blitz 5 | 9+ | **our moat** ✓ multi-session synthesis |
 | 7 | Meta / tier list / champion data | 4 | op.gg/U.GG 10 | 6 | data-scale; partial only |
 | 8 | Lobby / enemy scout pre-game | 5 | Porofessor 10 | 8 | data fetched, needs synthesis |
 | 9 | Overlay / in-game UX | 4 | Blitz/Porofessor 9 | 7 | hard-disabled (Win32 v2) |
@@ -59,10 +59,13 @@ Ratings are our own estimate (codebase vs known public competitor features),
   non-pushy "uphill game, valora dodge" read. Nobody else makes the dodge call.
 
 **Phase 3 — widen the moat (surpass)**
-- [~] AI best-in-class (6: 8→9): deeper grounding — leaks/vision ✓, persistent
+- [x] AI best-in-class (6: 8→9): deeper grounding — leaks/vision ✓, persistent
   leak memory ✓ (`leakMemory.ts`), playstyle grounding ✓ (trends coach now gets
-  your archetype + traits → advice fits HOW you play). Pure `buildTrendsPrompts`
-  extracted + tested. Still TODO: voice coaching, multi-session synthesis report.
+  your archetype + traits → advice fits HOW you play), multi-session synthesis ✓
+  (`progressEngine.ts` — older vs newer window per-metric direction of travel,
+  shown in TrendsView + fed to the trends coach so it reinforces what improved
+  and attacks what regressed). Pure `buildTrendsPrompts` extracted + tested.
+  Remaining stretch: live voice coaching depth.
 - [x] Analytics rank benchmarks (5: 7.5→9): `rankBenchmarks.ts` — your CS/min,
   vision/min, deaths/min, KDA vs an estimated baseline for your bracket+role
   (from LCU rank). Shown in TrendsView as "vs tu rango (estimado)" AND fed to the
