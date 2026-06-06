@@ -25,6 +25,38 @@
     "subtitle": "prioridad táctica",
     "phaseTooltip": "Fase {{phase}} · prioridad {{priority}}"
   },
+  "trade": {
+    "title": "Sugerencia de trade",
+    "switchTo": "Cambia a",
+    "better": "mejor"
+  },
+  "comp": {
+    "title": "Composición",
+    "archetype": {
+      "engage": "Engage",
+      "peel": "Peel",
+      "frontline": "Frontline",
+      "poke": "Poke",
+      "burst": "Burst",
+      "sustain-dps": "DPS sostenido",
+      "splitpush": "Splitpush",
+      "pick": "Pick",
+      "wave-clear": "Wave clear"
+    }
+  },
+  "bans": {
+    "title": "Bans sugeridos",
+    "pickRole": "Selecciona tu rol para ver bans.",
+    "noData": "Sin datos suficientes en {{role}} aún.",
+    "tipPersonal": "Personal: {{reason}}. Banearlo elimina tu peor matchup directo.",
+    "tipGlobal": "Meta: {{reason}}. Threat alto que ningún jugador quiere enfrentar.",
+    "tipScout": "Scout: {{reason}}. Niega el pick cómodo del rival.",
+    "tipBlend": "Combinado: {{reason}}. Threat global + dolor personal.",
+    "severity": "Severidad: {{severity}}",
+    "srcYou": "tú",
+    "srcRival": "rival",
+    "srcMeta": "meta"
+  },
   "draft": {
     "yourTeam": "Tu equipo",
     "enemies": "Enemigos",

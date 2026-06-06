@@ -25,6 +25,38 @@
     "subtitle": "tactical priority",
     "phaseTooltip": "Phase {{phase}} · priority {{priority}}"
   },
+  "trade": {
+    "title": "Trade suggestion",
+    "switchTo": "Switch to",
+    "better": "better"
+  },
+  "comp": {
+    "title": "Composition",
+    "archetype": {
+      "engage": "Engage",
+      "peel": "Peel",
+      "frontline": "Frontline",
+      "poke": "Poke",
+      "burst": "Burst",
+      "sustain-dps": "Sustained DPS",
+      "splitpush": "Splitpush",
+      "pick": "Pick",
+      "wave-clear": "Wave clear"
+    }
+  },
+  "bans": {
+    "title": "Suggested bans",
+    "pickRole": "Select your role to see bans.",
+    "noData": "Not enough data in {{role}} yet.",
+    "tipPersonal": "Personal: {{reason}}. Banning it removes your worst direct matchup.",
+    "tipGlobal": "Meta: {{reason}}. High threat nobody wants to face.",
+    "tipScout": "Scout: {{reason}}. Denies the rival's comfort pick.",
+    "tipBlend": "Combined: {{reason}}. Global threat + personal pain.",
+    "severity": "Severity: {{severity}}",
+    "srcYou": "you",
+    "srcRival": "rival",
+    "srcMeta": "meta"
+  },
   "draft": {
     "yourTeam": "Your team",
     "enemies": "Enemies",

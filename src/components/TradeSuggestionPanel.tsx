@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import type { ChampionDb, Role } from "../types/champion";
 import { suggestTrade } from "../engine/tradeEngine";
 import { ArrowLeftRight, ChevronRight } from "lucide-react";
@@ -20,6 +21,7 @@ export function TradeSuggestionPanel({
   enemyKeys,
   bannedKeys,
 }: Props) {
+  const { t } = useTranslation();
   const trade = useMemo(
     () =>
       suggestTrade({
@@ -42,7 +44,7 @@ export function TradeSuggestionPanel({
       <div className="flex items-center gap-1.5 mb-2">
         <ArrowLeftRight className="w-3.5 h-3.5 text-meh" />
         <p className="text-[10px] uppercase tracking-widest font-semibold text-meh">
-          Sugerencia de trade
+          {t("trade.title")}
         </p>
       </div>
       <div className="flex items-center gap-2">
@@ -59,10 +61,11 @@ export function TradeSuggestionPanel({
         />
         <div className="flex-1 min-w-0">
           <p className="text-sm text-white font-medium truncate">
-            Cambia a <span className="gold-text font-bold">{trade.proposedName}</span>
+            {t("trade.switchTo")}{" "}
+            <span className="gold-text font-bold">{trade.proposedName}</span>
           </p>
           <p className="text-[11px] text-white/70 truncate">
-            +{(trade.scoreDelta * 100).toFixed(0)}% mejor · {trade.reason}
+            +{(trade.scoreDelta * 100).toFixed(0)}% {t("trade.better")} · {trade.reason}
           </p>
         </div>
       </div>

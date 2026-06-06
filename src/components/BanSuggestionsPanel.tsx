@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { ChampionDb, Role } from "../types/champion";
 import {
   personalMatchupsByRole,
@@ -25,6 +26,7 @@ export function BanSuggestionsPanel({
   pickedKeys,
   enemySummonerIds = [],
 }: Props) {
+  const { t } = useTranslation();
   const [matchups, setMatchups] = useState<PersonalMatchupStat[]>([]);
   const enemyMains = useEnemyMains(enemySummonerIds);
 
@@ -39,9 +41,9 @@ export function BanSuggestionsPanel({
   if (!role) {
     return (
       <Panel padding="sm">
-        <PanelHeader icon={<Ban className="w-3 h-3" />} title="Bans sugeridos" />
+        <PanelHeader icon={<Ban className="w-3 h-3" />} title={t("bans.title")} />
         <p className="text-[11px] text-white/40 italic">
-          Selecciona tu rol para ver bans.
+          {t("bans.pickRole")}
         </p>
       </Panel>
     );
@@ -61,12 +63,12 @@ export function BanSuggestionsPanel({
     <Panel padding="sm">
       <PanelHeader
         icon={<Ban className="w-3 h-3" />}
-        title="Bans sugeridos"
+        title={t("bans.title")}
         subtitle={role}
       />
       {suggestions.length === 0 ? (
         <p className="text-[11px] text-white/40 italic">
-          Sin datos suficientes en {role} aún.
+          {t("bans.noData", { role })}
         </p>
       ) : (
         <div className="space-y-1.5">
@@ -80,6 +82,7 @@ export function BanSuggestionsPanel({
 }
 
 function BanCard({ s }: { s: BanSuggestion }) {
+  const { t } = useTranslation();
   const colors = {
     high: "ring-bad/50 bg-bad/5",
     medium: "ring-meh/50 bg-meh/5",
@@ -103,12 +106,12 @@ function BanCard({ s }: { s: BanSuggestion }) {
   // gets a fuller rationale on hover.
   const tooltip =
     s.source === "personal"
-      ? `Personal: ${s.reason}. Banearlo elimina tu peor matchup directo.`
+      ? t("bans.tipPersonal", { reason: s.reason })
       : s.source === "global"
-        ? `Meta: ${s.reason}. Threat alto que ningún jugador quiere enfrentar.`
+        ? t("bans.tipGlobal", { reason: s.reason })
         : s.source === "scout"
-          ? `Scout: ${s.reason}. Niega el pick cómodo del rival.`
-          : `Combinado: ${s.reason}. Threat global + dolor personal.`;
+          ? t("bans.tipScout", { reason: s.reason })
+          : t("bans.tipBlend", { reason: s.reason });
   return (
     <div
       className={`flex items-center gap-2 p-2 rounded ring-1 ${colors[s.severity]}`}
@@ -128,14 +131,18 @@ function BanCard({ s }: { s: BanSuggestion }) {
       </div>
       <span
         className={`text-[9px] uppercase tracking-widest font-bold px-1.5 py-0.5 rounded ring-1 ${sevBadge.cls}`}
-        title={`Severidad: ${s.severity}`}
+        title={t("bans.severity", { severity: s.severity })}
       >
         {sevBadge.letter}
       </span>
       <span
         className={`text-[9px] uppercase tracking-widest font-bold px-1.5 py-0.5 rounded ring-1 ${tagColors[s.source]}`}
       >
-        {s.source === "personal" ? "tú" : s.source === "scout" ? "rival" : "meta"}
+        {s.source === "personal"
+          ? t("bans.srcYou")
+          : s.source === "scout"
+            ? t("bans.srcRival")
+            : t("bans.srcMeta")}
       </span>
     </div>
   );

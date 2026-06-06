@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import type { Archetype, ChampionDb } from "../types/champion";
 import { detectMissingArchetypes } from "../engine/suggestionEngine";
 import { Panel, PanelHeader } from "./ui/Panel";
@@ -8,19 +9,8 @@ interface Props {
   allyKeys: string[];
 }
 
-const LABEL: Record<Archetype, string> = {
-  engage: "Engage",
-  peel: "Peel",
-  frontline: "Frontline",
-  poke: "Poke",
-  burst: "Burst",
-  "sustain-dps": "DPS sostenido",
-  splitpush: "Splitpush",
-  pick: "Pick",
-  "wave-clear": "Wave clear",
-};
-
 export function CompAnalysis({ db, allyKeys }: Props) {
+  const { t } = useTranslation();
   const present = new Set<Archetype>();
   for (const k of allyKeys) {
     const c = db.champions[k];
@@ -36,7 +26,7 @@ export function CompAnalysis({ db, allyKeys }: Props) {
     <Panel padding="sm">
       <PanelHeader
         icon={<Users className="w-3 h-3" />}
-        title="Composición"
+        title={t("comp.title")}
         action={
           <span className="text-[10px] tabular-nums text-white/40">
             {score}/{goals.length}
@@ -56,7 +46,7 @@ export function CompAnalysis({ db, allyKeys }: Props) {
           return (
             <li key={a} className={`flex items-center gap-2 text-xs ${color}`}>
               <Icon className="w-3.5 h-3.5" />
-              <span>{LABEL[a]}</span>
+              <span>{t(`comp.archetype.${a}`)}</span>
             </li>
           );
         })}
