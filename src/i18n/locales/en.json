@@ -3,6 +3,41 @@
     "title": "Draftboard",
     "subtitle": "Pro-level LoL draft advisor"
   },
+  "nav": {
+    "aiCoach": "AI Coach",
+    "tierList": "Tier List",
+    "search": "Search",
+    "live": "Live",
+    "myGame": "My game",
+    "postGameCoach": "Post-game coach",
+    "trends": "Trends",
+    "history": "History",
+    "lessonPlan": "7-day plan",
+    "settings": "Settings",
+    "preferences": "Preferences",
+    "riotConfig": "Riot config",
+    "diagnostics": "Diagnostics",
+    "myRole": "My role",
+    "basicData": "Basic data"
+  },
+  "suggestions": {
+    "empty": "Pick a champion to see suggestions.",
+    "topPicks": "Top picks",
+    "generalMeta": "general meta",
+    "pickRolePrompt": "Select your role above for picks tailored to your pool and the draft.",
+    "yourPicks": "Your picks · comfort + meta",
+    "pureMeta": "Pure meta",
+    "perfectPick": "Perfect pick",
+    "comfort": "Comfort",
+    "comfortLower": "comfort",
+    "solidPick": "solid pick",
+    "decentPick": "decent pick",
+    "barCounter": "Counter (how it counters the enemies)",
+    "barCounterNoData": "No enemies in the draft",
+    "barSynergy": "Synergy (fit with your team)",
+    "barSynergyNoData": "No allies in the draft",
+    "barMeta": "Meta (patch tier)"
+  },
   "footer": {
     "versionTitle": "See what's new in this version",
     "disclaimer": "Not endorsed by Riot Games · LoL © Riot Games, Inc."

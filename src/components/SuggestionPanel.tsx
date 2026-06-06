@@ -1,4 +1,5 @@
 import { memo, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import type { ScoredSuggestion } from "../engine/suggestionEngine";
 import { usePrefsStore } from "../state/prefsStore";
 import { CountUp } from "./ui/CountUp";
@@ -51,6 +52,7 @@ interface Props {
 }
 
 function SuggestionPanelInner({ suggestions, hasRole, hasDraft }: Props) {
+  const { t } = useTranslation();
   const beginner = usePrefsStore((s) => s.prefs.beginnerMode);
   const noContext = !hasRole && !hasDraft;
 
@@ -72,7 +74,7 @@ function SuggestionPanelInner({ suggestions, hasRole, hasDraft }: Props) {
   if (suggestions.length === 0) {
     return (
       <p className="text-white/50 text-sm">
-        Selecciona algún campeón para ver sugerencias.
+        {t("suggestions.empty")}
       </p>
     );
   }
@@ -82,18 +84,17 @@ function SuggestionPanelInner({ suggestions, hasRole, hasDraft }: Props) {
       <div className="flex items-baseline justify-between">
         <h3 className="text-[11px] uppercase tracking-widest text-white/40 font-semibold flex items-center gap-1.5">
           <Trophy className="w-3 h-3" />
-          Top picks
+          {t("suggestions.topPicks")}
           {noContext && (
             <span className="ml-1 text-[9px] uppercase tracking-widest text-white/30 font-normal">
-              · meta general
+              · {t("suggestions.generalMeta")}
             </span>
           )}
         </h3>
       </div>
       {noContext && (
         <p className="text-[11px] text-white/40 leading-relaxed pb-1 border-b border-border-subtle/40">
-          Selecciona tu rol arriba para picks personalizados según tu pool y el
-          draft.
+          {t("suggestions.pickRolePrompt")}
         </p>
       )}
 
@@ -102,7 +103,7 @@ function SuggestionPanelInner({ suggestions, hasRole, hasDraft }: Props) {
         <div className="space-y-2">
           <p className="text-[10px] uppercase tracking-widest text-accent font-semibold flex items-center gap-1.5">
             <Star className="w-3 h-3" />
-            Tus picks · comfort + meta
+            {t("suggestions.yourPicks")}
           </p>
           <PickHero suggestion={comfortPicks[0]} beginner={beginner} />
           <div className="space-y-1.5">
@@ -118,7 +119,7 @@ function SuggestionPanelInner({ suggestions, hasRole, hasDraft }: Props) {
         <div className="space-y-2">
           <p className="text-[10px] uppercase tracking-widest text-white/35 font-semibold flex items-center gap-1.5">
             <Trophy className="w-3 h-3" />
-            {comfortPicks.length > 0 ? "Meta puro" : "Top picks"}
+            {comfortPicks.length > 0 ? t("suggestions.pureMeta") : t("suggestions.topPicks")}
           </p>
           {comfortPicks.length === 0 && metaPicks[0] && (
             <PickHero suggestion={metaPicks[0]} beginner={beginner} />
@@ -137,6 +138,7 @@ function SuggestionPanelInner({ suggestions, hasRole, hasDraft }: Props) {
 }
 
 function PickHero({ suggestion: s, beginner }: { suggestion: ScoredSuggestion; beginner: boolean }) {
+  const { t } = useTranslation();
   const isOneTrick = s.reasons.includes("tu main");
   const isPerfect = s.breakdown.isPerfectPick;
   const isComfort = s.breakdown.isComfort;
@@ -158,12 +160,12 @@ function PickHero({ suggestion: s, beginner }: { suggestion: ScoredSuggestion; b
         {isPerfect && (
           <span className="bg-gradient-to-r from-accent to-yellow-300 text-black text-[9px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-full shadow-lg flex items-center gap-1">
             <Star className="w-2.5 h-2.5 fill-current" />
-            Pick perfecto
+            {t("suggestions.perfectPick")}
           </span>
         )}
         {!isPerfect && isComfort && !isOneTrick && (
           <span className="bg-accent/20 text-accent text-[9px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-full ring-1 ring-accent/40">
-            Comfort
+            {t("suggestions.comfort")}
           </span>
         )}
       </div>
@@ -192,7 +194,7 @@ function PickHero({ suggestion: s, beginner }: { suggestion: ScoredSuggestion; b
             </span>
           </div>
           <p className="text-xs text-white/70 truncate">
-            {s.reasons.slice(0, 2).join(" · ") || "pick sólido"}
+            {s.reasons.slice(0, 2).join(" · ") || t("suggestions.solidPick")}
           </p>
         </div>
         <div className="flex flex-col items-center gap-1">
@@ -209,6 +211,7 @@ function PickHero({ suggestion: s, beginner }: { suggestion: ScoredSuggestion; b
 }
 
 function PickRow({ suggestion: s, beginner }: { suggestion: ScoredSuggestion; beginner: boolean }) {
+  const { t } = useTranslation();
   const isPerfect = s.breakdown.isPerfectPick;
   const isComfort = s.breakdown.isComfort;
   const ring = isPerfect
@@ -242,12 +245,12 @@ function PickRow({ suggestion: s, beginner }: { suggestion: ScoredSuggestion; be
           )}
           {!isPerfect && isComfort && (
             <span className="text-[8px] uppercase tracking-wider text-accent/80 bg-accent/10 px-1 rounded shrink-0">
-              comfort
+              {t("suggestions.comfortLower")}
             </span>
           )}
         </div>
         <p className="text-[11px] text-white/55 truncate">
-          {s.reasons[0] ?? "pick decente"}
+          {s.reasons[0] ?? t("suggestions.decentPick")}
         </p>
       </div>
       <GradeBadge score={s.score} size="sm" />
@@ -257,6 +260,7 @@ function PickRow({ suggestion: s, beginner }: { suggestion: ScoredSuggestion; be
 }
 
 function BreakdownBars({ s, compact = false }: { s: ScoredSuggestion; compact?: boolean }) {
+  const { t } = useTranslation();
   if (compact) return null;
   // `noDataFor*` flips when the engine returned the 0.5 default for that
   // axis. Counter is 0.5 when there are no enemies in the draft yet;
@@ -273,21 +277,21 @@ function BreakdownBars({ s, compact = false }: { s: ScoredSuggestion; compact?: 
     explain?: string;
   }> = [
     {
-      label: "Counter (cómo contraataca a los enemigos)",
+      label: t("suggestions.barCounter"),
       value: s.breakdown.counter,
       Icon: Sword,
       noData: noDataCounter,
-      explain: "Sin enemigos en el draft",
+      explain: t("suggestions.barCounterNoData"),
     },
     {
-      label: "Sinergia (encaje con tu equipo)",
+      label: t("suggestions.barSynergy"),
       value: s.breakdown.synergy,
       Icon: Heart,
       noData: noDataSynergy,
-      explain: "Sin aliados en el draft",
+      explain: t("suggestions.barSynergyNoData"),
     },
     {
-      label: "Meta (tier del parche)",
+      label: t("suggestions.barMeta"),
       value: s.breakdown.meta,
       Icon: Trophy,
       noData: false,

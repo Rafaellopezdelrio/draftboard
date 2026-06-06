@@ -161,6 +161,7 @@ import type { ChampionPersonalStat } from "./services/matchRepo";
 import { usePrefsStore } from "./state/prefsStore";
 import { probeRustRecoveryMarker } from "./db/client";
 import { setUiLocale } from "./i18n";
+import { useTranslation } from "react-i18next";
 import { useAutoActions } from "./state/autoActions";
 import { useOverlayFollowLol } from "./hooks/useOverlayFollowLol";
 import { useThemeAccent } from "./hooks/useThemeAccent";
@@ -184,6 +185,7 @@ import { useDraftLogger } from "./hooks/useDraftLogger";
 const ROLES: Role[] = ["TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY"];
 
 function App() {
+  const { t } = useTranslation();
   const {
     ally,
     enemy,
@@ -577,33 +579,33 @@ function App() {
                 className="text-[10px] uppercase tracking-widest text-bad font-medium px-1.5 py-0.5 rounded ring-1 ring-bad/40"
                 title="Las fuentes de meta (op.gg/dpm) no respondieron — mostrando datos básicos de respaldo. Reintentando en background; la tier list y las sugerencias serán más precisas cuando recuperen."
               >
-                Datos básicos
+                {t("nav.basicData")}
               </span>
             )}
           </div>
         </div>
         <div className="flex items-center gap-1.5 flex-wrap">
-          <HeaderBtn onClick={() => setShowChat(true)} primary icon={<Sparkles className="w-3.5 h-3.5" />} label="AI Coach" />
-          <HeaderBtn onClick={() => setShowTierList(true)} icon={<Trophy className="w-3.5 h-3.5" />} label="Tier List" />
-          <HeaderBtn onClick={() => setShowLookup(true)} icon={<UserSearch className="w-3.5 h-3.5" />} label="Buscar" />
-          <HeaderBtn onClick={() => setShowLiveGame(true)} icon={<Radio className="w-3.5 h-3.5" />} label="Live" />
+          <HeaderBtn onClick={() => setShowChat(true)} primary icon={<Sparkles className="w-3.5 h-3.5" />} label={t("nav.aiCoach")} />
+          <HeaderBtn onClick={() => setShowTierList(true)} icon={<Trophy className="w-3.5 h-3.5" />} label={t("nav.tierList")} />
+          <HeaderBtn onClick={() => setShowLookup(true)} icon={<UserSearch className="w-3.5 h-3.5" />} label={t("nav.search")} />
+          <HeaderBtn onClick={() => setShowLiveGame(true)} icon={<Radio className="w-3.5 h-3.5" />} label={t("nav.live")} />
           <HeaderMenu
-            label="Mi juego"
+            label={t("nav.myGame")}
             icon={<GraduationCap className="w-3.5 h-3.5" />}
             items={[
-              { label: "Coach post-partida", icon: <GraduationCap className="w-3.5 h-3.5" />, onClick: () => setShowCoach(true) },
-              { label: "Tendencias", icon: <TrendingUp className="w-3.5 h-3.5" />, onClick: () => setShowTrends(true) },
-              { label: "Historial", icon: <History className="w-3.5 h-3.5" />, onClick: () => setShowHistory(true) },
-              { label: "Plan 7 días", icon: <Calendar className="w-3.5 h-3.5" />, onClick: () => setShowLessonPlan(true) },
+              { label: t("nav.postGameCoach"), icon: <GraduationCap className="w-3.5 h-3.5" />, onClick: () => setShowCoach(true) },
+              { label: t("nav.trends"), icon: <TrendingUp className="w-3.5 h-3.5" />, onClick: () => setShowTrends(true) },
+              { label: t("nav.history"), icon: <History className="w-3.5 h-3.5" />, onClick: () => setShowHistory(true) },
+              { label: t("nav.lessonPlan"), icon: <Calendar className="w-3.5 h-3.5" />, onClick: () => setShowLessonPlan(true) },
             ]}
           />
           <HeaderMenu
-            label="Ajustes"
+            label={t("nav.settings")}
             icon={<Cog className="w-3.5 h-3.5" />}
             items={[
-              { label: "Preferencias", icon: <SlidersHorizontal className="w-3.5 h-3.5" />, onClick: () => setShowPrefs(true) },
-              { label: "Configuración Riot", icon: <Cog className="w-3.5 h-3.5" />, onClick: () => setShowSettings(true) },
-              { label: "Diagnóstico", icon: <Activity className="w-3.5 h-3.5" />, onClick: () => setShowDiag(true) },
+              { label: t("nav.preferences"), icon: <SlidersHorizontal className="w-3.5 h-3.5" />, onClick: () => setShowPrefs(true) },
+              { label: t("nav.riotConfig"), icon: <Cog className="w-3.5 h-3.5" />, onClick: () => setShowSettings(true) },
+              { label: t("nav.diagnostics"), icon: <Activity className="w-3.5 h-3.5" />, onClick: () => setShowDiag(true) },
             ]}
           />
           <select
@@ -613,7 +615,7 @@ function App() {
             }
             className="bg-bg-elev text-white text-sm px-2 py-1 rounded border border-border-subtle"
           >
-            <option value="">Mi rol</option>
+            <option value="">{t("nav.myRole")}</option>
             {ROLES.map((r) => (
               <option key={r} value={r}>
                 {r}
