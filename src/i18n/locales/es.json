@@ -30,6 +30,16 @@
     "switchTo": "Cambia a",
     "better": "mejor"
   },
+  "scout": {
+    "title": "Scout enemigos",
+    "slotEmpty": "Slot {{n}} vacío",
+    "slotLoading": "Scout slot {{n}}...",
+    "slotError": "Slot {{n}}: sin datos",
+    "main": "Main: {{name}}",
+    "spam": "Spam:",
+    "hotStreak": "en racha",
+    "coldStreak": "coldstreak"
+  },
   "comp": {
     "title": "Composición",
     "archetype": {

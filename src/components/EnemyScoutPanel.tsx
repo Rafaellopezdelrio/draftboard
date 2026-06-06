@@ -1,4 +1,5 @@
 import { memo, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { ChampionDb } from "../types/champion";
 import { getSummonerById } from "../services/lcuService";
 import { scoutPlayer, type ScoutResult } from "../services/enemyScout";
@@ -41,6 +42,7 @@ function EnemyScoutPanelInner({
   enemySummonerIds,
   enemyChampionIds,
 }: Props) {
+  const { t } = useTranslation();
   const liveRefresh = usePrefsStore((s) => s.prefs.liveScoutRefresh);
   const notifyHot = usePrefsStore((s) => s.prefs.notifyOnEnemyHotStreak);
   const [scouts, setScouts] = useState<
@@ -156,7 +158,7 @@ function EnemyScoutPanelInner({
     <Panel padding="sm">
       <PanelHeader
         icon={<Eye className="w-3 h-3" />}
-        title="Scout enemigos"
+        title={t("scout.title")}
         action={
           <span className="text-[10px] tabular-nums text-white/40">
             {filledCount}/5
@@ -179,7 +181,7 @@ function EnemyScoutPanelInner({
           if (sid <= 0)
             return (
               <p key={i} className="text-[11px] text-white/25 italic px-1">
-                Slot {i + 1} vacío
+                {t("scout.slotEmpty", { n: i + 1 })}
               </p>
             );
           const r = scouts[sid];
@@ -187,13 +189,13 @@ function EnemyScoutPanelInner({
             return (
               <div key={sid} className="text-[11px] text-white/40 px-1 flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-accent/40 animate-pulse" />
-                Scout slot {i + 1}...
+                {t("scout.slotLoading", { n: i + 1 })}
               </div>
             );
           if (r === "error")
             return (
               <p key={sid} className="text-[11px] text-bad px-1">
-                Slot {i + 1}: sin datos
+                {t("scout.slotError", { n: i + 1 })}
               </p>
             );
           return (
@@ -222,6 +224,7 @@ function ScoutCard({
   threat: PlayerThreat | undefined;
   highlightHot: boolean;
 }) {
+  const { t } = useTranslation();
   const main = r.mainChampionId ? db.champions[String(r.mainChampionId)] : null;
   const recent = r.mostPlayedRecent
     ? db.champions[String(r.mostPlayedRecent.championId)]
@@ -249,7 +252,7 @@ function ScoutCard({
             src={main.iconUrl}
             alt={main.name}
             className="w-9 h-9 rounded ring-1 ring-border-strong"
-            title={`Main: ${main.name}`}
+            title={t("scout.main", { name: main.name })}
           />
         ) : (
           <div className="w-9 h-9 rounded bg-bg-elev" />
@@ -258,7 +261,7 @@ function ScoutCard({
           <RankBadge tier={tier} division={division} lp={r.lp ?? undefined} size="sm" />
           {recent && (
             <p className="text-[11px] text-white/60 truncate">
-              Spam: <span className="text-white/80">{recent.name}</span>
+              {t("scout.spam")} <span className="text-white/80">{recent.name}</span>
             </p>
           )}
         </div>
@@ -327,11 +330,11 @@ function ScoutCard({
         >
           {r.hotStreak ? (
             <>
-              <Flame className="w-3 h-3" /> en racha
+              <Flame className="w-3 h-3" /> {t("scout.hotStreak")}
             </>
           ) : (
             <>
-              <Snowflake className="w-3 h-3" /> coldstreak
+              <Snowflake className="w-3 h-3" /> {t("scout.coldStreak")}
             </>
           )}
         </div>

@@ -30,6 +30,16 @@
     "switchTo": "Switch to",
     "better": "better"
   },
+  "scout": {
+    "title": "Enemy scout",
+    "slotEmpty": "Slot {{n}} empty",
+    "slotLoading": "Scouting slot {{n}}...",
+    "slotError": "Slot {{n}}: no data",
+    "main": "Main: {{name}}",
+    "spam": "Spam:",
+    "hotStreak": "hot streak",
+    "coldStreak": "cold streak"
+  },
   "comp": {
     "title": "Composition",
     "archetype": {
