@@ -28,20 +28,22 @@ DiagnosticsView, HistoryView, PreferencesView, SettingsView, ConfirmDialog, View
 - `topInsight.ts` → `coach.category.*` / `coach.tip.*` (post-game; CoachView card)
 
 ## Remaining
-### Chrome (A)
+### Chrome (A) — final tail (~9)
 ProPlayersView · AiChatView · LessonPlanView · SummonerLookupView ·
-LiveGameView · OnboardingView · ChampionPoolPanel · PatchImpactPanel ·
-ShortcutsHelp · DiagnosticsView · FeedbackModal · LogViewerModal ·
-DataPrivacyView · TipCarousel · InfoTooltip · ChampionGuideView ·
-AboutModal · prefs/* fields
-(Done: SettingsView, MatchupTipsPanel, CoachView, TierListView, LiveGamePanel,
-DraftCoachPanel, TermsGate, PatchNewBanner, GpiRadar, PlaystylePanel,
-OwnMasteriesPanel, + 5 banners (Network/OverlayCompat/Update/FirstRunHealth/
-TrackingStatusBar). Suggestion reasons + LCU status.)
+LiveGameView · DiagnosticsView (partial) · LogViewerModal · DataPrivacyView ·
+ChampionGuideView · AboutModal (partial) · prefs/* fields
+(Done this run: SettingsView, MatchupTipsPanel, CoachView, TierListView,
+LiveGamePanel, DraftCoachPanel, TermsGate, PatchNewBanner, GpiRadar,
+PlaystylePanel, OwnMasteriesPanel, OnboardingView, ChampionPoolPanel,
+PatchImpactPanel, InfoTooltip (glossary), ShortcutsHelp, TipCarousel (chrome),
+FeedbackModal, + 5 banners. Suggestion reasons + LCU status.)
 
 ### Engine content (B) — remaining
-playstyleEngine (archetype meta + traits) · gpiEngine (if any) ·
-trendsEngine (insights) · banEngine reasons
+playstyleEngine (archetype meta + traits) · trendsEngine (insights) ·
+banEngine reasons · championPoolEngine messages
+
+### Data (curated, AI-layer covers language)
+TipCarousel CHAMPION_TIPS/ROLE_TIPS (fallback only; AI tips already bilingual)
 
 ### 🐛 FIXED: language toggle revert bug
 Async boot race in setUiLocale reverted the locale to Spanish on reload.
