@@ -25,6 +25,7 @@ DiagnosticsView, HistoryView, PreferencesView, SettingsView, ConfirmDialog, View
 - `aramEngine.ts` → `aram.*` (returns keys; BuildPanel resolves)
 - `runeAdvice.ts` → `runeAdvice.*` (returns keys; BuildPanel resolves)
 - `liveCoachEngine.ts` → `liveCoach.*` (16 insights; LiveGamePanel + OverlayApp + voice)
+- `topInsight.ts` → `coach.category.*` / `coach.tip.*` (post-game; CoachView card)
 
 ## Remaining
 ### Chrome (A)
@@ -35,7 +36,7 @@ DraftCoachPanel · GpiRadar · misc banners/modals
 (MatchupTipsPanel chrome done; tip content already bilingual via data layer)
 
 ### Engine content (B)
-- `topInsight.ts` / `gpiEngine.ts` (post-game tips, GPI axis labels)
+- `gpiEngine.ts` (GPI axis labels in the radar — CoachView)
 - `trendsEngine.ts` (trend insights)
 - `playstyleEngine.ts` (archetype labels/traits)
 - `banEngine.ts` reasons · `suggestionEngine` reasons · `matchupTips` data
