@@ -416,6 +416,24 @@
   "masteries": {
     "title": "Your best champions"
   },
+  "championPool": {
+    "title": "Your pool"
+  },
+  "glossary": {
+    "GPI": "Gameplay Performance Index. A 0-100 score combining farm, vision, aggression, survivability, objectives and versatility.",
+    "KDA": "Kills + Assists ÷ Deaths. >2 is decent, >4 is excellent.",
+    "CS": "Creep Score. Minions and monsters killed. Drives the gold available for items.",
+    "CSPM": "CS per minute. Diamond average: top 7, jungle 5.5, mid 7.5, ADC 8.",
+    "KP": "Kill Participation. % of your team's kills you took part in. >55% in SoloQ is good.",
+    "WR": "Win Rate. % of matches won.",
+    "LP": "League Points. The scoring system within each division.",
+    "Vision": "Vision Score. Combines wards placed, control wards bought and enemy wards destroyed. >1/min is good.",
+    "Counter": "How a champion fares against another in historical stats.",
+    "Synergy": "Compatibility between two champions on the same team.",
+    "Tier": "S, A, B, C, D by global winrate. S = >53.5%, A = >51.5%, B = ≥49%, C = ≥47%, D = <47%.",
+    "Mastery": "Mastery level with a champion (1-7). M5+ implies solid knowledge. >100k pts is 'main', >200k 'one-trick'.",
+    "Hotstreak": "4 wins in a row or more. Riot flags it as a 'hot-streak player'."
+  },
   "overlayCompat": {
     "title": "Overlay won't work in Fullscreen",
     "bodyPrefix": "LoL is in",
@@ -473,7 +491,8 @@
     "ok": "OK",
     "yes": "Yes",
     "no": "No",
-    "confirm": "Confirm"
+    "confirm": "Confirm",
+    "yourMain": "your main"
   },
   "settings": {
     "title": "Settings",

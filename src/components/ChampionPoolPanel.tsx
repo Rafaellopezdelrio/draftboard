@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { ChampionDb } from "../types/champion";
 import type { ChampionMasteryDto } from "../services/riotApi";
 import {
@@ -20,6 +21,7 @@ interface Props {
 }
 
 export function ChampionPoolPanel({ db, masteries }: Props) {
+  const { t } = useTranslation();
   const [insights, setInsights] = useState<ChampionPoolInsight[]>([]);
 
   useEffect(() => {
@@ -38,7 +40,7 @@ export function ChampionPoolPanel({ db, masteries }: Props) {
 
   return (
     <Panel padding="sm">
-      <PanelHeader icon={<Layers className="w-3 h-3" />} title="Tu pool" />
+      <PanelHeader icon={<Layers className="w-3 h-3" />} title={t("championPool.title")} />
       <div className="space-y-1">
         {insights.map((ins, i) => {
           const c = db.champions[String(ins.championId)];

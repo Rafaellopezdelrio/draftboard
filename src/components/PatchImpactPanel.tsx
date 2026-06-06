@@ -1,6 +1,7 @@
 // Shows the user which of their mains were affected by the latest patch.
 
 import { memo, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { ChampionDb } from "../types/champion";
 import type { ChampionMasteryDto } from "../services/riotApi";
 import { getLatestPatchSummary, type PatchChange } from "../services/patchNotes";
@@ -85,6 +86,7 @@ function PatchImpactPanelInner({ db, masteries }: Props) {
 }
 
 function ImpactCard({ affected: a }: { affected: Affected }) {
+  const { t } = useTranslation();
   const colors = {
     buff: { ring: "ring-good/40", bg: "bg-good/5", text: "text-good", Icon: TrendingUp },
     nerf: { ring: "ring-bad/40", bg: "bg-bad/5", text: "text-bad", Icon: TrendingDown },
@@ -117,7 +119,7 @@ function ImpactCard({ affected: a }: { affected: Affected }) {
             </p>
             {a.isMain && (
               <span className="text-[9px] uppercase tracking-widest text-accent">
-                tu main
+                {t("common.yourMain")}
               </span>
             )}
           </div>
