@@ -5,6 +5,7 @@
 import { useState } from "react";
 import { Sparkles, Loader2 } from "lucide-react";
 import { usePrefsStore } from "../state/prefsStore";
+import { i18n } from "../i18n";
 import { explainDraft } from "../services/draftCoach";
 import { useEnemyMains } from "../hooks/useEnemyMains";
 import type { ChampionDb, CounterEntry, Role } from "../types/champion";
@@ -76,9 +77,12 @@ export function DraftCoachPanel({
         enemies: enemyKeys.map(name),
         laneOpponent,
         laneMatchupWinRate: laneWr,
-        topSuggestions: suggestions
-          .slice(0, 3)
-          .map((s) => ({ name: s.champion.name, reasons: s.reasons })),
+        topSuggestions: suggestions.slice(0, 3).map((s) => ({
+          name: s.champion.name,
+          // Reasons are i18n keys — resolve to the coach's language for the
+          // prompt (WR-style literals pass through unchanged).
+          reasons: s.reasons.map((r) => i18n.t(r, { lng: lang === "en" ? "en" : "es" })),
+        })),
         enemyMains: enemyMains.map((m) => ({
           championName: db.champions[String(m.championId)]?.name ?? `#${m.championId}`,
           summonerName: m.summonerName,

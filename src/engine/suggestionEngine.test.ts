@@ -262,7 +262,7 @@ describe("suggestionEngine", () => {
     });
     const yasuo = result.find((s) => s.champion.key === YASUO_KEY);
     expect(yasuo).toBeDefined();
-    expect(yasuo!.reasons.some((r) => r.includes("tu main"))).toBe(true);
+    expect(yasuo!.reasons).toContain("suggestions.reason.main");
   });
 
   it("liveCounters feed the counter dimension (broad op.gg data, not flat 0.5)", () => {
@@ -289,7 +289,7 @@ describe("suggestionEngine", () => {
     const ori = result.find((s) => s.champion.key === ORIANNA_KEY);
     expect(ori).toBeDefined();
     expect(ori!.breakdown.counter).toBeCloseTo(0.66, 5);
-    expect(ori!.reasons.some((r) => r.includes("countra"))).toBe(true);
+    expect(ori!.reasons).toContain("suggestions.reason.counters");
   });
 
   it("liveCounters take priority over sparse personal db.counters for the same pair", () => {
@@ -403,6 +403,6 @@ describe("suggestionEngine", () => {
     });
     const ori = result.find((s) => s.champion.key === ORIANNA_KEY);
     expect(ori!.breakdown.counter).toBeLessThan(0.45);
-    expect(ori!.reasons.some((r) => r.includes("matchup difícil"))).toBe(true);
+    expect(ori!.reasons).toContain("suggestions.reason.hardMatchup");
   });
 });

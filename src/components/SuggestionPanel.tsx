@@ -139,7 +139,7 @@ function SuggestionPanelInner({ suggestions, hasRole, hasDraft }: Props) {
 
 function PickHero({ suggestion: s, beginner }: { suggestion: ScoredSuggestion; beginner: boolean }) {
   const { t } = useTranslation();
-  const isOneTrick = s.reasons.includes("tu main");
+  const isOneTrick = s.reasons.includes("suggestions.reason.main");
   const isPerfect = s.breakdown.isPerfectPick;
   const isComfort = s.breakdown.isComfort;
   const colorRing = isPerfect
@@ -194,7 +194,8 @@ function PickHero({ suggestion: s, beginner }: { suggestion: ScoredSuggestion; b
             </span>
           </div>
           <p className="text-xs text-white/70 truncate">
-            {s.reasons.slice(0, 2).join(" · ") || t("suggestions.solidPick")}
+            {s.reasons.slice(0, 2).map((r) => t(r)).join(" · ") ||
+              t("suggestions.solidPick")}
           </p>
         </div>
         <div className="flex flex-col items-center gap-1">
@@ -250,7 +251,7 @@ function PickRow({ suggestion: s, beginner }: { suggestion: ScoredSuggestion; be
           )}
         </div>
         <p className="text-[11px] text-white/55 truncate">
-          {s.reasons[0] ?? t("suggestions.decentPick")}
+          {s.reasons[0] ? t(s.reasons[0]) : t("suggestions.decentPick")}
         </p>
       </div>
       <GradeBadge score={s.score} size="sm" />

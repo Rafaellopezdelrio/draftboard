@@ -18,7 +18,10 @@
     "riotConfig": "Configuración Riot",
     "diagnostics": "Diagnóstico",
     "myRole": "Mi rol",
-    "basicData": "Datos básicos"
+    "basicData": "Datos básicos",
+    "connected": "Conectado",
+    "waitingClient": "Esperando cliente",
+    "waitingClientTip": "Esperando que abras el cliente de LoL"
   },
   "winConditions": {
     "title": "Game plan",
@@ -310,7 +313,18 @@
     "barCounterNoData": "Sin enemigos en el draft",
     "barSynergy": "Sinergia (encaje con tu equipo)",
     "barSynergyNoData": "Sin aliados en el draft",
-    "barMeta": "Meta (tier del parche)"
+    "barMeta": "Meta (tier del parche)",
+    "reason": {
+      "perfectPick": "pick perfecto",
+      "main": "tu main",
+      "youKnowIt": "lo dominas",
+      "comfort": "comfort",
+      "counters": "countra a enemigos",
+      "hardMatchup": "⚠ matchup difícil",
+      "synergy": "sinergia con tu equipo",
+      "strongMeta": "fuerte en el meta",
+      "fillsGap": "aporta lo que falta"
+    }
   },
   "terms": {
     "titleNew": "Aviso legal y privacidad",
@@ -403,6 +417,17 @@
     "copyToClipboard": "Copiar error al portapapeles",
     "copied": "Copiado",
     "tellUs": "Contarnos qué pasó"
+  },
+  "patchBanner": {
+    "newPatch": "Parche nuevo:",
+    "previous": "(anterior {{patch}})",
+    "buffs": "Buffs:",
+    "nerfs": "Nerfs:",
+    "rework": "Rework:",
+    "noChange": "Tus mains no han cambiado este parche.",
+    "notIndexed": "Las notas oficiales aún no se han indexado. Vuelve en unas horas.",
+    "viewChanges": "Ver cambios",
+    "dismiss": "No mostrar más"
   },
   "patch": {
     "newDetectedTitle": "Nuevo parche {{patch}} detectado",

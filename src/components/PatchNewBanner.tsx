@@ -12,6 +12,7 @@
 // buffed, Lee Sin got nerfed" the first time they launch post-patch.
 
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ChevronRight, Sparkles, X } from "lucide-react";
 import { usePrefsStore } from "../state/prefsStore";
 import { getLatestPatchSummary, type PatchChange } from "../services/patchNotes";
@@ -32,6 +33,7 @@ interface AffectedSummary {
 }
 
 export function PatchNewBanner({ db, masteries, onOpenDetail }: Props) {
+  const { t } = useTranslation();
   const lastSeenPatch = usePrefsStore((s) => s.prefs.lastSeenPatch);
   const setPref = usePrefsStore((s) => s.set);
   const [summary, setSummary] = useState<AffectedSummary | null>(null);
@@ -93,9 +95,13 @@ export function PatchNewBanner({ db, masteries, onOpenDetail }: Props) {
       <Sparkles className="w-4 h-4 text-accent shrink-0 animate-pulse" />
       <div className="flex-1 min-w-0">
         <p className="text-xs font-medium text-white">
-          Parche nuevo: <span className="text-accent">{displayPatch(db.patch)}</span>
+          {t("patchBanner.newPatch")}{" "}
+          <span className="text-accent">{displayPatch(db.patch)}</span>
           {lastSeenPatch && (
-            <span className="text-white/40"> (anterior {displayPatch(lastSeenPatch)})</span>
+            <span className="text-white/40">
+              {" "}
+              {t("patchBanner.previous", { patch: displayPatch(lastSeenPatch) })}
+            </span>
           )}
         </p>
         <p className="text-[10px] text-white/65 leading-snug mt-0.5">
@@ -103,7 +109,7 @@ export function PatchNewBanner({ db, masteries, onOpenDetail }: Props) {
             <>
               {summary.buffs.length > 0 && (
                 <span className="text-good">
-                  Buffs: {summary.buffs.join(", ")}
+                  {t("patchBanner.buffs")} {summary.buffs.join(", ")}
                 </span>
               )}
               {summary.buffs.length > 0 &&
@@ -111,24 +117,20 @@ export function PatchNewBanner({ db, masteries, onOpenDetail }: Props) {
                 " · "}
               {summary.nerfs.length > 0 && (
                 <span className="text-bad">
-                  Nerfs: {summary.nerfs.join(", ")}
+                  {t("patchBanner.nerfs")} {summary.nerfs.join(", ")}
                 </span>
               )}
               {summary.nerfs.length > 0 && summary.reworks.length > 0 && " · "}
               {summary.reworks.length > 0 && (
                 <span className="text-purple-300">
-                  Rework: {summary.reworks.join(", ")}
+                  {t("patchBanner.rework")} {summary.reworks.join(", ")}
                 </span>
               )}
             </>
           ) : hasNotes ? (
-            <span className="text-white/50">
-              Tus mains no han cambiado este parche.
-            </span>
+            <span className="text-white/50">{t("patchBanner.noChange")}</span>
           ) : (
-            <span className="text-white/50">
-              Las notas oficiales aún no se han indexado. Vuelve en unas horas.
-            </span>
+            <span className="text-white/50">{t("patchBanner.notIndexed")}</span>
           )}
         </p>
       </div>
@@ -137,13 +139,13 @@ export function PatchNewBanner({ db, masteries, onOpenDetail }: Props) {
           onClick={onOpenDetail}
           className="text-[10px] uppercase tracking-widest font-bold px-3 py-1.5 rounded bg-accent text-black hover:bg-accent/90 transition flex items-center gap-1"
         >
-          Ver cambios <ChevronRight className="w-3 h-3" />
+          {t("patchBanner.viewChanges")} <ChevronRight className="w-3 h-3" />
         </button>
       )}
       <button
         onClick={dismiss}
         className="p-1 rounded text-white/40 hover:text-white/70 hover:bg-white/5 transition"
-        aria-label="No mostrar más"
+        aria-label={t("patchBanner.dismiss")}
       >
         <X className="w-3.5 h-3.5" />
       </button>

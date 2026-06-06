@@ -18,7 +18,10 @@
     "riotConfig": "Riot config",
     "diagnostics": "Diagnostics",
     "myRole": "My role",
-    "basicData": "Basic data"
+    "basicData": "Basic data",
+    "connected": "Connected",
+    "waitingClient": "Waiting for client",
+    "waitingClientTip": "Waiting for you to open the LoL client"
   },
   "winConditions": {
     "title": "Game plan",
@@ -310,7 +313,18 @@
     "barCounterNoData": "No enemies in the draft",
     "barSynergy": "Synergy (fit with your team)",
     "barSynergyNoData": "No allies in the draft",
-    "barMeta": "Meta (patch tier)"
+    "barMeta": "Meta (patch tier)",
+    "reason": {
+      "perfectPick": "perfect pick",
+      "main": "your main",
+      "youKnowIt": "you know it",
+      "comfort": "comfort",
+      "counters": "counters enemies",
+      "hardMatchup": "⚠ tough matchup",
+      "synergy": "synergy with your team",
+      "strongMeta": "strong in the meta",
+      "fillsGap": "fills the gap"
+    }
   },
   "terms": {
     "titleNew": "Legal notice & privacy",
@@ -403,6 +417,17 @@
     "copyToClipboard": "Copy error to clipboard",
     "copied": "Copied",
     "tellUs": "Tell us what happened"
+  },
+  "patchBanner": {
+    "newPatch": "New patch:",
+    "previous": "(previous {{patch}})",
+    "buffs": "Buffs:",
+    "nerfs": "Nerfs:",
+    "rework": "Rework:",
+    "noChange": "Your mains didn't change this patch.",
+    "notIndexed": "Official notes aren't indexed yet. Check back in a few hours.",
+    "viewChanges": "View changes",
+    "dismiss": "Don't show again"
   },
   "patch": {
     "newDetectedTitle": "New patch {{patch}} detected",

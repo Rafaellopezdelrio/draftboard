@@ -555,18 +555,18 @@ function App() {
             {lcuStatus.connected ? (
               <span
                 className="inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded-md font-medium bg-good/15 text-good ring-1 ring-good/40"
-                title="Cliente de LoL detectado"
+                title={t("nav.connected")}
               >
                 <Wifi className="w-3 h-3" />
-                Conectado
+                {t("nav.connected")}
               </span>
             ) : (
               <span
                 className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-white/35"
-                title={lcuStatus.reason ?? "Esperando que abras el cliente de LoL"}
+                title={lcuStatus.reason ?? t("nav.waitingClientTip")}
               >
                 <WifiOff className="w-3 h-3" />
-                Esperando cliente
+                {t("nav.waitingClient")}
               </span>
             )}
             {prefs.liveTimer && <PhaseTimer />}

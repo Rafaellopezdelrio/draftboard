@@ -221,20 +221,23 @@ function scoreChampion(c: Champion, ctx: ScoreCtx): ScoredSuggestion {
     metaEntry?.tier === "A";
   const isPerfectPick = isComfort && isMetaStrong;
 
+  // Reasons are i18n KEYS (suggestions.reason.*) resolved by the panel via t(),
+  // except the winrate line which is a language-neutral literal ("WR 65%") that
+  // passes through t() unchanged. The panel also matches keys for logic (e.g.
+  // the one-trick crown checks for suggestions.reason.main).
   const reasons: string[] = [];
-  // "Pick perfecto" is the highest praise — show it first when present.
-  if (isPerfectPick) reasons.push(`pick perfecto`);
-  if (mastery >= 0.95) reasons.push(`tu main`);
-  else if (mastery > 0.75) reasons.push(`lo dominas`);
-  else if (isComfort) reasons.push(`comfort`);
-  if (personal > 0.6) reasons.push(`tu winrate ${(personal * 100).toFixed(0)}%`);
-  if (counter > 0.55) reasons.push(`countra a enemigos`);
+  if (isPerfectPick) reasons.push("suggestions.reason.perfectPick");
+  if (mastery >= 0.95) reasons.push("suggestions.reason.main");
+  else if (mastery > 0.75) reasons.push("suggestions.reason.youKnowIt");
+  else if (isComfort) reasons.push("suggestions.reason.comfort");
+  if (personal > 0.6) reasons.push(`WR ${(personal * 100).toFixed(0)}%`);
+  if (counter > 0.55) reasons.push("suggestions.reason.counters");
   // Surface the trade-off: a pick can top the list on meta/mastery yet have a
   // losing lane. Flag it so "best overall" doesn't read as "best matchup".
-  else if (counter < 0.45) reasons.push(`⚠ matchup difícil`);
-  if (synergy > 0.55) reasons.push(`sinergia con tu equipo`);
-  if (meta > 0.55) reasons.push(`fuerte en el meta`);
-  if (archetype > 0) reasons.push(`aporta lo que falta`);
+  else if (counter < 0.45) reasons.push("suggestions.reason.hardMatchup");
+  if (synergy > 0.55) reasons.push("suggestions.reason.synergy");
+  if (meta > 0.55) reasons.push("suggestions.reason.strongMeta");
+  if (archetype > 0) reasons.push("suggestions.reason.fillsGap");
 
   const color: "good" | "meh" | "bad" =
     score >= 0.6 ? "good" : score >= 0.45 ? "meh" : "bad";
