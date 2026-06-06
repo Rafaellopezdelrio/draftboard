@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { recentMatches, type MatchRow } from "../services/matchRepo";
 import {
   computeTrends,
@@ -66,13 +67,13 @@ function benchColor(verdict: BenchmarkVerdict): string {
       : "text-white/40";
 }
 
-const ROLE_OPTIONS: Array<{ value: Role | "ALL"; label: string }> = [
-  { value: "ALL", label: "Todos los roles" },
-  { value: "TOP", label: "Top" },
-  { value: "JUNGLE", label: "Jungla" },
-  { value: "MIDDLE", label: "Mid" },
-  { value: "BOTTOM", label: "ADC" },
-  { value: "UTILITY", label: "Support" },
+const ROLE_OPTIONS: Array<{ value: Role | "ALL"; labelKey: string }> = [
+  { value: "ALL", labelKey: "trends.role.all" },
+  { value: "TOP", labelKey: "trends.role.top" },
+  { value: "JUNGLE", labelKey: "trends.role.jungle" },
+  { value: "MIDDLE", labelKey: "trends.role.mid" },
+  { value: "BOTTOM", labelKey: "trends.role.adc" },
+  { value: "UTILITY", labelKey: "trends.role.support" },
 ];
 
 const QUEUE_OPTIONS: Array<{ value: number | "ALL"; label: string }> = [
@@ -91,6 +92,7 @@ const QUEUE_OPTIONS: Array<{ value: number | "ALL"; label: string }> = [
 ];
 
 export function TrendsView({ db, onClose, rankTier }: Props) {
+  const { t } = useTranslation();
   useEscape(onClose);
   const [matches, setMatches] = useState<MatchRow[]>([]);
   const [role, setRole] = useState<Role | "ALL">("ALL");
@@ -277,9 +279,9 @@ export function TrendsView({ db, onClose, rankTier }: Props) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-baseline justify-between mb-3">
-          <h2 className="text-lg font-semibold text-accent">Tendencias</h2>
+          <h2 className="text-lg font-semibold text-accent">{t("trends.title")}</h2>
           <span className="text-xs text-white/40">
-            {filtered.length} partidas
+            {t("trends.matchCount", { count: filtered.length })}
           </span>
         </div>
 
@@ -291,7 +293,7 @@ export function TrendsView({ db, onClose, rankTier }: Props) {
           >
             {ROLE_OPTIONS.map((r) => (
               <option key={r.value} value={r.value}>
-                {r.label}
+                {t(r.labelKey)}
               </option>
             ))}
           </select>
@@ -304,7 +306,7 @@ export function TrendsView({ db, onClose, rankTier }: Props) {
           >
             {QUEUE_OPTIONS.map((q) => (
               <option key={q.value} value={q.value}>
-                {q.label}
+                {q.value === "ALL" ? t("trends.queueAll") : q.label}
               </option>
             ))}
           </select>
@@ -313,7 +315,7 @@ export function TrendsView({ db, onClose, rankTier }: Props) {
         {leak ? (
           <div className="mb-3 p-3 rounded border border-accent/40 bg-accent/5">
             <p className="text-xs uppercase text-white/50 tracking-wide">
-              Patrón cruzado · victorias vs derrotas
+              {t("trends.leakHeader")}
             </p>
             <p className="font-medium text-white mt-1">{leak.headline}</p>
             {leakProgress && (
@@ -351,7 +353,9 @@ export function TrendsView({ db, onClose, rankTier }: Props) {
           weakest && (
             <div className="mb-3 p-3 rounded border border-bad/60 bg-bad/10">
               <p className="text-xs uppercase text-white/50 tracking-wide">
-                Tu mayor problema {role !== "ALL" ? `en ${role}` : "esta semana"}
+                {role !== "ALL"
+                  ? t("trends.weakestIn", { role })
+                  : t("trends.weakestWeek")}
               </p>
               <p className="font-medium text-white mt-1">{weakest.category}</p>
               <p className="text-sm text-white/80">{weakest.detail}</p>
@@ -362,8 +366,8 @@ export function TrendsView({ db, onClose, rankTier }: Props) {
         {benchmarks && benchmarks.list.length > 0 && (
           <div className="mb-3 p-3 rounded border border-border-subtle bg-bg-card/40">
             <p className="text-xs uppercase text-white/50 tracking-wide">
-              vs tu rango · {bracketLabel(benchmarks.bracket)} · {benchmarks.role}{" "}
-              <span className="text-white/30 normal-case">(estimado)</span>
+              {t("trends.vsRank")} · {bracketLabel(benchmarks.bracket)} · {benchmarks.role}{" "}
+              <span className="text-white/30 normal-case">{t("trends.estimated")}</span>
             </p>
             <div className="mt-2 space-y-1">
               {benchmarks.list.map((b) => (
@@ -390,7 +394,7 @@ export function TrendsView({ db, onClose, rankTier }: Props) {
         {progress && (
           <div className="mb-3 p-3 rounded border border-border-subtle bg-bg-card/40">
             <p className="text-xs uppercase text-white/50 tracking-wide">
-              Evolución ·{" "}
+              {t("trends.evolution")} ·{" "}
               <span
                 className={
                   progress.trend === "improving"
@@ -401,12 +405,12 @@ export function TrendsView({ db, onClose, rankTier }: Props) {
                 }
               >
                 {progress.trend === "improving"
-                  ? "en subida"
+                  ? t("trends.trendImproving")
                   : progress.trend === "declining"
-                    ? "bajón"
+                    ? t("trends.trendDeclining")
                     : progress.trend === "mixed"
-                      ? "mixto"
-                      : "estable"}
+                      ? t("trends.trendMixed")
+                      : t("trends.trendStable")}
               </span>
             </p>
             <p className="text-sm text-white/85 mt-1">{progress.headline}</p>
@@ -440,14 +444,16 @@ export function TrendsView({ db, onClose, rankTier }: Props) {
           <div className="mb-3 p-3 rounded border border-accent/40 bg-accent/5">
             <div className="flex items-baseline justify-between mb-2">
               <h3 className="text-sm uppercase text-accent tracking-wide">
-                AI Coach (tendencias)
+                {t("trends.aiCoach")}
               </h3>
               <button
                 onClick={runAi}
                 disabled={aiLoading || !apiKey}
                 className="text-xs px-2 py-1 bg-accent text-black rounded disabled:opacity-50"
               >
-                {aiLoading ? "Analizando..." : "Analizar últimas " + filtered.slice(0, 15).length}
+                {aiLoading
+                  ? t("trends.analyzing")
+                  : t("trends.analyzeLast", { n: filtered.slice(0, 15).length })}
               </button>
             </div>
             {aiErr && <p className="text-sm text-bad">{aiErr}</p>}
@@ -467,7 +473,7 @@ export function TrendsView({ db, onClose, rankTier }: Props) {
           <div className="grid grid-cols-3 gap-2 mb-3">
             <div className="p-2 rounded bg-bg-card/40 border border-border-subtle">
               <p className="text-[10px] uppercase tracking-wide text-white/45 mb-1">
-                Winrate
+                {t("trends.sparkWinrate")}
               </p>
               <SparkLine
                 data={sparkData.winrate}
@@ -475,12 +481,12 @@ export function TrendsView({ db, onClose, rankTier }: Props) {
                 color="#94d09b"
                 width={140}
                 height={32}
-                ariaLabel="Tendencia de winrate"
+                ariaLabel={t("trends.ariaWinrate")}
               />
             </div>
             <div className="p-2 rounded bg-bg-card/40 border border-border-subtle">
               <p className="text-[10px] uppercase tracking-wide text-white/45 mb-1">
-                KDA medio
+                {t("trends.sparkKda")}
               </p>
               <SparkLine
                 data={sparkData.kda}
@@ -488,19 +494,19 @@ export function TrendsView({ db, onClose, rankTier }: Props) {
                 color="#e6cf8a"
                 width={140}
                 height={32}
-                ariaLabel="Tendencia de KDA"
+                ariaLabel={t("trends.ariaKda")}
               />
             </div>
             <div className="p-2 rounded bg-bg-card/40 border border-border-subtle">
               <p className="text-[10px] uppercase tracking-wide text-white/45 mb-1">
-                CS/min
+                {t("trends.sparkCspm")}
               </p>
               <SparkLine
                 data={sparkData.cspm}
                 color="#9eb8d0"
                 width={140}
                 height={32}
-                ariaLabel="Tendencia de CS por minuto"
+                ariaLabel={t("trends.ariaCspm")}
               />
             </div>
           </div>
@@ -511,25 +517,25 @@ export function TrendsView({ db, onClose, rankTier }: Props) {
         {trends.length === 0 ? (
           <EmptyState
             icon={TrendingUp}
-            title="Aún no hay tendencias"
-            detail="Necesitas al menos 6 partidas con los filtros actuales. Sigue jugando y vuelve."
+            title={t("trends.emptyTitle")}
+            detail={t("trends.emptyDetail")}
           />
         ) : (
           <div className="space-y-2 overflow-y-auto">
-            {trends.map((t, i) => (
+            {trends.map((tr, i) => (
               <div
                 key={i}
                 className={`p-2 rounded border text-sm ${
-                  t.severity === "good"
+                  tr.severity === "good"
                     ? "border-good/60 bg-good/10 text-good"
-                    : t.severity === "warn"
+                    : tr.severity === "warn"
                       ? "border-meh/60 bg-meh/10 text-meh"
-                      : t.severity === "bad"
+                      : tr.severity === "bad"
                         ? "border-bad/60 bg-bad/10 text-bad"
                         : "border-border-subtle bg-bg-card text-white/80"
                 }`}
               >
-                {t.insight}
+                {tr.insight}
               </div>
             ))}
           </div>
