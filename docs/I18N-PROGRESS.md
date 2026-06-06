@@ -29,11 +29,16 @@ DiagnosticsView, HistoryView, PreferencesView, SettingsView, ConfirmDialog, View
 
 ## Remaining
 ### Chrome (A)
-CoachView · TierListView · ProPlayersView · AiChatView · LessonPlanView ·
-SummonerLookupView · LiveGamePanel · LiveGameView · OnboardingView ·
-ChampionPoolPanel · PlaystylePanel · PatchImpactPanel · OwnMasteriesPanel ·
-DraftCoachPanel · GpiRadar · misc banners/modals
-(MatchupTipsPanel chrome done; tip content already bilingual via data layer)
+ProPlayersView · AiChatView · LessonPlanView · SummonerLookupView ·
+LiveGameView · OnboardingView · ChampionPoolPanel · PlaystylePanel ·
+PatchImpactPanel · OwnMasteriesPanel · GpiRadar · misc banners/modals
+(Done: MatchupTipsPanel, CoachView, TierListView, LiveGamePanel, DraftCoachPanel,
+TermsGate, PatchNewBanner. Suggestion reasons + LCU status localized.)
+
+### 🐛 FIXED: language toggle revert bug
+Async boot race in setUiLocale reverted the locale to Spanish on reload.
+Fixed: App effect gated on `prefsLoaded` + setUiLocale race-safe token. Verified
+in-browser (reload with uiLocale=en now sticks). See commit 2a95979.
 
 ### Engine content (B)
 - `gpiEngine.ts` (GPI axis labels in the radar — CoachView)
