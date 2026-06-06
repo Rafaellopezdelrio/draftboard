@@ -141,6 +141,11 @@
       "threats_other": "{{count}} threats: play safe and coordinate against them."
     }
   },
+  "matchupTips": {
+    "title": "Matchup tips",
+    "configApiKey": "Configure API key ({{provider}})",
+    "aiTips": "AI tips"
+  },
   "lobby": {
     "title": "Lobby scout",
     "loading": "Loading lobby scout...",

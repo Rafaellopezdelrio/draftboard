@@ -1,4 +1,5 @@
 import { memo, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { ChampionDb, Role } from "../types/champion";
 import { getMatchupTips } from "../data/matchupTips";
 import { usePrefsStore } from "../state/prefsStore";
@@ -22,6 +23,7 @@ function MatchupTipsPanelInner({
   myChampionKey,
   myRole,
 }: Props) {
+  const { t } = useTranslation();
   const beginner = usePrefsStore((s) => s.prefs.beginnerMode);
   const panelLang = usePrefsStore((s) => s.prefs.aiCoachLanguage);
   const idToName = useMemo(() => {
@@ -47,7 +49,7 @@ function MatchupTipsPanelInner({
     <Panel padding="sm">
       <PanelHeader
         icon={<Lightbulb className="w-3 h-3" />}
-        title={panelLang === "en" ? "Matchup tips" : "Tips de matchup"}
+        title={t("matchupTips.title")}
       />
       <div className="space-y-1.5">
         {visible.map((t, i) => (
@@ -89,6 +91,7 @@ function AiMatchupRow({
   enemyKey: string;
   role: Role;
 }) {
+  const { t } = useTranslation();
   const me = db.champions[myChampionKey];
   const en = db.champions[enemyKey];
   const provider = usePrefsStore((s) => s.prefs.aiProvider);
@@ -121,7 +124,7 @@ function AiMatchupRow({
 
   async function generate() {
     if (!apiKey) {
-      setErr(`Configura API key (${provider})`);
+      setErr(t("matchupTips.configApiKey", { provider }));
       return;
     }
     setErr(null);
@@ -159,7 +162,7 @@ function AiMatchupRow({
             className="text-[10px] text-accent hover:underline disabled:opacity-40 inline-flex items-center gap-1"
           >
             <Sparkles className="w-2.5 h-2.5" />
-            {loading ? "..." : "AI tips"}
+            {loading ? "..." : t("matchupTips.aiTips")}
           </button>
         )}
       </div>

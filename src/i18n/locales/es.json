@@ -141,6 +141,11 @@
       "threats_other": "{{count}} amenazas: juega seguro y coordina vs ellos."
     }
   },
+  "matchupTips": {
+    "title": "Tips de matchup",
+    "configApiKey": "Configura API key ({{provider}})",
+    "aiTips": "AI tips"
+  },
   "lobby": {
     "title": "Lobby scout",
     "loading": "Cargando lobby scout...",
