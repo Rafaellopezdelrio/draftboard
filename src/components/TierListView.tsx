@@ -2,6 +2,7 @@
 // OR live dpm.lol bracket data when the user selects "dpm" as their source.
 
 import { Fragment, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { ChampionDb, MetaTier, Role } from "../types/champion";
 import { useEscape } from "../hooks/useKeyboardShortcuts";
 import { useFocusTrap } from "../hooks/useFocusTrap";
@@ -37,13 +38,13 @@ interface Props {
 type SortKey = "tier" | "winRate" | "pickRate" | "banRate" | "name";
 type SortDir = "asc" | "desc";
 
-const ROLE_TABS: Array<{ value: Role | "ALL"; label: string }> = [
-  { value: "ALL", label: "Todos" },
-  { value: "TOP", label: "Top" },
-  { value: "JUNGLE", label: "Jungla" },
-  { value: "MIDDLE", label: "Mid" },
-  { value: "BOTTOM", label: "ADC" },
-  { value: "UTILITY", label: "Sup" },
+const ROLE_TABS: Array<{ value: Role | "ALL"; labelKey: string }> = [
+  { value: "ALL", labelKey: "championPicker.roles.all" },
+  { value: "TOP", labelKey: "championPicker.roles.top" },
+  { value: "JUNGLE", labelKey: "championPicker.roles.jungle" },
+  { value: "MIDDLE", labelKey: "championPicker.roles.middle" },
+  { value: "BOTTOM", labelKey: "championPicker.roles.bottom" },
+  { value: "UTILITY", labelKey: "championPicker.roles.utility" },
 ];
 
 // S+ is dpm.lol-exclusive (tierScore >= 60). Other sources max out at S.
@@ -57,6 +58,7 @@ const TIER_RANK: Record<MetaTier["tier"], number> = {
 };
 
 export function TierListView({ db, onClose, onSelectChampion, onDbUpdate }: Props) {
+  const { t } = useTranslation();
   useEscape(onClose);
   const [role, setRole] = useState<Role | "ALL">("TOP");
   // Single-role view sorts by tier by default (mobalytics-style sections).
@@ -216,7 +218,7 @@ export function TierListView({ db, onClose, onSelectChampion, onDbUpdate }: Prop
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Buscar campeón..."
+                placeholder={t("championPicker.searchPlaceholder")}
                 className="bg-bg-elev/60 pl-8 pr-3 py-1.5 text-sm rounded-md ring-1 ring-border-subtle focus:ring-accent text-white outline-none w-52 transition"
               />
             </div>
@@ -224,7 +226,7 @@ export function TierListView({ db, onClose, onSelectChampion, onDbUpdate }: Prop
           {/* Source + bracket selector — lets the user pick their own rank
               instead of always seeing the default plat+ aggregate. */}
           <div className="flex items-center gap-2 mb-3 flex-wrap">
-            <label className="text-[10px] uppercase tracking-widest text-white/45">Fuente:</label>
+            <label className="text-[10px] uppercase tracking-widest text-white/45">{t("tierList.source")}</label>
             <select
               value={prefs.metaSource}
               disabled={refreshing}
@@ -236,7 +238,7 @@ export function TierListView({ db, onClose, onSelectChampion, onDbUpdate }: Prop
                   Settings if needed. proplay/soloq/blend stay available when
                   synced (no point hiding sources that have real data). */}
               <option value="dpm">
-                dpm.lol (por rango)
+                {t("tierList.dpmByRank")}
                 {db.metaSourceCounts && db.metaSourceCounts.dpm > 0 && ` · ${db.metaSourceCounts.dpm}`}
               </option>
               {/* op.gg deprecated as default — keep option only if user
@@ -265,9 +267,12 @@ export function TierListView({ db, onClose, onSelectChampion, onDbUpdate }: Prop
             {db.metaSourceUsed && db.metaSourceRequested && db.metaSourceUsed !== db.metaSourceRequested && (
               <span
                 className="text-[10px] uppercase tracking-widest text-yellow-300/80"
-                title={`Pediste "${db.metaSourceRequested}" pero no hay datos; mostrando "${db.metaSourceUsed}" como fallback.`}
+                title={t("tierList.fallbackTip", {
+                  requested: db.metaSourceRequested,
+                  used: db.metaSourceUsed,
+                })}
               >
-                ⚠ usando {db.metaSourceUsed}
+                {t("tierList.usingFallback", { used: db.metaSourceUsed })}
               </span>
             )}
             {isDpm && (
@@ -277,10 +282,10 @@ export function TierListView({ db, onClose, onSelectChampion, onDbUpdate }: Prop
                   disabled={refreshing}
                   onChange={(e) => applyDpmFilter({ tier: e.target.value as DpmTier })}
                   className="bg-bg-elev/60 text-xs rounded ring-1 ring-border-subtle px-2 py-1 text-white outline-none focus:ring-accent"
-                  title="Rango (Iron → Challenger)"
+                  title={t("tierList.rankTitle")}
                 >
-                  {DPM_TIER_ORDER.map((t) => (
-                    <option key={t} value={t}>{DPM_TIER_LABELS[t]}</option>
+                  {DPM_TIER_ORDER.map((tier) => (
+                    <option key={tier} value={tier}>{DPM_TIER_LABELS[tier]}</option>
                   ))}
                 </select>
                 <select
@@ -288,7 +293,7 @@ export function TierListView({ db, onClose, onSelectChampion, onDbUpdate }: Prop
                   disabled={refreshing}
                   onChange={(e) => applyDpmFilter({ platform: e.target.value as DpmPlatform })}
                   className="bg-bg-elev/60 text-xs rounded ring-1 ring-border-subtle px-2 py-1 text-white outline-none focus:ring-accent"
-                  title="Región"
+                  title={t("tierList.regionTitle")}
                 >
                   {(Object.keys(DPM_PLATFORM_LABELS) as DpmPlatform[]).map((p) => (
                     <option key={p} value={p}>{DPM_PLATFORM_LABELS[p]}</option>
@@ -299,21 +304,21 @@ export function TierListView({ db, onClose, onSelectChampion, onDbUpdate }: Prop
                   disabled={refreshing}
                   onChange={(e) => applyDpmFilter({ timeframe: e.target.value as DpmTimeframe })}
                   className="bg-bg-elev/60 text-xs rounded ring-1 ring-border-subtle px-2 py-1 text-white outline-none focus:ring-accent"
-                  title="Ventana de tiempo"
+                  title={t("tierList.timeframeTitle")}
                 >
-                  <option value="7days">7 días</option>
-                  <option value="30days">30 días</option>
+                  <option value="7days">{t("tierList.days7")}</option>
+                  <option value="30days">{t("tierList.days30")}</option>
                 </select>
                 {refreshing && (
                   <span className="text-[10px] uppercase tracking-widest text-white/45">
-                    Actualizando…
+                    {t("tierList.refreshing")}
                   </span>
                 )}
               </>
             )}
           </div>
           <Tabs
-            tabs={ROLE_TABS.map((r) => ({ value: r.value, label: r.label }))}
+            tabs={ROLE_TABS.map((r) => ({ value: r.value, label: t(r.labelKey) }))}
             active={role}
             onChange={setRole}
           />
@@ -323,13 +328,11 @@ export function TierListView({ db, onClose, onSelectChampion, onDbUpdate }: Prop
         {isEmpty && (
           <div className="flex-1 flex items-center justify-center p-8 text-center">
             <div>
-              <p className="text-white/70 text-sm mb-2">
-                Sin datos del meta aún
-              </p>
+              <p className="text-white/70 text-sm mb-2">{t("tierList.noData")}</p>
               <p className="text-xs text-white/50">
-                Ve a <strong>⚙ Settings</strong> y pulsa{" "}
-                <strong>"🏆 Sync meta PRO"</strong> para descargar agregados de
-                LCK/LEC/LCS/LPL.
+                {t("tierList.syncPrefix")} <strong>⚙ Settings</strong>{" "}
+                {t("tierList.syncMiddle")} <strong>"🏆 Sync meta PRO"</strong>{" "}
+                {t("tierList.syncSuffix")}
               </p>
             </div>
           </div>
@@ -342,12 +345,12 @@ export function TierListView({ db, onClose, onSelectChampion, onDbUpdate }: Prop
               <thead className="sticky top-0 bg-bg-elev z-10">
                 <tr className="text-[10px] uppercase tracking-widest text-white/45">
                   <th className="text-left px-4 py-2 font-semibold w-10">#</th>
-                  <Th label="Campeón" sortKey="name" current={sortKey} dir={sortDir} onClick={toggleSort} align="left" />
-                  <Th label="Rol" current={null} sortKey={null} align="left" />
+                  <Th label={t("tierList.colChampion")} sortKey="name" current={sortKey} dir={sortDir} onClick={toggleSort} align="left" />
+                  <Th label={t("tierList.colRole")} current={null} sortKey={null} align="left" />
                   <Th label="Tier" sortKey="tier" current={sortKey} dir={sortDir} onClick={toggleSort} />
-                  <Th label="Winrate" sortKey="winRate" current={sortKey} dir={sortDir} onClick={toggleSort} />
-                  <Th label="Pickrate" sortKey="pickRate" current={sortKey} dir={sortDir} onClick={toggleSort} />
-                  <Th label="Banrate" sortKey="banRate" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <Th label={t("tierList.colWinrate")} sortKey="winRate" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <Th label={t("tierList.colPickrate")} sortKey="pickRate" current={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <Th label={t("tierList.colBanrate")} sortKey="banRate" current={sortKey} dir={sortDir} onClick={toggleSort} />
                 </tr>
               </thead>
               <tbody>
@@ -375,7 +378,10 @@ export function TierListView({ db, onClose, onSelectChampion, onDbUpdate }: Prop
                                 {m.tier} Tier
                               </span>
                               <span className="text-[10px] uppercase tracking-widest text-white/35">
-                                · {tierCounts[m.tier]} {tierCounts[m.tier] === 1 ? "campeón" : "campeones"}
+                                · {tierCounts[m.tier]}{" "}
+                                {tierCounts[m.tier] === 1
+                                  ? t("tierList.champOne")
+                                  : t("tierList.champMany")}
                               </span>
                             </div>
                           </td>
@@ -427,7 +433,7 @@ export function TierListView({ db, onClose, onSelectChampion, onDbUpdate }: Prop
         {!isEmpty && (
           <div className="px-4 py-2 border-t border-border-subtle text-[10px] uppercase tracking-widest text-white/40 flex items-center justify-between">
             <span>{rows.length} campeones · patch {displayPatch(db.patch)}</span>
-            <span>Ordenar: click en cabecera</span>
+            <span>{t("tierList.sortHint")}</span>
           </div>
         )}
       </div>

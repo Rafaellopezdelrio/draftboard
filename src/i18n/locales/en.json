@@ -454,6 +454,30 @@
       "utility": "Support"
     }
   },
+  "tierList": {
+    "source": "Source:",
+    "dpmByRank": "dpm.lol (by rank)",
+    "fallbackTip": "You asked for \"{{requested}}\" but there's no data; showing \"{{used}}\" as fallback.",
+    "usingFallback": "⚠ using {{used}}",
+    "rankTitle": "Rank (Iron → Challenger)",
+    "regionTitle": "Region",
+    "timeframeTitle": "Timeframe",
+    "days7": "7 days",
+    "days30": "30 days",
+    "refreshing": "Refreshing…",
+    "noData": "No meta data yet",
+    "syncPrefix": "Go to",
+    "syncMiddle": "and press",
+    "syncSuffix": "to download LCK/LEC/LCS/LPL aggregates.",
+    "colChampion": "Champion",
+    "colRole": "Role",
+    "colWinrate": "Winrate",
+    "colPickrate": "Pickrate",
+    "colBanrate": "Banrate",
+    "champOne": "champion",
+    "champMany": "champions",
+    "sortHint": "Sort: click a header"
+  },
   "history": {
     "title": "History",
     "filterByChampion": "Filter by champion...",
