@@ -24,6 +24,7 @@ DiagnosticsView, HistoryView, PreferencesView, SettingsView, ConfirmDialog, View
 - `leakEngine.ts` → `trends.leak*` (additive keys; Spanish kept for AI-memory path)
 - `aramEngine.ts` → `aram.*` (returns keys; BuildPanel resolves)
 - `runeAdvice.ts` → `runeAdvice.*` (returns keys; BuildPanel resolves)
+- `liveCoachEngine.ts` → `liveCoach.*` (16 insights; LiveGamePanel + OverlayApp + voice)
 
 ## Remaining
 ### Chrome (A)
@@ -34,7 +35,6 @@ DraftCoachPanel · GpiRadar · misc banners/modals
 (MatchupTipsPanel chrome done; tip content already bilingual via data layer)
 
 ### Engine content (B)
-- `liveCoachEngine.ts` (live insights — also spoken)
 - `topInsight.ts` / `gpiEngine.ts` (post-game tips, GPI axis labels)
 - `trendsEngine.ts` (trend insights)
 - `playstyleEngine.ts` (archetype labels/traits)
