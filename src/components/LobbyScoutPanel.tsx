@@ -4,6 +4,7 @@
 // in Porofessor: you see immediately who's reliable on your team.
 
 import { memo, useEffect, useState, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { Shield, Users, Star, ShieldAlert, Swords } from "lucide-react";
 import { Panel } from "./ui/Panel";
 import { scoutTeam, type ScoutedPlayer } from "../services/lobbyScout";
@@ -17,6 +18,7 @@ interface Props {
 }
 
 function LobbyScoutPanelInner({ session, db }: Props) {
+  const { t } = useTranslation();
   const [myTeam, setMyTeam] = useState<Array<ScoutedPlayer | null>>([]);
   const [theirTeam, setTheirTeam] = useState<Array<ScoutedPlayer | null>>([]);
   const [loading, setLoading] = useState(false);
@@ -62,7 +64,7 @@ function LobbyScoutPanelInner({ session, db }: Props) {
   if (myTeam.length === 0 && theirTeam.length === 0) {
     return loading ? (
       <Panel padding="sm">
-        <p className="text-[10px] text-white/30 italic">Cargando lobby scout...</p>
+        <p className="text-[10px] text-white/30 italic">{t("lobby.loading")}</p>
       </Panel>
     ) : null;
   }
@@ -80,13 +82,20 @@ function LobbyScoutPanelInner({ session, db }: Props) {
       <div className="flex items-center gap-2 mb-2">
         <Users className="w-3.5 h-3.5 text-accent" />
         <p className="text-[10px] uppercase tracking-widest text-accent font-semibold">
-          Lobby scout
+          {t("lobby.title")}
         </p>
       </div>
 
       {dodge && (
         <div className="mb-2 px-2 py-1.5 rounded text-[11px] font-medium bg-bad/10 text-bad border border-bad/40 leading-snug">
-          ⚠ {dodge.text}
+          ⚠{" "}
+          {t("lobby.dodgeText", {
+            bits: [
+              t("lobby.dodgeTiers", { tiers: dodge.tiers }),
+              ...(dodge.hasThreat ? [t("lobby.dodgeThreat")] : []),
+              ...(dodge.hasLiability ? [t("lobby.dodgeLiability")] : []),
+            ].join(", "),
+          })}
         </div>
       )}
 
@@ -96,7 +105,7 @@ function LobbyScoutPanelInner({ session, db }: Props) {
             <Callout
               icon={<Star className="w-3 h-3 text-good shrink-0" />}
               name={read.carry.name}
-              reason={read.carry.reason}
+              reason={t(read.carry.reasonKey, read.carry.reasonParams)}
               nameClass="text-good"
             />
           )}
@@ -104,7 +113,7 @@ function LobbyScoutPanelInner({ session, db }: Props) {
             <Callout
               icon={<ShieldAlert className="w-3 h-3 text-meh shrink-0" />}
               name={read.liability.name}
-              reason={read.liability.reason}
+              reason={t(read.liability.reasonKey, read.liability.reasonParams)}
               nameClass="text-meh"
             />
           )}
@@ -112,23 +121,23 @@ function LobbyScoutPanelInner({ session, db }: Props) {
             <Callout
               icon={<Swords className="w-3 h-3 text-bad shrink-0" />}
               name={read.topThreat.name}
-              reason={read.topThreat.reason}
+              reason={t(read.topThreat.reasonKey, read.topThreat.reasonParams)}
               nameClass="text-bad"
             />
           )}
           {read.balance && (
             <p className="text-[11px] text-white/70 leading-snug pl-[18px]">
-              {read.balance.text}
+              {t(read.balance.textKey)}
             </p>
           )}
         </div>
       )}
 
-      <TeamColumn label="Tu equipo" team={myTeam} db={db} colorClass="text-blue-300" />
+      <TeamColumn label={t("draft.yourTeam")} team={myTeam} db={db} colorClass="text-blue-300" />
       {theirTeam.some((p) => p) && (
         <div className="mt-2 pt-2 border-t border-white/5">
           <TeamColumn
-            label="Enemigos"
+            label={t("draft.enemies")}
             team={theirTeam}
             db={db}
             colorClass="text-red-300"
@@ -212,6 +221,7 @@ function rankEmblemUrl(rank: string | undefined | null): string | null {
 }
 
 function PlayerRow({ p, db }: { p: ScoutedPlayer; db: ChampionDb }) {
+  const { t } = useTranslation();
   const champ = Object.values(db.champions).find(
     (c) => Number(c.key) === p.championId
   );
@@ -265,12 +275,15 @@ function PlayerRow({ p, db }: { p: ScoutedPlayer; db: ChampionDb }) {
               {p.soloRank} · {p.soloLp} LP
             </span>
             <span className={`tabular-nums ${wrColor}`}>
-              {(p.soloWinRate * 100).toFixed(0)}% en {p.soloGames}g
+              {t("lobby.statLine", {
+                wr: (p.soloWinRate * 100).toFixed(0),
+                games: p.soloGames,
+              })}
             </span>
           </div>
         )}
         {!p.soloRank && (
-          <p className="text-[10px] text-white/30">Sin ranked esta temporada</p>
+          <p className="text-[10px] text-white/30">{t("lobby.noRanked")}</p>
         )}
       </div>
     </li>

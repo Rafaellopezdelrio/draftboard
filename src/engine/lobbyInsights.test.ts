@@ -7,7 +7,7 @@ function read(over: Partial<LobbyRead>): LobbyRead {
     carry: null,
     liability: null,
     topThreat: null,
-    balance: { delta: 0, text: "" },
+    balance: { delta: 0, textKey: "" },
     ...over,
   };
 }
@@ -38,7 +38,7 @@ describe("readLobby", () => {
     ];
     const r = readLobby(my, []);
     expect(r.carry?.name).toBe("Carry");
-    expect(r.carry?.reason).toMatch(/win condition/);
+    expect(r.carry?.reasonKey).toBe("lobby.carryReason");
   });
 
   it("flags a tiny-sample / autofill ally as a liability", () => {
@@ -48,7 +48,7 @@ describe("readLobby", () => {
     ];
     const r = readLobby(my, []);
     expect(r.liability?.name).toBe("New");
-    expect(r.liability?.reason).toMatch(/autofill/);
+    expect(r.liability?.reasonKey).toBe("lobby.liabilitySmall");
   });
 
   it("surfaces the strongest enemy as the top threat", () => {
@@ -65,7 +65,7 @@ describe("readLobby", () => {
     const their = [sp({ soloRank: "SILVER II" }), sp({ soloRank: "SILVER IV" })];
     const r = readLobby(my, their);
     expect(r.balance!.delta).toBeGreaterThan(0);
-    expect(r.balance!.text).toMatch(/Outrankeas/);
+    expect(r.balance!.textKey).toBe("lobby.balanceAhead");
   });
 
   it("returns no carry when nobody stands out", () => {
@@ -79,23 +79,28 @@ describe("readLobby", () => {
 
 describe("dodgeHint", () => {
   it("fires when heavily outranked (~3 tiers)", () => {
-    expect(dodgeHint(read({ balance: { delta: -12, text: "" } }))?.severity).toBe("warn");
+    const d = dodgeHint(read({ balance: { delta: -12, textKey: "" } }));
+    expect(d?.severity).toBe("warn");
+    expect(d?.tiers).toBe(3);
   });
 
   it("fires when outranked plus a liability ally", () => {
-    expect(
-      dodgeHint(
-        read({ balance: { delta: -8, text: "" }, liability: { name: "X", reason: "" } })
-      )
-    ).not.toBeNull();
+    const d = dodgeHint(
+      read({
+        balance: { delta: -8, textKey: "" },
+        liability: { name: "X", reasonKey: "" },
+      })
+    );
+    expect(d).not.toBeNull();
+    expect(d?.hasLiability).toBe(true);
   });
 
   it("stays quiet when only mildly outranked with no extra signal", () => {
-    expect(dodgeHint(read({ balance: { delta: -8, text: "" } }))).toBeNull();
+    expect(dodgeHint(read({ balance: { delta: -8, textKey: "" } }))).toBeNull();
   });
 
   it("stays quiet on an even lobby", () => {
-    expect(dodgeHint(read({ balance: { delta: 0, text: "" } }))).toBeNull();
+    expect(dodgeHint(read({ balance: { delta: 0, textKey: "" } }))).toBeNull();
   });
 
   it("stays quiet without balance data", () => {

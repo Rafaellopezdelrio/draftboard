@@ -11,7 +11,9 @@ import { rankValue } from "./scoutInsights";
 
 export interface LobbyCallout {
   name: string;
-  reason: string;
+  /** i18n key (lobby.*) for the reason, resolved by the panel via t(). */
+  reasonKey: string;
+  reasonParams?: Record<string, string | number>;
 }
 
 export interface LobbyRead {
@@ -21,8 +23,8 @@ export interface LobbyRead {
   liability: LobbyCallout | null;
   /** Biggest enemy threat to respect. */
   topThreat: LobbyCallout | null;
-  /** Rank balance between teams + a one-line tactical read. */
-  balance: { delta: number; text: string } | null;
+  /** Rank balance between teams + a one-line tactical read (i18n key). */
+  balance: { delta: number; textKey: string } | null;
 }
 
 // rankValue is ~4 per tier (division = 1). UNRANKED has no value; for ranking
@@ -39,8 +41,10 @@ function reliability(p: ScoutedPlayer): number {
   return rv + wrAdj;
 }
 
+// Language-neutral stat line used as a {{stat}} param inside localized
+// reasons (e.g. "GOLD II, 55% · 30g"). "unranked" stays as LoL jargon.
 function fmt(p: ScoutedPlayer): string {
-  const wr = `${Math.round(p.soloWinRate * 100)}% en ${p.soloGames}g`;
+  const wr = `${Math.round(p.soloWinRate * 100)}% · ${p.soloGames}g`;
   return p.soloRank ? `${p.soloRank}, ${wr}` : `unranked, ${wr}`;
 }
 
@@ -75,7 +79,8 @@ export function readLobby(
     if (standout) {
       carry = {
         name: bestAlly.summonerName,
-        reason: `${fmt(bestAlly)} — tu win condition, juega alrededor suyo.`,
+        reasonKey: "lobby.carryReason",
+        reasonParams: { stat: fmt(bestAlly) },
       };
     }
   }
@@ -88,13 +93,11 @@ export function readLobby(
       worstAlly.soloGames < 10 ||
       (worstAlly.soloGames >= MIN_SAMPLE && worstAlly.soloWinRate < 0.45);
     if (weak) {
-      const why =
-        worstAlly.soloGames < 10
-          ? "muestra pequeña / posible autofill"
-          : "bajo de forma";
       liability = {
         name: worstAlly.summonerName,
-        reason: `${fmt(worstAlly)} — ${why}, no dependas de él.`,
+        reasonKey:
+          worstAlly.soloGames < 10 ? "lobby.liabilitySmall" : "lobby.liabilityForm",
+        reasonParams: { stat: fmt(worstAlly) },
       };
     }
   }
@@ -110,7 +113,8 @@ export function readLobby(
     if (scary) {
       topThreat = {
         name: bestEnemy.summonerName,
-        reason: `${fmt(bestEnemy)} — mayor amenaza enemiga, respeta su carril.`,
+        reasonKey: "lobby.topThreatReason",
+        reasonParams: { stat: fmt(bestEnemy) },
       };
     }
   }
@@ -127,7 +131,10 @@ function minByReliability(arr: ScoutedPlayer[]): ScoutedPlayer | null {
 
 export interface DodgeHint {
   severity: "warn";
-  text: string;
+  /** Rank gap in tiers (the panel composes the localized text from these). */
+  tiers: number;
+  hasThreat: boolean;
+  hasLiability: boolean;
 }
 
 // Rank gap (in rankValue units, ~4 per tier) that makes a game an uphill climb.
@@ -147,19 +154,18 @@ export function dodgeHint(read: LobbyRead): DodgeHint | null {
   if (!heavy && !(outranked && (read.liability || read.topThreat))) return null;
 
   const tiers = Math.round(Math.abs(delta) / 4);
-  const bits = [`enemigo ~+${tiers} tiers`];
-  if (read.topThreat) bits.push("amenaza fuerte");
-  if (read.liability) bits.push("aliado flojo");
   return {
     severity: "warn",
-    text: `Partida cuesta arriba (${bits.join(", ")}). Valora dodgear: a veces -LP sale más barato que una derrota probable.`,
+    tiers,
+    hasThreat: read.topThreat != null,
+    hasLiability: read.liability != null,
   };
 }
 
 function teamBalance(
   allies: ScoutedPlayer[],
   enemies: ScoutedPlayer[]
-): { delta: number; text: string } | null {
+): { delta: number; textKey: string } | null {
   const avg = (ps: ScoutedPlayer[]): number | null => {
     const vals = ps
       .map((p) => rankValue(p.soloRank, p.soloLp))
@@ -171,13 +177,11 @@ function teamBalance(
   const theirs = avg(enemies);
   if (mine == null || theirs == null) return null;
   const delta = mine - theirs;
-  let text: string;
-  if (delta >= TIER) {
-    text = "Outrankeas al enemigo — presiona temprano, fuerza tu ventaja.";
-  } else if (delta <= -TIER) {
-    text = "El enemigo outrankea — juega seguro, agrupa y juega objetivos.";
-  } else {
-    text = "Equipos parejos en rango — el draft y la ejecución deciden.";
-  }
-  return { delta, text };
+  const textKey =
+    delta >= TIER
+      ? "lobby.balanceAhead"
+      : delta <= -TIER
+        ? "lobby.balanceBehind"
+        : "lobby.balanceEven";
+  return { delta, textKey };
 }

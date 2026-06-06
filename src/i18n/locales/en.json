@@ -141,6 +141,23 @@
       "threats_other": "{{count}} threats: play safe and coordinate against them."
     }
   },
+  "lobby": {
+    "title": "Lobby scout",
+    "loading": "Loading lobby scout...",
+    "noRanked": "No ranked this season",
+    "statLine": "{{wr}}% · {{games}}g",
+    "carryReason": "{{stat}} — your win condition, play around them.",
+    "liabilitySmall": "{{stat}} — small sample / possible autofill, don't rely on them.",
+    "liabilityForm": "{{stat}} — out of form, don't rely on them.",
+    "topThreatReason": "{{stat}} — biggest enemy threat, respect their lane.",
+    "balanceAhead": "You outrank the enemy — press early, force your edge.",
+    "balanceBehind": "The enemy outranks you — play safe, group and play objectives.",
+    "balanceEven": "Teams even in rank — draft and execution decide.",
+    "dodgeTiers": "enemy ~+{{tiers}} tiers",
+    "dodgeThreat": "strong threat",
+    "dodgeLiability": "weak ally",
+    "dodgeText": "Uphill game ({{bits}}). Consider dodging: sometimes -LP is cheaper than a likely loss."
+  },
   "comp": {
     "title": "Composition",
     "archetype": {

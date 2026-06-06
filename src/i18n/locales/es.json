@@ -141,6 +141,23 @@
       "threats_other": "{{count}} amenazas: juega seguro y coordina vs ellos."
     }
   },
+  "lobby": {
+    "title": "Lobby scout",
+    "loading": "Cargando lobby scout...",
+    "noRanked": "Sin ranked esta temporada",
+    "statLine": "{{wr}}% · {{games}}g",
+    "carryReason": "{{stat}} — tu win condition, juega alrededor suyo.",
+    "liabilitySmall": "{{stat}} — muestra pequeña / posible autofill, no dependas de él.",
+    "liabilityForm": "{{stat}} — bajo de forma, no dependas de él.",
+    "topThreatReason": "{{stat}} — mayor amenaza enemiga, respeta su carril.",
+    "balanceAhead": "Outrankeas al enemigo — presiona temprano, fuerza tu ventaja.",
+    "balanceBehind": "El enemigo outrankea — juega seguro, agrupa y juega objetivos.",
+    "balanceEven": "Equipos parejos en rango — el draft y la ejecución deciden.",
+    "dodgeTiers": "enemigo ~+{{tiers}} tiers",
+    "dodgeThreat": "amenaza fuerte",
+    "dodgeLiability": "aliado flojo",
+    "dodgeText": "Partida cuesta arriba ({{bits}}). Valora dodgear: a veces -LP sale más barato que una derrota probable."
+  },
   "comp": {
     "title": "Composición",
     "archetype": {
