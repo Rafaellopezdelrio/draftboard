@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { rankValue, assessThreat, summarizeEnemies } from "./scoutInsights";
 import type { ScoutResult } from "../services/enemyScout";
+import es from "../i18n/locales/es.json";
 
 function sr(over: Partial<ScoutResult>): ScoutResult {
   return {
@@ -48,7 +49,8 @@ describe("assessThreat", () => {
     });
     expect(t.level).toBe("danger");
     expect(t.tags).toEqual(expect.arrayContaining(["main", "one-trick"]));
-    expect(t.note).toMatch(/OTP de Yasuo/);
+    expect(t.noteKey).toBe("scout.note.oneTrick");
+    expect(t.noteParams).toMatchObject({ champ: "Yasuo" });
   });
 
   it("detects a likely smurf from low level + strong rank/WR", () => {
@@ -56,7 +58,7 @@ describe("assessThreat", () => {
       scout: sr({ summonerLevel: 25, rank: "DIAMOND II", recentWins: 8, recentLosses: 1 }),
     });
     expect(t.tags).toContain("smurf?");
-    expect(t.note).toMatch(/smurf/i);
+    expect(t.noteKey).toMatch(/^scout\.note\.smurf/);
   });
 
   it("marks an off-pool pick (locked outside their mastery)", () => {
@@ -65,7 +67,7 @@ describe("assessThreat", () => {
       pickedChampionId: 99,
     });
     expect(t.tags).toContain("fuera de pool");
-    expect(t.note).toMatch(/pool/);
+    expect(t.noteKey).toBe("scout.note.offPool");
   });
 
   it("reads a cold streak / poor form as low threat", () => {
@@ -73,29 +75,47 @@ describe("assessThreat", () => {
       scout: sr({ coldStreak: true, recentWins: 2, recentLosses: 8 }),
     });
     expect(t.level).toBe("weak");
-    expect(t.note).toMatch(/forma/);
+    expect(t.noteKey).toMatch(/^scout\.note\.coldStreak/);
   });
 
   it("returns a neutral verdict for an average opponent", () => {
     const t = assessThreat({ scout: sr({}) });
     expect(t.level).toBe("neutral");
-    expect(t.note).toMatch(/estándar/);
+    expect(t.noteKey).toBe("scout.note.standard");
+  });
+
+  it("every emitted noteKey resolves to a real translation", () => {
+    const notes = (es as { scout: { note: Record<string, string> } }).scout.note;
+    const scenarios: ScoutResult[] = [
+      sr({ summonerLevel: 25, rank: "DIAMOND II", recentWins: 8, recentLosses: 1 }),
+      sr({ recentWins: 7, recentLosses: 1, hotStreak: true }),
+      sr({ topMasteries: [{ championId: 1, level: 7, points: 100_000 }] }),
+      sr({ coldStreak: true, recentWins: 2, recentLosses: 8 }),
+      sr({ mainChampionId: 1, pickedChampionMastery: { championId: 1, level: 7, points: 50_000 } }),
+      sr({}),
+    ];
+    for (const scout of scenarios) {
+      const tr = assessThreat({ scout, pickedChampionId: 99, championName: "X" });
+      const leaf = tr.noteKey.replace("scout.note.", "");
+      expect(leaf in notes).toBe(true);
+    }
   });
 });
 
 describe("summarizeEnemies", () => {
   it("counts danger + elevated as threats", () => {
     const s = summarizeEnemies([
-      { level: "danger", score: 0.8, tags: [], note: "" },
-      { level: "elevated", score: 0.6, tags: [], note: "" },
-      { level: "neutral", score: 0.5, tags: [], note: "" },
+      { level: "danger", score: 0.8, tags: [], noteKey: "" },
+      { level: "elevated", score: 0.6, tags: [], noteKey: "" },
+      { level: "neutral", score: 0.5, tags: [], noteKey: "" },
     ]);
     expect(s.dangerCount).toBe(2);
-    expect(s.text).toMatch(/2 amenazas/);
+    expect(s.textKey).toBe("scout.summary.threats");
+    expect(s.textParams).toEqual({ count: 2 });
   });
   it("says no threats when none qualify", () => {
-    expect(summarizeEnemies([{ level: "neutral", score: 0.5, tags: [], note: "" }]).text).toMatch(
-      /Sin amenazas/
-    );
+    expect(
+      summarizeEnemies([{ level: "neutral", score: 0.5, tags: [], noteKey: "" }]).textKey
+    ).toBe("scout.summary.safe");
   });
 });

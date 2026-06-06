@@ -14,10 +14,14 @@ export interface PlayerThreat {
   level: ThreatLevel;
   /** 0–1 composite. 0.5 = average opponent. */
   score: number;
-  /** Short flags for chips: "main", "one-trick", "en racha", "smurf?"… */
+  /** Short flags for chips: "main", "one-trick", "en racha", "smurf?"…
+   *  Internal signal flags (not rendered) — kept stable for logic/tests. */
   tags: string[];
-  /** Single most useful sentence — what to actually do about this player. */
-  note: string;
+  /** i18n key for the single most useful note (scout.note.*), resolved by the
+   *  panel via t() so the verdict is localized (and so is the spoken version). */
+  noteKey: string;
+  /** Interpolation params for noteKey (champion name, WR, level…). */
+  noteParams?: Record<string, string | number>;
 }
 
 const TIERS: Record<string, number> = {
@@ -69,7 +73,7 @@ export function assessThreat({
   const pm = scout.pickedChampionMastery;
   const isMain = !!pm && scout.mainChampionId === pm.championId;
   const oneTrick = !!pm && pm.points > ONE_TRICK_PTS;
-  const champ = championName ?? "su pick";
+  const champ = championName ?? "";
 
   let score = 0.5;
   const tags: string[] = [];
@@ -113,29 +117,48 @@ export function assessThreat({
     score >= 0.68 ? "danger" : score >= 0.56 ? "elevated" : score < 0.42 ? "weak" : "neutral";
 
   // Note: pick the single most decision-relevant signal, most severe first.
-  let note: string;
+  // Emit an i18n key (+ params) instead of prose so the panel localizes both
+  // the displayed and spoken verdict.
+  let noteKey: string;
+  let noteParams: Record<string, string | number> | undefined;
   if (smurf) {
-    note = `Posible smurf (lvl ${scout.summonerLevel}${wrPct !== null ? `, ${wrPct}% WR` : ""}). Asume que domina el matchup — juega seguro.`;
+    if (wrPct !== null) {
+      noteKey = "scout.note.smurfWr";
+      noteParams = { level: scout.summonerLevel ?? 0, wr: wrPct };
+    } else {
+      noteKey = "scout.note.smurf";
+      noteParams = { level: scout.summonerLevel ?? 0 };
+    }
   } else if (oneTrick) {
-    note = `OTP de ${champ} (${Math.round(pm!.points / 1000)}k). No pelees el 1v1 temprano; pide jungla.`;
+    noteKey = "scout.note.oneTrick";
+    noteParams = { champ, pts: Math.round(pm!.points / 1000) };
   } else if (scout.hotStreak && wr !== null && wr >= 0.6) {
-    note = `En racha (${wrPct}%). Confiado — castiga sus overextends.`;
+    noteKey = "scout.note.hotStreak";
+    noteParams = { wr: wrPct ?? 0 };
   } else if (tags.includes("fuera de pool")) {
-    note = `Fuera de su pool de campeones. Presiona temprano antes de que se acomode.`;
+    noteKey = "scout.note.offPool";
   } else if (scout.coldStreak || (wr !== null && total >= 5 && wr < 0.4)) {
-    note = `Bajo de forma${wrPct !== null ? ` (${wrPct}%)` : ""}. Snowballea tu carril, puede tiltear.`;
+    if (wrPct !== null) {
+      noteKey = "scout.note.coldStreakWr";
+      noteParams = { wr: wrPct };
+    } else {
+      noteKey = "scout.note.coldStreak";
+    }
   } else if (isMain) {
-    note = `Juega su main (${champ}). Respeta sus picks de poder.`;
+    noteKey = "scout.note.main";
+    noteParams = { champ };
   } else {
-    note = `Oponente estándar. Ejecuta tu plan de carril.`;
+    noteKey = "scout.note.standard";
   }
 
-  return { level, score, tags, note };
+  return { level, score, tags, noteKey, noteParams };
 }
 
 export interface EnemySummary {
   dangerCount: number;
-  text: string;
+  /** i18n key (scout.summary.*) resolved by the panel. */
+  textKey: string;
+  textParams?: Record<string, string | number>;
 }
 
 /** One-line read of the enemy team for the panel header. */
@@ -143,9 +166,13 @@ export function summarizeEnemies(threats: PlayerThreat[]): EnemySummary {
   const dangerCount = threats.filter(
     (t) => t.level === "danger" || t.level === "elevated"
   ).length;
-  const text =
-    dangerCount === 0
-      ? "Sin amenazas claras — ejecuta tu plan."
-      : `${dangerCount} amenaza${dangerCount > 1 ? "s" : ""}: juega seguro y coordina vs ellos.`;
-  return { dangerCount, text };
+  if (dangerCount === 0) {
+    return { dangerCount, textKey: "scout.summary.safe" };
+  }
+  // i18next plural: resolves threats_one / threats_other from the count.
+  return {
+    dangerCount,
+    textKey: "scout.summary.threats",
+    textParams: { count: dangerCount },
+  };
 }

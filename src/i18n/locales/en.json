@@ -122,7 +122,24 @@
     "main": "Main: {{name}}",
     "spam": "Spam:",
     "hotStreak": "hot streak",
-    "coldStreak": "cold streak"
+    "coldStreak": "cold streak",
+    "threatPrefix": "Threat:",
+    "note": {
+      "smurf": "Possible smurf (lvl {{level}}). Assume they dominate the matchup — play safe.",
+      "smurfWr": "Possible smurf (lvl {{level}}, {{wr}}% WR). Assume they dominate the matchup — play safe.",
+      "oneTrick": "{{champ}} OTP ({{pts}}k). Don't fight the early 1v1; ask for jungle.",
+      "hotStreak": "On a hot streak ({{wr}}%). Confident — punish their overextends.",
+      "offPool": "Off their champ pool. Pressure early before they settle in.",
+      "coldStreak": "Out of form. Snowball your lane, they may tilt.",
+      "coldStreakWr": "Out of form ({{wr}}%). Snowball your lane, they may tilt.",
+      "main": "Playing their main ({{champ}}). Respect their power picks.",
+      "standard": "Standard opponent. Execute your lane plan."
+    },
+    "summary": {
+      "safe": "No clear threats — execute your plan.",
+      "threats_one": "{{count}} threat: play safe and coordinate against them.",
+      "threats_other": "{{count}} threats: play safe and coordinate against them."
+    }
   },
   "comp": {
     "title": "Composition",

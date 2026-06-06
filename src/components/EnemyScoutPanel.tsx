@@ -1,5 +1,6 @@
 import { memo, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { i18n } from "../i18n";
 import type { ChampionDb } from "../types/champion";
 import { getSummonerById } from "../services/lcuService";
 import { scoutPlayer, type ScoutResult } from "../services/enemyScout";
@@ -121,7 +122,13 @@ function EnemyScoutPanelInner({
               championName: champName,
             });
             if (threat.level === "danger") {
-              voiceCoach.speak(`Amenaza: ${threat.note}`, `threat-${sid}`);
+              // i18n.t (module singleton) instead of the hook's t so this
+              // fire-and-forget effect doesn't need t in its deps (which would
+              // re-run the whole scout fetch on every language change).
+              voiceCoach.speak(
+                `${i18n.t("scout.threatPrefix")} ${i18n.t(threat.noteKey, threat.noteParams)}`,
+                `threat-${sid}`
+              );
             }
           }
         } catch {
@@ -173,7 +180,7 @@ function EnemyScoutPanelInner({
               : "bg-good/10 text-good border border-good/30"
           }`}
         >
-          {summary.text}
+          {t(summary.textKey, summary.textParams)}
         </div>
       )}
       <div className="space-y-1.5">
@@ -282,7 +289,7 @@ function ScoutCard({
           <span
             className={`mt-1 w-1.5 h-1.5 rounded-full shrink-0 ${threatStyle(threat.level).dot}`}
           />
-          <span className="leading-snug">{threat.note}</span>
+          <span className="leading-snug">{t(threat.noteKey, threat.noteParams)}</span>
         </div>
       )}
 

@@ -122,7 +122,24 @@
     "main": "Main: {{name}}",
     "spam": "Spam:",
     "hotStreak": "en racha",
-    "coldStreak": "coldstreak"
+    "coldStreak": "coldstreak",
+    "threatPrefix": "Amenaza:",
+    "note": {
+      "smurf": "Posible smurf (lvl {{level}}). Asume que domina el matchup — juega seguro.",
+      "smurfWr": "Posible smurf (lvl {{level}}, {{wr}}% WR). Asume que domina el matchup — juega seguro.",
+      "oneTrick": "OTP de {{champ}} ({{pts}}k). No pelees el 1v1 temprano; pide jungla.",
+      "hotStreak": "En racha ({{wr}}%). Confiado — castiga sus overextends.",
+      "offPool": "Fuera de su pool de campeones. Presiona temprano antes de que se acomode.",
+      "coldStreak": "Bajo de forma. Snowballea tu carril, puede tiltear.",
+      "coldStreakWr": "Bajo de forma ({{wr}}%). Snowballea tu carril, puede tiltear.",
+      "main": "Juega su main ({{champ}}). Respeta sus picks de poder.",
+      "standard": "Oponente estándar. Ejecuta tu plan de carril."
+    },
+    "summary": {
+      "safe": "Sin amenazas claras — ejecuta tu plan.",
+      "threats_one": "{{count}} amenaza: juega seguro y coordina vs ellos.",
+      "threats_other": "{{count}} amenazas: juega seguro y coordina vs ellos."
+    }
   },
   "comp": {
     "title": "Composición",
