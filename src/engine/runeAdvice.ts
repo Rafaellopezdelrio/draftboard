@@ -70,8 +70,9 @@ function countComp(enemies: Champion[]): CompCount {
   return { ap, ad, cc, poke };
 }
 
-/** Up to 3 rune/shard tweaks for the enemy comp. Empty when there are no
- *  enemies yet (early draft) so the panel shows nothing instead of noise. */
+/** Up to 3 rune/shard tweaks for the enemy comp, as i18n keys (runeAdvice.*)
+ *  resolved by the panel via t(). Empty when there are no enemies yet (early
+ *  draft) so the panel shows nothing instead of noise. */
 export function runeAdvice(myChampion: Champion, enemies: Champion[]): string[] {
   if (enemies.length === 0) return [];
   const { ap, ad, cc, poke } = countComp(enemies);
@@ -80,18 +81,18 @@ export function runeAdvice(myChampion: Champion, enemies: Champion[]): string[] 
   const tips: string[] = [];
 
   if (ap >= 3) {
-    tips.push("Comp AP-heavy: shard de MR (fila 3) en vez de armadura.");
+    tips.push("runeAdvice.apHeavy");
   } else if (ad >= 3) {
-    tips.push("Comp AD-heavy: shard de armadura; Bone Plating/Segunda Piel si te all-inean.");
+    tips.push("runeAdvice.adHeavy");
   }
   if (poke >= 2) {
-    tips.push("Mucho poke: Second Wind + shard de HP para sostener antes de pelear.");
+    tips.push("runeAdvice.poke");
   }
   if (cc >= 2 && squishy) {
-    tips.push("CC pesado: Tenacidad — Mercuriales o runa Unflinching para no quedar encadenado.");
+    tips.push("runeAdvice.ccHeavy");
   }
   if (tips.length === 0) {
-    tips.push("Comp equilibrada: mantén la página estándar; ajusta shards al matchup de carril.");
+    tips.push("runeAdvice.balanced");
   }
   return tips.slice(0, 3);
 }

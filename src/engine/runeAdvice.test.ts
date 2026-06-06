@@ -25,26 +25,26 @@ describe("runeAdvice", () => {
 
   it("suggests MR vs an AP-heavy comp", () => {
     const enemies = [ch("Lux", ["Mage"]), ch("Syndra", ["Mage"]), ch("Brand", ["Mage"])];
-    expect(runeAdvice(me, enemies).some((t) => /MR/.test(t))).toBe(true);
+    expect(runeAdvice(me, enemies)).toContain("runeAdvice.apHeavy");
   });
 
   it("suggests armor + Bone Plating vs an AD-heavy comp", () => {
     const enemies = [ch("Jinx", ["Marksman"]), ch("Garen", ["Fighter"]), ch("Riven", ["Fighter"])];
-    expect(runeAdvice(me, enemies).some((t) => /armadura|Bone Plating/i.test(t))).toBe(true);
+    expect(runeAdvice(me, enemies)).toContain("runeAdvice.adHeavy");
   });
 
   it("suggests sustain vs poke", () => {
     const enemies = [ch("Xerath", []), ch("Ziggs", [])];
-    expect(runeAdvice(me, enemies).some((t) => /Second Wind|poke/i.test(t))).toBe(true);
+    expect(runeAdvice(me, enemies)).toContain("runeAdvice.poke");
   });
 
   it("suggests tenacity vs heavy CC for a squishy champ", () => {
     const enemies = [ch("Leona", []), ch("Nautilus", [])];
-    expect(runeAdvice(me, enemies).some((t) => /Tenacidad/i.test(t))).toBe(true);
+    expect(runeAdvice(me, enemies)).toContain("runeAdvice.ccHeavy");
   });
 
   it("falls back to a neutral tip for a balanced comp", () => {
-    expect(runeAdvice(me, [ch("Garen", ["Fighter"])])[0]).toMatch(/equilibrada/);
+    expect(runeAdvice(me, [ch("Garen", ["Fighter"])])[0]).toBe("runeAdvice.balanced");
   });
 
   it("caps at 3 tips", () => {

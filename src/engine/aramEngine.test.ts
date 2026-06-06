@@ -19,22 +19,22 @@ function ch(name: string, tags: Champion["tags"]): Champion {
 describe("aramAdvice", () => {
   it("gives a poke line for mages", () => {
     const tips = aramAdvice(ch("Lux", ["Mage"]));
-    expect(tips.some((t) => /Poke/.test(t))).toBe(true);
+    expect(tips).toContain("aram.poke");
   });
 
   it("recognises poke champs even without the Mage tag", () => {
     const tips = aramAdvice(ch("Ziggs", []));
-    expect(tips.some((t) => /Poke/.test(t))).toBe(true);
+    expect(tips).toContain("aram.poke");
   });
 
   it("tells marksmen to build sustain (no recall)", () => {
     const tips = aramAdvice(ch("Jinx", ["Marksman"]));
-    expect(tips.some((t) => /sustain|Shieldbow/i.test(t))).toBe(true);
+    expect(tips).toContain("aram.marksman");
   });
 
   it("always includes the universal no-recall rule", () => {
     const tips = aramAdvice(ch("Garen", ["Fighter", "Tank"]));
-    expect(tips.some((t) => /Sin recall/.test(t))).toBe(true);
+    expect(tips).toContain("aram.universalSustain");
   });
 
   it("caps at 4 bullets", () => {

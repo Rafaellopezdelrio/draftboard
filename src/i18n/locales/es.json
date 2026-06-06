@@ -112,12 +112,30 @@
       "gold": "Sube tu economía: no pierdas oleadas y recoge plates / objetivos para no quedarte sin ítems."
     }
   },
+  "runeAdvice": {
+    "apHeavy": "Comp AP-heavy: shard de MR (fila 3) en vez de armadura.",
+    "adHeavy": "Comp AD-heavy: shard de armadura; Bone Plating/Segunda Piel si te all-inean.",
+    "poke": "Mucho poke: Second Wind + shard de HP para sostener antes de pelear.",
+    "ccHeavy": "CC pesado: Tenacidad — Mercuriales o runa Unflinching para no quedar encadenado.",
+    "balanced": "Comp equilibrada: mantén la página estándar; ajusta shards al matchup de carril."
+  },
+  "aram": {
+    "poke": "Poke: castiga a distancia y farmea daño antes de pelear; no entres sin tu combo listo.",
+    "marksman": "Posiciónate detrás del frontline. Sin recall, prioriza sustain (Shieldbow/ER) sobre glass-cannon.",
+    "fighter": "Eres frontline: absorbe el poke y busca el all-in cuando el enemigo gaste habilidades.",
+    "tank": "Engage cuando el rival malgaste su poke. Compra resistencias + anti-heal si tienen curación.",
+    "assassin": "Espera flancos; no te expongas al poke constante. Un pick limpio gana la teamfight.",
+    "support": "Maximiza peel/escudos y CC en las teamfights — el valor de wards no existe aquí.",
+    "universalSustain": "Sin recall: usa Reliquia de Vida + poros para sostener. Empuja para presionar la torre.",
+    "universalTenacity": "Compra Tenacidad (Mercuriales/Sterak) vs CC pesado y anti-heal pronto si el enemigo cura."
+  },
   "build": {
     "header": "Build",
     "loadFailed": "No se pudo cargar la build recomendada de op.gg.",
     "loadFailedHint": "Verifica que el proxy esté activo en Prefs, o reintenta — puede ser un timeout puntual de op.gg.",
     "retry": "Reintentar",
     "aramTip": "Consejo ARAM",
+    "aramItemsNote": "Los items de abajo son de SoloQ — adapta hacia sustain/poke.",
     "loadingOptimal": "Cargando build óptima…",
     "finalItems": "Items finales",
     "abilities": "Habilidades",

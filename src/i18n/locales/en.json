@@ -112,12 +112,30 @@
       "gold": "Grow your economy: don't lose waves and grab plates / objectives so you don't fall behind on items."
     }
   },
+  "runeAdvice": {
+    "apHeavy": "AP-heavy comp: MR shard (row 3) instead of armor.",
+    "adHeavy": "AD-heavy comp: armor shard; Bone Plating/Second Skin if they all-in you.",
+    "poke": "Lots of poke: Second Wind + HP shard to sustain before fighting.",
+    "ccHeavy": "Heavy CC: Tenacity — Mercurial or the Unflinching rune so you're not chain-locked.",
+    "balanced": "Balanced comp: keep the standard page; tune shards to your lane matchup."
+  },
+  "aram": {
+    "poke": "Poke: punish from range and farm damage before fighting; don't dive without your combo up.",
+    "marksman": "Position behind the frontline. With no recall, prioritize sustain (Shieldbow/ER) over glass-cannon.",
+    "fighter": "You're the frontline: soak the poke and look for the all-in when the enemy spends abilities.",
+    "tank": "Engage when they waste their poke. Buy resistances + anti-heal if they have healing.",
+    "assassin": "Wait for flanks; don't expose yourself to constant poke. One clean pick wins the teamfight.",
+    "support": "Maximize peel/shields and CC in teamfights — ward value doesn't exist here.",
+    "universalSustain": "No recall: use the Health Relic + poros to sustain. Push to pressure the tower.",
+    "universalTenacity": "Buy Tenacity (Mercurial/Sterak) vs heavy CC and anti-heal early if the enemy heals."
+  },
   "build": {
     "header": "Build",
     "loadFailed": "Couldn't load the recommended op.gg build.",
     "loadFailedHint": "Check the proxy is active in Prefs, or retry — it may be a one-off op.gg timeout.",
     "retry": "Retry",
     "aramTip": "ARAM tip",
+    "aramItemsNote": "The items below are from SoloQ — adapt toward sustain/poke.",
     "loadingOptimal": "Loading optimal build…",
     "finalItems": "Final items",
     "abilities": "Abilities",

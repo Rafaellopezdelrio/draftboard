@@ -206,15 +206,15 @@ function BuildPanelInner({ db, championKey, role, enemyKeys = [] }: Props) {
             <p className="text-accent font-semibold">{t("build.aramTip")} · {champ.name}</p>
           </div>
           <ul className="space-y-1 pl-1">
-            {aramAdvice(champ).map((t, i) => (
+            {aramAdvice(champ).map((tipKey, i) => (
               <li key={i} className="text-white/75 leading-tight flex gap-1.5">
                 <span className="text-accent/70 shrink-0">•</span>
-                <span>{t}</span>
+                <span>{t(tipKey)}</span>
               </li>
             ))}
           </ul>
           <p className="text-white/40 text-[10px] leading-tight">
-            Los items de abajo son de SoloQ — adapta hacia sustain/poke.
+            {t("build.aramItemsNote")}
           </p>
         </div>
       )}
@@ -386,13 +386,13 @@ function BuildPanelInner({ db, championKey, role, enemyKeys = [] }: Props) {
             {t("build.runesVsComp")}
           </p>
           <ul className="space-y-1">
-            {runeTips.map((t, i) => (
+            {runeTips.map((tipKey, i) => (
               <li
                 key={i}
                 className="text-[11px] text-white/75 leading-tight flex gap-1.5"
               >
                 <span className="text-accent/70 shrink-0">•</span>
-                <span>{t}</span>
+                <span>{t(tipKey)}</span>
               </li>
             ))}
           </ul>
