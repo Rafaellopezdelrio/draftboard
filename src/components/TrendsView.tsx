@@ -317,18 +317,30 @@ export function TrendsView({ db, onClose, rankTier }: Props) {
             <p className="text-xs uppercase text-white/50 tracking-wide">
               {t("trends.leakHeader")}
             </p>
-            <p className="font-medium text-white mt-1">{leak.headline}</p>
+            <p className="font-medium text-white mt-1">
+              {t(leak.headlineKey, {
+                label: leak.macro ? "" : t(leak.topLeak.labelKey),
+                wr: leak.wrPct,
+                games: leak.games,
+              })}
+            </p>
             {leakProgress && (
               <p className="text-[11px] text-good mt-1">📈 {leakProgress}</p>
             )}
             {!leak.macro && (
-              <p className="text-sm text-white/80 mt-1">{leak.topLeak.advice}</p>
+              <p className="text-sm text-white/80 mt-1">{t(leak.topLeak.adviceKey)}</p>
             )}
             <div className="mt-2 space-y-1.5">
               {leak.leaks.map((l) => (
                 <div key={l.key}>
                   <div className="flex items-center justify-between text-[11px]">
-                    <span className="text-white/80">{l.insight}</span>
+                    <span className="text-white/80">
+                      {t("trends.leakInsight", {
+                        label: t(l.labelKey),
+                        loss: l.lossFmt,
+                        win: l.winFmt,
+                      })}
+                    </span>
                     <span className="text-white/40 tabular-nums ml-2">
                       d{l.effect.toFixed(2)}
                     </span>

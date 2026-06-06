@@ -15,7 +15,10 @@ export type LeakKey = "deaths" | "kda" | "cspm" | "kp" | "vision" | "gold";
 
 export interface Leak {
   key: LeakKey;
+  /** Spanish label, kept for the AI-summary/memory path (internal anchor). */
   label: string;
+  /** i18n key for the UI label (trends.leakMetric.*). */
+  labelKey: string;
   winAvg: number;
   lossAvg: number;
   /** lossAvg - winAvg, in the metric's own units (signed). */
@@ -23,8 +26,15 @@ export interface Leak {
   /** |Cohen's d| — standardized effect size, 0.2 small / 0.5 medium / 0.8 large. */
   effect: number;
   severity: "bad" | "warn" | "info";
+  /** Spanish insight, kept for the AI-memory path. */
   insight: string;
+  /** Spanish advice, kept for the AI-memory path. */
   advice: string;
+  /** i18n key for the UI advice (trends.leakAdvice.*). */
+  adviceKey: string;
+  /** Pre-formatted loss/win values (language-neutral) for the UI insight. */
+  lossFmt: string;
+  winFmt: string;
 }
 
 export interface LeakReport {
@@ -35,8 +45,12 @@ export interface LeakReport {
   losses: number;
   /** true when even the biggest gap is small -> problem is macro, not mechanics. */
   macro: boolean;
-  /** one-line headline for the UI. */
+  /** Spanish headline, kept for the AI-memory path. */
   headline: string;
+  /** i18n key for the UI headline (trends.leakHeadline*). */
+  headlineKey: string;
+  /** winrate % over the sample — param for the localized headline. */
+  wrPct: number;
 }
 
 interface MetricDef {
@@ -152,6 +166,7 @@ export function analyzeLeaks(matches: MatchRow[]): LeakReport | null {
     leaks.push({
       key: metric.key,
       label: metric.label,
+      labelKey: `trends.leakMetric.${metric.key}`,
       winAvg,
       lossAvg,
       delta,
@@ -159,6 +174,9 @@ export function analyzeLeaks(matches: MatchRow[]): LeakReport | null {
       severity,
       insight: `${metric.label}: derrotas ${metric.format(lossAvg)} vs victorias ${metric.format(winAvg)}`,
       advice: metric.advice,
+      adviceKey: `trends.leakAdvice.${metric.key}`,
+      lossFmt: metric.format(lossAvg),
+      winFmt: metric.format(winAvg),
     });
   }
 
@@ -180,6 +198,10 @@ export function analyzeLeaks(matches: MatchRow[]): LeakReport | null {
     losses: lossSet.length,
     macro,
     headline: `${headline} (${wr}% WR en ${matches.length})`,
+    headlineKey: macro
+      ? "trends.leakHeadlineMacro"
+      : "trends.leakHeadlineMetric",
+    wrPct: wr,
   };
 }
 

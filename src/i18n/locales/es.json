@@ -91,7 +91,26 @@
     "ariaKda": "Tendencia de KDA",
     "ariaCspm": "Tendencia de CS por minuto",
     "emptyTitle": "Aún no hay tendencias",
-    "emptyDetail": "Necesitas al menos 6 partidas con los filtros actuales. Sigue jugando y vuelve."
+    "emptyDetail": "Necesitas al menos 6 partidas con los filtros actuales. Sigue jugando y vuelve.",
+    "leakInsight": "{{label}}: derrotas {{loss}} vs victorias {{win}}",
+    "leakHeadlineMacro": "Tus stats mecánicas no distinguen tus victorias de tus derrotas — el leak está en macro/draft, no en mecánica. ({{wr}}% WR en {{games}})",
+    "leakHeadlineMetric": "Tu mayor diferencia entre ganar y perder: {{label}}. ({{wr}}% WR en {{games}})",
+    "leakMetric": {
+      "deaths": "Muertes",
+      "kda": "KDA",
+      "cspm": "Farm (CS/min)",
+      "kp": "Participación",
+      "vision": "Visión (score/min)",
+      "gold": "Oro/min"
+    },
+    "leakAdvice": {
+      "deaths": "Antes de cada pelea evalúa si la trade vale. Revisa el minimapa tras cada recall.",
+      "kda": "Elige mejor tus peleas: participa solo cuando puedas impactar sin morir.",
+      "cspm": "Prioriza últimos golpes y recupera oleadas tras objetivos en vez de rotar en vacío.",
+      "kp": "Acércate a objetivos y rotaciones — en tus derrotas juegas aislado del equipo.",
+      "vision": "Compra control wards, wardea antes de objetivos y limpia la visión enemiga.",
+      "gold": "Sube tu economía: no pierdas oleadas y recoge plates / objetivos para no quedarte sin ítems."
+    }
   },
   "build": {
     "header": "Build",

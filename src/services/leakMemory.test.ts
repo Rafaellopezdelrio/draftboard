@@ -6,6 +6,7 @@ function leak(key: Leak["key"], label: string, insight: string): Leak {
   return {
     key,
     label,
+    labelKey: `trends.leakMetric.${key}`,
     winAvg: 2,
     lossAvg: 6,
     delta: 4,
@@ -13,6 +14,9 @@ function leak(key: Leak["key"], label: string, insight: string): Leak {
     severity: "bad",
     insight,
     advice: "x",
+    adviceKey: `trends.leakAdvice.${key}`,
+    lossFmt: "6.0",
+    winFmt: "2.0",
   };
 }
 
@@ -26,6 +30,8 @@ function report(over: Partial<LeakReport> = {}): LeakReport {
     losses: 10,
     macro: false,
     headline: "h",
+    headlineKey: "trends.leakHeadlineMetric",
+    wrPct: 50,
     ...over,
   };
 }
