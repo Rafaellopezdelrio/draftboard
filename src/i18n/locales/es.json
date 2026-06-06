@@ -422,6 +422,19 @@
   "championPool": {
     "title": "Tu pool"
   },
+  "feedback": {
+    "title": "Reportar problema",
+    "subtitle": "Tu nota se envía con el trail de acciones recientes — anónimo, sin partidas, sin chat.",
+    "telemetryOffTitle": "Telemetría desactivada",
+    "telemetryOffDetail": "Activa el envío de reportes en Preferencias → Privacidad para enviar feedback.",
+    "telemetryOffInline": "Telemetría desactivada. Actívala en Preferencias → Privacidad para poder enviar el reporte.",
+    "sentTitle": "Reporte enviado",
+    "sentDetail": "Lo revisamos en breve. Gracias por avisar.",
+    "failTitle": "No pude enviar",
+    "placeholder": "Qué pasó, qué hacías, qué esperabas que pasara...",
+    "sending": "Enviando...",
+    "send": "Enviar"
+  },
   "shortcuts": {
     "title": "Atajos de teclado",
     "footer": "¿Falta uno? Reporta y lo añadimos.",

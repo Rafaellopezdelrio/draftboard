@@ -13,6 +13,7 @@
 // user is told upfront in the modal so they're not surprised.
 
 import { useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { MessageSquare, X, AlertCircle } from "lucide-react";
 import { captureMessage } from "../services/sentry";
 import { useToast } from "./ui/ToastContainer";
@@ -30,6 +31,7 @@ interface Props {
 }
 
 export function FeedbackModal({ contextTag, prefill, onClose }: Props) {
+  const { t } = useTranslation();
   const [body, setBody] = useState(prefill ?? "");
   const [busy, setBusy] = useState(false);
   const telemetryEnabled = usePrefsStore((s) => s.prefs.telemetryEnabled);
@@ -42,9 +44,8 @@ export function FeedbackModal({ contextTag, prefill, onClose }: Props) {
     if (!telemetryEnabled) {
       toast({
         type: "warn",
-        title: "Telemetría desactivada",
-        detail:
-          "Activa el envío de reportes en Preferencias → Privacidad para enviar feedback.",
+        title: t("feedback.telemetryOffTitle"),
+        detail: t("feedback.telemetryOffDetail"),
       });
       return;
     }
@@ -56,14 +57,14 @@ export function FeedbackModal({ contextTag, prefill, onClose }: Props) {
       });
       toast({
         type: "success",
-        title: "Reporte enviado",
-        detail: "Lo revisamos en breve. Gracias por avisar.",
+        title: t("feedback.sentTitle"),
+        detail: t("feedback.sentDetail"),
       });
       onClose();
     } catch (e) {
       toast({
         type: "error",
-        title: "No pude enviar",
+        title: t("feedback.failTitle"),
         detail: String(e).slice(0, 200),
       });
     } finally {
@@ -88,14 +89,11 @@ export function FeedbackModal({ contextTag, prefill, onClose }: Props) {
           <MessageSquare className="w-5 h-5 text-accent shrink-0 mt-0.5" />
           <div className="flex-1">
             <h2 id="feedback-title" className="text-lg font-semibold text-white">
-              Reportar problema
+              {t("feedback.title")}
             </h2>
-            <p className="text-xs text-white/55 mt-0.5">
-              Tu nota se envía con el trail de acciones recientes — anónimo,
-              sin partidas, sin chat.
-            </p>
+            <p className="text-xs text-white/55 mt-0.5">{t("feedback.subtitle")}</p>
           </div>
-          <button onClick={onClose} aria-label="Cerrar" className="text-white/40 hover:text-white">
+          <button onClick={onClose} aria-label={t("common.close")} className="text-white/40 hover:text-white">
             <X className="w-4 h-4" />
           </button>
         </header>
@@ -103,10 +101,7 @@ export function FeedbackModal({ contextTag, prefill, onClose }: Props) {
         {!telemetryEnabled && (
           <div className="flex items-start gap-2 p-2 bg-meh/15 border border-meh/40 rounded text-[11px] text-meh">
             <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-            <span>
-              Telemetría desactivada. Actívala en Preferencias → Privacidad para
-              poder enviar el reporte.
-            </span>
+            <span>{t("feedback.telemetryOffInline")}</span>
           </div>
         )}
 
@@ -114,7 +109,7 @@ export function FeedbackModal({ contextTag, prefill, onClose }: Props) {
           autoFocus
           value={body}
           onChange={(e) => setBody(e.target.value)}
-          placeholder="Qué pasó, qué hacías, qué esperabas que pasara..."
+          placeholder={t("feedback.placeholder")}
           rows={5}
           className="w-full bg-bg-elev border border-border-subtle rounded p-2 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-accent"
         />
@@ -124,14 +119,14 @@ export function FeedbackModal({ contextTag, prefill, onClose }: Props) {
             onClick={onClose}
             className="flex-1 px-3 py-2 bg-bg-elev border border-border-subtle text-white/80 rounded hover:bg-bg-card text-sm"
           >
-            Cancelar
+            {t("common.cancel")}
           </button>
           <button
             onClick={submit}
             disabled={busy || !body.trim() || !telemetryEnabled}
             className="flex-1 px-3 py-2 bg-accent text-black font-medium rounded hover:bg-accent-deep transition disabled:opacity-40 text-sm"
           >
-            {busy ? "Enviando..." : "Enviar"}
+            {busy ? t("feedback.sending") : t("feedback.send")}
           </button>
         </div>
       </div>

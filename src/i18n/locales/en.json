@@ -422,6 +422,19 @@
   "championPool": {
     "title": "Your pool"
   },
+  "feedback": {
+    "title": "Report a problem",
+    "subtitle": "Your note is sent with the recent-actions trail — anonymous, no matches, no chat.",
+    "telemetryOffTitle": "Telemetry disabled",
+    "telemetryOffDetail": "Enable report sending in Preferences → Privacy to send feedback.",
+    "telemetryOffInline": "Telemetry disabled. Enable it in Preferences → Privacy to send the report.",
+    "sentTitle": "Report sent",
+    "sentDetail": "We'll review it shortly. Thanks for the heads-up.",
+    "failTitle": "Couldn't send",
+    "placeholder": "What happened, what you were doing, what you expected...",
+    "sending": "Sending...",
+    "send": "Send"
+  },
   "shortcuts": {
     "title": "Keyboard shortcuts",
     "footer": "Missing one? Report it and we'll add it.",
