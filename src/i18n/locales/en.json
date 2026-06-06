@@ -59,6 +59,27 @@
     "switchTo": "Switch to",
     "better": "better"
   },
+  "build": {
+    "header": "Build",
+    "loadFailed": "Couldn't load the recommended op.gg build.",
+    "loadFailedHint": "Check the proxy is active in Prefs, or retry — it may be a one-off op.gg timeout.",
+    "retry": "Retry",
+    "aramTip": "ARAM tip",
+    "loadingOptimal": "Loading optimal build…",
+    "finalItems": "Final items",
+    "abilities": "Abilities",
+    "adaptations": "Adaptations vs enemy comp",
+    "runesRecommended": "Recommended runes",
+    "apply": "Apply →",
+    "applying": "Applying...",
+    "applied": "✓ Applied",
+    "applyError": "Error — open the client",
+    "toastAppliedTitle": "Runes applied",
+    "toastApplyErrorTitle": "Error applying runes",
+    "toastAppliedDetail": "The LoL client now has the page active.",
+    "toastApplyErrorDetail": "Open the client and retry.",
+    "runesVsComp": "Runes vs their comp"
+  },
   "scout": {
     "title": "Enemy scout",
     "slotEmpty": "Slot {{n}} empty",

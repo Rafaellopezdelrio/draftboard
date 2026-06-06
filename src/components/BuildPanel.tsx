@@ -1,4 +1,5 @@
 import { memo, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   loadAggregatedBuilds,
   loadAggregatedRunes,
@@ -42,6 +43,7 @@ interface Props {
 const SKILL_LABEL = ["", "Q", "W", "E"];
 
 function BuildPanelInner({ db, championKey, role, enemyKeys = [] }: Props) {
+  const { t } = useTranslation();
   const [builds, setBuilds] = useState<BuildAgg[]>([]);
   const [runes, setRunes] = useState<RuneAgg | null>(null);
   const [skills, setSkills] = useState<SkillOrderAgg | null>(null);
@@ -155,17 +157,17 @@ function BuildPanelInner({ db, championKey, role, enemyKeys = [] }: Props) {
       <div className="flex items-center gap-2">
         <img src={champ.iconUrl} alt={champ.name} className="w-8 h-8 rounded" />
         <h3 className="text-sm uppercase tracking-wide text-white/70">
-          Build · {champ.name}
+          {t("build.header")} · {champ.name}
         </h3>
       </div>
 
       {noData && (
         <div className="mt-2 p-3 rounded-md bg-bg-card/40 ring-1 ring-dashed ring-white/10 space-y-2">
           <p className="text-xs text-white/60 leading-relaxed">
-            No se pudo cargar la build recomendada de op.gg.
+            {t("build.loadFailed")}
           </p>
           <p className="text-[11px] text-white/40">
-            Verifica que el proxy esté activo en Prefs, o reintenta — puede ser un timeout puntual de op.gg.
+            {t("build.loadFailedHint")}
           </p>
           <button
             type="button"
@@ -189,7 +191,7 @@ function BuildPanelInner({ db, championKey, role, enemyKeys = [] }: Props) {
             }}
             className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider px-2 py-1 rounded ring-1 ring-accent/40 bg-accent/10 text-accent hover:bg-accent/20 transition"
           >
-            Reintentar
+            {t("build.retry")}
           </button>
         </div>
       )}
@@ -201,7 +203,7 @@ function BuildPanelInner({ db, championKey, role, enemyKeys = [] }: Props) {
         <div className="rounded-md border border-accent/40 bg-accent/10 p-2 text-[11px] space-y-1.5">
           <div className="flex items-center gap-2">
             <span className="text-accent text-base leading-none">⚔</span>
-            <p className="text-accent font-semibold">Consejo ARAM · {champ.name}</p>
+            <p className="text-accent font-semibold">{t("build.aramTip")} · {champ.name}</p>
           </div>
           <ul className="space-y-1 pl-1">
             {aramAdvice(champ).map((t, i) => (
@@ -222,7 +224,7 @@ function BuildPanelInner({ db, championKey, role, enemyKeys = [] }: Props) {
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-accent animate-pulse" />
             <p className="text-[11px] text-white/55">
-              Cargando build óptima…
+              {t("build.loadingOptimal")}
             </p>
           </div>
           {/* Skeleton bars matching the eventual BuildRow layout so the
@@ -266,7 +268,7 @@ function BuildPanelInner({ db, championKey, role, enemyKeys = [] }: Props) {
 
       {builds.length > 0 && (
         <div>
-          <p className="text-xs text-white/50 mb-1">Items finales</p>
+          <p className="text-xs text-white/50 mb-1">{t("build.finalItems")}</p>
           <div className="flex flex-wrap gap-1">
             {/* Dedup itemIds — aggregation source occasionally returns
               * the same item twice (e.g. when both starter + late-game
@@ -286,7 +288,7 @@ function BuildPanelInner({ db, championKey, role, enemyKeys = [] }: Props) {
 
       {skills && (
         <div>
-          <p className="text-xs text-white/50 mb-1">Habilidades</p>
+          <p className="text-xs text-white/50 mb-1">{t("build.abilities")}</p>
           <p className="text-sm text-white">
             Primeros 3:{" "}
             <span className="text-accent">
@@ -310,7 +312,7 @@ function BuildPanelInner({ db, championKey, role, enemyKeys = [] }: Props) {
 
       {adaptations.length > 0 && (
         <div>
-          <p className="text-xs text-white/50 mb-1">Adaptaciones vs comp enemiga</p>
+          <p className="text-xs text-white/50 mb-1">{t("build.adaptations")}</p>
           <div className="space-y-1">
             {adaptations.map((a, i) => (
               <div
@@ -332,34 +334,34 @@ function BuildPanelInner({ db, championKey, role, enemyKeys = [] }: Props) {
         <div className="rounded-md border border-accent/30 bg-accent/5 p-2 mt-2">
           <div className="flex items-baseline justify-between mb-1.5">
             <p className="text-xs font-semibold uppercase tracking-wide text-accent">
-              Runas recomendadas
+              {t("build.runesRecommended")}
             </p>
             {showRuneButton && (
             <button
               className="text-xs font-medium px-2 py-0.5 bg-accent text-black rounded hover:bg-accent-deep transition"
               onClick={async () => {
-                setImportStatus("Aplicando...");
+                setImportStatus(t("build.applying"));
                 const ok = await applyRunes({
                   name: `${champ.name} ${role}`,
                   primaryStyleId: runes.primaryStyle,
                   subStyleId: runes.subStyle,
                   selectedPerkIds: runes.perks,
                 });
-                setImportStatus(ok ? "✓ Aplicadas" : "Error — abre el cliente");
+                setImportStatus(ok ? t("build.applied") : t("build.applyError"));
                 // Toast confirmation in addition to the inline status —
                 // ensures the user gets a clear signal even if the button
                 // is off-screen due to scroll.
                 pushToast({
                   type: ok ? "success" : "error",
-                  title: ok ? "Runas aplicadas" : "Error aplicando runas",
+                  title: ok ? t("build.toastAppliedTitle") : t("build.toastApplyErrorTitle"),
                   detail: ok
-                    ? "El cliente de LoL ya tiene la página activa."
-                    : "Abre el cliente y reintenta.",
+                    ? t("build.toastAppliedDetail")
+                    : t("build.toastApplyErrorDetail"),
                   durationMs: 3000,
                 });
               }}
             >
-              Aplicar →
+              {t("build.apply")}
             </button>
             )}
           </div>
@@ -381,7 +383,7 @@ function BuildPanelInner({ db, championKey, role, enemyKeys = [] }: Props) {
       {runeTips.length > 0 && (
         <div className="rounded-md border border-accent/20 bg-accent/5 p-2">
           <p className="text-[10px] uppercase tracking-wide text-accent/80 font-semibold mb-1">
-            Runas vs su comp
+            {t("build.runesVsComp")}
           </p>
           <ul className="space-y-1">
             {runeTips.map((t, i) => (
