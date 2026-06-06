@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { analyzeMatch, type Insight } from "../engine/coachEngine";
 import { computeGpi, type GpiScore } from "../engine/gpiEngine";
 import { deriveTopInsight } from "../engine/topInsight";
@@ -29,6 +30,7 @@ interface Props {
 }
 
 export function CoachView({ db, onClose }: Props) {
+  const { t } = useTranslation();
   useEscape(onClose);
   const [matchId, setMatchId] = useState<string | null>(null);
   const [matchFull, setMatchFull] = useState<MatchFull | null>(null);
@@ -263,13 +265,16 @@ export function CoachView({ db, onClose }: Props) {
                       ⚡ Top insight
                     </p>
                     <span className={`text-[10px] uppercase tracking-wider ${sevColor}`}>
-                      {insight.label} · {insight.score}/100
+                      {t(insight.labelKey)} · {insight.score}/100
                     </span>
                   </div>
-                  <p className="text-sm text-white leading-snug mb-1">{insight.tip}</p>
-                  {insight.secondaryTip && (
+                  <p className="text-sm text-white leading-snug mb-1">{t(insight.tipKey)}</p>
+                  {insight.secondaryTipKey && insight.secondaryAreaKey && (
                     <p className="text-[11px] text-white/55 leading-snug pt-1 border-t border-white/5">
-                      {insight.secondaryTip}
+                      {t("coach.secondaryPrefix", {
+                        area: t(insight.secondaryAreaKey).toLowerCase(),
+                      })}{" "}
+                      {t(insight.secondaryTipKey)}
                     </p>
                   )}
                 </div>

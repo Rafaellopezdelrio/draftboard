@@ -202,6 +202,48 @@
     "configApiKey": "Configure API key ({{provider}})",
     "aiTips": "AI tips"
   },
+  "coach": {
+    "secondaryPrefix": "Also check {{area}}:",
+    "category": {
+      "farming": "Farming",
+      "vision": "Vision",
+      "aggression": "Aggression",
+      "survivability": "Survivability",
+      "objectives": "Objectives",
+      "versatility": "Versatility",
+      "laning": "Laning"
+    },
+    "tip": {
+      "farming": {
+        "critical": "CS below target. Last wave before roams + freeze after kills. Stack waves before chasing objectives.",
+        "needsWork": "Raise your CS/min. Every 10 CS = ~700 gold. Spot missed waves and fix sub-optimal last-hits."
+      },
+      "vision": {
+        "critical": "Wards too low. Buy Stealth/Pink every back. Ward objectives 30s before spawn (Dragon/Baron).",
+        "needsWork": "More preventive vision. Ward the entries to your lane before each enemy gank window."
+      },
+      "aggression": {
+        "critical": "Few kills/assists. You forced too few trades. Find power spikes and move to other lanes with priority.",
+        "needsWork": "More team participation. Track enemy ults and collapse when your lane is safe."
+      },
+      "survivability": {
+        "critical": "Too many deaths. Track junglers + enemy ults. Ping MIA and respect vision when ahead.",
+        "needsWork": "Cut deaths. Ward before pushing. If the jungler is gone 60s = possible gank."
+      },
+      "objectives": {
+        "critical": "Few objectives secured. Position for the Dragon/Baron timer. Smite advantage + vision = winning pit fight.",
+        "needsWork": "More objective priority. Each Dragon = permanent stats. Coordinate back-timings with your team."
+      },
+      "versatility": {
+        "critical": "Champ pool too narrow. Learn 2-3 more in your role to counter-pick and dodge hostile bans.",
+        "needsWork": "Decent but narrow pool. Add 1 more pick per archetype (tank/bruiser/AP) for flex."
+      },
+      "laning": {
+        "critical": "You clearly lost lane. Respect the matchup, farm under tower and ask for ganks instead of forcing losing trades.",
+        "needsWork": "Draw or win your lane. Improve wave management and punish the enemy's CDs for an early edge."
+      }
+    }
+  },
   "lobby": {
     "title": "Lobby scout",
     "loading": "Loading lobby scout...",

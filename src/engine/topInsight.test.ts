@@ -35,7 +35,8 @@ describe("deriveTopInsight", () => {
   it("uses critical tip for score < 35", () => {
     const out = deriveTopInsight(baseGpi({ vision: 20 }));
     expect(out?.severity).toBe("critical");
-    expect(out?.tip).toMatch(/Wards/i);
+    expect(out?.tipKey).toBe("coach.tip.vision.critical");
+    expect(out?.labelKey).toBe("coach.category.vision");
   });
 
   it("uses needs-work tip for 35-55", () => {
@@ -46,6 +47,7 @@ describe("deriveTopInsight", () => {
   it("adds secondary tip when 2 axes are weak", () => {
     const out = deriveTopInsight(baseGpi({ farming: 30, vision: 40 }));
     expect(out?.category).toBe("farming");
-    expect(out?.secondaryTip).toBeDefined();
+    expect(out?.secondaryTipKey).toBe("coach.tip.vision.needsWork");
+    expect(out?.secondaryAreaKey).toBe("coach.category.vision");
   });
 });
