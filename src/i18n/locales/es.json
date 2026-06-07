@@ -465,6 +465,32 @@
     "needRiotId": "Necesitas configurar tu Riot ID en Configuración para detectar tu partida.",
     "needApiKey": "Necesitas configurar tu Riot API Key en Configuración (o un proxy)."
   },
+  "commandPalette": {
+    "group": "Acciones",
+    "searchPlaceholder": "Buscar acción... (Esc para cerrar)",
+    "searchLabel": "Buscar acción",
+    "listLabel": "Comandos disponibles"
+  },
+  "commands": {
+    "tier": "Tier List",
+    "lookup": "Buscar jugador (Riot ID)",
+    "pro": "Pro Players (LCK / LEC / LCS)",
+    "coach": "Abrir Coach (post-game)",
+    "lesson": "Plan de mejora 7 días",
+    "live": "Partida en directo (live)",
+    "chat": "Hablar con AI Coach",
+    "trends": "Ver tendencias",
+    "history": "Historial",
+    "prefs": "Preferencias",
+    "diag": "Diagnóstico de conexión",
+    "privacy": "Mis datos / privacidad",
+    "settings": "Configuración Riot",
+    "overlayForce": "Forzar overlay visible (test)",
+    "overlayHide": "Ocultar overlay",
+    "about": "Acerca de / Versión / Buscar updates",
+    "shortcuts": "Atajos de teclado (Ctrl+/)",
+    "centerWindow": "Centrar ventana principal"
+  },
   "feedback": {
     "title": "Reportar problema",
     "subtitle": "Tu nota se envía con el trail de acciones recientes — anónimo, sin partidas, sin chat.",

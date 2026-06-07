@@ -465,6 +465,32 @@
     "needRiotId": "Set your Riot ID in Settings to detect your game.",
     "needApiKey": "Set your Riot API Key in Settings (or a proxy)."
   },
+  "commandPalette": {
+    "group": "Actions",
+    "searchPlaceholder": "Search action… (Esc to close)",
+    "searchLabel": "Search action",
+    "listLabel": "Available commands"
+  },
+  "commands": {
+    "tier": "Tier List",
+    "lookup": "Look up player (Riot ID)",
+    "pro": "Pro Players (LCK / LEC / LCS)",
+    "coach": "Open Coach (post-game)",
+    "lesson": "7-day improvement plan",
+    "live": "Live game",
+    "chat": "Talk to AI Coach",
+    "trends": "View trends",
+    "history": "History",
+    "prefs": "Preferences",
+    "diag": "Connection diagnostics",
+    "privacy": "My data / privacy",
+    "settings": "Riot settings",
+    "overlayForce": "Force overlay visible (test)",
+    "overlayHide": "Hide overlay",
+    "about": "About / Version / Check for updates",
+    "shortcuts": "Keyboard shortcuts (Ctrl+/)",
+    "centerWindow": "Center main window"
+  },
   "feedback": {
     "title": "Report a problem",
     "subtitle": "Your note is sent with the recent-actions trail — anonymous, no matches, no chat.",

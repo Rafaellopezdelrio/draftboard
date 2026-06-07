@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useEscape } from "../hooks/useKeyboardShortcuts";
 import { Search, Clock, ArrowRight } from "lucide-react";
 
@@ -40,6 +41,7 @@ function saveRecent(commandId: string): void {
 }
 
 export function CommandPalette({ commands, onClose }: Props) {
+  const { t } = useTranslation();
   const [q, setQ] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
   const [recent, setRecent] = useState<string[]>(() => loadRecent());
@@ -75,12 +77,12 @@ export function CommandPalette({ commands, onClose }: Props) {
     const rest = commands.filter((c) => !usedIds.has(c.id));
     const byGroup = new Map<string, Command[]>();
     for (const c of rest) {
-      const g = c.group ?? "Acciones";
+      const g = c.group ?? t("commandPalette.group");
       if (!byGroup.has(g)) byGroup.set(g, []);
       byGroup.get(g)!.push(c);
     }
     return { recent: recentCmds, groups: Array.from(byGroup.entries()) };
-  }, [q, commands, recent]);
+  }, [q, commands, recent, t]);
 
   // Reset active index when the filtered list changes (query typed) —
   // keeps the highlight at the first match instead of overflowing.
@@ -173,8 +175,8 @@ export function CommandPalette({ commands, onClose }: Props) {
             autoFocus
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Buscar acción... (Esc para cerrar)"
-            aria-label="Buscar acción"
+            placeholder={t("commandPalette.searchPlaceholder")}
+            aria-label={t("commandPalette.searchLabel")}
             aria-controls="cmd-palette-list"
             aria-activedescendant={
               filtered[activeIndex] ? `cmd-${filtered[activeIndex].id}` : undefined
@@ -189,7 +191,7 @@ export function CommandPalette({ commands, onClose }: Props) {
           id="cmd-palette-list"
           ref={listRef}
           role="listbox"
-          aria-label="Comandos disponibles"
+          aria-label={t("commandPalette.listLabel")}
           className="max-h-[420px] overflow-y-auto"
         >
           {filtered.length === 0 ? (

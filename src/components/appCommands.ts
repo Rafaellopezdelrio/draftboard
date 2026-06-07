@@ -27,28 +27,31 @@ export interface AppCommandSetters {
   setShowShortcuts: (open: boolean) => void;
 }
 
-export function buildAppCommands(s: AppCommandSetters): Command[] {
+/** Translator function — pass i18next's `t` (or an identity stub in tests). */
+export type CmdT = (key: string) => string;
+
+export function buildAppCommands(s: AppCommandSetters, t: CmdT): Command[] {
   return [
-    { id: "tier", label: "Tier List", action: () => s.setShowTierList(true) },
-    { id: "lookup", label: "Buscar jugador (Riot ID)", action: () => s.setShowLookup(true) },
-    { id: "pro", label: "Pro Players (LCK / LEC / LCS)", action: () => s.setShowProPlayers(true) },
-    { id: "coach", label: "Abrir Coach (post-game)", action: () => s.setShowCoach(true) },
-    { id: "lesson", label: "Plan de mejora 7 días", action: () => s.setShowLessonPlan(true) },
-    { id: "live", label: "Partida en directo (live)", action: () => s.setShowLiveGame(true) },
-    { id: "chat", label: "Hablar con AI Coach", action: () => s.setShowChat(true) },
-    { id: "trends", label: "Ver tendencias", action: () => s.setShowTrends(true) },
-    { id: "history", label: "Historial", action: () => s.setShowHistory(true) },
-    { id: "prefs", label: "Preferencias", action: () => s.setShowPrefs(true) },
-    { id: "diag", label: "Diagnóstico de conexión", action: () => s.setShowDiag(true) },
-    { id: "privacy", label: "Mis datos / privacidad", action: () => s.setShowPrivacy(true) },
-    { id: "settings", label: "Configuración Riot", action: () => s.setShowSettings(true) },
+    { id: "tier", label: t("commands.tier"), action: () => s.setShowTierList(true) },
+    { id: "lookup", label: t("commands.lookup"), action: () => s.setShowLookup(true) },
+    { id: "pro", label: t("commands.pro"), action: () => s.setShowProPlayers(true) },
+    { id: "coach", label: t("commands.coach"), action: () => s.setShowCoach(true) },
+    { id: "lesson", label: t("commands.lesson"), action: () => s.setShowLessonPlan(true) },
+    { id: "live", label: t("commands.live"), action: () => s.setShowLiveGame(true) },
+    { id: "chat", label: t("commands.chat"), action: () => s.setShowChat(true) },
+    { id: "trends", label: t("commands.trends"), action: () => s.setShowTrends(true) },
+    { id: "history", label: t("commands.history"), action: () => s.setShowHistory(true) },
+    { id: "prefs", label: t("commands.prefs"), action: () => s.setShowPrefs(true) },
+    { id: "diag", label: t("commands.diag"), action: () => s.setShowDiag(true) },
+    { id: "privacy", label: t("commands.privacy"), action: () => s.setShowPrivacy(true) },
+    { id: "settings", label: t("commands.settings"), action: () => s.setShowSettings(true) },
     // Diagnostic: force the overlay window visible regardless of in-game
     // detection. Tells apart "overlay never opened" (Tauri config bug) from
     // "overlay open but hidden under fullscreen-exclusive game" (LoL
     // window-mode issue — user needs Borderless).
     {
       id: "overlay-force",
-      label: "🔍 Forzar overlay visible (test)",
+      label: `🔍 ${t("commands.overlayForce")}`,
       action: async () => {
         // Center-ish position so it can't be off-screen on multi-monitor
         // setups with weird DPI scaling.
@@ -58,14 +61,14 @@ export function buildAppCommands(s: AppCommandSetters): Command[] {
     },
     {
       id: "overlay-hide",
-      label: "Ocultar overlay",
+      label: t("commands.overlayHide"),
       action: () => setOverlayVisible(false),
     },
-    { id: "about", label: "ℹ️ Acerca de / Versión / Buscar updates", action: () => s.setShowAbout(true) },
-    { id: "shortcuts", label: "⌨️ Atajos de teclado (Ctrl+/)", action: () => s.setShowShortcuts(true) },
+    { id: "about", label: `ℹ️ ${t("commands.about")}`, action: () => s.setShowAbout(true) },
+    { id: "shortcuts", label: `⌨️ ${t("commands.shortcuts")}`, action: () => s.setShowShortcuts(true) },
     {
       id: "center-window",
-      label: "🪟 Centrar ventana principal",
+      label: `🪟 ${t("commands.centerWindow")}`,
       action: async () => {
         try {
           const { invoke } = await import("@tauri-apps/api/core");

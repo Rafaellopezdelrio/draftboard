@@ -297,7 +297,7 @@ function App() {
     setShowSettings,
     setShowAbout,
     setShowShortcuts,
-  });
+  }, t);
 
   // Sync UI locale pref → i18next whenever it changes. main.tsx already
   // seeded the initial locale from localStorage for first-paint; this

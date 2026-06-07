@@ -33,12 +33,12 @@ function mockSetters() {
 
 describe("buildAppCommands", () => {
   it("ids are unique (palette keys on them)", () => {
-    const ids = buildAppCommands(mockSetters()).map((c) => c.id);
+    const ids = buildAppCommands(mockSetters(), (k) => k).map((c) => c.id);
     expect(new Set(ids).size).toBe(ids.length);
   });
 
   it("every command has a non-empty label and an action", () => {
-    for (const c of buildAppCommands(mockSetters())) {
+    for (const c of buildAppCommands(mockSetters(), (k) => k)) {
       expect(c.label.trim().length).toBeGreaterThan(0);
       expect(typeof c.action).toBe("function");
     }
@@ -46,7 +46,7 @@ describe("buildAppCommands", () => {
 
   it("each modal command opens its OWN view (no mis-wired setter)", () => {
     const s = mockSetters();
-    const cmds = buildAppCommands(s);
+    const cmds = buildAppCommands(s, (k) => k);
     cmds.find((c) => c.id === "tier")!.action();
     expect(s.setShowTierList).toHaveBeenCalledWith(true);
     expect(s.setShowHistory).not.toHaveBeenCalled();
