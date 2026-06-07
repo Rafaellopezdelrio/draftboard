@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import type { ChampionDb, Role } from "../types/champion";
 import { getMatchupTips } from "../data/matchupTips";
 import { usePrefsStore } from "../state/prefsStore";
-import { Panel, PanelHeader } from "./ui/Panel";
+import { Panel } from "./ui/Panel";
 import { Lightbulb, Bot, Sparkles } from "lucide-react";
 import {
   generateMatchupTips,
@@ -46,11 +46,14 @@ function MatchupTipsPanelInner({
   if (tips.length === 0 && enemiesWithoutTip.length === 0) return null;
 
   return (
-    <Panel padding="sm">
-      <PanelHeader
-        icon={<Lightbulb className="w-3 h-3" />}
-        title={t("matchupTips.title")}
-      />
+    <Panel
+      padding="sm"
+      collapsible
+      defaultOpen={false}
+      storageKey="matchupTips"
+      icon={<Lightbulb className="w-3 h-3" />}
+      title={t("matchupTips.title")}
+    >
       <div className="space-y-1.5">
         {visible.map((t, i) => (
           <div

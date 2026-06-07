@@ -78,14 +78,15 @@ function LobbyScoutPanelInner({ session, db }: Props) {
   const dodge = dodgeHint(read);
 
   return (
-    <Panel padding="sm">
-      <div className="flex items-center gap-2 mb-2">
-        <Users className="w-3.5 h-3.5 text-accent" />
-        <p className="text-[10px] uppercase tracking-widest text-accent font-semibold">
-          {t("lobby.title")}
-        </p>
-      </div>
-
+    <Panel
+      padding="sm"
+      collapsible
+      defaultOpen={false}
+      storageKey="lobbyScout"
+      icon={<Users className="w-3 h-3" />}
+      title={t("lobby.title")}
+      summary={dodge ? "⚠" : undefined}
+    >
       {dodge && (
         <div className="mb-2 px-2 py-1.5 rounded text-[11px] font-medium bg-bad/10 text-bad border border-bad/40 leading-snug">
           ⚠{" "}

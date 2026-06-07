@@ -6,7 +6,7 @@ import {
   type PlaystyleProfile,
 } from "../engine/playstyleEngine";
 import { recentMatches } from "../services/matchRepo";
-import { Panel, PanelHeader } from "./ui/Panel";
+import { Panel } from "./ui/Panel";
 import { Compass } from "lucide-react";
 
 export function PlaystylePanel() {
@@ -21,8 +21,15 @@ export function PlaystylePanel() {
   const meta = getArchetypeMeta(profile.archetype);
 
   return (
-    <Panel padding="sm">
-      <PanelHeader icon={<Compass className="w-3 h-3" />} title={t("playstyle.title")} />
+    <Panel
+      padding="sm"
+      collapsible
+      defaultOpen={false}
+      storageKey="playstyle"
+      icon={<Compass className="w-3 h-3" />}
+      title={t("playstyle.title")}
+      summary={meta.label}
+    >
       <div className="flex items-center gap-2 mb-2">
         <span className="text-2xl leading-none">{meta.emoji}</span>
         <p className="text-sm font-semibold text-white">{meta.label}</p>

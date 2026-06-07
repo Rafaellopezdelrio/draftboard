@@ -9,7 +9,7 @@
 import { memo, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Target, Flame, Hourglass, Sparkles } from "lucide-react";
-import { Panel, PanelHeader } from "./ui/Panel";
+import { Panel } from "./ui/Panel";
 import { deriveWinConditions, type WinCondition } from "../engine/winConditions";
 import type { ChampionDb, Role } from "../types/champion";
 
@@ -73,12 +73,14 @@ function WinConditionsPanelInner({
   if (!hasContext) return null;
 
   return (
-    <Panel padding="sm">
-      <PanelHeader
-        icon={<Target className="w-3 h-3" />}
-        title={t("winConditions.title")}
-        subtitle={t("winConditions.subtitle")}
-      />
+    <Panel
+      padding="sm"
+      collapsible
+      defaultOpen
+      storageKey="winConditions"
+      icon={<Target className="w-3 h-3" />}
+      title={t("winConditions.title")}
+    >
       <ul className="space-y-1.5">
         {conditions.map((c, i) => (
           <li

@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import type { ChampionDb } from "../types/champion";
 import type { ChampionMasteryDto } from "../services/riotApi";
 import { getLatestPatchSummary, type PatchChange } from "../services/patchNotes";
-import { Panel, PanelHeader } from "./ui/Panel";
+import { Panel } from "./ui/Panel";
 import { displayPatch } from "../data/patchDisplay";
 import { TrendingUp, TrendingDown, RefreshCw, ArrowRightLeft, FileText } from "lucide-react";
 
@@ -70,12 +70,15 @@ function PatchImpactPanelInner({ db, masteries }: Props) {
   if (affected.length === 0) return null;
 
   return (
-    <Panel padding="sm">
-      <PanelHeader
-        icon={<FileText className="w-3 h-3" />}
-        title="Patch impact"
-        subtitle={displayPatch(db.patch)}
-      />
+    <Panel
+      padding="sm"
+      collapsible
+      defaultOpen={false}
+      storageKey="patchImpact"
+      icon={<FileText className="w-3 h-3" />}
+      title="Patch impact"
+      summary={displayPatch(db.patch)}
+    >
       <div className="space-y-1.5">
         {affected.map((a) => (
           <ImpactCard key={a.championId} affected={a} />

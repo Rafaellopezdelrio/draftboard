@@ -2,7 +2,7 @@ import { useTranslation } from "react-i18next";
 import type { ChampionDb } from "../types/champion";
 import type { ChampionMasteryDto } from "../services/riotApi";
 import type { ChampionPersonalStat } from "../services/matchRepo";
-import { Panel, PanelHeader } from "./ui/Panel";
+import { Panel } from "./ui/Panel";
 import { Star } from "lucide-react";
 
 interface Props {
@@ -18,11 +18,15 @@ export function OwnMasteriesPanel({ db, masteries, personalStats }: Props) {
   const wrById = new Map(personalStats.map((p) => [p.championId, p]));
 
   return (
-    <Panel padding="sm">
-      <PanelHeader
-        icon={<Star className="w-3 h-3" />}
-        title={t("masteries.title")}
-      />
+    <Panel
+      padding="sm"
+      collapsible
+      defaultOpen={false}
+      storageKey="masteries"
+      icon={<Star className="w-3 h-3" />}
+      title={t("masteries.title")}
+      summary={String(masteries.length)}
+    >
       <div className="space-y-1">
         {masteries.slice(0, 5).map((m, idx) => {
           const c = db.champions[String(m.championId)];

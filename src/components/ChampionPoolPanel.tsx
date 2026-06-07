@@ -12,7 +12,7 @@ import {
   analyzeChampionPool,
   type ChampionPoolInsight,
 } from "../engine/championPoolEngine";
-import { Panel, PanelHeader } from "./ui/Panel";
+import { Panel } from "./ui/Panel";
 import { Layers } from "lucide-react";
 
 interface Props {
@@ -39,8 +39,15 @@ export function ChampionPoolPanel({ db, masteries }: Props) {
   if (insights.length === 0) return null;
 
   return (
-    <Panel padding="sm">
-      <PanelHeader icon={<Layers className="w-3 h-3" />} title={t("championPool.title")} />
+    <Panel
+      padding="sm"
+      collapsible
+      defaultOpen={false}
+      storageKey="championPool"
+      icon={<Layers className="w-3 h-3" />}
+      title={t("championPool.title")}
+      summary={String(insights.length)}
+    >
       <div className="space-y-1">
         {insights.map((ins, i) => {
           const c = db.champions[String(ins.championId)];

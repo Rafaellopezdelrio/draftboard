@@ -8,7 +8,7 @@ import { loadSettings } from "../services/settingsRepo";
 import { usePrefsStore } from "../state/prefsStore";
 import { toast } from "./Toaster";
 import { voiceCoach } from "../services/voiceCoach";
-import { Panel, PanelHeader } from "./ui/Panel";
+import { Panel } from "./ui/Panel";
 import { RankBadge } from "./ui/RankBadge";
 import {
   assessThreat,
@@ -162,16 +162,15 @@ function EnemyScoutPanelInner({
   const summary = threatList.length > 0 ? summarizeEnemies(threatList) : null;
 
   return (
-    <Panel padding="sm">
-      <PanelHeader
-        icon={<Eye className="w-3 h-3" />}
-        title={t("scout.title")}
-        action={
-          <span className="text-[10px] tabular-nums text-white/40">
-            {filledCount}/5
-          </span>
-        }
-      />
+    <Panel
+      padding="sm"
+      collapsible
+      defaultOpen={false}
+      storageKey="enemyScout"
+      icon={<Eye className="w-3 h-3" />}
+      title={t("scout.title")}
+      summary={`${filledCount}/5`}
+    >
       {summary && (
         <div
           className={`mb-1.5 px-2 py-1 rounded text-[11px] font-medium ${

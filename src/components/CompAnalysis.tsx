@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import type { Archetype, ChampionDb } from "../types/champion";
 import { detectMissingArchetypes } from "../engine/suggestionEngine";
-import { Panel, PanelHeader } from "./ui/Panel";
+import { Panel } from "./ui/Panel";
 import { Users, Check, X, Minus } from "lucide-react";
 
 interface Props {
@@ -23,16 +23,15 @@ export function CompAnalysis({ db, allyKeys }: Props) {
   const score = goals.filter((g) => present.has(g)).length;
 
   return (
-    <Panel padding="sm">
-      <PanelHeader
-        icon={<Users className="w-3 h-3" />}
-        title={t("comp.title")}
-        action={
-          <span className="text-[10px] tabular-nums text-white/40">
-            {score}/{goals.length}
-          </span>
-        }
-      />
+    <Panel
+      padding="sm"
+      collapsible
+      defaultOpen
+      storageKey="comp"
+      icon={<Users className="w-3 h-3" />}
+      title={t("comp.title")}
+      summary={`${score}/${goals.length}`}
+    >
       <ul className="space-y-1 text-sm">
         {goals.map((a) => {
           const has = present.has(a);
