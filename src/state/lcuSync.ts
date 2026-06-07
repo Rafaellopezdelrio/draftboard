@@ -87,6 +87,12 @@ export function useLcuSync() {
 
 let lastLockedChamp: string | null = null;
 let lastLoggedAramShape = "";
+// Last champ-select timer phase seen. Used to tell "champ select ended ->
+// game is loading" (FINALIZATION/GAME_STARTING) from "champ select ended ->
+// dodge / back to lobby" (any earlier phase). On the former we PRESERVE the
+// board so the draft + matchup stay visible through the whole game (the user
+// expects them until the match finishes); on the latter we reset.
+let lastChampSelectPhase: string | null = null;
 // TTS turn-detection dedupe — we only speak once per ban/pick turn.
 // Reset to null when the action transitions to completed (lock-in) or
 // when the cellId changes. Same pattern as lastLockedChamp.
@@ -150,6 +156,8 @@ function diagnosticLog(s: LcuChampSelectSession) {
  * preserved (the user may have set it manually for out-of-select planning).
  */
 function leaveChampSelect() {
+  // Always reset the per-session dedup state so the NEXT champ select starts
+  // clean (TTS turns, blind-pick warn, frame signature, voice).
   lastSpokenMyBanTurnId = null;
   lastSpokenMyPickTurnId = null;
   lastSpokenEnemyBanIds = new Set();
@@ -158,6 +166,17 @@ function leaveChampSelect() {
   lastLoggedAramShape = "";
   lastDiagSignature = "";
   voiceCoach.resetSession();
+
+  // PRESERVE the board when the draft just finished and the game is loading
+  // (last phase was FINALIZATION / GAME_STARTING). The user wants the draft +
+  // matchup to stay on screen for the whole game, not vanish the instant the
+  // loading screen appears. Only a real exit BEFORE finalization (dodge, queue
+  // cancel) clears the board.
+  const gameStarting =
+    lastChampSelectPhase === "FINALIZATION" ||
+    lastChampSelectPhase === "GAME_STARTING";
+  if (gameStarting) return;
+
   const store = useDraftStore.getState();
   store.reset();
   store.setLocalSelection(null, null, null);
@@ -323,6 +342,9 @@ function applySession(s: LcuChampSelectSession | null | undefined) {
 
   if (s.timer) {
     store.setPhase(s.timer.phase, Math.max(0, Math.round(s.timer.adjustedTimeLeftInPhase / 1000)));
+    // Remember the phase so leaveChampSelect can tell "game starting" (preserve
+    // the board) from "dodge / left lobby" (reset it).
+    lastChampSelectPhase = s.timer.phase;
   }
 
   // Iterate FIXED 5 pick slots per side (not forEach over team arrays)

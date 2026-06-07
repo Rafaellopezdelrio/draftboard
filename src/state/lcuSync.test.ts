@@ -68,6 +68,35 @@ describe("lcuSync.applySession — defensive parsing", () => {
     expect(s.enemySummonerIds).toEqual([]);
   });
 
+  it("PRESERVES the board when the game is starting (FINALIZATION → null)", () => {
+    // Draft finished (last phase FINALIZATION); the LCU session then goes null
+    // because the loading screen takes over. The board must STAY so the draft
+    // + matchup remain visible through the whole game — not vanish on load.
+    applySession({
+      localPlayerCellId: 0,
+      myTeam: [player(0, 266), player(1, 157)],
+      theirTeam: [player(5, 23)],
+      bans: { myTeamBans: [1, 2], theirTeamBans: [3, 4] },
+      timer: { phase: "FINALIZATION", adjustedTimeLeftInPhase: 5000 },
+    } as unknown as Parameters<typeof applySession>[0]);
+    expect(useDraftStore.getState().ally[0].championKey).toBe("266");
+
+    applySession(null); // game loading screen → session gone
+    const s = useDraftStore.getState();
+    expect(s.ally[0].championKey).toBe("266"); // preserved
+    expect(s.myChampionLocked).toBe("266"); // preserved
+    expect(s.bans.ally[0]).toBe("1"); // preserved
+
+    // Cleanup: re-enter a non-final phase so module phase state doesn't leak
+    // into later tests that expect a reset on leave.
+    applySession({
+      localPlayerCellId: 0,
+      myTeam: [player(0, 266)],
+      theirTeam: [player(5, 23)],
+      timer: { phase: "BAN_PICK", adjustedTimeLeftInPhase: 30000 },
+    } as unknown as Parameters<typeof applySession>[0]);
+  });
+
   it("empty session (cell -1, no players) CLEARS the board like a leave", () => {
     // Rust filters the null Delete event, so leaving champ select arrives as
     // an EMPTIED session object — not null. Seed a draft, then send the
