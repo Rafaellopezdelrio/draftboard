@@ -546,10 +546,15 @@ function App() {
       />
       <OverlayCompatBanner />
       <PatchNewBanner db={db} masteries={masteries} />
-      {/* Tracking diagnostic strip — always visible. When the user says
-        * "nada funciona" we can read straight from the pills what's
-        * actually connected vs missing. No more guessing. */}
-      <TrackingStatusBar lcuStatus={lcuStatus} gamePhase={gamePhase.phase} />
+      {/* Tracking diagnostic strip — shown only when there's something to
+        * track (LCU connected OR a live game phase). On the idle launch
+        * screen it was a row of empty "—" pills that read like a dev HUD;
+        * hiding it there keeps the app clean and professional. The header's
+        * own connection chip still shows LCU state when disconnected, and the
+        * full health table lives in Diagnostics. */}
+      {(lcuStatus.connected || !!gamePhase.phase) && (
+        <TrackingStatusBar lcuStatus={lcuStatus} gamePhase={gamePhase.phase} />
+      )}
       <header className="glass border border-border-subtle rounded-xl px-4 py-3 flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-4">
           <Logo />
