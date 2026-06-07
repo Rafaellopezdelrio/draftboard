@@ -70,6 +70,24 @@ describe("buildDraftCoachPrompts", () => {
     expect(user).not.toMatch(/le falta/);
   });
 
+  it("builds a fully English prompt (system + labels) when language is en", () => {
+    const { system, user } = buildDraftCoachPrompts({
+      ...base,
+      language: "en",
+      bans: ["Zed"],
+      myMastery: { level: 7, points: 129000 },
+      compMissing: ["Engage"],
+    });
+    expect(system).toContain("draft coach");
+    expect(system).toContain("NEVER fabricate");
+    expect(user).toMatch(/My pick/);
+    expect(user).toMatch(/Draft bans/);
+    expect(user).toMatch(/My mastery of/);
+    expect(user).toMatch(/My comp lacks/);
+    // No Spanish leakage into the English prompt.
+    expect(user).not.toMatch(/Mi pick|Bans del draft|le falta/);
+  });
+
   it("handles an empty draft without crashing", () => {
     const { user } = buildDraftCoachPrompts({
       myChampion: "Ahri",

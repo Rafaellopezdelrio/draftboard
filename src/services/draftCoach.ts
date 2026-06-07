@@ -38,57 +38,74 @@ export function buildDraftCoachPrompts(input: DraftCoachInput): {
   system: string;
   user: string;
 } {
-  const lang = input.language === "en" ? "English" : "Español";
-  const system =
-    `Eres un coach de draft de League of Legends de nivel pro. Te paso un pick, ` +
-    `el draft completo y datos de matchup reales. Explica en 3-4 frases, conciso ` +
-    `y accionable: (1) por qué el pick encaja en esta comp (o su riesgo), (2) el ` +
-    `matchup de TU carril y cómo jugarlo (early agresivo / safe-scaling / all-in ` +
-    `nivel X / respeta su power spike), (3) tu win condition con esta comp. Cita ` +
-    `el WR del matchup si lo tengo. Si te paso mi dominio del campeón, adapta a mi ` +
-    `comodidad (nuevo → foco simple; main → puedo flexar). Si te paso lo que le falta ` +
-    `a mi comp, dilo en la win condition. NUNCA inventes números. Prosa, sin listas, sin ` +
-    `relleno. Idioma: ${lang}.`;
+  const en = input.language === "en";
+  const lang = en ? "English" : "Español";
+  const system = en
+    ? `You are a pro-level League of Legends draft coach. I give you a pick, the ` +
+      `full draft and real matchup data. Explain in 3-4 sentences, concise and ` +
+      `actionable: (1) why the pick fits this comp (or its risk), (2) YOUR lane ` +
+      `matchup and how to play it (early aggressive / safe-scaling / all-in at ` +
+      `level X / respect their power spike), (3) your win condition with this comp. ` +
+      `Cite the matchup WR if I give it. If I give you my champion mastery, adapt ` +
+      `to my comfort (new champ → simple focus; main → I can flex). If I give you ` +
+      `what my comp lacks, say it in the win condition. NEVER fabricate numbers. ` +
+      `Prose, no lists, no filler. Language: ${lang}.`
+    : `Eres un coach de draft de League of Legends de nivel pro. Te paso un pick, ` +
+      `el draft completo y datos de matchup reales. Explica en 3-4 frases, conciso ` +
+      `y accionable: (1) por qué el pick encaja en esta comp (o su riesgo), (2) el ` +
+      `matchup de TU carril y cómo jugarlo (early agresivo / safe-scaling / all-in ` +
+      `nivel X / respeta su power spike), (3) tu win condition con esta comp. Cita ` +
+      `el WR del matchup si lo tengo. Si te paso mi dominio del campeón, adapta a mi ` +
+      `comodidad (nuevo → foco simple; main → puedo flexar). Si te paso lo que le ` +
+      `falta a mi comp, dilo en la win condition. NUNCA inventes números. Prosa, sin ` +
+      `listas, sin relleno. Idioma: ${lang}.`;
+
+  // Label set — keeps the prompt fully ES or fully EN (the LLM parses either,
+  // but a clean single-language prompt reads better + avoids accidental code-
+  // switching in the response).
+  const L = en
+    ? { pick: "My pick", allies: "Allies", enemies: "Enemies", laneOpp: "Lane opponent", myWr: "my WR", engine: "Engine says", noTags: "no tags", mains: "Scouted enemy mains", mainsTail: "Factor in what they likely play", bans: "Draft bans", masteryOf: "My mastery of", masteryWord: "mastery", points: "points", lacks: "My comp lacks" }
+    : { pick: "Mi pick", allies: "Aliados", enemies: "Enemigos", laneOpp: "Rival de carril", myWr: "mi WR", engine: "Lo que dice el engine", noTags: "sin tags", mains: "Mains enemigos scouteados", mainsTail: "Ten en cuenta lo que probablemente jueguen", bans: "Bans del draft", masteryOf: "Mi dominio de", masteryWord: "maestría", points: "puntos", lacks: "A mi comp le falta" };
 
   const lines: string[] = [];
-  lines.push(`Mi pick: ${input.myChampion} (${input.role}).`);
-  if (input.allies.length) lines.push(`Aliados: ${input.allies.join(", ")}.`);
-  if (input.enemies.length) lines.push(`Enemigos: ${input.enemies.join(", ")}.`);
+  lines.push(`${L.pick}: ${input.myChampion} (${input.role}).`);
+  if (input.allies.length) lines.push(`${L.allies}: ${input.allies.join(", ")}.`);
+  if (input.enemies.length) lines.push(`${L.enemies}: ${input.enemies.join(", ")}.`);
   if (input.laneOpponent) {
     const wr =
       input.laneMatchupWinRate != null
-        ? ` — mi WR ${(input.laneMatchupWinRate * 100).toFixed(0)}%`
+        ? ` — ${L.myWr} ${(input.laneMatchupWinRate * 100).toFixed(0)}%`
         : "";
-    lines.push(`Rival de carril: ${input.laneOpponent}${wr}.`);
+    lines.push(`${L.laneOpp}: ${input.laneOpponent}${wr}.`);
   }
   if (input.topSuggestions.length) {
     lines.push(
-      `Lo que dice el engine: ` +
+      `${L.engine}: ` +
         input.topSuggestions
-          .map((s) => `${s.name} [${s.reasons.join(", ") || "sin tags"}]`)
+          .map((s) => `${s.name} [${s.reasons.join(", ") || L.noTags}]`)
           .join(" · ") +
         `.`
     );
   }
   if (input.enemyMains?.length) {
     lines.push(
-      `Mains enemigos scouteados: ` +
+      `${L.mains}: ` +
         input.enemyMains
           .map((m) => `${m.championName}${m.summonerName ? ` (${m.summonerName})` : ""}`)
           .join(", ") +
-        `. Ten en cuenta lo que probablemente jueguen.`
+        `. ${L.mainsTail}.`
     );
   }
   if (input.bans?.length) {
-    lines.push(`Bans del draft: ${input.bans.join(", ")}.`);
+    lines.push(`${L.bans}: ${input.bans.join(", ")}.`);
   }
   if (input.myMastery) {
     lines.push(
-      `Mi dominio de ${input.myChampion}: maestría ${input.myMastery.level}, ${input.myMastery.points} puntos.`
+      `${L.masteryOf} ${input.myChampion}: ${L.masteryWord} ${input.myMastery.level}, ${input.myMastery.points} ${L.points}.`
     );
   }
   if (input.compMissing?.length) {
-    lines.push(`A mi comp le falta: ${input.compMissing.join(", ")}.`);
+    lines.push(`${L.lacks}: ${input.compMissing.join(", ")}.`);
   }
   return { system, user: lines.join("\n") };
 }
