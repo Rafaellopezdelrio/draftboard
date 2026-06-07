@@ -8,8 +8,10 @@ import { usePrefsStore } from "../state/prefsStore";
 import { i18n } from "../i18n";
 import { explainDraft } from "../services/draftCoach";
 import { useEnemyMains } from "../hooks/useEnemyMains";
+import { detectMissingArchetypes } from "../engine/suggestionEngine";
 import type { ChampionDb, CounterEntry, Role } from "../types/champion";
 import type { ScoredSuggestion } from "../engine/suggestionEngine";
+import type { ChampionMasteryDto } from "../services/riotApi";
 
 interface Props {
   db: ChampionDb;
@@ -21,6 +23,10 @@ interface Props {
   suggestions: ScoredSuggestion[];
   /** Enemy lobby cell ids → scout their comfort mains for the AI prompt. */
   enemySummonerIds?: number[];
+  /** Banned champion keys — fed to the coach so it reasons with the real pool. */
+  bannedKeys?: string[];
+  /** Local masteries — tailors advice to the player's comfort on the pick. */
+  masteries?: ChampionMasteryDto[];
 }
 
 export function DraftCoachPanel({
@@ -32,6 +38,8 @@ export function DraftCoachPanel({
   liveCounters,
   suggestions,
   enemySummonerIds = [],
+  bannedKeys = [],
+  masteries = [],
 }: Props) {
   const provider = usePrefsStore((s) => s.prefs.aiProvider);
   const apiKey = usePrefsStore((s) =>
@@ -87,6 +95,12 @@ export function DraftCoachPanel({
           championName: db.champions[String(m.championId)]?.name ?? `#${m.championId}`,
           summonerName: m.summonerName,
         })),
+        bans: bannedKeys.map(name),
+        myMastery: (() => {
+          const m = masteries.find((x) => String(x.championId) === myChampionKey);
+          return m ? { level: m.championLevel, points: m.championPoints } : null;
+        })(),
+        compMissing: [...detectMissingArchetypes(db, allyKeys)].map(String),
         language: lang === "en" ? "en" : "es",
       });
       setAdvice(out);

@@ -760,6 +760,8 @@ function App() {
                       liveCounters={liveCounters}
                       suggestions={suggestions}
                       enemySummonerIds={enemySummonerIds}
+                      bannedKeys={bannedKeys}
+                      masteries={masteries}
                     />
                   </PanelBoundary>
                 )}

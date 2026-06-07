@@ -20,6 +20,16 @@ export interface DraftCoachInput {
   topSuggestions: Array<{ name: string; reasons: string[] }>;
   /** Scouted enemy comfort mains (from lobby mastery) — what they likely play. */
   enemyMains?: Array<{ championName: string; summonerName?: string }>;
+  /** Banned champions (names) — so the coach reasons with the real pool, not a
+   *  threat that's actually banned out. */
+  bans?: string[];
+  /** Local player's mastery on THIS champ — tailors advice (comfort pick the
+   *  player can flex vs first-time pick that needs a simple game plan). Null/low
+   *  points signal an unfamiliar champion. */
+  myMastery?: { level: number; points: number } | null;
+  /** Comp archetypes the ally team is MISSING (engine output) — grounds the win
+   *  condition + how to cover the gap. */
+  compMissing?: string[];
   language: "es" | "en";
 }
 
@@ -35,7 +45,9 @@ export function buildDraftCoachPrompts(input: DraftCoachInput): {
     `y accionable: (1) por qué el pick encaja en esta comp (o su riesgo), (2) el ` +
     `matchup de TU carril y cómo jugarlo (early agresivo / safe-scaling / all-in ` +
     `nivel X / respeta su power spike), (3) tu win condition con esta comp. Cita ` +
-    `el WR del matchup si lo tengo. NUNCA inventes números. Prosa, sin listas, sin ` +
+    `el WR del matchup si lo tengo. Si te paso mi dominio del campeón, adapta a mi ` +
+    `comodidad (nuevo → foco simple; main → puedo flexar). Si te paso lo que le falta ` +
+    `a mi comp, dilo en la win condition. NUNCA inventes números. Prosa, sin listas, sin ` +
     `relleno. Idioma: ${lang}.`;
 
   const lines: string[] = [];
@@ -66,6 +78,17 @@ export function buildDraftCoachPrompts(input: DraftCoachInput): {
           .join(", ") +
         `. Ten en cuenta lo que probablemente jueguen.`
     );
+  }
+  if (input.bans?.length) {
+    lines.push(`Bans del draft: ${input.bans.join(", ")}.`);
+  }
+  if (input.myMastery) {
+    lines.push(
+      `Mi dominio de ${input.myChampion}: maestría ${input.myMastery.level}, ${input.myMastery.points} puntos.`
+    );
+  }
+  if (input.compMissing?.length) {
+    lines.push(`A mi comp le falta: ${input.compMissing.join(", ")}.`);
   }
   return { system, user: lines.join("\n") };
 }

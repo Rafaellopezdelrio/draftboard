@@ -48,6 +48,28 @@ describe("buildDraftCoachPrompts", () => {
     expect(buildDraftCoachPrompts(base).user).not.toMatch(/Mains enemigos/);
   });
 
+  it("injects bans, champion mastery and comp gaps when present", () => {
+    const { user } = buildDraftCoachPrompts({
+      ...base,
+      bans: ["Yuumi", "Zed"],
+      myMastery: { level: 7, points: 129000 },
+      compMissing: ["Engage", "Frontline"],
+    });
+    expect(user).toMatch(/Bans del draft/);
+    expect(user).toContain("Zed");
+    expect(user).toMatch(/maestría 7/);
+    expect(user).toContain("129000");
+    expect(user).toMatch(/le falta/);
+    expect(user).toContain("Engage");
+  });
+
+  it("omits mastery / bans / comp-gap lines when absent (no fabrication)", () => {
+    const { user } = buildDraftCoachPrompts(base);
+    expect(user).not.toMatch(/Bans del draft/);
+    expect(user).not.toMatch(/maestría/);
+    expect(user).not.toMatch(/le falta/);
+  });
+
   it("handles an empty draft without crashing", () => {
     const { user } = buildDraftCoachPrompts({
       myChampion: "Ahri",
