@@ -600,6 +600,9 @@
     "resetAll": "Restablecer todo",
     "searchPlaceholder": "Buscar preferencia..."
   },
+  "prefs": {
+    "aiCoachLang": "Idioma del AI Coach (respuestas)"
+  },
   "dataPrivacy": {
     "title": "Tus datos",
     "matchesCount": "{{count}} partidas guardadas"

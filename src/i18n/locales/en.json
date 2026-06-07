@@ -600,6 +600,9 @@
     "resetAll": "Reset all",
     "searchPlaceholder": "Search preference..."
   },
+  "prefs": {
+    "aiCoachLang": "AI Coach language (responses)"
+  },
   "dataPrivacy": {
     "title": "Your data",
     "matchesCount": "{{count}} matches saved"

@@ -4,6 +4,7 @@
 // When the proxy is configured AND provider is Groq, the proxy injects
 // the shared production key, so the user doesn't need to configure one.
 
+import { useTranslation } from "react-i18next";
 import { usePrefsStore } from "../../state/prefsStore";
 import {
   PROVIDER_LABELS,
@@ -12,6 +13,7 @@ import {
 } from "../../services/aiProvider";
 
 export function AnthropicKeyField() {
+  const { t } = useTranslation();
   const provider = usePrefsStore((s) => s.prefs.aiProvider);
   const groqKey = usePrefsStore((s) => s.prefs.groqApiKey);
   const geminiKey = usePrefsStore((s) => s.prefs.geminiApiKey);
@@ -99,7 +101,7 @@ export function AnthropicKeyField() {
         )}
 
         <div className="flex items-center gap-2 pt-1">
-          <label className="text-xs text-white/50">Idioma del coach</label>
+          <label className="text-xs text-white/50">{t("prefs.aiCoachLang")}</label>
           <select
             value={lang}
             onChange={(e) =>
