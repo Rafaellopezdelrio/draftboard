@@ -10,7 +10,10 @@
 // always writes picks into the draftStore.
 
 import { describe, it, expect, beforeEach } from "vitest";
-import { __testOnly_applySession as applySession } from "./lcuSync";
+import {
+  __testOnly_applySession as applySession,
+  __testOnly_setLocalPuuid as setLocalPuuid,
+} from "./lcuSync";
 import { useDraftStore } from "./draftStore";
 
 const player = (cellId: number, championId: number, opts: Partial<Record<string, unknown>> = {}) => ({
@@ -66,6 +69,27 @@ describe("lcuSync.applySession — defensive parsing", () => {
     expect(s.myCellId).toBe(null);
     expect(s.phase).toBe(null);
     expect(s.enemySummonerIds).toEqual([]);
+  });
+
+  it("resolves the local player by PUUID, not the transiently-wrong cellId", () => {
+    // Playtest bug: on Shyvana the BUILD panel showed Warwick. Root cause —
+    // the LCU reported localPlayerCellId pointing at a TEAMMATE (Warwick)
+    // during early PLANNING before it settled. Keying resolution off the cell
+    // resolved the teammate. With a stable PUUID we must resolve OURSELVES.
+    setLocalPuuid("ME");
+    applySession({
+      localPlayerCellId: 4, // WRONG: points at the Warwick teammate
+      myTeam: [
+        player(2, 102, { puuid: "ME" }), // us: Shyvana
+        player(4, 19, { puuid: "MATE" }), // teammate: Warwick (the bad cell)
+      ],
+      theirTeam: [player(5, 23)],
+      timer: { phase: "BAN_PICK", adjustedTimeLeftInPhase: 30000 },
+    } as unknown as Parameters<typeof applySession>[0]);
+    const s = useDraftStore.getState();
+    expect(s.myChampionLocked).toBe("102"); // Shyvana, resolved by puuid
+    expect(s.myCellId).toBe(2); // the puuid-resolved cell, not 4
+    setLocalPuuid(null); // cleanup — don't leak into later tests
   });
 
   it("PRESERVES the board when the game is starting (FINALIZATION → null)", () => {

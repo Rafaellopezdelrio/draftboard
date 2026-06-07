@@ -4,6 +4,7 @@ import {
   subscribeChampSelect,
   subscribeStatus,
   fetchCurrentChampSelect,
+  getCurrentSummoner,
   type LcuChampSelectSession,
   type LcuStatus,
 } from "../services/lcuService";
@@ -27,6 +28,15 @@ const CHAMP_SELECT_RESYNC_MS = 4000;
 // champ select always applies its first frame.
 let lastAppliedRaw = "";
 
+// Local player's PUUID — the STABLE identity used to resolve "which player is
+// me" in the champ-select roster. Fetched once per session (the logged-in
+// summoner never changes mid-session). Preferred over `localPlayerCellId`,
+// which the LCU reports transiently wrong during early PLANNING (observed
+// drifting 0 → 4 → 2 before settling) — keying off the cell there resolves a
+// TEAMMATE and surfaces the wrong champion's build. Null until fetched / when
+// not connected; resolution falls back to cellId.
+let localPlayerPuuid: string | null = null;
+
 export function useLcuSync() {
   const [status, setStatus] = useState<LcuStatus>({ connected: false });
   // Track the latest champ-select session so consumers (LobbyScoutPanel,
@@ -43,6 +53,14 @@ export function useLcuSync() {
       applySession(s);
       return true;
     };
+
+    // Resolve the local player's PUUID once so applySession can match the
+    // roster by stable identity instead of the flaky localPlayerCellId.
+    if (!localPlayerPuuid) {
+      void getCurrentSummoner().then((me) => {
+        if (me?.puuid) localPlayerPuuid = me.puuid;
+      });
+    }
 
     const unsubStatus = subscribeStatus(setStatus);
     const unsubData = subscribeChampSelect((s) => {
@@ -196,6 +214,13 @@ export function __testOnly_applySession(
   applySession(s);
 }
 
+/** Test-only — set/clear the cached local PUUID so tests can exercise the
+ *  puuid-first resolution path (the module var is otherwise populated by an
+ *  async LCU fetch at hook mount). */
+export function __testOnly_setLocalPuuid(puuid: string | null) {
+  localPlayerPuuid = puuid;
+}
+
 function applySession(s: LcuChampSelectSession | null | undefined) {
   // Defensive: Rust emits `envelope.data` which may be `null` on Delete
   // events, or the WebSocket can deliver a payload with missing arrays
@@ -243,10 +268,18 @@ function applySession(s: LcuChampSelectSession | null | undefined) {
   }
 
   const store = useDraftStore.getState();
-  const myCell = s.localPlayerCellId;
-  const myPlayer = [...myTeam, ...theirTeam].find(
-    (p) => p.cellId === myCell
-  );
+  // Resolve the local player by PUUID first (stable), then fall back to
+  // localPlayerCellId. The local player is ALWAYS on myTeam, so we search
+  // myTeam before theirTeam — this prevents a transiently-wrong cell from
+  // resolving an ENEMY (or teammate) as "me" and showing their champ's build.
+  const byPuuid = localPlayerPuuid
+    ? myTeam.find((p) => p.puuid && p.puuid === localPlayerPuuid)
+    : undefined;
+  const myCell = byPuuid ? byPuuid.cellId : s.localPlayerCellId;
+  const myPlayer =
+    byPuuid ??
+    myTeam.find((p) => p.cellId === myCell) ??
+    theirTeam.find((p) => p.cellId === myCell);
 
   // ── Pick fallback from actions[][] ──
   // In BLIND PICK queue (430), Riot leaves myTeam[].championId AND

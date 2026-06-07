@@ -121,6 +121,11 @@ export interface LcuPlayer {
   championPickIntent?: number;
   assignedPosition?: string;
   summonerId?: number;
+  /** Real PUUID for your OWN team (obfuscated/empty for enemies under
+   *  privacy mode). Used to resolve the local player by a STABLE identity
+   *  instead of `localPlayerCellId`, which the LCU reports transiently wrong
+   *  during early PLANNING before settling. */
+  puuid?: string;
 }
 
 export interface LcuChampSelectAction {
