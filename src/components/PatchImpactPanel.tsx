@@ -24,6 +24,7 @@ interface Affected {
 }
 
 function PatchImpactPanelInner({ db, masteries }: Props) {
+  const { t } = useTranslation();
   const [affected, setAffected] = useState<Affected[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -76,7 +77,7 @@ function PatchImpactPanelInner({ db, masteries }: Props) {
       defaultOpen={false}
       storageKey="patchImpact"
       icon={<FileText className="w-3 h-3" />}
-      title="Patch impact"
+      title={t("build.patchImpact")}
       summary={displayPatch(db.patch)}
     >
       <div className="space-y-1.5">

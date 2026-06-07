@@ -9,6 +9,7 @@
 // Extracted from BuildPanel.tsx as part of the file-split effort.
 
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { Role } from "../../types/champion";
 import { fetchProBuilds, type ProBuildVariant, type ProMatchRecent } from "../../services/proBuilds";
 import { ItemIcon } from "./icons";
@@ -22,6 +23,7 @@ interface Props {
 }
 
 export function ProBuildsSection({ championId, role, patch }: Props) {
+  const { t } = useTranslation();
   const [data, setData] = useState<{
     variants: ProBuildVariant[];
     recent: ProMatchRecent[];
@@ -50,7 +52,7 @@ export function ProBuildsSection({ championId, role, patch }: Props) {
       <div className="border-t border-white/5 pt-2">
         <div className="flex items-center gap-2 py-1">
           <div className="w-1.5 h-1.5 rounded-full bg-accent/70 animate-pulse" />
-          <p className="text-[10px] text-white/40">Cargando pro builds…</p>
+          <p className="text-[10px] text-white/40">{t("build.proBuildsLoading")}</p>
         </div>
       </div>
     );
@@ -59,10 +61,10 @@ export function ProBuildsSection({ championId, role, patch }: Props) {
     return (
       <div className="border-t border-white/5 pt-2">
         <p className="text-[10px] uppercase tracking-widest text-white/45 mb-1">
-          Pro builds
+          {t("build.proBuilds")}
         </p>
         <p className="text-[11px] text-white/35 italic">
-          Sin partidas pro recientes para este champion en {role}.
+          {t("build.proBuildsEmpty", { role })}
         </p>
       </div>
     );
@@ -77,8 +79,8 @@ export function ProBuildsSection({ championId, role, patch }: Props) {
       defaultOpen={false}
       storageKey="proBuilds"
       icon={<span className="text-accent">🏆</span>}
-      title="Pro builds"
-      summary={`${data.total} partidas`}
+      title={t("build.proBuilds")}
+      summary={t("build.games", { count: data.total })}
     >
       <div className="space-y-2">
       {/* Variant tabs */}
@@ -111,7 +113,7 @@ export function ProBuildsSection({ championId, role, patch }: Props) {
           </div>
           <div className="flex items-center justify-between text-[10px]">
             <span className="text-white/55">
-              Pros: <span className="text-white/80">{active.proNames.join(", ")}</span>
+              {t("build.pros")} <span className="text-white/80">{active.proNames.join(", ")}</span>
             </span>
             <span
               className={`tabular-nums font-semibold ${
@@ -128,7 +130,7 @@ export function ProBuildsSection({ championId, role, patch }: Props) {
       {data.recent.length > 0 && (
         <div className="border-t border-white/5 pt-1.5 space-y-0.5">
           <p className="text-[9px] uppercase tracking-widest text-white/35">
-            Últimas partidas pro
+            {t("build.recentPro")}
           </p>
           {data.recent.slice(0, 3).map((m, i) => (
             <p

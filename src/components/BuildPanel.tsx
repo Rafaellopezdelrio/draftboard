@@ -290,7 +290,7 @@ function BuildPanelInner({ db, championKey, role, enemyKeys = [] }: Props) {
         <div>
           <p className="text-xs text-white/50 mb-1">{t("build.abilities")}</p>
           <p className="text-sm text-white">
-            Primeros 3:{" "}
+            {t("build.firstSkills")}{" "}
             <span className="text-accent">
               {skills.firstThree
                 .split("")
@@ -299,7 +299,7 @@ function BuildPanelInner({ db, championKey, role, enemyKeys = [] }: Props) {
             </span>
           </p>
           <p className="text-sm text-white">
-            Maxear:{" "}
+            {t("build.maxOrder")}{" "}
             <span className="text-accent">
               {skills.maxOrder
                 .split("")

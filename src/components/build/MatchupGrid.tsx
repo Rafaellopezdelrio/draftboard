@@ -15,6 +15,7 @@
 // owning every sub-section.
 
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { Role } from "../../types/champion";
 import {
   fetchOpggMatchups,
@@ -35,6 +36,7 @@ interface Props {
 }
 
 export function MatchupGrid({ championDdId, role, enemyDdIds = [] }: Props) {
+  const { t } = useTranslation();
   const [matchups, setMatchups] = useState<OpggMatchup[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(false);
@@ -58,7 +60,7 @@ export function MatchupGrid({ championDdId, role, enemyDdIds = [] }: Props) {
       <div className="border-t border-white/5 pt-2">
         <div className="flex items-center gap-2 py-1">
           <div className="w-1.5 h-1.5 rounded-full bg-accent/70 animate-pulse" />
-          <p className="text-[10px] text-white/40">Cargando matchups…</p>
+          <p className="text-[10px] text-white/40">{t("build.matchupsLoading")}</p>
         </div>
       </div>
     );
@@ -95,14 +97,14 @@ export function MatchupGrid({ championDdId, role, enemyDdIds = [] }: Props) {
       {enemyMatchups.length > 0 && (
         <div className="rounded-md ring-1 ring-accent/30 bg-accent/5 px-2 py-1.5">
           <p className="text-[10px] uppercase tracking-widest text-accent/80 mb-1">
-            Contra tu línea
+            {t("build.vsYourLane")}
           </p>
           <ul className="space-y-0.5">
             {enemyMatchups.map((m) => (
               <li
                 key={m.championKey}
                 className="flex items-center justify-between gap-1.5 text-[11px]"
-                title={`${m.play.toLocaleString()} partidas`}
+                title={t("build.games", { count: m.play.toLocaleString() })}
               >
                 <span className="truncate pr-1 flex-1 text-white/85 font-medium">
                   {m.championName}
@@ -125,13 +127,13 @@ export function MatchupGrid({ championDdId, role, enemyDdIds = [] }: Props) {
         collapsible
         defaultOpen={false}
         storageKey="matchups"
-        title="Matchups"
+        title={t("build.matchups")}
         summary={String(totalAvailable)}
       >
         <div className="space-y-1.5">
           <div className="grid grid-cols-2 gap-3">
-            <MatchupColumn title="Ganas vs" color="text-good" entries={youBeat} />
-            <MatchupColumn title="Pierdes vs" color="text-bad" entries={youLose} />
+            <MatchupColumn title={t("build.winsVs")} color="text-good" entries={youBeat} />
+            <MatchupColumn title={t("build.losesVs")} color="text-bad" entries={youLose} />
           </div>
           {isExpandable && (
             <button
@@ -139,7 +141,7 @@ export function MatchupGrid({ championDdId, role, enemyDdIds = [] }: Props) {
               onClick={() => setExpanded((v) => !v)}
               className="w-full text-[10px] uppercase tracking-wider px-2 py-1 rounded ring-1 ring-border-subtle bg-bg-card/40 text-white/55 hover:text-accent hover:ring-accent/40 transition"
             >
-              {expanded ? "Mostrar menos ▲" : `Ver todos (${totalAvailable}) ▼`}
+              {expanded ? t("build.showLess") : t("build.showAll", { count: totalAvailable })}
             </button>
           )}
         </div>
@@ -157,13 +159,14 @@ function MatchupColumn({
   color: string;
   entries: OpggMatchup[];
 }) {
+  const { t } = useTranslation();
   if (entries.length === 0) {
     return (
       <div>
         <p className={`text-[10px] uppercase tracking-widest ${color} mb-1`}>
           {title}
         </p>
-        <p className="text-[10px] text-white/35 italic">Sin datos</p>
+        <p className="text-[10px] text-white/35 italic">{t("build.noData")}</p>
       </div>
     );
   }
@@ -198,7 +201,7 @@ function MatchupColumn({
               <span className="truncate pr-1 flex-1">{m.championName}</span>
               <span
                 className={`inline-flex items-center justify-center w-4 h-4 rounded text-[9px] font-bold tabular-nums shrink-0 ${tierColor}`}
-                title={`Tier amenaza ${tierLabel}`}
+                title={t("build.threatTier", { tier: tierLabel })}
               >
                 {tierLabel}
               </span>

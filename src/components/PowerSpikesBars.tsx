@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { getPowerSpikes, powerSpikeBars } from "../data/powerSpikes";
 import { Panel } from "./ui/Panel";
 
@@ -6,6 +7,7 @@ interface Props {
 }
 
 export function PowerSpikesBars({ championId }: Props) {
+  const { t } = useTranslation();
   const profile = getPowerSpikes(championId);
   if (!profile) return null;
   const bars = powerSpikeBars(profile);
@@ -15,7 +17,7 @@ export function PowerSpikesBars({ championId }: Props) {
       collapsible
       defaultOpen={false}
       storageKey="powerSpikes"
-      title="Power spikes"
+      title={t("build.powerSpikes")}
       summary={profile.summary}
     >
       <div className="space-y-1.5">
