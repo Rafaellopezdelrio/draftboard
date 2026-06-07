@@ -1,6 +1,7 @@
 // 7-day improvement plan generator + history of past plans.
 
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   recentLessonPlans,
   saveLessonPlan,
@@ -35,6 +36,7 @@ interface Props {
 type Tab = "current" | "history";
 
 export function LessonPlanView({ db, onClose }: Props) {
+  const { t } = useTranslation();
   useEscape(onClose);
   const provider = usePrefsStore((s) => s.prefs.aiProvider);
   const apiKey = usePrefsStore((s) =>
@@ -58,7 +60,7 @@ export function LessonPlanView({ db, onClose }: Props) {
 
   async function generate() {
     if (!apiKey) {
-      setErr(`Configura API key (${provider}) en Prefs`);
+      setErr(t("lessonPlan.errKey", { provider }));
       return;
     }
     setErr(null);
@@ -67,7 +69,7 @@ export function LessonPlanView({ db, onClose }: Props) {
     try {
       const matches = await recentMatches(50);
       if (matches.length < 5) {
-        throw new Error("Necesitas al menos 5 partidas guardadas");
+        throw new Error(t("lessonPlan.errMinGames"));
       }
       const profile = buildPlaystyleProfile(matches);
       const weakest = detectWeakestArea(matches);
@@ -129,12 +131,12 @@ export function LessonPlanView({ db, onClose }: Props) {
         <div className="px-5 pt-5 pb-2 border-b border-border-subtle">
           <div className="flex items-center gap-2 mb-3">
             <Calendar className="w-5 h-5 text-accent" />
-            <h2 id={LESSONPLAN_TITLE_ID} className="text-xl font-bold gold-text">Plan de mejora 7 días</h2>
+            <h2 id={LESSONPLAN_TITLE_ID} className="text-xl font-bold gold-text">{t("lessonPlan.title")}</h2>
           </div>
           <Tabs<Tab>
             tabs={[
-              { value: "current", label: "Generar nuevo", icon: <Sparkles className="w-3 h-3" /> },
-              { value: "history", label: "Anteriores", count: past.length, icon: <Target className="w-3 h-3" /> },
+              { value: "current", label: t("lessonPlan.tabNew"), icon: <Sparkles className="w-3 h-3" /> },
+              { value: "history", label: t("lessonPlan.tabPast"), count: past.length, icon: <Target className="w-3 h-3" /> },
             ]}
             active={tab}
             onChange={setTab}
@@ -147,12 +149,12 @@ export function LessonPlanView({ db, onClose }: Props) {
               {!text && !loading && (
                 <Panel padding="sm">
                   <p className="text-sm text-white/80 mb-2">
-                    Genera un plan personalizado de 7 días basado en:
+                    {t("lessonPlan.basedOn")}
                   </p>
                   <ul className="text-xs text-white/65 space-y-1 ml-4 list-disc">
-                    <li>Tus últimas 50 partidas</li>
-                    <li>Tu estilo (aggressive/scaling/safe...)</li>
-                    <li>Tu mayor problema actual detectado</li>
+                    <li>{t("lessonPlan.basis1")}</li>
+                    <li>{t("lessonPlan.basis2")}</li>
+                    <li>{t("lessonPlan.basis3")}</li>
                   </ul>
                   <button
                     onClick={generate}
@@ -160,11 +162,11 @@ export function LessonPlanView({ db, onClose }: Props) {
                     className="mt-3 w-full px-4 py-2 bg-accent text-black font-medium rounded-md text-sm disabled:opacity-50 inline-flex items-center justify-center gap-2"
                   >
                     <Sparkles className="w-4 h-4" />
-                    Generar mi plan
+                    {t("lessonPlan.generate")}
                   </button>
                   {!apiKey && (
                     <p className="text-[11px] text-meh mt-2">
-                      Necesitas API key ({provider}) en Prefs. Groq es gratis.
+                      {t("lessonPlan.needKey", { provider })}
                     </p>
                   )}
                 </Panel>
@@ -203,7 +205,7 @@ export function LessonPlanView({ db, onClose }: Props) {
                     }}
                     className="mt-3 text-xs text-accent hover:underline"
                   >
-                    Ver planes guardados →
+                    {t("lessonPlan.viewSaved")}
                   </button>
                 </Panel>
               )}
@@ -215,8 +217,8 @@ export function LessonPlanView({ db, onClose }: Props) {
               {past.length === 0 && (
                 <EmptyState
                   icon={BookOpen}
-                  title="Sin planes generados"
-                  detail='Crea tu primer plan de 7 días en la pestaña "Generar nuevo".'
+                  title={t("lessonPlan.emptyTitle")}
+                  detail={t("lessonPlan.emptyDetail")}
                 />
               )}
               {past.map((p) => (
@@ -228,7 +230,7 @@ export function LessonPlanView({ db, onClose }: Props) {
                     </p>
                     {p.completed ? (
                       <span className="text-[10px] text-good inline-flex items-center gap-1 uppercase tracking-widest">
-                        <Check className="w-3 h-3" /> completado
+                        <Check className="w-3 h-3" /> {t("lessonPlan.completed")}
                       </span>
                     ) : (
                       <button
@@ -243,7 +245,7 @@ export function LessonPlanView({ db, onClose }: Props) {
                         }}
                         className="text-[10px] text-white/45 hover:text-good uppercase tracking-widest"
                       >
-                        marcar completado
+                        {t("lessonPlan.markCompleted")}
                       </button>
                     )}
                   </div>

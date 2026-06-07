@@ -491,6 +491,24 @@
     "shortcuts": "Keyboard shortcuts (Ctrl+/)",
     "centerWindow": "Center main window"
   },
+  "lessonPlan": {
+    "title": "7-day improvement plan",
+    "tabNew": "Generate new",
+    "tabPast": "Past plans",
+    "basedOn": "Generate a personalized 7-day plan based on:",
+    "basis1": "Your last 50 games",
+    "basis2": "Your style (aggressive/scaling/safe...)",
+    "basis3": "Your biggest detected problem right now",
+    "generate": "Generate my plan",
+    "needKey": "You need an API key ({{provider}}) in Prefs. Groq is free.",
+    "viewSaved": "View saved plans →",
+    "emptyTitle": "No plans generated",
+    "emptyDetail": "Create your first 7-day plan in the \"Generate new\" tab.",
+    "completed": "completed",
+    "markCompleted": "mark completed",
+    "errKey": "Set an API key ({{provider}}) in Prefs",
+    "errMinGames": "You need at least 5 saved games"
+  },
   "feedback": {
     "title": "Report a problem",
     "subtitle": "Your note is sent with the recent-actions trail — anonymous, no matches, no chat.",

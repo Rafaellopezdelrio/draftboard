@@ -491,6 +491,24 @@
     "shortcuts": "Atajos de teclado (Ctrl+/)",
     "centerWindow": "Centrar ventana principal"
   },
+  "lessonPlan": {
+    "title": "Plan de mejora 7 días",
+    "tabNew": "Generar nuevo",
+    "tabPast": "Anteriores",
+    "basedOn": "Genera un plan personalizado de 7 días basado en:",
+    "basis1": "Tus últimas 50 partidas",
+    "basis2": "Tu estilo (aggressive/scaling/safe...)",
+    "basis3": "Tu mayor problema actual detectado",
+    "generate": "Generar mi plan",
+    "needKey": "Necesitas API key ({{provider}}) en Prefs. Groq es gratis.",
+    "viewSaved": "Ver planes guardados →",
+    "emptyTitle": "Sin planes generados",
+    "emptyDetail": "Crea tu primer plan de 7 días en la pestaña \"Generar nuevo\".",
+    "completed": "completado",
+    "markCompleted": "marcar completado",
+    "errKey": "Configura API key ({{provider}}) en Prefs",
+    "errMinGames": "Necesitas al menos 5 partidas guardadas"
+  },
   "feedback": {
     "title": "Reportar problema",
     "subtitle": "Tu nota se envía con el trail de acciones recientes — anónimo, sin partidas, sin chat.",
