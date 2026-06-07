@@ -453,6 +453,18 @@
     "copyFail": "No pude copiar",
     "footer": "Los logs viven en {{path}}. Rotación 5MB, retención 7 días."
   },
+  "liveView": {
+    "title": "Partida en directo",
+    "refresh": "Refrescar",
+    "refreshShort": "refrescar",
+    "updated": "actualizado {{s}}s",
+    "searching": "Buscando partida en curso...",
+    "notInGame": "No estás en partida ahora mismo. Esta vista se actualiza cada 30s automáticamente.",
+    "blueTeam": "Equipo azul",
+    "redTeam": "Equipo rojo",
+    "needRiotId": "Necesitas configurar tu Riot ID en Configuración para detectar tu partida.",
+    "needApiKey": "Necesitas configurar tu Riot API Key en Configuración (o un proxy)."
+  },
   "feedback": {
     "title": "Reportar problema",
     "subtitle": "Tu nota se envía con el trail de acciones recientes — anónimo, sin partidas, sin chat.",

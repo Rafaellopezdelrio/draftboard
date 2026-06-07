@@ -2,6 +2,7 @@
 // (your team vs enemy team) WHILE you're loading or playing. Auto-refreshes.
 
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { ChampionDb } from "../types/champion";
 import {
   getCurrentGameByPuuid,
@@ -20,6 +21,7 @@ interface Props {
 }
 
 export function LiveGameView({ db, onClose }: Props) {
+  const { t } = useTranslation();
   useEscape(onClose);
   const [game, setGame] = useState<CurrentGameInfo | null>(null);
   const [loading, setLoading] = useState(true);
@@ -35,12 +37,12 @@ export function LiveGameView({ db, onClose }: Props) {
       // PUUID always required (identifies WHICH user to query). API key
       // only needed in direct mode — proxy injects it server-side.
       if (!cfg?.puuid) {
-        setErr("Necesitas configurar tu Riot ID en Configuración para detectar tu partida.");
+        setErr(t("liveView.needRiotId"));
         setLoading(false);
         return;
       }
       if (!usingProxy && !cfg.apiKey) {
-        setErr("Necesitas configurar tu Riot API Key en Configuración (o un proxy).");
+        setErr(t("liveView.needApiKey"));
         setLoading(false);
         return;
       }
@@ -85,7 +87,7 @@ export function LiveGameView({ db, onClose }: Props) {
         <div className="px-5 pt-5 pb-3 border-b border-border-subtle flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Radio className="w-5 h-5 text-bad animate-pulse" />
-            <h2 className="text-xl font-bold gold-text">Partida en directo</h2>
+            <h2 className="text-xl font-bold gold-text">{t("liveView.title")}</h2>
             {game && (
               <span className="ml-2 text-[10px] uppercase tracking-widest text-white/50 inline-flex items-center gap-1">
                 <Clock className="w-3 h-3" /> {elapsedMin} min
@@ -96,19 +98,19 @@ export function LiveGameView({ db, onClose }: Props) {
             onClick={load}
             disabled={loading}
             className="text-xs text-white/55 hover:text-accent inline-flex items-center gap-1 disabled:opacity-40"
-            title="Refrescar"
+            title={t("liveView.refresh")}
           >
             <RefreshCw className={`w-3 h-3 ${loading ? "animate-spin" : ""}`} />
             {lastRefresh
-              ? `actualizado ${Math.floor((Date.now() - lastRefresh) / 1000)}s`
-              : "refrescar"}
+              ? t("liveView.updated", { s: Math.floor((Date.now() - lastRefresh) / 1000) })
+              : t("liveView.refreshShort")}
           </button>
         </div>
 
         <div className="overflow-y-auto p-4 flex-1 space-y-3">
           {loading && !game && (
             <p className="text-white/50 text-sm text-center py-8">
-              Buscando partida en curso...
+              {t("liveView.searching")}
             </p>
           )}
           {err && (
@@ -119,8 +121,7 @@ export function LiveGameView({ db, onClose }: Props) {
           {!loading && !err && !game && (
             <Panel padding="sm">
               <p className="text-sm text-white/70 text-center py-4">
-                No estás en partida ahora mismo. Esta vista se actualiza cada 30s
-                automáticamente.
+                {t("liveView.notInGame")}
               </p>
             </Panel>
           )}
@@ -130,7 +131,7 @@ export function LiveGameView({ db, onClose }: Props) {
               <Panel padding="sm">
                 <PanelHeader
                   icon={<Swords className="w-3 h-3" />}
-                  title="Equipo azul"
+                  title={t("liveView.blueTeam")}
                   subtitle={`${team100.length}`}
                 />
                 <div className="grid grid-cols-1 gap-1.5">
@@ -147,7 +148,7 @@ export function LiveGameView({ db, onClose }: Props) {
               <Panel padding="sm">
                 <PanelHeader
                   icon={<Swords className="w-3 h-3 text-bad" />}
-                  title="Equipo rojo"
+                  title={t("liveView.redTeam")}
                   subtitle={`${team200.length}`}
                 />
                 <div className="grid grid-cols-1 gap-1.5">

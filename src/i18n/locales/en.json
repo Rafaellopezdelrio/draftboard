@@ -453,6 +453,18 @@
     "copyFail": "Couldn't copy",
     "footer": "Logs live in {{path}}. 5MB rotation, 7-day retention."
   },
+  "liveView": {
+    "title": "Live game",
+    "refresh": "Refresh",
+    "refreshShort": "refresh",
+    "updated": "updated {{s}}s ago",
+    "searching": "Searching for an ongoing game…",
+    "notInGame": "You're not in a game right now. This view auto-refreshes every 30s.",
+    "blueTeam": "Blue team",
+    "redTeam": "Red team",
+    "needRiotId": "Set your Riot ID in Settings to detect your game.",
+    "needApiKey": "Set your Riot API Key in Settings (or a proxy)."
+  },
   "feedback": {
     "title": "Report a problem",
     "subtitle": "Your note is sent with the recent-actions trail — anonymous, no matches, no chat.",
