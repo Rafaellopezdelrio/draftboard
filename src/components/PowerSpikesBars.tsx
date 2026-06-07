@@ -1,4 +1,5 @@
 import { getPowerSpikes, powerSpikeBars } from "../data/powerSpikes";
+import { Panel } from "./ui/Panel";
 
 interface Props {
   championId: string | undefined;
@@ -9,10 +10,15 @@ export function PowerSpikesBars({ championId }: Props) {
   if (!profile) return null;
   const bars = powerSpikeBars(profile);
   return (
-    <div className="space-y-1.5">
-      <p className="text-xs uppercase text-white/50 tracking-wide">
-        Power spikes
-      </p>
+    <Panel
+      padding="sm"
+      collapsible
+      defaultOpen={false}
+      storageKey="powerSpikes"
+      title="Power spikes"
+      summary={profile.summary}
+    >
+      <div className="space-y-1.5">
       <div className="flex items-end gap-1 h-12">
         {bars.map((b) => {
           const h = b.value * 10;
@@ -38,6 +44,7 @@ export function PowerSpikesBars({ championId }: Props) {
         })}
       </div>
       <p className="text-xs text-white/70">{profile.summary}</p>
-    </div>
+      </div>
+    </Panel>
   );
 }

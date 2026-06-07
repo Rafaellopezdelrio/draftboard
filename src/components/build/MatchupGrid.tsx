@@ -22,6 +22,7 @@ import {
   ddIdToOpggKey,
   type OpggMatchup,
 } from "../../services/opggMatchups";
+import { Panel } from "../ui/Panel";
 
 interface Props {
   /** DDragon-style champion id (e.g. "LeeSin"). */
@@ -88,6 +89,9 @@ export function MatchupGrid({ championDdId, role, enemyDdIds = [] }: Props) {
 
   return (
     <div className="border-t border-white/5 pt-2 space-y-1.5">
+      {/* Lane-opponent callout — your WR vs the ACTUAL enemy laner. The single
+          most actionable matchup number in champ select, so it stays ALWAYS
+          visible above the collapsible full grid (never folded away). */}
       {enemyMatchups.length > 0 && (
         <div className="rounded-md ring-1 ring-accent/30 bg-accent/5 px-2 py-1.5">
           <p className="text-[10px] uppercase tracking-widest text-accent/80 mb-1">
@@ -115,19 +119,31 @@ export function MatchupGrid({ championDdId, role, enemyDdIds = [] }: Props) {
           </ul>
         </div>
       )}
-      <div className="grid grid-cols-2 gap-3">
-        <MatchupColumn title="Ganas vs" color="text-good" entries={youBeat} />
-        <MatchupColumn title="Pierdes vs" color="text-bad" entries={youLose} />
-      </div>
-      {isExpandable && (
-        <button
-          type="button"
-          onClick={() => setExpanded((v) => !v)}
-          className="w-full text-[10px] uppercase tracking-wider px-2 py-1 rounded ring-1 ring-border-subtle bg-bg-card/40 text-white/55 hover:text-accent hover:ring-accent/40 transition"
-        >
-          {expanded ? "Mostrar menos ▲" : `Ver todos (${totalAvailable}) ▼`}
-        </button>
-      )}
+      {/* Full Ganas/Pierdes grid — reference, collapsed by default. */}
+      <Panel
+        padding="sm"
+        collapsible
+        defaultOpen={false}
+        storageKey="matchups"
+        title="Matchups"
+        summary={String(totalAvailable)}
+      >
+        <div className="space-y-1.5">
+          <div className="grid grid-cols-2 gap-3">
+            <MatchupColumn title="Ganas vs" color="text-good" entries={youBeat} />
+            <MatchupColumn title="Pierdes vs" color="text-bad" entries={youLose} />
+          </div>
+          {isExpandable && (
+            <button
+              type="button"
+              onClick={() => setExpanded((v) => !v)}
+              className="w-full text-[10px] uppercase tracking-wider px-2 py-1 rounded ring-1 ring-border-subtle bg-bg-card/40 text-white/55 hover:text-accent hover:ring-accent/40 transition"
+            >
+              {expanded ? "Mostrar menos ▲" : `Ver todos (${totalAvailable}) ▼`}
+            </button>
+          )}
+        </div>
+      </Panel>
     </div>
   );
 }

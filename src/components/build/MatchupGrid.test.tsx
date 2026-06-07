@@ -49,8 +49,10 @@ describe("MatchupGrid — lane-opponent callout", () => {
 
     render(<MatchupGrid championDdId="LeeSin" role="JUNGLE" enemyDdIds={["JarvanIV"]} />);
 
-    // Grid still renders (Garen present) but the lane-opponent callout doesn't.
-    expect(await screen.findByText("Garen")).toBeTruthy();
+    // Wait on the always-visible "Matchups" section title (the Ganas/Pierdes
+    // grid itself is collapsed by default now). The point of these tests is the
+    // lane-opponent callout, which must be ABSENT here.
+    expect(await screen.findByText("Matchups")).toBeTruthy();
     expect(screen.queryByText("Contra tu línea")).toBeNull();
   });
 
@@ -59,7 +61,10 @@ describe("MatchupGrid — lane-opponent callout", () => {
 
     render(<MatchupGrid championDdId="LeeSin" role="JUNGLE" />);
 
-    expect(await screen.findByText("Garen")).toBeTruthy();
+    // Wait on the always-visible "Matchups" section title (the Ganas/Pierdes
+    // grid itself is collapsed by default now). The point of these tests is the
+    // lane-opponent callout, which must be ABSENT here.
+    expect(await screen.findByText("Matchups")).toBeTruthy();
     expect(screen.queryByText("Contra tu línea")).toBeNull();
   });
 });

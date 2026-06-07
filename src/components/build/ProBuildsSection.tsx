@@ -12,6 +12,7 @@ import { useEffect, useState } from "react";
 import type { Role } from "../../types/champion";
 import { fetchProBuilds, type ProBuildVariant, type ProMatchRecent } from "../../services/proBuilds";
 import { ItemIcon } from "./icons";
+import { Panel } from "../ui/Panel";
 
 interface Props {
   /** Numeric champion ID (Riot key, not DDragon id). */
@@ -70,13 +71,16 @@ export function ProBuildsSection({ championId, role, patch }: Props) {
   const active = data.variants[activeIdx];
 
   return (
-    <div className="border-t border-white/5 pt-2 space-y-2">
-      <div className="flex items-baseline justify-between">
-        <p className="text-[10px] uppercase tracking-widest text-accent font-semibold">
-          🏆 Pro builds · {data.total} partidas analizadas
-        </p>
-      </div>
-
+    <Panel
+      padding="sm"
+      collapsible
+      defaultOpen={false}
+      storageKey="proBuilds"
+      icon={<span className="text-accent">🏆</span>}
+      title="Pro builds"
+      summary={`${data.total} partidas`}
+    >
+      <div className="space-y-2">
       {/* Variant tabs */}
       <div className="flex gap-1">
         {data.variants.map((v, i) => (
@@ -147,6 +151,7 @@ export function ProBuildsSection({ championId, role, patch }: Props) {
           ))}
         </div>
       )}
-    </div>
+      </div>
+    </Panel>
   );
 }
