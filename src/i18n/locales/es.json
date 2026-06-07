@@ -548,6 +548,19 @@
     "tipBuild": "Mira las builds por rol en tab Build & runas",
     "whenFacing": "Cuando lo enfrentas"
   },
+  "metaSync": {
+    "listingMaster": "Listando Master league",
+    "resolvingAccounts": "Resolviendo cuentas",
+    "listingMatches": "Listando partidas",
+    "downloadingMatches": "Descargando partidas",
+    "aggregating": "Agregando",
+    "saving": "Guardando",
+    "done": "Listo",
+    "region": "Región {{region}} ({{i}}/{{total}})",
+    "regionPhase": "{{region}}: {{phase}}",
+    "regionFailed": "Región {{region}} falló: {{err}}",
+    "multiDone": "Multi-región completado"
+  },
   "feedback": {
     "title": "Reportar problema",
     "subtitle": "Tu nota se envía con el trail de acciones recientes — anónimo, sin partidas, sin chat.",

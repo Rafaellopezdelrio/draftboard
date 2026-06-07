@@ -548,6 +548,19 @@
     "tipBuild": "See builds per role in the Build & runes tab",
     "whenFacing": "When you face them"
   },
+  "metaSync": {
+    "listingMaster": "Listing Master league",
+    "resolvingAccounts": "Resolving accounts",
+    "listingMatches": "Listing matches",
+    "downloadingMatches": "Downloading matches",
+    "aggregating": "Aggregating",
+    "saving": "Saving",
+    "done": "Done",
+    "region": "Region {{region}} ({{i}}/{{total}})",
+    "regionPhase": "{{region}}: {{phase}}",
+    "regionFailed": "Region {{region}} failed: {{err}}",
+    "multiDone": "Multi-region done"
+  },
   "feedback": {
     "title": "Report a problem",
     "subtitle": "Your note is sent with the recent-actions trail — anonymous, no matches, no chat.",

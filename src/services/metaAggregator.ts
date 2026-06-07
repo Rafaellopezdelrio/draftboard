@@ -1,5 +1,6 @@
 import { getDb, isTauri } from "../db/client";
 import { buildBatchInserts } from "../db/batchInsert";
+import { i18n } from "../i18n";
 import {
   getMasterLeague,
   getMatchFull,
@@ -43,7 +44,11 @@ export async function aggregateMultiRegion(
   for (let i = 0; i < MULTI_REGIONS.length; i++) {
     const region = MULTI_REGIONS[i];
     onProgress({
-      phase: `Región ${region.toUpperCase()} (${i + 1}/${MULTI_REGIONS.length})`,
+      phase: i18n.t("metaSync.region", {
+        region: region.toUpperCase(),
+        i: i + 1,
+        total: MULTI_REGIONS.length,
+      }),
       done: 0,
       total: 1,
     });
@@ -51,7 +56,10 @@ export async function aggregateMultiRegion(
       const cfg: RiotConfig = { ...baseCfg, region };
       await aggregateFromMaster(cfg, `${patch}-${region}`, (p) =>
         onProgress({
-          phase: `${region.toUpperCase()}: ${p.phase}`,
+          phase: i18n.t("metaSync.regionPhase", {
+            region: region.toUpperCase(),
+            phase: p.phase,
+          }),
           done: p.done,
           total: p.total,
         })
@@ -59,13 +67,16 @@ export async function aggregateMultiRegion(
     } catch (e) {
       // Continue with next region if one fails (likely rate limit)
       onProgress({
-        phase: `Región ${region} falló: ${String(e).slice(0, 60)}`,
+        phase: i18n.t("metaSync.regionFailed", {
+          region,
+          err: String(e).slice(0, 60),
+        }),
         done: 0,
         total: 1,
       });
     }
   }
-  onProgress({ phase: "Multi-región completado", done: 1, total: 1 });
+  onProgress({ phase: i18n.t("metaSync.multiDone"), done: 1, total: 1 });
 }
 
 /**
@@ -87,12 +98,12 @@ export async function aggregateFromMaster(
   const db = await getDb();
   const now = Date.now();
 
-  onProgress({ phase: "Listando Master league", done: 0, total: 1 });
+  onProgress({ phase: i18n.t("metaSync.listingMaster"), done: 0, total: 1 });
   const league = await getMasterLeague(cfg);
   const sample = league.entries.slice(0, SAMPLE_SUMMONERS);
 
   // Resolve PUUIDs
-  onProgress({ phase: "Resolviendo cuentas", done: 0, total: sample.length });
+  onProgress({ phase: i18n.t("metaSync.resolvingAccounts"), done: 0, total: sample.length });
   const puuids: string[] = [];
   for (let i = 0; i < sample.length; i++) {
     try {
@@ -101,12 +112,12 @@ export async function aggregateFromMaster(
     } catch {
       // skip
     }
-    onProgress({ phase: "Resolviendo cuentas", done: i + 1, total: sample.length });
+    onProgress({ phase: i18n.t("metaSync.resolvingAccounts"), done: i + 1, total: sample.length });
   }
 
   // Collect unique match IDs
   const matchIds = new Set<string>();
-  onProgress({ phase: "Listando partidas", done: 0, total: puuids.length });
+  onProgress({ phase: i18n.t("metaSync.listingMatches"), done: 0, total: puuids.length });
   for (let i = 0; i < puuids.length; i++) {
     try {
       const ids = await getRecentMatchIds(cfg, puuids[i], MATCHES_PER_SUMMONER);
@@ -114,13 +125,13 @@ export async function aggregateFromMaster(
     } catch {
       // skip
     }
-    onProgress({ phase: "Listando partidas", done: i + 1, total: puuids.length });
+    onProgress({ phase: i18n.t("metaSync.listingMatches"), done: i + 1, total: puuids.length });
   }
 
   // Fetch full match + timeline
   const ids = Array.from(matchIds);
   const matches: { full: MatchFull; tl: MatchTimeline }[] = [];
-  onProgress({ phase: "Descargando partidas", done: 0, total: ids.length });
+  onProgress({ phase: i18n.t("metaSync.downloadingMatches"), done: 0, total: ids.length });
   for (let i = 0; i < ids.length; i++) {
     try {
       const [full, tl] = await Promise.all([
@@ -132,11 +143,11 @@ export async function aggregateFromMaster(
     } catch {
       // skip
     }
-    onProgress({ phase: "Descargando partidas", done: i + 1, total: ids.length });
+    onProgress({ phase: i18n.t("metaSync.downloadingMatches"), done: i + 1, total: ids.length });
   }
 
   // Aggregate
-  onProgress({ phase: "Agregando", done: 0, total: matches.length });
+  onProgress({ phase: i18n.t("metaSync.aggregating"), done: 0, total: matches.length });
   const meta = new Map<string, { games: number; wins: number }>();
   const counters = new Map<string, { games: number; wins: number }>();
   const builds = new Map<string, { games: number; wins: number }>();
@@ -255,7 +266,7 @@ export async function aggregateFromMaster(
   // Total games drives pick-rate (games for a champ ÷ total games sampled).
   const totalGamesAll = matches.length;
 
-  onProgress({ phase: "Guardando", done: 0, total: 1 });
+  onProgress({ phase: i18n.t("metaSync.saving"), done: 0, total: 1 });
 
   // Per table: clear the current patch, then re-insert as a few multi-row
   // statements (see db/batchInsert). tauri-plugin-sql can't reliably hold a
@@ -334,7 +345,7 @@ export async function aggregateFromMaster(
     [String(now)]
   );
 
-  onProgress({ phase: "Listo", done: 1, total: 1 });
+  onProgress({ phase: i18n.t("metaSync.done"), done: 1, total: 1 });
 }
 
 function computeMaxOrder(skillOrder: number[]): string {
