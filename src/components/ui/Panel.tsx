@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import { ChevronRight } from "lucide-react";
 
 interface PanelProps {
@@ -49,6 +49,9 @@ export function Panel({
     }
     return defaultOpen;
   });
+  // Stable id so the collapsible body can be associated with its toggle for
+  // screen readers (aria-controls / aria-labelledby).
+  const bodyId = useId();
 
   if (collapsible && title) {
     const toggle = () => {
@@ -69,7 +72,9 @@ export function Panel({
         <button
           type="button"
           onClick={toggle}
+          id={`${bodyId}-h`}
           aria-expanded={open}
+          aria-controls={bodyId}
           className={`w-full flex items-center gap-1.5 ${headPad} text-left hover:bg-bg-hover/40 rounded-lg transition-colors`}
         >
           {icon && <span className="text-white/40">{icon}</span>}
@@ -85,7 +90,16 @@ export function Panel({
             }`}
           />
         </button>
-        {open && <div className={bodyPad}>{children}</div>}
+        {open && (
+          <div
+            id={bodyId}
+            role="region"
+            aria-labelledby={`${bodyId}-h`}
+            className={bodyPad}
+          >
+            {children}
+          </div>
+        )}
       </div>
     );
   }
