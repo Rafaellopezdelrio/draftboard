@@ -452,13 +452,14 @@ function App() {
     if (liveDerived.role && liveDerived.role !== myRole) setMyRole(liveDerived.role);
   }, [liveDerived.role, myRole, setMyRole]);
 
-  // Priority: live (in-game truth) → locked → hovered intent → top suggestion.
+  // Priority: live (in-game truth) → locked → hovered intent. NO fallback to
+  // suggestions[0]: that showed a DIFFERENT champion's build labelled as yours
+  // (playtest: on Shyvana jungle the panel showed Warwick — the #1 jungle
+  // suggestion — because the local champ hadn't resolved yet). The build/coach
+  // panels must reflect ONLY the champion you're actually on; if it isn't
+  // resolved they render nothing and the SuggestionPanel carries the recs.
   const buildChampionKey =
-    liveDerived.key ??
-    myChampionLocked ??
-    myChampionIntent ??
-    suggestions[0]?.champion.key ??
-    null;
+    liveDerived.key ?? myChampionLocked ?? myChampionIntent ?? null;
 
   if (error) {
     return (
