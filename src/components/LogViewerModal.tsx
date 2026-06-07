@@ -8,6 +8,7 @@
 // launch, plugin hadn't flushed) we show a friendly empty state.
 
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Copy, FileText, RefreshCw, X } from "lucide-react";
 import { useEscape } from "../hooks/useKeyboardShortcuts";
 import { useToast } from "./ui/ToastContainer";
@@ -24,6 +25,7 @@ function isTauri(): boolean {
 }
 
 export function LogViewerModal({ onClose }: Props) {
+  const { t } = useTranslation();
   const [lines, setLines] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -34,7 +36,7 @@ export function LogViewerModal({ onClose }: Props) {
 
   async function loadLog() {
     if (!isTauri()) {
-      setError("Solo disponible en la app de escritorio");
+      setError(t("logs.desktopOnly"));
       setLoading(false);
       return;
     }
@@ -78,9 +80,9 @@ export function LogViewerModal({ onClose }: Props) {
   async function copyAll() {
     try {
       await navigator.clipboard.writeText(lines.join("\n"));
-      toast({ type: "success", title: "Logs copiados", detail: `${lines.length} líneas en portapapeles` });
+      toast({ type: "success", title: t("logs.copied"), detail: t("logs.copiedDetail", { count: lines.length }) });
     } catch {
-      toast({ type: "error", title: "No pude copiar" });
+      toast({ type: "error", title: t("logs.copyFail") });
     }
   }
 
@@ -101,7 +103,7 @@ export function LogViewerModal({ onClose }: Props) {
           <div className="flex items-center gap-2">
             <FileText className="w-5 h-5 text-accent" />
             <h2 id="logviewer-title" className="text-lg font-semibold text-white">
-              Logs · últimas {TAIL_LINES} líneas
+              {t("logs.title", { count: TAIL_LINES })}
             </h2>
           </div>
           <div className="flex gap-2">
@@ -111,18 +113,18 @@ export function LogViewerModal({ onClose }: Props) {
               className="text-xs px-2 py-1 bg-bg-elev rounded border border-border-subtle hover:border-accent text-white/80 flex items-center gap-1 disabled:opacity-40"
             >
               <Copy className="w-3 h-3" />
-              Copiar
+              {t("logs.copy")}
             </button>
             <button
               onClick={loadLog}
               className="text-xs px-2 py-1 bg-bg-elev rounded border border-border-subtle hover:border-accent text-white/80 flex items-center gap-1"
             >
               <RefreshCw className={`w-3 h-3 ${loading ? "animate-spin" : ""}`} />
-              Refrescar
+              {t("logs.refresh")}
             </button>
             <button
               onClick={onClose}
-              aria-label="Cerrar"
+              aria-label={t("common.close")}
               className="text-white/40 hover:text-white"
             >
               <X className="w-4 h-4" />
@@ -132,13 +134,11 @@ export function LogViewerModal({ onClose }: Props) {
 
         <div className="flex-1 overflow-auto p-3 font-mono text-[10px] leading-snug text-white/80 bg-bg">
           {loading ? (
-            <p className="text-white/40 italic">Cargando...</p>
+            <p className="text-white/40 italic">{t("common.loading")}</p>
           ) : error ? (
             <p className="text-bad">{error}</p>
           ) : lines.length === 0 ? (
-            <p className="text-white/40 italic">
-              Aún no hay logs (primera ejecución o plugin no inicializado).
-            </p>
+            <p className="text-white/40 italic">{t("logs.empty")}</p>
           ) : (
             <pre className="whitespace-pre-wrap break-words">
               {lines.join("\n")}
@@ -147,8 +147,7 @@ export function LogViewerModal({ onClose }: Props) {
         </div>
 
         <footer className="p-3 border-t border-border-subtle text-[10px] text-white/40">
-          Los logs viven en {"%APPDATA%\\com.draftboard.app\\logs\\"}. Rotación
-          5MB, retención 7 días.
+          {t("logs.footer", { path: "%APPDATA%\\com.draftboard.app\\logs\\" })}
         </footer>
       </div>
     </div>

@@ -422,6 +422,17 @@
   "championPool": {
     "title": "Your pool"
   },
+  "logs": {
+    "title": "Logs · last {{count}} lines",
+    "copy": "Copy",
+    "refresh": "Refresh",
+    "empty": "No logs yet (first launch or plugin not initialized).",
+    "desktopOnly": "Only available in the desktop app",
+    "copied": "Logs copied",
+    "copiedDetail": "{{count}} lines on the clipboard",
+    "copyFail": "Couldn't copy",
+    "footer": "Logs live in {{path}}. 5MB rotation, 7-day retention."
+  },
   "feedback": {
     "title": "Report a problem",
     "subtitle": "Your note is sent with the recent-actions trail — anonymous, no matches, no chat.",
