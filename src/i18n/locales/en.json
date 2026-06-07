@@ -537,6 +537,17 @@
     "sendTip": "Send message (Enter)",
     "conversationLabel": "Conversation with the AI coach"
   },
+  "championGuide": {
+    "attack": "Attack",
+    "defense": "Defense",
+    "magic": "Magic",
+    "difficulty": "Difficulty",
+    "tipsHeader": "Tips to play it well",
+    "tipLearn": "Learn the basic combos in practice tool before SoloQ",
+    "tipSpike": "Identify the power spikes (check the Summary tab)",
+    "tipBuild": "See builds per role in the Build & runes tab",
+    "whenFacing": "When you face them"
+  },
   "feedback": {
     "title": "Report a problem",
     "subtitle": "Your note is sent with the recent-actions trail — anonymous, no matches, no chat.",

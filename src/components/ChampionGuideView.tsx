@@ -1,6 +1,7 @@
 // Champion guide modal — abilities, info, builds, runes, power spikes, matchups.
 
 import { useEffect, useRef, useState, type ReactElement, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { useFocusTrap } from "../hooks/useFocusTrap";
 
 const CHAMP_GUIDE_TITLE_ID = "champion-guide-title";
@@ -211,11 +212,12 @@ function OverviewTab({
   champ: ChampionDb["champions"][string];
   detail: ChampionDetail;
 }) {
+  const { t } = useTranslation();
   const stats = [
-    { label: "Ataque", value: detail.info.attack, color: "bg-bad" },
-    { label: "Defensa", value: detail.info.defense, color: "bg-good" },
-    { label: "Magia", value: detail.info.magic, color: "bg-purple-500" },
-    { label: "Dificultad", value: detail.info.difficulty, color: "bg-meh" },
+    { label: t("championGuide.attack"), value: detail.info.attack, color: "bg-bad" },
+    { label: t("championGuide.defense"), value: detail.info.defense, color: "bg-good" },
+    { label: t("championGuide.magic"), value: detail.info.magic, color: "bg-purple-500" },
+    { label: t("championGuide.difficulty"), value: detail.info.difficulty, color: "bg-meh" },
   ];
 
   return (
@@ -346,26 +348,6 @@ function AbilitiesTab({ detail, patch }: { detail: ChampionDetail; patch: string
   );
 }
 
-// UI strings for TipsTab. Kept inline because they're tiny and only used
-// here — promoting them to a full i18n system would be over-engineering
-// until we have more bilingual surfaces.
-const TIPS_I18N = {
-  es: {
-    tipsHeader: "Tips para jugarlo bien",
-    tipLearn: "Aprende sus combos básicos en práctica antes de SoloQ",
-    tipSpike: "Identifica el power spike (revisa tab Resumen)",
-    tipBuild: "Mira las builds por rol en tab Build & runas",
-    whenFacing: "Cuando lo enfrentas",
-  },
-  en: {
-    tipsHeader: "Tips to play it well",
-    tipLearn: "Learn the basic combos in practice tool before SoloQ",
-    tipSpike: "Identify the power spikes (check the Summary tab)",
-    tipBuild: "See builds per role in the Build & runes tab",
-    whenFacing: "When you face them",
-  },
-};
-
 function TipsTab({
   db,
   championKey,
@@ -376,8 +358,10 @@ function TipsTab({
   championId: string;
 }) {
   void championKey;
-  const lang = usePrefsStore((s) => s.prefs.aiCoachLanguage);
-  const t = lang === "en" ? TIPS_I18N.en : TIPS_I18N.es;
+  const { t } = useTranslation();
+  // The curated matchup-tips DB has parallel es/en arrays — follow the UI
+  // locale so the tips match the rest of the interface.
+  const uiLocale = usePrefsStore((s) => s.prefs.uiLocale);
   // Use matchup tips as inverse — what enemies say about playing vs me
   const idToName = new Map<string, string>();
   for (const c of Object.values(db.champions)) idToName.set(c.key, c.id);
@@ -389,7 +373,7 @@ function TipsTab({
 
   // Show tips ABOUT this champion when you face them. Same lang used as
   // the UI strings — the curated DB has parallel arrays for es/en.
-  const tipsForThisChamp = getMatchupTips(undefined, [championKey], idToName, lang);
+  const tipsForThisChamp = getMatchupTips(undefined, [championKey], idToName, uiLocale);
   const tipsAboutEnemies = tipsForThisChamp.filter((tip) => tip.versus === ourName);
 
   return (
@@ -398,21 +382,21 @@ function TipsTab({
         <div className="flex items-center gap-2 mb-2">
           <Sparkles className="w-3.5 h-3.5 text-accent" />
           <p className="text-[10px] uppercase tracking-widest text-accent font-semibold">
-            {t.tipsHeader}
+            {t("championGuide.tipsHeader")}
           </p>
         </div>
         <ul className="space-y-1.5 text-xs text-white/75">
           <li className="flex gap-2">
             <Swords className="w-3 h-3 text-bad shrink-0 mt-0.5" />
-            <span>{t.tipLearn}</span>
+            <span>{t("championGuide.tipLearn")}</span>
           </li>
           <li className="flex gap-2">
             <ShieldCheck className="w-3 h-3 text-good shrink-0 mt-0.5" />
-            <span>{t.tipSpike}</span>
+            <span>{t("championGuide.tipSpike")}</span>
           </li>
           <li className="flex gap-2">
             <Mountain className="w-3 h-3 text-accent shrink-0 mt-0.5" />
-            <span>{t.tipBuild}</span>
+            <span>{t("championGuide.tipBuild")}</span>
           </li>
         </ul>
       </Panel>
@@ -420,12 +404,12 @@ function TipsTab({
       {tipsAboutEnemies.length > 0 && (
         <Panel padding="sm">
           <p className="text-[10px] uppercase tracking-widest text-white/45 font-semibold mb-2">
-            {t.whenFacing}
+            {t("championGuide.whenFacing")}
           </p>
           <div className="space-y-1.5">
-            {tipsAboutEnemies.map((t, i) => (
+            {tipsAboutEnemies.map((tip, i) => (
               <p key={i} className="text-xs text-white/75 leading-relaxed">
-                • {t.tip}
+                • {tip.tip}
               </p>
             ))}
           </div>
