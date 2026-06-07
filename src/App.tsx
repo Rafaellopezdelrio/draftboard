@@ -310,6 +310,7 @@ function App() {
   // the language — the user picked English, reloaded, and got Spanish back.
   // Waiting for `loaded` means we only ever apply the real persisted locale.
   const uiLocale = usePrefsStore((s) => s.prefs.uiLocale);
+  const setPref = usePrefsStore((s) => s.set);
   useEffect(() => {
     if (prefsLoaded) setUiLocale(uiLocale);
   }, [uiLocale, prefsLoaded]);
@@ -630,6 +631,28 @@ function App() {
               </option>
             ))}
           </select>
+          {/* UI language toggle — always visible so users never confuse it
+              with the AI-coach language picker buried in Preferences. */}
+          <div
+            className="flex items-center rounded border border-border-subtle overflow-hidden text-[11px] font-semibold"
+            role="group"
+            aria-label={t("nav.uiLanguage")}
+          >
+            {(["es", "en"] as const).map((loc) => (
+              <button
+                key={loc}
+                onClick={() => setPref("uiLocale", loc)}
+                aria-pressed={uiLocale === loc}
+                className={`px-2 py-1 uppercase transition ${
+                  uiLocale === loc
+                    ? "bg-accent text-black"
+                    : "text-white/55 hover:text-white hover:bg-bg-hover"
+                }`}
+              >
+                {loc}
+              </button>
+            ))}
+          </div>
         </div>
       </header>
 

@@ -21,7 +21,8 @@
     "basicData": "Datos básicos",
     "connected": "Conectado",
     "waitingClient": "Esperando cliente",
-    "waitingClientTip": "Esperando que abras el cliente de LoL"
+    "waitingClientTip": "Esperando que abras el cliente de LoL",
+    "uiLanguage": "Idioma de la interfaz"
   },
   "winConditions": {
     "title": "Game plan",
