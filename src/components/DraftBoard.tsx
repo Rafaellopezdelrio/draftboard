@@ -203,7 +203,7 @@ function SideColumn({
                 champ
                   ? "bg-bg-card/60 ring-1 " + accentRing + " hover:bg-bg-card"
                   : "bg-transparent ring-1 ring-dashed ring-white/10 hover:ring-accent/40 hover:bg-bg-card/30"
-              } rounded-md p-2 transition group`}
+              } rounded-md ${champ ? "p-2" : "p-1.5"} transition group`}
             >
               {/* Splash backdrop — fades in on hover when slot has a champ.
                 * Adds visual richness without breaking layout (absolute
@@ -218,7 +218,9 @@ function SideColumn({
                 />
               )}
               <div
-                className={`relative z-10 w-11 h-11 rounded overflow-hidden ${
+                className={`relative z-10 ${
+                  champ ? "w-11 h-11" : "w-8 h-8"
+                } rounded overflow-hidden ${
                   champ
                     ? "bg-bg-elev ring-1 ring-border-subtle"
                     : "bg-transparent ring-1 ring-dashed ring-white/10 group-hover:ring-accent/40"
