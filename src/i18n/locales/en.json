@@ -615,6 +615,11 @@
   "prefs": {
     "aiCoachLang": "AI Coach language (responses)"
   },
+  "tabs": {
+    "picks": "Picks",
+    "build": "Build",
+    "buildEmpty": "Lock your champion to see build, runes and tips."
+  },
   "dataPrivacy": {
     "title": "Your data",
     "matchesCount": "{{count}} matches saved"

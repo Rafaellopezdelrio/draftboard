@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useMemo, useState } from "react";
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
 import "./App.css";
 import { useDraftStore } from "./state/draftStore";
 import type { Role } from "./types/champion";
@@ -315,6 +315,11 @@ function App() {
     if (prefsLoaded) setUiLocale(uiLocale);
   }, [uiLocale, prefsLoaded]);
 
+  // Center-column tabs. The actionable column used to stack picks + build +
+  // bans into one 4-screen scroll during a timed champ select. Split into
+  // "picks" (decide now) and "build" (after you lock). Default picks.
+  const [centerTab, setCenterTab] = useState<"picks" | "build">("picks");
+
   // Sentry navigation breadcrumbs — one hook call per view modal.
   // Extracted from a wall of 10 useEffects that all did the same
   // `trackNavigation(name, open?"open":"close")` thing.
@@ -387,6 +392,17 @@ function App() {
     myRole,
     setMyRole,
   });
+
+  // Auto-jump to the Build tab the moment the user locks a champion — that's
+  // when the build/runes become what they want to see, no extra click. Only
+  // fires on the null→locked transition; manual tab clicks win afterward.
+  const prevLockedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (myChampionLocked && myChampionLocked !== prevLockedRef.current) {
+      setCenterTab("build");
+    }
+    prevLockedRef.current = myChampionLocked;
+  }, [myChampionLocked]);
 
   const { allyKeys, enemyKeys, enemyChampionIds, bannedKeys } =
     useDraftDerivations({ ally, enemy, bans });
@@ -672,63 +688,103 @@ function App() {
         <div
           className={`grid grid-cols-1 lg:grid-cols-2 ${prefs.compactMode ? "gap-2" : "gap-4"}`}
         >
-          {/* Column A — actionable: trades, suggestions, build, live game */}
+          {/* Column A — actionable, split into tabs so a timed champ select
+              isn't a 4-screen scroll. "Picks" = decide now (suggestions +
+              bans); "Build" = after you lock (coach + items + runes). Auto-
+              jumps to Build on lock. Live game panel stays mounted below. */}
           <div className={prefs.compactMode ? "space-y-2" : "space-y-4"}>
-            {prefs.showDraftWinrate && draftPrediction && (
-              <DraftWinrateBadge pred={draftPrediction} />
-            )}
-            <TradeSuggestionPanel
-              db={db}
-              myRole={myRole}
-              myCurrentPick={myChampionLocked ?? myChampionIntent}
-              allyKeys={allyKeys}
-              enemyKeys={enemyKeys}
-              bannedKeys={bannedKeys}
-            />
-            {prefs.showSuggestions && (
-              <SuggestionPanel
-                suggestions={suggestions}
-                hasRole={!!myRole}
-                hasDraft={allyKeys.length > 0 || enemyKeys.length > 0}
-              />
-            )}
-            {prefs.showSuggestions && buildChampionKey && myRole && (
-              <PanelBoundary name="DraftCoachPanel">
-                <DraftCoachPanel
+            <div className="flex gap-1 p-1 bg-bg-elev rounded-lg border border-border-subtle">
+              {(
+                [
+                  ["picks", t("tabs.picks")],
+                  ["build", t("tabs.build")],
+                ] as const
+              ).map(([id, label]) => (
+                <button
+                  key={id}
+                  onClick={() => setCenterTab(id)}
+                  aria-pressed={centerTab === id}
+                  className={`flex-1 px-3 py-1.5 rounded-md text-xs font-semibold transition ${
+                    centerTab === id
+                      ? "bg-accent text-black"
+                      : "text-white/55 hover:text-white hover:bg-bg-hover"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {centerTab === "picks" && (
+              <div className={prefs.compactMode ? "space-y-2" : "space-y-4"}>
+                {prefs.showDraftWinrate && draftPrediction && (
+                  <DraftWinrateBadge pred={draftPrediction} />
+                )}
+                <TradeSuggestionPanel
                   db={db}
-                  myChampionKey={buildChampionKey}
-                  role={myRole}
+                  myRole={myRole}
+                  myCurrentPick={myChampionLocked ?? myChampionIntent}
                   allyKeys={allyKeys}
                   enemyKeys={enemyKeys}
-                  liveCounters={liveCounters}
-                  suggestions={suggestions}
-                  enemySummonerIds={enemySummonerIds}
+                  bannedKeys={bannedKeys}
                 />
-              </PanelBoundary>
+                {prefs.showSuggestions && (
+                  <SuggestionPanel
+                    suggestions={suggestions}
+                    hasRole={!!myRole}
+                    hasDraft={allyKeys.length > 0 || enemyKeys.length > 0}
+                  />
+                )}
+                <PanelBoundary name="BanSuggestionsPanel">
+                  <BanSuggestionsPanel
+                    db={db}
+                    role={myRole}
+                    bannedKeys={bans.ally.concat(bans.enemy)}
+                    pickedKeys={[...allyKeys, ...enemyKeys]}
+                    enemySummonerIds={enemySummonerIds}
+                  />
+                </PanelBoundary>
+              </div>
             )}
-            {prefs.showBuildPanel && buildChampionKey && myRole && (
-              <PanelBoundary name="BuildPanel">
-                <BuildPanel
-                  db={db}
-                  championKey={buildChampionKey}
-                  role={myRole}
-                  enemyKeys={enemyKeys}
-                />
-              </PanelBoundary>
+
+            {centerTab === "build" && (
+              <div className={prefs.compactMode ? "space-y-2" : "space-y-4"}>
+                {prefs.showSuggestions && buildChampionKey && myRole && (
+                  <PanelBoundary name="DraftCoachPanel">
+                    <DraftCoachPanel
+                      db={db}
+                      myChampionKey={buildChampionKey}
+                      role={myRole}
+                      allyKeys={allyKeys}
+                      enemyKeys={enemyKeys}
+                      liveCounters={liveCounters}
+                      suggestions={suggestions}
+                      enemySummonerIds={enemySummonerIds}
+                    />
+                  </PanelBoundary>
+                )}
+                {prefs.showBuildPanel && buildChampionKey && myRole && (
+                  <PanelBoundary name="BuildPanel">
+                    <BuildPanel
+                      db={db}
+                      championKey={buildChampionKey}
+                      role={myRole}
+                      enemyKeys={enemyKeys}
+                    />
+                  </PanelBoundary>
+                )}
+                {!(buildChampionKey && myRole) && (
+                  <div className="text-center text-white/40 text-xs py-10 px-4 border border-dashed border-border-subtle rounded-lg">
+                    {t("tabs.buildEmpty")}
+                  </div>
+                )}
+              </div>
             )}
+
             {/* Live game panel — only renders when a real LoL match is in
                 progress. Auto-hides between games. Polls localhost:2999. */}
             <PanelBoundary name="LiveGamePanel">
               <LiveGamePanel db={db} />
-            </PanelBoundary>
-            <PanelBoundary name="BanSuggestionsPanel">
-              <BanSuggestionsPanel
-                db={db}
-                role={myRole}
-                bannedKeys={bans.ally.concat(bans.enemy)}
-                pickedKeys={[...allyKeys, ...enemyKeys]}
-                enemySummonerIds={enemySummonerIds}
-              />
             </PanelBoundary>
           </div>
 

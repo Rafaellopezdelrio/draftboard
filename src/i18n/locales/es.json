@@ -615,6 +615,11 @@
   "prefs": {
     "aiCoachLang": "Idioma del AI Coach (respuestas)"
   },
+  "tabs": {
+    "picks": "Picks",
+    "build": "Build",
+    "buildEmpty": "Bloquea tu campeón para ver build, runas y consejos."
+  },
   "dataPrivacy": {
     "title": "Tus datos",
     "matchesCount": "{{count}} partidas guardadas"
