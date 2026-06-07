@@ -1,5 +1,15 @@
 # i18n Progress — EN/ES coverage
 
+> **▶ RESUME HERE (next session):** "termina la cola i18n desde este doc".
+> State: ~42 components localized, 576 es=en keys, 858 tests green, tree clean.
+> The toggle-revert bug is FIXED (commit 2a95979). Pattern is proven — just
+> work the **Remaining** list below, one component per commit:
+> 1. Read the component, find hardcoded Spanish.
+> 2. Add keys to BOTH `src/i18n/locales/{es,en}.json` under a namespace.
+> 3. Wire `useTranslation()` + `t(key)`; rename any `.map((t,...))` that shadows `t`.
+> 4. For engines: emit keys+params, resolve in the panel, add an orphan-key guard test.
+> 5. Verify: `npx tsc --noEmit` + `npx vitest run src/i18n/i18n.test.ts` + lint, then commit+push.
+
 Root cause of "select English, UI stays Spanish": most components hardcoded
 Spanish. Fix = externalize to `src/i18n/locales/{es,en}.json` keys + `useTranslation()`.
 Parity guarded by `src/i18n/i18n.test.ts` (es/en key sets must match, no empty values).
