@@ -117,10 +117,15 @@ function SuggestionPanelInner({ suggestions, hasRole, hasDraft }: Props) {
       {/* Meta-only section — strong picks but not in your pool */}
       {metaPicks.length > 0 && (
         <div className="space-y-2">
-          <p className="text-[10px] uppercase tracking-widest text-white/35 font-semibold flex items-center gap-1.5">
-            <Trophy className="w-3 h-3" />
-            {comfortPicks.length > 0 ? t("suggestions.pureMeta") : t("suggestions.topPicks")}
-          </p>
+          {/* Sub-header ONLY when there's a comfort section above to
+              distinguish from — otherwise this IS the top-picks list and the
+              panel's main header already labels it (no duplicate "Top picks"). */}
+          {comfortPicks.length > 0 && (
+            <p className="text-[10px] uppercase tracking-widest text-white/35 font-semibold flex items-center gap-1.5">
+              <Trophy className="w-3 h-3" />
+              {t("suggestions.pureMeta")}
+            </p>
+          )}
           {comfortPicks.length === 0 && metaPicks[0] && (
             <PickHero suggestion={metaPicks[0]} beginner={beginner} />
           )}
