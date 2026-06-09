@@ -469,7 +469,14 @@
     "group": "Actions",
     "searchPlaceholder": "Search action… (Esc to close)",
     "searchLabel": "Search action",
-    "listLabel": "Available commands"
+    "listLabel": "Available commands",
+    "title": "Command palette",
+    "noResults": "No results for \"{{query}}\"",
+    "emptyHint": "Try fewer characters or use keywords.",
+    "recentHeader": "Recent",
+    "navigate": "navigate",
+    "execute": "run",
+    "commandsCount": "{{n}} commands"
   },
   "commands": {
     "tier": "Tier List",

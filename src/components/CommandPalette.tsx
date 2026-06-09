@@ -167,7 +167,7 @@ export function CommandPalette({ commands, onClose }: Props) {
         onKeyDown={handleKeyDown}
       >
         <h2 id="cmd-palette-title" className="sr-only">
-          Paleta de comandos
+          {t("commandPalette.title")}
         </h2>
         <div className="relative border-b border-border-subtle">
           <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-accent/70" />
@@ -196,9 +196,9 @@ export function CommandPalette({ commands, onClose }: Props) {
         >
           {filtered.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-sm text-white/40">Sin resultados para "{q}"</p>
+              <p className="text-sm text-white/40">{t("commandPalette.noResults", { query: q })}</p>
               <p className="text-[11px] text-white/30 mt-1">
-                Prueba con menos caracteres o usa palabras clave.
+                {t("commandPalette.emptyHint")}
               </p>
             </div>
           ) : sections ? (
@@ -207,7 +207,7 @@ export function CommandPalette({ commands, onClose }: Props) {
                 <div>
                   <div className="flex items-center gap-1.5 px-4 py-1.5 text-[10px] uppercase tracking-widest text-accent/70 font-semibold bg-bg-elev/30 border-b border-border-subtle/50">
                     <Clock className="w-3 h-3" />
-                    Recientes
+                    {t("commandPalette.recentHeader")}
                   </div>
                   {sections.recent.map((c, idx) => renderCmd(c, idx))}
                 </div>
@@ -234,13 +234,13 @@ export function CommandPalette({ commands, onClose }: Props) {
         <div className="px-4 py-2 border-t border-border-subtle bg-bg-elev/40 flex items-center justify-between text-[10px] text-white/45">
           <span>
             <kbd className="px-1 py-0.5 rounded ring-1 ring-border-subtle bg-bg-card/40 text-white/55 font-mono text-[9px] mr-1">↑↓</kbd>
-            navegar
+            {t("commandPalette.navigate")}
           </span>
           <span>
             <kbd className="px-1 py-0.5 rounded ring-1 ring-border-subtle bg-bg-card/40 text-white/55 font-mono text-[9px] mr-1">↵</kbd>
-            ejecutar
+            {t("commandPalette.execute")}
           </span>
-          <span>{filtered.length} comandos</span>
+          <span>{t("commandPalette.commandsCount", { n: filtered.length })}</span>
         </div>
       </div>
     </div>
