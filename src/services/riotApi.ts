@@ -8,6 +8,7 @@
 // Uses Tauri's HTTP plugin when available (no CORS), falls back to fetch in browser.
 
 import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
+import { i18n } from "../i18n";
 
 function isTauri(): boolean {
   return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
@@ -128,7 +129,12 @@ async function api<T>(url: string, key: string, attempt = 0): Promise<T> {
       await new Promise((r) => setTimeout(r, 500 * 2 ** attempt));
       return api(url, key, attempt + 1);
     }
-    throw new Error(`Sin conexión a ${proxyUrl ? "proxy" : "Riot API"}: ${String(e).slice(0, 100)}`);
+    throw new Error(
+      i18n.t("serviceErrors.noConnection", {
+        target: proxyUrl ? "proxy" : "Riot API",
+        detail: String(e).slice(0, 100),
+      })
+    );
   }
   if (res.status === 429) {
     const retry = parseInt(res.headers.get("Retry-After") ?? "5", 10);
@@ -136,12 +142,10 @@ async function api<T>(url: string, key: string, attempt = 0): Promise<T> {
     return api(url, key, attempt);
   }
   if (res.status === 401 || res.status === 403) {
-    throw new Error(
-      "API key inválida o caducada. Las dev keys duran 24h — regenera en developer.riotgames.com."
-    );
+    throw new Error(i18n.t("serviceErrors.keyExpired"));
   }
   if (res.status === 404) {
-    throw new Error(`Riot ID no encontrado en la región seleccionada.`);
+    throw new Error(i18n.t("serviceErrors.riotIdNotFound"));
   }
   if (res.status >= 500 && attempt < 3) {
     // Server error — Riot occasionally has 503s, retry

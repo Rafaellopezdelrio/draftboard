@@ -848,6 +848,28 @@
       "resetPrefsConfirm": "Restablecer"
     }
   },
+  "serviceErrors": {
+    "riotIdEmpty": "Riot ID vacío.",
+    "riotIdTooLong": "Riot ID demasiado largo (max 32 caracteres).",
+    "riotIdInvalidChars": "Riot ID contiene caracteres no válidos.",
+    "riotIdNoSpaces": "Riot ID no puede contener espacios.",
+    "tagEmpty": "Tag de Riot ID vacío.",
+    "tagTooLong": "Tag demasiado largo (max 8).",
+    "tagInvalid": "Tag inválido: solo letras y números.",
+    "proxyMalformed": "URL del proxy malformada.",
+    "proxyHttps": "El proxy debe usar HTTPS.",
+    "riotKeyInvalid": "API key Riot inválida — debe empezar por RGAPI- seguido de un UUID.",
+    "aiKeyInvalid": "Key {{provider}} inválida — verifica que has copiado la correcta.",
+    "groqInvalid": "API key Groq inválida",
+    "groqRateLimit": "Rate limit Groq, espera 1 min",
+    "anthropicInvalid": "API key Anthropic inválida",
+    "anthropicRateLimit": "Rate limit Anthropic",
+    "geminiInvalid": "API key Gemini inválida",
+    "noConnection": "Sin conexión a {{target}}: {{detail}}",
+    "keyExpired": "API key inválida o caducada. Las dev keys duran 24h — regenera en developer.riotgames.com.",
+    "riotIdNotFound": "Riot ID no encontrado en la región seleccionada.",
+    "lastMustBeUser": "El último mensaje debe ser del usuario"
+  },
   "runeTrees": {
     "Precision": "Precisión",
     "Domination": "Dominación",

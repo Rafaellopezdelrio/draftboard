@@ -3,6 +3,8 @@
 // anything that comes from a text field before persisting it or putting it
 // in a URL/network request.
 
+import { i18n } from "../i18n";
+
 /**
  * Riot ID names (gameName) are 3-16 unicode chars. Tags are 3-5 alphanumeric.
  * We're lenient with unicode but reject injection vectors.
@@ -10,20 +12,20 @@
 export function validateRiotIdName(name: string): string {
   const cleaned = name.trim();
   if (cleaned.length === 0) {
-    throw new Error("Riot ID vacío.");
+    throw new Error(i18n.t("serviceErrors.riotIdEmpty"));
   }
   if (cleaned.length > 32) {
-    throw new Error("Riot ID demasiado largo (max 32 caracteres).");
+    throw new Error(i18n.t("serviceErrors.riotIdTooLong"));
   }
   // Block control chars, common injection vectors (quotes, slashes, brackets,
   // semicolons, backticks).
   // eslint-disable-next-line no-control-regex
   if (/[\x00-\x1F\x7F<>"'`;\\/()[\]{}]/.test(cleaned)) {
-    throw new Error("Riot ID contiene caracteres no válidos.");
+    throw new Error(i18n.t("serviceErrors.riotIdInvalidChars"));
   }
   // Riot IDs don't contain regular spaces (the client uses non-breaking spaces)
   if (/\s/.test(cleaned)) {
-    throw new Error("Riot ID no puede contener espacios.");
+    throw new Error(i18n.t("serviceErrors.riotIdNoSpaces"));
   }
   return cleaned;
 }
@@ -31,14 +33,14 @@ export function validateRiotIdName(name: string): string {
 export function validateRiotIdTag(tag: string): string {
   const cleaned = tag.trim();
   if (cleaned.length === 0) {
-    throw new Error("Tag de Riot ID vacío.");
+    throw new Error(i18n.t("serviceErrors.tagEmpty"));
   }
   if (cleaned.length > 8) {
-    throw new Error("Tag demasiado largo (max 8).");
+    throw new Error(i18n.t("serviceErrors.tagTooLong"));
   }
   // Tags are alphanumeric only
   if (!/^[A-Za-z0-9]+$/.test(cleaned)) {
-    throw new Error("Tag inválido: solo letras y números.");
+    throw new Error(i18n.t("serviceErrors.tagInvalid"));
   }
   return cleaned;
 }
@@ -54,10 +56,10 @@ export function validateProxyUrl(url: string): string {
   try {
     parsed = new URL(cleaned);
   } catch {
-    throw new Error("URL del proxy malformada.");
+    throw new Error(i18n.t("serviceErrors.proxyMalformed"));
   }
   if (parsed.protocol !== "https:") {
-    throw new Error("El proxy debe usar HTTPS.");
+    throw new Error(i18n.t("serviceErrors.proxyHttps"));
   }
   return parsed.origin;
 }
@@ -69,9 +71,7 @@ export function validateRiotApiKey(key: string): string {
   const cleaned = key.trim();
   if (cleaned.length === 0) return "";
   if (!/^RGAPI-[a-f0-9-]{36}$/i.test(cleaned)) {
-    throw new Error(
-      "API key Riot inválida — debe empezar por RGAPI- seguido de un UUID."
-    );
+    throw new Error(i18n.t("serviceErrors.riotKeyInvalid"));
   }
   return cleaned;
 }
@@ -91,9 +91,7 @@ export function validateAiKey(
     gemini: /^AIza[A-Za-z0-9_-]{30,}$/,
   };
   if (!PATTERNS[provider].test(cleaned)) {
-    throw new Error(
-      `Key ${provider} inválida — verifica que has copiado la correcta.`
-    );
+    throw new Error(i18n.t("serviceErrors.aiKeyInvalid", { provider }));
   }
   return cleaned;
 }

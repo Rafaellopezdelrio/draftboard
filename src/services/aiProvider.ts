@@ -3,6 +3,7 @@
 
 import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
 import { getRiotProxyUrl } from "./riotApi";
+import { i18n } from "../i18n";
 
 function isTauri(): boolean {
   return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
@@ -114,8 +115,8 @@ async function callOpenAiCompatible(p: AiCallParams): Promise<string> {
       messages,
     }),
   });
-  if (res.status === 401) throw new Error("API key Groq inválida");
-  if (res.status === 429) throw new Error("Rate limit Groq, espera 1 min");
+  if (res.status === 401) throw new Error(i18n.t("serviceErrors.groqInvalid"));
+  if (res.status === 429) throw new Error(i18n.t("serviceErrors.groqRateLimit"));
   if (!res.ok) throw new Error(`Groq ${res.status}: ${(await res.text()).slice(0, 200)}`);
   const json = (await res.json()) as {
     choices: Array<{ message: { content: string } }>;
@@ -143,8 +144,8 @@ async function callAnthropic(p: AiCallParams): Promise<string> {
       messages,
     }),
   });
-  if (res.status === 401) throw new Error("API key Anthropic inválida");
-  if (res.status === 429) throw new Error("Rate limit Anthropic");
+  if (res.status === 401) throw new Error(i18n.t("serviceErrors.anthropicInvalid"));
+  if (res.status === 429) throw new Error(i18n.t("serviceErrors.anthropicRateLimit"));
   if (!res.ok) throw new Error(`Anthropic ${res.status}: ${(await res.text()).slice(0, 200)}`);
   const json = (await res.json()) as {
     content: Array<{ type: string; text?: string }>;
@@ -173,7 +174,7 @@ async function callGemini(p: AiCallParams): Promise<string> {
       generationConfig: { maxOutputTokens: p.maxTokens ?? 700 },
     }),
   });
-  if (res.status === 401 || res.status === 403) throw new Error("API key Gemini inválida");
+  if (res.status === 401 || res.status === 403) throw new Error(i18n.t("serviceErrors.geminiInvalid"));
   if (!res.ok) throw new Error(`Gemini ${res.status}: ${(await res.text()).slice(0, 200)}`);
   const json = (await res.json()) as {
     candidates?: Array<{ content?: { parts?: Array<{ text: string }> } }>;

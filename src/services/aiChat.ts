@@ -3,6 +3,7 @@
 import type { MatchRow, ChampionPersonalStat } from "./matchRepo";
 import type { ChampionMasteryDto } from "./riotApi";
 import { callAi, type AiProvider } from "./aiProvider";
+import { i18n } from "../i18n";
 
 export interface ChatMessage {
   role: "user" | "assistant";
@@ -27,7 +28,7 @@ export async function chatWithCoach(
   const systemPrompt = buildSystem(context, language);
   const lastUser = history[history.length - 1];
   if (!lastUser || lastUser.role !== "user") {
-    throw new Error("La última mensaje debe ser del usuario");
+    throw new Error(i18n.t("serviceErrors.lastMustBeUser"));
   }
   const priorHistory = history.slice(0, -1);
 

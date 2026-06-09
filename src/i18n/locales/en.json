@@ -848,6 +848,28 @@
       "resetPrefsConfirm": "Reset"
     }
   },
+  "serviceErrors": {
+    "riotIdEmpty": "Riot ID is empty.",
+    "riotIdTooLong": "Riot ID is too long (max 32 characters).",
+    "riotIdInvalidChars": "Riot ID contains invalid characters.",
+    "riotIdNoSpaces": "Riot ID can't contain spaces.",
+    "tagEmpty": "Riot ID tag is empty.",
+    "tagTooLong": "Tag is too long (max 8).",
+    "tagInvalid": "Invalid tag: letters and numbers only.",
+    "proxyMalformed": "Malformed proxy URL.",
+    "proxyHttps": "The proxy must use HTTPS.",
+    "riotKeyInvalid": "Invalid Riot API key — must start with RGAPI- followed by a UUID.",
+    "aiKeyInvalid": "Invalid {{provider}} key — check you copied the right one.",
+    "groqInvalid": "Invalid Groq API key",
+    "groqRateLimit": "Groq rate limit, wait 1 min",
+    "anthropicInvalid": "Invalid Anthropic API key",
+    "anthropicRateLimit": "Anthropic rate limit",
+    "geminiInvalid": "Invalid Gemini API key",
+    "noConnection": "No connection to {{target}}: {{detail}}",
+    "keyExpired": "Invalid or expired API key. Dev keys last 24h — regenerate at developer.riotgames.com.",
+    "riotIdNotFound": "Riot ID not found in the selected region.",
+    "lastMustBeUser": "The last message must be from the user"
+  },
   "runeTrees": {
     "Precision": "Precision",
     "Domination": "Domination",
