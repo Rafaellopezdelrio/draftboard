@@ -749,7 +749,71 @@
   },
   "dataPrivacy": {
     "title": "Your data",
-    "matchesCount": "{{count}} matches saved"
+    "matchesCount": "{{count}} matches saved",
+    "stored": {
+      "title": "What do we store?",
+      "detail": "Everything in local SQLite. Nothing leaves your PC.",
+      "matches": "matches (KDA, CS, champion, queue)",
+      "identity": "Your PUUID and Riot ID (only to identify you to the Riot API)",
+      "prefs": "App preferences (toggles)",
+      "aggregations": "Master+ aggregations (anonymous, public data)",
+      "apiKeys": "API keys you enter (Riot/Anthropic) — never shared"
+    },
+    "notStored": {
+      "title": "What we DON'T store",
+      "chatLogs": "AI Coach chat logs (ephemeral, in memory)",
+      "telemetry": "Telemetry / analytics",
+      "otherPlayers": "Other players' info beyond the temporary scout"
+    },
+    "backups": {
+      "title": "Automatic backups",
+      "detail": "Rolling daily snapshot (last 5 days) created on every launch BEFORE any SQL migration.",
+      "empty": "No snapshots yet. They'll appear after the next launch.",
+      "restore": "Restore"
+    },
+    "actions": {
+      "title": "Actions",
+      "exportAll": "Export all my data (JSON)",
+      "backupDb": "Save a database backup (.db)",
+      "restoreDb": "Restore from backup (.db)",
+      "exportPrefsRedacted": "Export preferences only (keys redacted)",
+      "exportPrefsKeys": "Export preferences WITH keys (don't share)",
+      "exportPrefsKeysTitle": "Includes your real API keys — for personal backup only, do NOT share",
+      "importPrefs": "Import preferences from JSON",
+      "clearMatches": "Delete all my saved matches",
+      "resetPrefs": "Reset all preferences"
+    },
+    "toast": {
+      "backupSaved": "Backup saved",
+      "backupSavedDetail": "{{kb}} KB in {{file}}",
+      "backupError": "Backup failed",
+      "pickBackup": "Select a backup file",
+      "error": "Error",
+      "dbRestored": "Database restored",
+      "dbRestoredDetail": "{{kb}} KB. Restarting to apply.",
+      "restartNow": "Restart now",
+      "restoreError": "Could not restore",
+      "exportPrefsTitle": "Export preferences",
+      "prefsExportedKeys": "Preferences exported (with keys)",
+      "prefsExportedRedacted": "Preferences exported (keys redacted)",
+      "exportError": "Could not export",
+      "importPrefsTitle": "Import preferences",
+      "invalidFile": "Invalid file",
+      "imported": "Imported {{n}} preferences",
+      "ignored": "{{n}} ignored: {{list}}",
+      "importError": "Could not import"
+    },
+    "confirm": {
+      "clearMatchesTitle": "Delete ALL matches?",
+      "clearMatchesMsg": "You're about to delete {{n}} locally saved matches. This can't be undone. Your Riot account and the LoL client are not touched.",
+      "clearMatchesConfirm": "Delete all",
+      "restoreTitle": "Restore the database?",
+      "restoreMsg": "You're about to overwrite your current DB with the file:\n{{file}}\n\nWe keep a copy of the current DB as \".pre-restore\" in case you change your mind. You'll need to restart the app afterward.",
+      "restoreConfirm": "Restore",
+      "resetPrefsTitle": "Reset all preferences?",
+      "resetPrefsMsg": "You'll lose ALL your local settings (toggles, AI keys, layout). Match data in SQLite is not touched. The app will restart to apply.",
+      "resetPrefsConfirm": "Reset"
+    }
   },
   "about": {
     "title": "About Draftboard",

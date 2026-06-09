@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { recentMatches, clearAllMatches } from "../services/matchRepo";
 import { useEscape } from "../hooks/useKeyboardShortcuts";
 import { useFocusTrap } from "../hooks/useFocusTrap";
@@ -27,6 +28,7 @@ export function DataPrivacyView({ onClose }: Props) {
   const [autoBackups, setAutoBackups] = useState<AutoBackupEntry[]>([]);
   const [busy, setBusy] = useState(false);
   const { push: toast } = useToast();
+  const { t } = useTranslation();
   // Direct store handle so we can apply imported prefs key-by-key.
   // Using getState() (not the hook) keeps the import path framework-free
   // and lets us batch dozens of `set` calls without re-rendering between
@@ -47,12 +49,15 @@ export function DataPrivacyView({ onClose }: Props) {
       if (r.path) {
         toast({
           type: "success",
-          title: "Backup guardado",
-          detail: `${(r.bytes / 1024).toFixed(1)} KB en ${r.path.split(/[\\/]/).pop()}`,
+          title: t("dataPrivacy.toast.backupSaved"),
+          detail: t("dataPrivacy.toast.backupSavedDetail", {
+            kb: (r.bytes / 1024).toFixed(1),
+            file: r.path.split(/[\\/]/).pop(),
+          }),
         });
       }
     } catch (e) {
-      toast({ type: "error", title: "Error al hacer backup", detail: String(e) });
+      toast({ type: "error", title: t("dataPrivacy.toast.backupError"), detail: String(e) });
     } finally {
       setBusy(false);
     }
@@ -65,7 +70,7 @@ export function DataPrivacyView({ onClose }: Props) {
       // DB so the user can review which file they're about to import.
       const { open } = await import("@tauri-apps/plugin-dialog");
       const source = await open({
-        title: "Selecciona una copia de seguridad",
+        title: t("dataPrivacy.toast.pickBackup"),
         multiple: false,
         directory: false,
         filters: [{ name: "SQLite DB", extensions: ["db", "sqlite", "sqlite3"] }],
@@ -73,7 +78,7 @@ export function DataPrivacyView({ onClose }: Props) {
       if (!source || Array.isArray(source)) return;
       setConfirmRestore(source);
     } catch (e) {
-      toast({ type: "error", title: "Error", detail: String(e) });
+      toast({ type: "error", title: t("dataPrivacy.toast.error"), detail: String(e) });
     } finally {
       setBusy(false);
     }
@@ -86,11 +91,13 @@ export function DataPrivacyView({ onClose }: Props) {
       const bytes = await restoreFromPath(confirmRestore);
       toast({
         type: "success",
-        title: "DB restaurada",
-        detail: `${(bytes / 1024).toFixed(1)} KB. Reiniciamos para aplicar.`,
+        title: t("dataPrivacy.toast.dbRestored"),
+        detail: t("dataPrivacy.toast.dbRestoredDetail", {
+          kb: (bytes / 1024).toFixed(1),
+        }),
         durationMs: 10000,
         action: {
-          label: "Reiniciar ahora",
+          label: t("dataPrivacy.toast.restartNow"),
           onClick: async () => {
             try {
               const { invoke } = await import("@tauri-apps/api/core");
@@ -107,7 +114,7 @@ export function DataPrivacyView({ onClose }: Props) {
     } catch (e) {
       toast({
         type: "error",
-        title: "No se pudo restaurar",
+        title: t("dataPrivacy.toast.restoreError"),
         detail: String(e).slice(0, 200),
       });
     } finally {
@@ -154,7 +161,7 @@ export function DataPrivacyView({ onClose }: Props) {
         .toISOString()
         .slice(0, 10)}.json`;
       const target = await save({
-        title: "Exportar preferencias",
+        title: t("dataPrivacy.toast.exportPrefsTitle"),
         defaultPath: defaultName,
         filters: [{ name: "Draftboard prefs", extensions: ["json"] }],
       });
@@ -163,12 +170,12 @@ export function DataPrivacyView({ onClose }: Props) {
       toast({
         type: "success",
         title: includeSecrets
-          ? "Preferencias exportadas (con claves)"
-          : "Preferencias exportadas (claves redactadas)",
+          ? t("dataPrivacy.toast.prefsExportedKeys")
+          : t("dataPrivacy.toast.prefsExportedRedacted"),
         detail: target.split(/[\\/]/).pop() ?? target,
       });
     } catch (e) {
-      toast({ type: "error", title: "No se pudo exportar", detail: String(e).slice(0, 200) });
+      toast({ type: "error", title: t("dataPrivacy.toast.exportError"), detail: String(e).slice(0, 200) });
     } finally {
       setBusy(false);
     }
@@ -183,7 +190,7 @@ export function DataPrivacyView({ onClose }: Props) {
       const { open } = await import("@tauri-apps/plugin-dialog");
       const { readTextFile } = await import("@tauri-apps/plugin-fs");
       const source = await open({
-        title: "Importar preferencias",
+        title: t("dataPrivacy.toast.importPrefsTitle"),
         multiple: false,
         directory: false,
         filters: [{ name: "Draftboard prefs", extensions: ["json"] }],
@@ -192,7 +199,7 @@ export function DataPrivacyView({ onClose }: Props) {
       const text = await readTextFile(source);
       const result = importPrefs(text);
       if (!result.ok) {
-        toast({ type: "error", title: "Archivo inválido", detail: result.error });
+        toast({ type: "error", title: t("dataPrivacy.toast.invalidFile"), detail: result.error });
         return;
       }
       // Apply each key sequentially. Awaiting matters because persistOne
@@ -204,17 +211,20 @@ export function DataPrivacyView({ onClose }: Props) {
       }
       toast({
         type: "success",
-        title: `Importadas ${applied.length} preferencias`,
+        title: t("dataPrivacy.toast.imported", { n: applied.length }),
         detail:
           result.ignored.length > 0
-            ? `${result.ignored.length} ignoradas: ${result.ignored.slice(0, 3).join(", ")}${
-                result.ignored.length > 3 ? "…" : ""
-              }`
+            ? t("dataPrivacy.toast.ignored", {
+                n: result.ignored.length,
+                list: `${result.ignored.slice(0, 3).join(", ")}${
+                  result.ignored.length > 3 ? "…" : ""
+                }`,
+              })
             : undefined,
         durationMs: 8000,
       });
     } catch (e) {
-      toast({ type: "error", title: "No se pudo importar", detail: String(e).slice(0, 200) });
+      toast({ type: "error", title: t("dataPrivacy.toast.importError"), detail: String(e).slice(0, 200) });
     } finally {
       setBusy(false);
     }
@@ -253,35 +263,35 @@ export function DataPrivacyView({ onClose }: Props) {
         onClick={(e) => e.stopPropagation()}
       >
         <h2 id={DATAPRIVACY_TITLE_ID} className="text-lg font-semibold text-accent mb-3">
-          🔐 Tus datos
+          🔐 {t("dataPrivacy.title")}
         </h2>
 
         <div className="space-y-3 text-sm">
-          <Section title="¿Qué guardamos?" detail="Todo en SQLite local. Nada sale de tu PC.">
+          <Section title={t("dataPrivacy.stored.title")} detail={t("dataPrivacy.stored.detail")}>
             <ul className="list-disc list-inside text-white/70 ml-2 space-y-0.5 text-xs">
-              <li><strong>{matchCount}</strong> partidas (KDA, CS, campeón, queue)</li>
-              <li>Tu PUUID y Riot ID (solo para identificarte ante Riot API)</li>
-              <li>Preferencias de la app (toggles)</li>
-              <li>Aggregations Master+ (anónimo, datos públicos)</li>
-              <li>API keys que metas (Riot/Anthropic) — nunca se comparten</li>
+              <li><strong>{matchCount}</strong> {t("dataPrivacy.stored.matches")}</li>
+              <li>{t("dataPrivacy.stored.identity")}</li>
+              <li>{t("dataPrivacy.stored.prefs")}</li>
+              <li>{t("dataPrivacy.stored.aggregations")}</li>
+              <li>{t("dataPrivacy.stored.apiKeys")}</li>
             </ul>
           </Section>
 
-          <Section title="Lo que NO guardamos" detail="">
+          <Section title={t("dataPrivacy.notStored.title")} detail="">
             <ul className="list-disc list-inside text-white/70 ml-2 space-y-0.5 text-xs">
-              <li>Logs de chat con AI Coach (ephemerales en memoria)</li>
-              <li>Telemetría / analytics</li>
-              <li>Información de otros jugadores más allá del scout temporal</li>
+              <li>{t("dataPrivacy.notStored.chatLogs")}</li>
+              <li>{t("dataPrivacy.notStored.telemetry")}</li>
+              <li>{t("dataPrivacy.notStored.otherPlayers")}</li>
             </ul>
           </Section>
 
           <Section
-            title="Backups automáticos"
-            detail="Snapshot diario rotatorio (últimos 5 días) creado en cada arranque ANTES de cualquier migración SQL."
+            title={t("dataPrivacy.backups.title")}
+            detail={t("dataPrivacy.backups.detail")}
           >
             {autoBackups.length === 0 ? (
               <p className="text-xs text-white/40 italic mt-1">
-                Aún no hay snapshots. Aparecerán tras el próximo arranque.
+                {t("dataPrivacy.backups.empty")}
               </p>
             ) : (
               <ul className="space-y-1 mt-1 text-xs">
@@ -303,7 +313,7 @@ export function DataPrivacyView({ onClose }: Props) {
                       disabled={busy}
                       className="text-[10px] uppercase tracking-widest text-meh hover:text-white px-2 py-1 rounded ring-1 ring-meh/40 hover:ring-white/40 transition disabled:opacity-40"
                     >
-                      Restaurar
+                      {t("dataPrivacy.backups.restore")}
                     </button>
                   </li>
                 ))}
@@ -311,61 +321,61 @@ export function DataPrivacyView({ onClose }: Props) {
             )}
           </Section>
 
-          <Section title="Acciones" detail="">
+          <Section title={t("dataPrivacy.actions.title")} detail="">
             <div className="space-y-2 mt-2">
               <button
                 onClick={exportAll}
                 className="w-full text-left p-2 bg-bg-card border border-border-subtle rounded hover:border-accent text-sm"
               >
-                📥 Exportar todos mis datos (JSON)
+                📥 {t("dataPrivacy.actions.exportAll")}
               </button>
               <button
                 onClick={handleBackup}
                 disabled={busy}
                 className="w-full text-left p-2 bg-bg-card border border-border-subtle rounded hover:border-accent text-sm disabled:opacity-50"
               >
-                💾 Guardar backup de la base de datos (.db)
+                💾 {t("dataPrivacy.actions.backupDb")}
               </button>
               <button
                 onClick={handleRestorePick}
                 disabled={busy}
                 className="w-full text-left p-2 bg-bg-card border border-meh/40 rounded hover:border-meh text-sm disabled:opacity-50"
               >
-                ♻️ Restaurar desde backup (.db)
+                ♻️ {t("dataPrivacy.actions.restoreDb")}
               </button>
               <button
                 onClick={() => handleExportPrefs(false)}
                 disabled={busy}
                 className="w-full text-left p-2 bg-bg-card border border-border-subtle rounded hover:border-accent text-sm disabled:opacity-50"
               >
-                📤 Exportar solo preferencias (claves redactadas)
+                📤 {t("dataPrivacy.actions.exportPrefsRedacted")}
               </button>
               <button
                 onClick={() => handleExportPrefs(true)}
                 disabled={busy}
                 className="w-full text-left p-2 bg-bg-card border border-border-subtle rounded hover:border-accent text-sm disabled:opacity-50"
-                title="Incluye tus API keys reales — solo para backup personal, NO compartir"
+                title={t("dataPrivacy.actions.exportPrefsKeysTitle")}
               >
-                📤 Exportar preferencias CON claves (no compartir)
+                📤 {t("dataPrivacy.actions.exportPrefsKeys")}
               </button>
               <button
                 onClick={handleImportPrefs}
                 disabled={busy}
                 className="w-full text-left p-2 bg-bg-card border border-meh/40 rounded hover:border-meh text-sm disabled:opacity-50"
               >
-                📥 Importar preferencias desde JSON
+                📥 {t("dataPrivacy.actions.importPrefs")}
               </button>
               <button
                 onClick={() => setConfirmClear(true)}
                 className="w-full text-left p-2 bg-bg-card border border-bad/40 rounded hover:border-bad text-sm text-bad/90"
               >
-                🗑️ Borrar todas mis partidas guardadas
+                🗑️ {t("dataPrivacy.actions.clearMatches")}
               </button>
               <button
                 onClick={clearPrefs}
                 className="w-full text-left p-2 bg-bg-card border border-bad/40 rounded hover:border-bad text-sm text-bad/90"
               >
-                🗑️ Restablecer todas las preferencias
+                🗑️ {t("dataPrivacy.actions.resetPrefs")}
               </button>
             </div>
           </Section>
@@ -373,9 +383,9 @@ export function DataPrivacyView({ onClose }: Props) {
       </div>
       {confirmClear && (
         <ConfirmDialog
-          title="¿Borrar TODAS las partidas?"
-          message={`Vas a borrar ${matchCount} partidas guardadas localmente. Esta acción no se puede deshacer. Tu cuenta de Riot y la del cliente de LoL no se tocan.`}
-          confirmLabel="Borrar todo"
+          title={t("dataPrivacy.confirm.clearMatchesTitle")}
+          message={t("dataPrivacy.confirm.clearMatchesMsg", { n: matchCount })}
+          confirmLabel={t("dataPrivacy.confirm.clearMatchesConfirm")}
           destructive
           onConfirm={doClear}
           onCancel={() => setConfirmClear(false)}
@@ -383,9 +393,11 @@ export function DataPrivacyView({ onClose }: Props) {
       )}
       {confirmRestore && (
         <ConfirmDialog
-          title="¿Restaurar la base de datos?"
-          message={`Vas a sobrescribir tu DB actual con el archivo:\n${confirmRestore.split(/[\\/]/).pop()}\n\nGuardamos una copia de la DB actual como ".pre-restore" por si te equivocas. Tendrás que reiniciar la app después.`}
-          confirmLabel="Restaurar"
+          title={t("dataPrivacy.confirm.restoreTitle")}
+          message={t("dataPrivacy.confirm.restoreMsg", {
+            file: confirmRestore.split(/[\\/]/).pop(),
+          })}
+          confirmLabel={t("dataPrivacy.confirm.restoreConfirm")}
           destructive
           onConfirm={doRestore}
           onCancel={() => setConfirmRestore(null)}
@@ -393,9 +405,9 @@ export function DataPrivacyView({ onClose }: Props) {
       )}
       {confirmClearPrefs && (
         <ConfirmDialog
-          title="¿Restablecer todas las preferencias?"
-          message="Vas a perder TODOS tus ajustes locales (toggles, claves AI, layout). Los datos de partidas en SQLite no se tocan. La app se reiniciará para aplicar."
-          confirmLabel="Restablecer"
+          title={t("dataPrivacy.confirm.resetPrefsTitle")}
+          message={t("dataPrivacy.confirm.resetPrefsMsg")}
+          confirmLabel={t("dataPrivacy.confirm.resetPrefsConfirm")}
           destructive
           onConfirm={doClearPrefs}
           onCancel={() => setConfirmClearPrefs(false)}

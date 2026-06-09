@@ -749,7 +749,71 @@
   },
   "dataPrivacy": {
     "title": "Tus datos",
-    "matchesCount": "{{count}} partidas guardadas"
+    "matchesCount": "{{count}} partidas guardadas",
+    "stored": {
+      "title": "¿Qué guardamos?",
+      "detail": "Todo en SQLite local. Nada sale de tu PC.",
+      "matches": "partidas (KDA, CS, campeón, queue)",
+      "identity": "Tu PUUID y Riot ID (solo para identificarte ante Riot API)",
+      "prefs": "Preferencias de la app (toggles)",
+      "aggregations": "Aggregations Master+ (anónimo, datos públicos)",
+      "apiKeys": "API keys que metas (Riot/Anthropic) — nunca se comparten"
+    },
+    "notStored": {
+      "title": "Lo que NO guardamos",
+      "chatLogs": "Logs de chat con AI Coach (ephemerales en memoria)",
+      "telemetry": "Telemetría / analytics",
+      "otherPlayers": "Información de otros jugadores más allá del scout temporal"
+    },
+    "backups": {
+      "title": "Backups automáticos",
+      "detail": "Snapshot diario rotatorio (últimos 5 días) creado en cada arranque ANTES de cualquier migración SQL.",
+      "empty": "Aún no hay snapshots. Aparecerán tras el próximo arranque.",
+      "restore": "Restaurar"
+    },
+    "actions": {
+      "title": "Acciones",
+      "exportAll": "Exportar todos mis datos (JSON)",
+      "backupDb": "Guardar backup de la base de datos (.db)",
+      "restoreDb": "Restaurar desde backup (.db)",
+      "exportPrefsRedacted": "Exportar solo preferencias (claves redactadas)",
+      "exportPrefsKeys": "Exportar preferencias CON claves (no compartir)",
+      "exportPrefsKeysTitle": "Incluye tus API keys reales — solo para backup personal, NO compartir",
+      "importPrefs": "Importar preferencias desde JSON",
+      "clearMatches": "Borrar todas mis partidas guardadas",
+      "resetPrefs": "Restablecer todas las preferencias"
+    },
+    "toast": {
+      "backupSaved": "Backup guardado",
+      "backupSavedDetail": "{{kb}} KB en {{file}}",
+      "backupError": "Error al hacer backup",
+      "pickBackup": "Selecciona una copia de seguridad",
+      "error": "Error",
+      "dbRestored": "DB restaurada",
+      "dbRestoredDetail": "{{kb}} KB. Reiniciamos para aplicar.",
+      "restartNow": "Reiniciar ahora",
+      "restoreError": "No se pudo restaurar",
+      "exportPrefsTitle": "Exportar preferencias",
+      "prefsExportedKeys": "Preferencias exportadas (con claves)",
+      "prefsExportedRedacted": "Preferencias exportadas (claves redactadas)",
+      "exportError": "No se pudo exportar",
+      "importPrefsTitle": "Importar preferencias",
+      "invalidFile": "Archivo inválido",
+      "imported": "Importadas {{n}} preferencias",
+      "ignored": "{{n}} ignoradas: {{list}}",
+      "importError": "No se pudo importar"
+    },
+    "confirm": {
+      "clearMatchesTitle": "¿Borrar TODAS las partidas?",
+      "clearMatchesMsg": "Vas a borrar {{n}} partidas guardadas localmente. Esta acción no se puede deshacer. Tu cuenta de Riot y la del cliente de LoL no se tocan.",
+      "clearMatchesConfirm": "Borrar todo",
+      "restoreTitle": "¿Restaurar la base de datos?",
+      "restoreMsg": "Vas a sobrescribir tu DB actual con el archivo:\n{{file}}\n\nGuardamos una copia de la DB actual como \".pre-restore\" por si te equivocas. Tendrás que reiniciar la app después.",
+      "restoreConfirm": "Restaurar",
+      "resetPrefsTitle": "¿Restablecer todas las preferencias?",
+      "resetPrefsMsg": "Vas a perder TODOS tus ajustes locales (toggles, claves AI, layout). Los datos de partidas en SQLite no se tocan. La app se reiniciará para aplicar.",
+      "resetPrefsConfirm": "Restablecer"
+    }
   },
   "about": {
     "title": "Acerca de Draftboard",
