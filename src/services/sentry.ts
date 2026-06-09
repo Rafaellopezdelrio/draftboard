@@ -76,7 +76,14 @@ export function initSentry(opts: InitOptions = {}): void {
       // `/@react-refresh` and `performReactRefresh`. Pure dev artifact;
       // never reaches prod users. Drop silently.
       try {
-        const frames = event.exception?.values?.[0]?.stacktrace?.frames ?? [];
+        // Scan frames across ALL exception values, not just [0]. React
+        // chains a component-stack exception (values[0]) with the actual
+        // throw whose `@react-refresh`/`performReactRefresh` frames live in
+        // a later values[] entry — only inspecting [0] let that noise
+        // through (e.g. the overlay removeChild HMR teardown).
+        const frames = (event.exception?.values ?? []).flatMap(
+          (v) => v.stacktrace?.frames ?? []
+        );
         const isHmrNoise = frames.some(
           (f) =>
             (f.filename && f.filename.includes("@react-refresh")) ||

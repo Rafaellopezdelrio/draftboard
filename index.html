@@ -1,5 +1,8 @@
 <!doctype html>
-<html lang="en">
+<!-- translate="no": the UI is rendered bilingually by i18next (es/en); the
+     browser's own auto-translation (Edge/Chrome) mutates text nodes out from
+     under React and triggers `removeChild` NotFoundError. Opt out entirely. -->
+<html lang="en" translate="no" class="notranslate">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
