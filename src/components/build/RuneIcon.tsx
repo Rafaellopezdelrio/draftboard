@@ -13,29 +13,19 @@
 // it's adjacent — both are used by the parent's rune block.
 
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { i18n } from "../../i18n";
 import { lookupPerkId } from "../../data/runePerkIds";
 import { getPerkIconUrl, subscribeToPerkIcons } from "../../services/perkIcons";
 
-/**
- * Spanish translations for op.gg's English tree names. Falls through
- * the input string when already in Spanish or unknown.
- */
-const TREE_NAMES_ES: Record<string, string> = {
-  Precision: "Precisión",
-  Domination: "Dominación",
-  Sorcery: "Hechicería",
-  Resolve: "Determinación",
-  Inspiration: "Inspiración",
-};
+/** op.gg ships tree names in English; these are the canonical keys under
+ *  the `runeTrees` i18n namespace (localized per uiLocale). */
+const RUNE_TREE_KEYS = ["Precision", "Domination", "Sorcery", "Resolve", "Inspiration"];
 
 export function translateTree(name: string | undefined): string {
   if (!name) return "";
-  const direct = TREE_NAMES_ES[name];
-  if (direct) return direct;
-  for (const k of Object.keys(TREE_NAMES_ES)) {
-    if (k.toLowerCase() === name.toLowerCase()) return TREE_NAMES_ES[k];
-  }
-  return name;
+  const canon = RUNE_TREE_KEYS.find((k) => k.toLowerCase() === name.toLowerCase());
+  return canon ? i18n.t(`runeTrees.${canon}`) : name;
 }
 
 /**
@@ -62,6 +52,7 @@ interface Props {
 }
 
 export function RuneIcon({ name, keystone = false, small = false }: Props) {
+  const { t } = useTranslation();
   const perkId = resolveRuneId(name);
   const size = keystone ? "w-12 h-12" : small ? "w-6 h-6" : "w-8 h-8";
 
@@ -78,7 +69,7 @@ export function RuneIcon({ name, keystone = false, small = false }: Props) {
     return (
       <span
         className={`inline-flex items-center justify-center px-1.5 ${keystone ? "py-1 text-[10px]" : "py-0.5 text-[9px]"} bg-bg-card/60 ring-1 ring-border-subtle rounded text-white/70`}
-        title={`Sin icono: ${name}`}
+        title={t("build.runeNoIcon", { name })}
       >
         {name}
       </span>

@@ -9,6 +9,7 @@
 // (applying/applied flash + toast).
 
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { applySummonerSpells } from "../../services/lcuService";
 import { UI_FEEDBACK_MS } from "../../config";
 import { SUMMONER_SPELL_META } from "../../services/opggBuilds";
@@ -41,6 +42,7 @@ export function SpellsRow({
 }: Props) {
   const showButton = usePrefsStore((s) => s.prefs.showSpellImportButton);
   const { push: pushToast } = useToast();
+  const { t } = useTranslation();
   const [applying, setApplying] = useState(false);
   const [applied, setApplied] = useState(false);
   const meta1 = SUMMONER_SPELL_META[spell1Id];
@@ -58,10 +60,10 @@ export function SpellsRow({
     }
     pushToast({
       type: ok ? "success" : "error",
-      title: ok ? "Hechizos aplicados" : "Error aplicando hechizos",
+      title: ok ? t("build.spellsApplied") : t("build.spellsApplyError"),
       detail: ok
         ? `${meta1?.name ?? `Spell ${spell1Id}`} + ${meta2?.name ?? `Spell ${spell2Id}`}`
-        : "Asegúrate de estar en champ select.",
+        : t("build.spellsNotInChampSelect"),
       durationMs: 2500,
     });
   };
@@ -70,7 +72,7 @@ export function SpellsRow({
     <div className="border-t border-white/5 pt-2">
       <div className="flex items-center justify-between mb-1">
         <p className="text-[10px] uppercase tracking-widest text-white/45">
-          Hechizos de invocador
+          {t("build.summonerSpells")}
         </p>
         <div className="flex flex-col items-end shrink-0 leading-tight">
           <span className={`text-[11px] tabular-nums font-semibold ${wrColor}`}>
@@ -97,7 +99,7 @@ export function SpellsRow({
                 : "bg-accent/10 ring-accent/40 text-accent hover:bg-accent/20"
             } ${applying ? "opacity-50" : ""}`}
           >
-            {applied ? "✓ Aplicado" : applying ? "..." : "Aplicar"}
+            {applied ? `✓ ${t("build.spellApplied")}` : applying ? "..." : t("build.spellApply")}
           </button>
         )}
       </div>

@@ -12,6 +12,7 @@
 // function before this split — the parent component is much easier to
 // reason about now).
 
+import { useTranslation } from "react-i18next";
 import type { Champion, Role } from "../../types/champion";
 import { pickBestBuild, pickMostPopular, type OpggBuild } from "../../services/opggBuilds";
 import { pickCoherentSpells } from "../../services/spellCoherence";
@@ -55,6 +56,7 @@ export function OpggBuildSection({
   inGameSuggestions,
   enemyDdIds,
 }: Props) {
+  const { t } = useTranslation();
   // OPTIMAL build: highest WR with significant sample (not just most
   // popular). Falls back to most-popular if no option meets the
   // sample threshold.
@@ -97,35 +99,35 @@ export function OpggBuildSection({
   const { push: pushToast } = useToast();
   const handleCopy = async () => {
     const lines: string[] = [];
-    lines.push(`${classification?.name ?? "Build"} · ${champion.name} ${role}`);
+    lines.push(`${classification?.name ?? t("build.nameFallback")} · ${champion.name} ${role}`);
     if (classification) lines.push(classification.description);
     if (top.starter)
-      lines.push(`Inicio: ${top.starter.ids.filter((id) => id > 0).join(", ")}`);
+      lines.push(`${t("build.pathStarter")}: ${top.starter.ids.filter((id) => id > 0).join(", ")}`);
     if (top.boots)
-      lines.push(`Botas: ${top.boots.ids.filter((id) => id > 0).join(", ")}`);
-    if (top.core) lines.push(`Core 3: ${coreIds.join(", ")}`);
+      lines.push(`${t("build.pathBoots")}: ${top.boots.ids.filter((id) => id > 0).join(", ")}`);
+    if (top.core) lines.push(`${t("build.pathCore3")}: ${coreIds.join(", ")}`);
     if (top.fourth)
-      lines.push(`4º: ${top.fourth.ids.filter((id) => id > 0).join(", ")}`);
+      lines.push(`${t("build.pathFourth")}: ${top.fourth.ids.filter((id) => id > 0).join(", ")}`);
     if (rune) {
       lines.push(
-        `Runas: ${rune.primaryPage} (${rune.primaryRunes.join(", ")}) / ${rune.secondaryPage} (${rune.secondaryRunes.join(", ")})`
+        `${t("build.runesLabel")}: ${rune.primaryPage} (${rune.primaryRunes.join(", ")}) / ${rune.secondaryPage} (${rune.secondaryRunes.join(", ")})`
       );
     }
-    if (skill) lines.push(`Habilidades: ${skill.order}`);
-    lines.push(`Patch ${patch}`);
+    if (skill) lines.push(`${t("build.abilities")}: ${skill.order}`);
+    lines.push(`${t("build.patchLabel")} ${patch}`);
     try {
       await navigator.clipboard.writeText(lines.join("\n"));
       pushToast({
         type: "success",
-        title: "Build copiada",
-        detail: "Pégala en Discord o donde quieras compartirla.",
+        title: t("build.toastCopiedTitle"),
+        detail: t("build.toastCopiedDetail"),
         durationMs: 2500,
       });
     } catch {
       pushToast({
         type: "error",
-        title: "No se pudo copiar",
-        detail: "El navegador bloqueó el acceso al portapapeles.",
+        title: t("build.toastCopyErrorTitle"),
+        detail: t("build.toastCopyErrorDetail"),
       });
     }
   };
@@ -140,7 +142,7 @@ export function OpggBuildSection({
           <div className="flex items-center gap-1.5 mb-0.5">
             {buildTier && <TierBadge tier={buildTier} size="sm" />}
             <p className="text-sm font-bold text-white truncate">
-              {classification?.name ?? "Build óptima"}
+              {classification?.name ?? t("build.optimal")}
             </p>
             <span className="text-[9px] uppercase tracking-widest text-accent/70 shrink-0">
               op.gg
@@ -155,7 +157,7 @@ export function OpggBuildSection({
         <div className="flex flex-col items-end gap-1 shrink-0">
           {top.core && (
             <p className="text-[9px] text-white/45 tabular-nums whitespace-nowrap">
-              {(top.core.play / 1000).toFixed(1)}k partidas ·{" "}
+              {t("build.gamesK", { count: (top.core.play / 1000).toFixed(1) })} ·{" "}
               <span
                 className={
                   top.core.win / top.core.play >= 0.52
@@ -170,9 +172,9 @@ export function OpggBuildSection({
           <button
             onClick={handleCopy}
             className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-bg-card/60 ring-1 ring-border-subtle text-white/60 hover:text-accent hover:ring-accent/50 transition"
-            title="Copia la build entera al portapapeles para Discord"
+            title={t("build.copyTitle")}
           >
-            ⧉ Copiar
+            ⧉ {t("build.copy")}
           </button>
         </div>
       </div>
@@ -209,20 +211,20 @@ export function OpggBuildSection({
       {/* Build path: starter → boots → 3 core → final items */}
       <div className="space-y-1.5">
         {top.starter && (
-          <BuildRow label="Inicio" path={top.starter} patch={patch} />
+          <BuildRow label={t("build.pathStarter")} path={top.starter} patch={patch} />
         )}
-        {top.boots && <BuildRow label="Botas" path={top.boots} patch={patch} />}
+        {top.boots && <BuildRow label={t("build.pathBoots")} path={top.boots} patch={patch} />}
         {top.core && (
-          <BuildRow label="Core 3" path={top.core} patch={patch} highlight />
+          <BuildRow label={t("build.pathCore3")} path={top.core} patch={patch} highlight />
         )}
         {top.fourth && (
-          <BuildRow label="4º item" path={top.fourth} patch={patch} />
+          <BuildRow label={t("build.pathFourth")} path={top.fourth} patch={patch} />
         )}
         {top.fifth && (
-          <BuildRow label="5º item" path={top.fifth} patch={patch} />
+          <BuildRow label={t("build.pathFifth")} path={top.fifth} patch={patch} />
         )}
         {top.sixth && (
-          <BuildRow label="6º item" path={top.sixth} patch={patch} />
+          <BuildRow label={t("build.pathSixth")} path={top.sixth} patch={patch} />
         )}
       </div>
 
@@ -246,7 +248,7 @@ export function OpggBuildSection({
       {inGameSuggestions.length > 0 && (
         <div className="border-t border-accent/30 pt-2">
           <p className="text-[10px] uppercase tracking-widest text-accent font-semibold mb-1.5">
-            🔴 Counters live · según items enemigos
+            🔴 {t("build.countersLive")}
           </p>
           <div className="space-y-1">
             {inGameSuggestions.map((s) => (
@@ -280,7 +282,7 @@ export function OpggBuildSection({
       {adaptations.length > 0 && (
         <div className="border-t border-white/5 pt-2">
           <p className="text-[10px] uppercase tracking-widest text-white/45 mb-1.5">
-            Adaptaciones vs comp enemiga
+            {t("build.adaptations")}
           </p>
           <div className="space-y-1">
             {adaptations.map((a, i) => (
@@ -343,7 +345,7 @@ export function OpggBuildSection({
         <div className="mt-2 rounded-md border border-accent/40 bg-gradient-to-br from-accent/10 via-accent/5 to-transparent p-3">
           <div className="flex items-baseline justify-between mb-2.5">
             <p className="text-xs font-semibold uppercase tracking-wide text-accent">
-              Runas recomendadas
+              {t("build.runesRecommended")}
             </p>
             <p className="text-[10px] text-white/55">
               {translateTree(rune.primaryPage)} /{" "}
@@ -381,7 +383,7 @@ export function OpggBuildSection({
           {rune.statMods && rune.statMods.length > 0 && (
             <div>
               <p className="text-[9px] uppercase tracking-widest text-white/40 mb-1">
-                Fragmentos
+                {t("build.shards")}
               </p>
               <div className="flex items-center gap-1 flex-wrap">
                 {rune.statMods.map((n, i) => (
