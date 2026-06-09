@@ -815,6 +815,32 @@
       "resetPrefsConfirm": "Reset"
     }
   },
+  "summonerLookup": {
+    "title": "Find player",
+    "subtitle": "Riot ID lookup",
+    "namePlaceholder": "Summoner name",
+    "tagTitle": "Riot ID tag — any value the player set (3-5 characters)",
+    "search": "Search",
+    "needApiKey": "You need to set your Riot API Key in ⚙ to look up other players (or a proxy).",
+    "emptyPrompt": "Search any player by their Riot ID",
+    "emptyHint": "You need a Riot API key set in ⚙",
+    "unranked": "Unranked",
+    "winStreak": "Win streak",
+    "lossStreak": "Loss streak",
+    "openOpgg": "Open profile on op.gg",
+    "wins": "Wins",
+    "losses": "Losses",
+    "winrate": "Winrate %",
+    "total": "Total",
+    "recentForm": "Recent form",
+    "win": "Win",
+    "loss": "Loss",
+    "topMasteries": "Top masteries",
+    "recentMatches": "Recent matches",
+    "noPublicData": "No public data available for this player.",
+    "dataSource": "Data via Riot API · public",
+    "copyPuuid": "Copy PUUID to clipboard"
+  },
   "about": {
     "title": "About Draftboard",
     "viewChangelog": "See what's new",

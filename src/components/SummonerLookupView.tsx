@@ -1,6 +1,7 @@
 // Public summoner lookup. Search any Riot ID (Name#TAG) and see their profile.
 
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   getAccountByRiotId,
   getSummonerByPuuid,
@@ -90,6 +91,7 @@ const REGIONS: Array<{ value: string; label: string }> = [
 
 export function SummonerLookupView({ db, onClose }: Props) {
   useEscape(onClose);
+  const { t } = useTranslation();
   const [name, setName] = useState("");
   const [tag, setTag] = useState("EUW");
   const [loading, setLoading] = useState(false);
@@ -114,9 +116,7 @@ export function SummonerLookupView({ db, onClose }: Props) {
       };
       const usingProxy = !!getRiotProxyUrl();
       if (!usingProxy && !cfg.apiKey) {
-        throw new Error(
-          "Necesitas configurar tu Riot API Key en ⚙ para buscar otros jugadores (o un proxy)."
-        );
+        throw new Error(t("summonerLookup.needApiKey"));
       }
       const account = await getAccountByRiotId(cfg, name.trim(), tag.trim());
       const [summoner, masteries, matchIds] = await Promise.all([
@@ -231,11 +231,11 @@ export function SummonerLookupView({ db, onClose }: Props) {
             <div className="flex items-center gap-2">
               <User className="w-4 h-4 text-accent" />
               <h2 id={SUMMONER_TITLE_ID} className="text-xl font-bold gold-text">
-                Buscar jugador
+                {t("summonerLookup.title")}
               </h2>
             </div>
             <span className="text-[10px] uppercase tracking-widest text-white/30">
-              Riot ID lookup
+              {t("summonerLookup.subtitle")}
             </span>
           </div>
           <form
@@ -250,7 +250,7 @@ export function SummonerLookupView({ db, onClose }: Props) {
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Nombre del invocador"
+                placeholder={t("summonerLookup.namePlaceholder")}
                 className="w-full bg-bg-elev/60 pl-8 pr-3 py-2 text-sm rounded-md ring-1 ring-border-subtle focus:ring-accent text-white outline-none transition"
                 autoFocus
               />
@@ -270,7 +270,7 @@ export function SummonerLookupView({ db, onClose }: Props) {
                 list="riot-tag-suggestions"
                 maxLength={5}
                 className="w-24 bg-bg-elev/60 px-3 py-2 text-sm rounded-md ring-1 ring-border-subtle focus:ring-accent text-white outline-none transition uppercase"
-                title="Tag del Riot ID — cualquier valor que el jugador haya configurado (3-5 caracteres)"
+                title={t("summonerLookup.tagTitle")}
               />
               <datalist id="riot-tag-suggestions">
                 {REGIONS.map((r) => (
@@ -283,7 +283,7 @@ export function SummonerLookupView({ db, onClose }: Props) {
               disabled={loading || !name || !tag}
               className="px-5 py-2 bg-accent text-black font-medium rounded-md text-sm disabled:opacity-50 hover:bg-accent-deep transition shadow-[0_0_12px_rgba(78,205,196,0.3)]"
             >
-              {loading ? "..." : "Buscar"}
+              {loading ? "..." : t("summonerLookup.search")}
             </button>
           </form>
           {err && (
@@ -299,10 +299,10 @@ export function SummonerLookupView({ db, onClose }: Props) {
             <div className="text-center py-12">
               <User className="w-12 h-12 mx-auto text-white/20 mb-3" />
               <p className="text-sm text-white/60">
-                Busca a cualquier jugador por su Riot ID
+                {t("summonerLookup.emptyPrompt")}
               </p>
               <p className="text-xs text-white/40 mt-1">
-                Necesitas API key Riot configurada en ⚙
+                {t("summonerLookup.emptyHint")}
               </p>
             </div>
           )}
@@ -391,7 +391,7 @@ export function SummonerLookupView({ db, onClose }: Props) {
                             />
                           ) : (
                             <span className="text-xs uppercase tracking-widest text-white/45 bg-bg-card/60 px-2 py-0.5 rounded">
-                              Unranked
+                              {t("summonerLookup.unranked")}
                             </span>
                           )}
                           {data.level !== null && (
@@ -407,7 +407,7 @@ export function SummonerLookupView({ db, onClose }: Props) {
                                   ? "bg-orange-400/20 text-orange-300 ring-1 ring-orange-300/40"
                                   : "bg-blue-400/20 text-blue-300 ring-1 ring-blue-300/40"
                               }`}
-                              title={matchStats.streakKind === "W" ? "Racha ganadora" : "Racha perdedora"}
+                              title={matchStats.streakKind === "W" ? t("summonerLookup.winStreak") : t("summonerLookup.lossStreak")}
                             >
                               <Flame className="w-3 h-3" />
                               {matchStats.streakLen}{matchStats.streakKind}
@@ -437,7 +437,7 @@ export function SummonerLookupView({ db, onClose }: Props) {
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider px-2 py-1 rounded ring-1 ring-border-subtle bg-bg-card/60 text-white/65 hover:text-accent hover:ring-accent/50 transition"
-                          title="Abrir perfil en op.gg"
+                          title={t("summonerLookup.openOpgg")}
                         >
                           <ExternalLink className="w-3 h-3" />
                           op.gg
@@ -452,13 +452,13 @@ export function SummonerLookupView({ db, onClose }: Props) {
                 * rendered when ranked data exists; CountUp on stats. */}
               {data.rank && (
                 <div className="grid grid-cols-4 gap-2">
-                  <StatCard value={data.rank.wins} label="Wins" color="good" />
-                  <StatCard value={data.rank.losses} label="Losses" color="bad" />
+                  <StatCard value={data.rank.wins} label={t("summonerLookup.wins")} color="good" />
+                  <StatCard value={data.rank.losses} label={t("summonerLookup.losses")} color="bad" />
                   <StatCard
                     value={
                       (data.rank.wins / Math.max(1, data.rank.wins + data.rank.losses)) * 100
                     }
-                    label="Winrate %"
+                    label={t("summonerLookup.winrate")}
                     color={
                       data.rank.wins / (data.rank.wins + data.rank.losses) >= 0.55
                         ? "good"
@@ -467,7 +467,7 @@ export function SummonerLookupView({ db, onClose }: Props) {
                   />
                   <StatCard
                     value={data.rank.wins + data.rank.losses}
-                    label="Total"
+                    label={t("summonerLookup.total")}
                   />
                 </div>
               )}
@@ -478,7 +478,7 @@ export function SummonerLookupView({ db, onClose }: Props) {
                   <div className="flex items-center justify-between mb-2">
                     <p className="text-[10px] uppercase tracking-widest text-accent font-semibold flex items-center gap-1.5">
                       <TrendingUp className="w-3 h-3" />
-                      Forma reciente · {data.recentMatches.length}g
+                      {t("summonerLookup.recentForm")} · {data.recentMatches.length}g
                     </p>
                     <p className="text-[10px] text-white/55 tabular-nums">
                       <span className={matchStats.recentWR >= 55 ? "text-good" : matchStats.recentWR >= 45 ? "text-white/70" : "text-bad"}>
@@ -504,7 +504,7 @@ export function SummonerLookupView({ db, onClose }: Props) {
                             ? "bg-good/20 text-good ring-1 ring-good/40"
                             : "bg-bad/20 text-bad ring-1 ring-bad/40"
                         }`}
-                        title={`${m.win ? "Win" : "Loss"} · ${m.kills}/${m.deaths}/${m.assists}`}
+                        title={`${m.win ? t("summonerLookup.win") : t("summonerLookup.loss")} · ${m.kills}/${m.deaths}/${m.assists}`}
                       >
                         {m.win ? "W" : "L"}
                       </span>
@@ -530,7 +530,7 @@ export function SummonerLookupView({ db, onClose }: Props) {
                 <Panel padding="sm">
                   <PanelHeader
                     icon={<Star className="w-3 h-3" />}
-                    title="Top maestrías"
+                    title={t("summonerLookup.topMasteries")}
                   />
                   <div className="grid grid-cols-7 gap-1.5">
                     {data.masteries.slice(0, 7).map((m) => {
@@ -578,7 +578,7 @@ export function SummonerLookupView({ db, onClose }: Props) {
                 <Panel padding="sm">
                   <PanelHeader
                     icon={<Swords className="w-3 h-3" />}
-                    title="Últimas partidas"
+                    title={t("summonerLookup.recentMatches")}
                   />
                   <div className="space-y-1">
                     {data.recentMatches.map((m, i) => {
@@ -633,7 +633,7 @@ export function SummonerLookupView({ db, onClose }: Props) {
                                 : "bg-bad/20 text-bad ring-1 ring-bad/40"
                             }`}
                           >
-                            {m.win ? "Win" : "Loss"}
+                            {m.win ? t("summonerLookup.win") : t("summonerLookup.loss")}
                           </span>
                         </div>
                       );
@@ -645,12 +645,12 @@ export function SummonerLookupView({ db, onClose }: Props) {
               {/* Empty state for unranked + no matches */}
               {!data.rank && data.masteries.length === 0 && data.recentMatches.length === 0 && (
                 <p className="text-center text-white/40 text-sm py-4">
-                  Sin datos públicos disponibles para este jugador.
+                  {t("summonerLookup.noPublicData")}
                 </p>
               )}
               <p className="text-center text-white/30 text-[10px] mt-2">
                 <Trophy className="w-3 h-3 inline mr-1" />
-                Datos vía Riot API · públicos
+                {t("summonerLookup.dataSource")}
               </p>
             </>
           )}
@@ -667,6 +667,7 @@ export function SummonerLookupView({ db, onClose }: Props) {
  * click before reverting.
  */
 function CopyPuuidButton({ puuid }: { puuid: string }) {
+  const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
   const handle = async () => {
     try {
@@ -681,7 +682,7 @@ function CopyPuuidButton({ puuid }: { puuid: string }) {
     <button
       onClick={handle}
       className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider px-2 py-1 rounded ring-1 ring-border-subtle bg-bg-card/60 text-white/65 hover:text-accent hover:ring-accent/50 transition"
-      title="Copia el PUUID al portapapeles"
+      title={t("summonerLookup.copyPuuid")}
     >
       {copied ? (
         <>

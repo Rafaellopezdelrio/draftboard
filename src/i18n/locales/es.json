@@ -815,6 +815,32 @@
       "resetPrefsConfirm": "Restablecer"
     }
   },
+  "summonerLookup": {
+    "title": "Buscar jugador",
+    "subtitle": "Riot ID lookup",
+    "namePlaceholder": "Nombre del invocador",
+    "tagTitle": "Tag del Riot ID — cualquier valor que el jugador haya configurado (3-5 caracteres)",
+    "search": "Buscar",
+    "needApiKey": "Necesitas configurar tu Riot API Key en ⚙ para buscar otros jugadores (o un proxy).",
+    "emptyPrompt": "Busca a cualquier jugador por su Riot ID",
+    "emptyHint": "Necesitas API key Riot configurada en ⚙",
+    "unranked": "Sin clasificar",
+    "winStreak": "Racha ganadora",
+    "lossStreak": "Racha perdedora",
+    "openOpgg": "Abrir perfil en op.gg",
+    "wins": "Victorias",
+    "losses": "Derrotas",
+    "winrate": "Winrate %",
+    "total": "Total",
+    "recentForm": "Forma reciente",
+    "win": "Victoria",
+    "loss": "Derrota",
+    "topMasteries": "Top maestrías",
+    "recentMatches": "Últimas partidas",
+    "noPublicData": "Sin datos públicos disponibles para este jugador.",
+    "dataSource": "Datos vía Riot API · públicos",
+    "copyPuuid": "Copia el PUUID al portapapeles"
+  },
   "about": {
     "title": "Acerca de Draftboard",
     "viewChangelog": "Ver novedades",
