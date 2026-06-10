@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { usePrefsStore } from "./prefsStore";
 import { useDraftStore } from "./draftStore";
 import { applyRunes, applySummonerSpells, pushItemSet } from "../services/lcuService";
@@ -19,32 +19,65 @@ export function useAutoActions({ db }: Args) {
   const prefs = usePrefsStore((s) => s.prefs);
   const myRole = useDraftStore((s) => s.myRole);
   const intent = useDraftStore((s) => s.myChampionIntent);
+  const locked = useDraftStore((s) => s.myChampionLocked);
 
-  // On hover (intent), optionally pre-apply runes (disabled in safe mode)
+  // Dedup key (`champKey:role`) for the rune auto-apply. Without it the same
+  // page gets pushed twice: once by the hover effect and once by the lock
+  // handler for the same champion (concurrent LCU writes), and again every
+  // time a hover flickers (hover → unhover → re-hover). Reset when the local
+  // selection clears so the NEXT champ select re-applies even for the same
+  // champ. A ref (not module-global) keeps it per-hook-instance + test-clean.
+  const lastRunesRef = useRef<string | null>(null);
+
+  // On hover (intent), optionally pre-apply runes (disabled in safe mode).
   useEffect(() => {
+    // Once locked, the lock handler owns rune application — the hover effect
+    // must not also fire for the same champ (was the double-write race).
+    if (locked) return;
     if (prefs.safeMode || !prefs.autoApplyOnHover || !intent || !myRole || !db) return;
+    const key = `${intent}:${myRole}`;
+    if (lastRunesRef.current === key) return;
+    lastRunesRef.current = key;
     apply(db, intent, myRole);
-  }, [prefs.safeMode, prefs.autoApplyOnHover, intent, myRole, db]);
+  }, [prefs.safeMode, prefs.autoApplyOnHover, intent, locked, myRole, db]);
 
-  // On lock, optionally apply runes (disabled in safe mode)
+  // Clear the dedup key when the local selection is fully cleared (left champ
+  // select / new draft) so re-picking the same champion re-applies its runes.
+  useEffect(() => {
+    if (!intent && !locked) lastRunesRef.current = null;
+  }, [intent, locked]);
+
+  // On lock, optionally apply runes/spells/items (disabled in safe mode).
   useEffect(() => {
     if (!db) return;
     const handler = (e: Event) => {
       if (prefs.safeMode) return;
       const detail = (e as CustomEvent<{ championKey: string }>).detail;
-      if (!detail?.championKey || !myRole) return;
-      if (prefs.autoApplyRunes) apply(db, detail.championKey, myRole);
+      if (!detail?.championKey) return;
+      // Read role LIVE from the store, not from this effect's closure: the
+      // lock event is dispatched synchronously from lcuSync (outside React's
+      // render cycle), so a fast role+lock frame could fire before this effect
+      // re-subscribed with the new role → wrong-role runes/spells/items.
+      const role = useDraftStore.getState().myRole;
+      if (!role) return;
+      if (prefs.autoApplyRunes) {
+        const key = `${detail.championKey}:${role}`;
+        if (lastRunesRef.current !== key) {
+          lastRunesRef.current = key;
+          apply(db, detail.championKey, role);
+        }
+      }
       // Spells are gated by their own pref so the user can pick runes-only,
       // spells-only, or both. We read champ.id (data-dragon name) because
       // op.gg's build endpoint expects UPPER_SNAKE_CASE names, not Riot
       // numeric keys.
       if (prefs.autoApplySpells) {
         const champ = db.champions[detail.championKey];
-        if (champ) applySpells(champ, myRole as Role);
+        if (champ) applySpells(champ, role as Role);
       }
       if (prefs.autoApplyItemSet) {
         const champ = db.champions[detail.championKey];
-        if (champ) applyItemSet(champ, myRole as Role);
+        if (champ) applyItemSet(champ, role as Role);
       }
     };
     window.addEventListener("draft:champion-locked", handler);
@@ -54,7 +87,6 @@ export function useAutoActions({ db }: Args) {
     prefs.autoApplyRunes,
     prefs.autoApplySpells,
     prefs.autoApplyItemSet,
-    myRole,
     db,
   ]);
 }
