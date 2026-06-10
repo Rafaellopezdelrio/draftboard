@@ -121,6 +121,38 @@ describe("lcuSync.applySession — defensive parsing", () => {
     } as unknown as Parameters<typeof applySession>[0]);
   });
 
+  it("does NOT preserve a dead draft on a dodge right after a finalized game (F3)", () => {
+    // 1. A game finalizes — phase recorded as FINALIZATION.
+    applySession({
+      localPlayerCellId: 0,
+      myTeam: [player(0, 266)],
+      theirTeam: [player(5, 23)],
+      timer: { phase: "FINALIZATION", adjustedTimeLeftInPhase: 5000 },
+    } as unknown as Parameters<typeof applySession>[0]);
+
+    // 2. Game starts (session null) → board preserved (correct) AND the
+    //    one-shot FINALIZATION phase is consumed.
+    applySession(null);
+    expect(useDraftStore.getState().ally[0].championKey).toBe("266");
+
+    // 3. A NEW champ select begins but its first frame arrives mid-transition
+    //    WITHOUT a timer (so phase stays null), seeding a different champ.
+    applySession({
+      localPlayerCellId: 0,
+      myTeam: [player(0, 99)], // Lux — a fresh, different draft
+      theirTeam: [player(5, 23)],
+    } as unknown as Parameters<typeof applySession>[0]);
+    expect(useDraftStore.getState().ally[0].championKey).toBe("99");
+
+    // 4. User DODGES this new select (FINALIZATION never reached for it).
+    //    Pre-fix, leaveChampSelect saw the stale "FINALIZATION" left over from
+    //    step 1 and wrongly PRESERVED this abandoned draft. The board clears.
+    applySession(null);
+    const s = useDraftStore.getState();
+    expect(s.ally.every((sl) => sl.championKey === null)).toBe(true);
+    expect(s.phase).toBe(null);
+  });
+
   it("empty session (cell -1, no players) CLEARS the board like a leave", () => {
     // Rust filters the null Delete event, so leaving champ select arrives as
     // an EMPTIED session object — not null. Seed a draft, then send the

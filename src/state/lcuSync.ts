@@ -54,15 +54,30 @@ export function useLcuSync() {
       return true;
     };
 
-    // Resolve the local player's PUUID once so applySession can match the
-    // roster by stable identity instead of the flaky localPlayerCellId.
-    if (!localPlayerPuuid) {
+    // Resolve the local player's PUUID — the stable identity applySession
+    // uses to match the roster instead of the flaky localPlayerCellId.
+    const refreshLocalPuuid = () => {
       void getCurrentSummoner().then((me) => {
         if (me?.puuid) localPlayerPuuid = me.puuid;
       });
-    }
+    };
+    // Seed once for the cold-start case where we mount already connected
+    // (the connect transition below may not replay on subscribe).
+    if (!localPlayerPuuid) refreshLocalPuuid();
 
-    const unsubStatus = subscribeStatus(setStatus);
+    let prevConnected = false;
+    const unsubStatus = subscribeStatus((st) => {
+      setStatus(st);
+      // Account-switch safety: the cached PUUID belongs to the logged-in
+      // summoner. If the LCU disconnects and reconnects as a DIFFERENT Riot
+      // account (user re-logs without restarting Draftboard), the stale PUUID
+      // would resolve the wrong "me" and surface a teammate's build. Clear on
+      // disconnect, re-resolve on the next connect so identity always tracks
+      // the current account.
+      if (st.connected && !prevConnected) refreshLocalPuuid();
+      else if (!st.connected) localPlayerPuuid = null;
+      prevConnected = st.connected;
+    });
     const unsubData = subscribeChampSelect((s) => {
       if (applyIfChanged(s)) setSession(s);
     });
@@ -97,6 +112,12 @@ export function useLcuSync() {
       clearInterval(pollId);
       unsubStatus.then((fn) => fn());
       unsubData.then((fn) => fn());
+      // Reset cross-mount module-globals so a remount (HMR or real) re-seeds
+      // cleanly: a stale `localPlayerPuuid` resolves the wrong "me", and a
+      // stale `lastAppliedRaw` dedups away the fresh mount's self-seed frame
+      // → board starts empty until the next pick/ban.
+      localPlayerPuuid = null;
+      lastAppliedRaw = "";
     };
   }, []);
 
@@ -193,6 +214,11 @@ function leaveChampSelect() {
   const gameStarting =
     lastChampSelectPhase === "FINALIZATION" ||
     lastChampSelectPhase === "GAME_STARTING";
+  // Consume the phase: it's a one-shot signal about THIS exit. Dodge frames
+  // arrive without `s.timer`, so they never overwrite `lastChampSelectPhase`
+  // — leaving it set would make a dodge that immediately follows a finalized
+  // game inherit the previous "FINALIZATION" and wrongly preserve a dead draft.
+  lastChampSelectPhase = null;
   if (gameStarting) return;
 
   const store = useDraftStore.getState();
