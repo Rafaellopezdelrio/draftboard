@@ -870,6 +870,17 @@
     "riotIdNotFound": "Riot ID no encontrado en la región seleccionada.",
     "lastMustBeUser": "El último mensaje debe ser del usuario"
   },
+  "engine": {
+    "betterMetaTier": "Tienes mejor meta tier",
+    "enemyMoreMeta": "Equipo enemigo más meta",
+    "compComplete": "Tu comp está completa, la enemiga no",
+    "compGaps": "Tu comp tiene huecos",
+    "goodMatchups": "Buenos matchups",
+    "badMatchups": "Matchups desfavorables",
+    "banEnemyMain": "Main enemigo{{name}}: {{k}}k maestría",
+    "banPersonal": "Pierdes {{wr}}% vs él en {{role}} ({{games}}g)",
+    "banGlobal": "S-tier en {{role}} ({{wr}}% global)"
+  },
   "runeTrees": {
     "Precision": "Precisión",
     "Domination": "Dominación",

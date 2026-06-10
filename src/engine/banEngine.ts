@@ -1,5 +1,6 @@
 import type { ChampionDb, Role } from "../types/champion";
 import type { PersonalMatchupStat } from "../services/matchRepo";
+import { i18n } from "../i18n";
 
 export interface BanSuggestion {
   championKey: string;
@@ -60,7 +61,10 @@ export function suggestBans({
       championKey: key,
       championName: champ.name,
       iconUrl: champ.iconUrl,
-      reason: `Main enemigo${m.summonerName ? ` (${m.summonerName})` : ""}: ${Math.round(m.points / 1000)}k maestría`,
+      reason: i18n.t("engine.banEnemyMain", {
+        name: m.summonerName ? ` (${m.summonerName})` : "",
+        k: Math.round(m.points / 1000),
+      }),
       severity: m.points > 300_000 ? "high" : m.points > 150_000 ? "medium" : "low",
       source: "scout",
     });
@@ -79,7 +83,11 @@ export function suggestBans({
       championKey: key,
       championName: champ.name,
       iconUrl: champ.iconUrl,
-      reason: `Pierdes ${wrPct}% vs él en ${role ?? m.position} (${m.games}g)`,
+      reason: i18n.t("engine.banPersonal", {
+        wr: wrPct,
+        role: role ?? m.position,
+        games: m.games,
+      }),
       severity:
         m.winRate < 0.3 ? "high" : m.winRate < 0.4 ? "medium" : "low",
       source: "personal",
@@ -111,7 +119,10 @@ export function suggestBans({
         championKey: g.championKey,
         championName: champ.name,
         iconUrl: champ.iconUrl,
-        reason: `S-tier en ${role} (${(g.winRate * 100).toFixed(0)}% global)`,
+        reason: i18n.t("engine.banGlobal", {
+          role,
+          wr: (g.winRate * 100).toFixed(0),
+        }),
         severity: "medium",
         source: "global",
         globalWinRate: g.winRate,

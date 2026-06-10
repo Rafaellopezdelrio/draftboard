@@ -870,6 +870,17 @@
     "riotIdNotFound": "Riot ID not found in the selected region.",
     "lastMustBeUser": "The last message must be from the user"
   },
+  "engine": {
+    "betterMetaTier": "Your team has the better meta tier",
+    "enemyMoreMeta": "Enemy team is more meta",
+    "compComplete": "Your comp is complete, theirs isn't",
+    "compGaps": "Your comp has gaps",
+    "goodMatchups": "Good matchups",
+    "badMatchups": "Unfavorable matchups",
+    "banEnemyMain": "Enemy main{{name}}: {{k}}k mastery",
+    "banPersonal": "You lose {{wr}}% vs them in {{role}} ({{games}}g)",
+    "banGlobal": "S-tier in {{role}} ({{wr}}% global)"
+  },
   "runeTrees": {
     "Precision": "Precision",
     "Domination": "Domination",

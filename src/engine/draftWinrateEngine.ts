@@ -1,5 +1,6 @@
 import type { ChampionDb, CounterEntry } from "../types/champion";
 import { detectMissingArchetypes } from "./suggestionEngine";
+import { i18n } from "../i18n";
 
 interface PredictArgs {
   db: ChampionDb;
@@ -39,8 +40,8 @@ export function predictDraftWinrate({
     // so the combined swing across all factors targets ~±0.18 → a 32–68% range
     // for lopsided drafts instead of the old mushy ~45–55% that always read 50%.
     score += diff * 0.8;
-    if (diff > 0.02) reasons.push("Tienes mejor meta tier");
-    else if (diff < -0.02) reasons.push("Equipo enemigo más meta");
+    if (diff > 0.02) reasons.push(i18n.t("engine.betterMetaTier"));
+    else if (diff < -0.02) reasons.push(i18n.t("engine.enemyMoreMeta"));
   }
 
   // Archetype completeness
@@ -49,18 +50,18 @@ export function predictDraftWinrate({
   const archetypeDelta = (enemyMissing.size - allyMissing.size) * 0.04;
   score += archetypeDelta;
   if (allyMissing.size === 0 && enemyMissing.size > 0) {
-    reasons.push("Tu comp está completa, la enemiga no");
+    reasons.push(i18n.t("engine.compComplete"));
   } else if (allyMissing.size > 0 && enemyMissing.size === 0) {
-    reasons.push("Tu comp tiene huecos");
+    reasons.push(i18n.t("engine.compGaps"));
   }
 
   // Counter check
   const counterScore = avgCounterScore(counters, allyKeys, enemyKeys);
   if (counterScore > 0.5) {
-    reasons.push("Buenos matchups");
+    reasons.push(i18n.t("engine.goodMatchups"));
     score += (counterScore - 0.5) * 0.6;
   } else if (counterScore < 0.5 && counterScore > 0) {
-    reasons.push("Matchups desfavorables");
+    reasons.push(i18n.t("engine.badMatchups"));
     score += (counterScore - 0.5) * 0.6;
   }
 
@@ -72,13 +73,19 @@ function avgMetaWinrate(db: ChampionDb, keys: string[]): number {
   let sum = 0;
   let n = 0;
   for (const k of keys) {
-    const champ = db.champions[k];
-    if (!champ) continue;
-    const m = db.meta.find(
-      (x) => x.championKey === k && champ.roles.includes(x.role)
-    );
-    if (m) {
-      sum += m.winRate;
+    if (!db.champions[k]) continue;
+    // We don't know the champ's drafted role here (only keys), so take its
+    // MOST-PLAYED meta entry. The old `.find` against tag-inferred roles
+    // grabbed an arbitrary lane — or missed entirely when the champ's real
+    // lane wasn't among its DDragon-tag roles, silently dropping it from
+    // the team average.
+    let best: { winRate: number; pickRate?: number } | null = null;
+    for (const x of db.meta) {
+      if (x.championKey !== k) continue;
+      if (!best || (x.pickRate ?? 0) > (best.pickRate ?? 0)) best = x;
+    }
+    if (best) {
+      sum += best.winRate;
       n++;
     }
   }
