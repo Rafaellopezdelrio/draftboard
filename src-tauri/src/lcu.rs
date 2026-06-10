@@ -689,7 +689,48 @@ async fn apply_summoner_spells(spell1: u32, spell2: u32) -> Result<bool> {
     Ok(true)
 }
 
+/// Guard the frontend-supplied LCU path before it's concatenated into the
+/// authenticated `https://127.0.0.1:{port}{path}` GET. Without this, any string
+/// — including one smuggled through an interpolated puuid (lobbyScout,
+/// lcuPersonalData) or injected via the frontend — could reach ARBITRARY LCU
+/// endpoints as the logged-in user. Restrict to the read-only `/lol-<service>/
+/// v<n>/...` shape we actually call: leading `/lol-`, no traversal, only
+/// URL-safe characters (blocks `@` userinfo, whitespace, `\`, control chars).
+fn validate_lcu_path(path: &str) -> Result<()> {
+    if path.len() > 512 {
+        return Err(anyhow!("LCU path too long"));
+    }
+    if !path.starts_with("/lol-") {
+        return Err(anyhow!("LCU path must target a /lol- service"));
+    }
+    if path.contains("..") || path.contains("//") {
+        return Err(anyhow!("LCU path contains traversal"));
+    }
+    // Validate the route and an optional query string separately.
+    let (route, query) = match path.split_once('?') {
+        Some((r, q)) => (r, Some(q)),
+        None => (path, None),
+    };
+    let route_ok = route
+        .bytes()
+        .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'/' | b'-' | b'_' | b'.'));
+    if !route_ok {
+        return Err(anyhow!("LCU path has illegal characters"));
+    }
+    // Query is only used for match-history begIndex/endIndex pagination.
+    if let Some(q) = query {
+        let query_ok = q
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'=' | b'&' | b'_' | b'-' | b'.'));
+        if !query_ok {
+            return Err(anyhow!("LCU query has illegal characters"));
+        }
+    }
+    Ok(())
+}
+
 async fn fetch_lcu_json(path: &str) -> Result<serde_json::Value> {
+    validate_lcu_path(path)?;
     let lf = read_lockfile()?;
     let auth = format!("riot:{}", lf.password);
     let auth_b64 = B64.encode(auth.as_bytes());
@@ -847,5 +888,39 @@ mod tests {
         let lock = parse_lockfile_content("LeagueClient:1:2999:pw:https:extra:more")
             .expect("extra fields should be tolerated");
         assert_eq!(lock.password, "pw");
+    }
+
+    #[test]
+    fn validate_lcu_path_accepts_every_endpoint_we_call() {
+        // The exact paths used across lcuPersonalData / lcuService / lobbyScout
+        // / inGameDetection. A regression here would break a real feature.
+        for p in [
+            "/lol-summoner/v1/current-summoner",
+            "/lol-match-history/v1/products/lol/abc-123-DEF/matches?begIndex=0&endIndex=20",
+            "/lol-match-history/v1/products/lol/current-summoner/matches?begIndex=0&endIndex=5",
+            "/lol-champion-mastery/v1/local-player/champion-mastery",
+            "/lol-ranked/v1/current-ranked-stats",
+            "/lol-champ-select/v1/session",
+            "/lol-ranked/v1/ranked-stats/0a1b2c3d-4e5f-6789-abcd-ef0123456789",
+            "/lol-gameflow/v1/session",
+        ] {
+            assert!(validate_lcu_path(p).is_ok(), "should accept: {p}");
+        }
+    }
+
+    #[test]
+    fn validate_lcu_path_rejects_attack_shapes() {
+        for p in [
+            "/riotclient/region-locale",            // non-/lol- root
+            "/lol-summoner/../../riotclient/foo",    // traversal
+            "/lol-summoner/v1//double-slash",         // smuggled //
+            "/lol-summoner/v1/x@evil.com/y",          // userinfo injection
+            "/lol-summoner/v1/x y",                    // whitespace
+            "/lol-summoner/v1/x\\y",                  // backslash
+            "https://evil.com/lol-x",                  // absolute URL (no leading /lol-)
+            "/lol-match-history/v1/m?cb=http://evil", // illegal query chars (: /)
+        ] {
+            assert!(validate_lcu_path(p).is_err(), "should reject: {p}");
+        }
     }
 }
