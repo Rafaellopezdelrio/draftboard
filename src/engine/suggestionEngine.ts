@@ -203,6 +203,9 @@ function scoreChampion(c: Champion, ctx: ScoreCtx): ScoredSuggestion {
   if (isOneTrick && personalNotBad) {
     score += 0.12;
   }
+  // The boost can push a perfect-dimension one-trick past 1.0; the UI renders
+  // score*100 as a 0-100 number (and GradeBadge assumes 0-1), so clamp.
+  score = Math.min(1, score);
 
   // "Comfort pick" — lower threshold than one-trick. Covers champs the
   // user is familiar with: mastery level 5+ OR 30k+ points. Used both
