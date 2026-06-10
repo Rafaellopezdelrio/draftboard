@@ -1,6 +1,7 @@
 import type { Champion, Role } from "../types/champion";
 import { withRetry } from "./retry";
 import { trackFetch } from "./breadcrumbs";
+import { CHAMPION_ARCHETYPES } from "../data/championArchetypes";
 
 const VERSIONS_URL = "https://ddragon.leagueoflegends.com/api/versions.json";
 
@@ -81,7 +82,10 @@ function parseChampionListResponse(
       splashUrl: `https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${entry.id}_0.jpg`,
       tags: entry.tags,
       roles: inferredRoles,
-      archetypes: inferArchetypes(entry.tags),
+      // Layer 1: curated per-champion archetypes (same pattern as roles).
+      // Tag inference only remains as a fallback for brand-new champions
+      // that haven't been added to the curated map yet.
+      archetypes: CHAMPION_ARCHETYPES[entry.id] ?? inferArchetypes(entry.tags),
     };
   }
   return result;
