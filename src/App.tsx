@@ -157,6 +157,7 @@ import { findMyPlayer, liveChampionKey } from "./services/liveClient";
 import { lcuPositionToRole } from "./services/lcuService";
 import { personalStatsByChampion } from "./services/matchRepo";
 import { setRiotProxyUrl } from "./services/riotApi";
+import { validateProxyUrl } from "./services/inputValidation";
 import type { ChampionPersonalStat } from "./services/matchRepo";
 import { usePrefsStore } from "./state/prefsStore";
 import { probeRustRecoveryMarker } from "./db/client";
@@ -356,8 +357,21 @@ function App() {
 
   // Sync Riot proxy URL into the API client whenever prefs change. Lets the
   // user toggle proxy mode without restarting the app.
+  //
+  // Validate before use — this is the single chokepoint between the stored
+  // pref and the network client, so it also catches values that bypass the
+  // input field (an imported prefs file, a hand-edited or corrupt store).
+  // validateProxyUrl enforces HTTPS and rejects dangerous schemes; on reject
+  // we fall back to no-proxy (use the dev key) rather than route ALL Riot
+  // traffic through an attacker-supplied URL.
   useEffect(() => {
-    setRiotProxyUrl(prefs.riotProxyUrl || null);
+    let validated: string | null = null;
+    try {
+      validated = validateProxyUrl(prefs.riotProxyUrl) || null;
+    } catch {
+      validated = null;
+    }
+    setRiotProxyUrl(validated);
   }, [prefs.riotProxyUrl]);
 
   // Reload personal stats whenever role changes — so the engine uses
