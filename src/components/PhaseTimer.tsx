@@ -1,14 +1,9 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useDraftStore } from "../state/draftStore";
 
-const PHASE_LABEL: Record<string, string> = {
-  PLANNING: "Planning",
-  BAN_PICK: "Ban/Pick",
-  FINALIZATION: "Finalización",
-  GAME_STARTING: "Empieza...",
-};
-
 export function PhaseTimer() {
+  const { t } = useTranslation();
   const phase = useDraftStore((s) => s.phase);
   const timerSec = useDraftStore((s) => s.timerSec);
   const [now, setNow] = useState(Date.now());
@@ -35,7 +30,7 @@ export function PhaseTimer() {
 
   return (
     <span className="text-xs px-2 py-1 rounded bg-bg-elev border border-border-subtle text-white/80">
-      {PHASE_LABEL[phase] ?? phase} · {remaining}s
+      {t(`phaseTimer.${phase}`, { defaultValue: phase })} · {remaining}s
     </span>
   );
 }

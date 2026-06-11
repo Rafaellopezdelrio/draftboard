@@ -3,6 +3,7 @@
 // to play the lane, the win condition). Lives in the champ-select column.
 
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Sparkles, Loader2 } from "lucide-react";
 import { usePrefsStore } from "../state/prefsStore";
 import { i18n } from "../i18n";
@@ -41,6 +42,7 @@ export function DraftCoachPanel({
   bannedKeys = [],
   masteries = [],
 }: Props) {
+  const { t } = useTranslation();
   const provider = usePrefsStore((s) => s.prefs.aiProvider);
   const apiKey = usePrefsStore((s) =>
     s.prefs.aiProvider === "groq"
@@ -117,7 +119,7 @@ export function DraftCoachPanel({
         onClick={run}
         disabled={loading}
         className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-md bg-accent/15 ring-1 ring-accent/40 text-accent text-sm font-semibold hover:bg-accent/25 transition disabled:opacity-50"
-        title="La IA explica tu pick + el matchup + cómo jugarlo"
+        title={t("draftCoach.tooltip")}
       >
         {loading ? (
           <Loader2 className="w-4 h-4 animate-spin" />

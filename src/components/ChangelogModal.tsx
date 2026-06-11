@@ -5,6 +5,7 @@
 // the pref so the modal stays quiet until the NEXT update.
 
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Sparkles, X } from "lucide-react";
 import { usePrefsStore } from "../state/prefsStore";
 import { getChangelogFor } from "../data/changelog";
@@ -24,6 +25,7 @@ interface Props {
 }
 
 export function ChangelogModal({ forceVersion, onClose }: Props) {
+  const { t } = useTranslation();
   const loaded = usePrefsStore((s) => s.loaded);
   const lastShown = usePrefsStore((s) => s.prefs.lastChangelogVersionShown);
   const setPref = usePrefsStore((s) => s.set);
@@ -81,7 +83,7 @@ export function ChangelogModal({ forceVersion, onClose }: Props) {
           <Sparkles className="w-5 h-5 text-accent shrink-0 mt-0.5" />
           <div className="flex-1">
             <h2 id="changelog-title" className="text-lg font-semibold text-white">
-              Novedades de Draftboard
+              {t("changelog.title")}
             </h2>
             <p className="text-xs text-white/55 mt-0.5">
               v{entry.version} · {entry.date}
@@ -89,7 +91,7 @@ export function ChangelogModal({ forceVersion, onClose }: Props) {
           </div>
           <button
             onClick={handleClose}
-            aria-label="Cerrar"
+            aria-label={t("common.close")}
             className="text-white/40 hover:text-white"
           >
             <X className="w-4 h-4" />

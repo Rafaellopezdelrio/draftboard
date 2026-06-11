@@ -701,7 +701,8 @@
     "yes": "Yes",
     "no": "No",
     "confirm": "Confirm",
-    "yourMain": "your main"
+    "yourMain": "your main",
+    "hide": "Hide"
   },
   "settings": {
     "title": "Settings",
@@ -770,7 +771,16 @@
   "preferences": {
     "title": "Preferences",
     "resetAll": "Reset all",
-    "searchPlaceholder": "Search preference..."
+    "searchPlaceholder": "Search preference... (e.g. runes, ai, voice)",
+    "clearSearch": "Clear search",
+    "presetsLabel": "Presets · 1 click",
+    "disableAllTitle": "Turns off auto-apply for runes, spells, item sets and on-hover. Doesn't touch the UI or any data.",
+    "disableAll": "Disable ALL LCU auto-actions",
+    "noResults": "No results for \"{{query}}\".",
+    "done": "Done",
+    "confirmResetTitle": "Reset all preferences?",
+    "confirmResetMsg": "This clears your toggles, API keys, meta prefs and theme. Your match history and personal data are NOT touched. This can't be undone.",
+    "confirmResetLabel": "Reset"
   },
   "prefs": {
     "aiCoachLang": "AI Coach language (responses)"
@@ -853,6 +863,18 @@
       "resetPrefsMsg": "You'll lose ALL your local settings (toggles, AI keys, layout). Match data in SQLite is not touched. The app will restart to apply.",
       "resetPrefsConfirm": "Reset"
     }
+  },
+  "phaseTimer": {
+    "PLANNING": "Planning",
+    "BAN_PICK": "Ban/Pick",
+    "FINALIZATION": "Finalizing",
+    "GAME_STARTING": "Starting..."
+  },
+  "changelog": {
+    "title": "What's new in Draftboard"
+  },
+  "draftCoach": {
+    "tooltip": "The AI explains your pick + the matchup + how to play it"
   },
   "metaSource": {
     "title": "Meta tier source",

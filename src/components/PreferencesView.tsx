@@ -92,7 +92,7 @@ export function PreferencesView({ onClose }: Props) {
             onClick={() => setConfirmReset(true)}
             className="text-xs text-white/50 hover:text-bad"
           >
-            Restablecer todo
+            {t("preferences.resetAll")}
           </button>
         </div>
 
@@ -102,14 +102,14 @@ export function PreferencesView({ onClose }: Props) {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Buscar preferencia... (ej: runas, ai, voz)"
+            placeholder={t("preferences.searchPlaceholder")}
             className="w-full bg-bg-elev/60 pl-8 pr-8 py-1.5 text-sm rounded-md ring-1 ring-border-subtle focus:ring-accent text-white outline-none transition"
           />
           {query && (
             <button
               onClick={() => setQuery("")}
               className="absolute right-2 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70"
-              aria-label="Limpiar búsqueda"
+              aria-label={t("preferences.clearSearch")}
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -120,7 +120,7 @@ export function PreferencesView({ onClose }: Props) {
         {!query && (
           <div className="mb-4 pb-3 border-b border-border-subtle/40">
             <p className="text-[10px] uppercase tracking-widest text-white/40 mb-1.5">
-              Presets · 1 click
+              {t("preferences.presetsLabel")}
             </p>
             <div className="grid grid-cols-3 gap-1.5">
               {PRESETS.map((p) => (
@@ -140,9 +140,9 @@ export function PreferencesView({ onClose }: Props) {
             <button
               onClick={disableAllLcuAuto}
               className="mt-2 w-full text-[10px] uppercase tracking-widest text-bad/80 hover:text-bad py-1.5 rounded ring-1 ring-bad/30 hover:bg-bad/5 transition"
-              title="Apaga auto-aplicar runas, hechizos, item sets y on-hover. No toca nada de la UI ni de los datos."
+              title={t("preferences.disableAllTitle")}
             >
-              ⛔ Desactivar TODAS las auto-acciones LCU
+              ⛔ {t("preferences.disableAll")}
             </button>
           </div>
         )}
@@ -178,7 +178,7 @@ export function PreferencesView({ onClose }: Props) {
           ))}
           {visibleSections.length === 0 && (
             <p className="text-sm text-white/40 italic text-center py-6">
-              Sin resultados para "{query}".
+              {t("preferences.noResults", { query })}
             </p>
           )}
         </div>
@@ -188,15 +188,15 @@ export function PreferencesView({ onClose }: Props) {
             onClick={onClose}
             className="px-4 py-2 bg-accent text-black font-medium rounded"
           >
-            Hecho
+            {t("preferences.done")}
           </button>
         </div>
       </div>
       {confirmReset && (
         <ConfirmDialog
-          title="¿Restablecer todas las preferencias?"
-          message="Esto borrará tus toggles, claves de API, prefs de meta y tema. Tu historial de partidas y datos personales NO se tocan. La acción no se puede deshacer."
-          confirmLabel="Restablecer"
+          title={t("preferences.confirmResetTitle")}
+          message={t("preferences.confirmResetMsg")}
+          confirmLabel={t("preferences.confirmResetLabel")}
           destructive
           onConfirm={() => {
             reset();

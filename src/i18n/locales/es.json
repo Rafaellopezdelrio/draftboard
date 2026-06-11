@@ -701,7 +701,8 @@
     "yes": "Sí",
     "no": "No",
     "confirm": "Confirmar",
-    "yourMain": "tu main"
+    "yourMain": "tu main",
+    "hide": "Ocultar"
   },
   "settings": {
     "title": "Configuración",
@@ -770,7 +771,16 @@
   "preferences": {
     "title": "Preferencias",
     "resetAll": "Restablecer todo",
-    "searchPlaceholder": "Buscar preferencia..."
+    "searchPlaceholder": "Buscar preferencia... (ej: runas, ai, voz)",
+    "clearSearch": "Limpiar búsqueda",
+    "presetsLabel": "Presets · 1 click",
+    "disableAllTitle": "Apaga auto-aplicar runas, hechizos, item sets y on-hover. No toca nada de la UI ni de los datos.",
+    "disableAll": "Desactivar TODAS las auto-acciones LCU",
+    "noResults": "Sin resultados para \"{{query}}\".",
+    "done": "Hecho",
+    "confirmResetTitle": "¿Restablecer todas las preferencias?",
+    "confirmResetMsg": "Esto borrará tus toggles, claves de API, prefs de meta y tema. Tu historial de partidas y datos personales NO se tocan. La acción no se puede deshacer.",
+    "confirmResetLabel": "Restablecer"
   },
   "prefs": {
     "aiCoachLang": "Idioma del AI Coach (respuestas)"
@@ -853,6 +863,18 @@
       "resetPrefsMsg": "Vas a perder TODOS tus ajustes locales (toggles, claves AI, layout). Los datos de partidas en SQLite no se tocan. La app se reiniciará para aplicar.",
       "resetPrefsConfirm": "Restablecer"
     }
+  },
+  "phaseTimer": {
+    "PLANNING": "Planning",
+    "BAN_PICK": "Ban/Pick",
+    "FINALIZATION": "Finalización",
+    "GAME_STARTING": "Empieza..."
+  },
+  "changelog": {
+    "title": "Novedades de Draftboard"
+  },
+  "draftCoach": {
+    "tooltip": "La IA explica tu pick + el matchup + cómo jugarlo"
   },
   "metaSource": {
     "title": "Fuente del meta tier",

@@ -12,6 +12,7 @@
 // missing.
 
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   /** The thrown value from React's error boundary. Currently only used
@@ -28,6 +29,7 @@ interface Props {
 const AUTO_HIDE_MS = 10_000;
 
 export function OverlayErrorScreen({ reset }: Props) {
+  const { t } = useTranslation();
   const [hidden, setHidden] = useState(false);
 
   useEffect(() => {
@@ -72,11 +74,11 @@ export function OverlayErrorScreen({ reset }: Props) {
           font: "inherit",
         }}
       >
-        Reintentar
+        {t("common.retry")}
       </button>
       <button
         onClick={() => setHidden(true)}
-        aria-label="Ocultar"
+        aria-label={t("common.hide")}
         style={{
           background: "transparent",
           color: "rgba(255,255,255,0.6)",
