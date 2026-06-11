@@ -38,7 +38,22 @@
       }
     ],
     "security": {
-      "csp": null
+      "csp": {
+        "default-src": "'self'",
+        "script-src": "'self'",
+        "style-src": "'self' 'unsafe-inline' https://rsms.me",
+        "font-src": "'self' https://rsms.me data:",
+        "img-src": "'self' data: blob: https://ddragon.leagueoflegends.com https://raw.communitydragon.org https://*.op.gg",
+        "connect-src": "'self' ipc: http://ipc.localhost https://*.api.riotgames.com https://*.workers.dev https://ddragon.leagueoflegends.com https://raw.communitydragon.org https://api.anthropic.com https://api.groq.com https://generativelanguage.googleapis.com https://rsms.me https://lol.fandom.com https://mcp-api.op.gg https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://*.ingest.de.sentry.io"
+      },
+      "devCsp": {
+        "default-src": "'self'",
+        "script-src": "'self' 'unsafe-inline' 'unsafe-eval'",
+        "style-src": "'self' 'unsafe-inline' https://rsms.me",
+        "font-src": "'self' https://rsms.me data:",
+        "img-src": "'self' data: blob: https://ddragon.leagueoflegends.com https://raw.communitydragon.org https://*.op.gg",
+        "connect-src": "'self' ipc: http://ipc.localhost ws://localhost:1420 http://localhost:1420 https://*.api.riotgames.com https://*.workers.dev https://ddragon.leagueoflegends.com https://raw.communitydragon.org https://api.anthropic.com https://api.groq.com https://generativelanguage.googleapis.com https://rsms.me https://lol.fandom.com https://mcp-api.op.gg https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://*.ingest.de.sentry.io"
+      }
     }
   },
   "bundle": {
