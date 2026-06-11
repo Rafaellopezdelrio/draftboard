@@ -785,7 +785,7 @@
     "matchesCount": "{{count}} partidas guardadas",
     "stored": {
       "title": "¿Qué guardamos?",
-      "detail": "Todo en SQLite local. Nada sale de tu PC.",
+      "detail": "Todo en SQLite local. Tus partidas nunca salen de aquí.",
       "matches": "partidas (KDA, CS, campeón, queue)",
       "identity": "Tu PUUID y Riot ID (solo para identificarte ante Riot API)",
       "prefs": "Preferencias de la app (toggles)",
@@ -795,8 +795,14 @@
     "notStored": {
       "title": "Lo que NO guardamos",
       "chatLogs": "Logs de chat con AI Coach (ephemerales en memoria)",
-      "telemetry": "Telemetría / analytics",
       "otherPlayers": "Información de otros jugadores más allá del scout temporal"
+    },
+    "egress": {
+      "title": "Qué SÍ sale de tu PC",
+      "detail": "Solo esto, y puedes desactivarlo:",
+      "crashReports": "Reportes de crash anónimos (Sentry), sin datos personales — desactivable en Ajustes",
+      "proxy": "Llamadas a Riot API vía el proxy Cloudflare (solo si activas el modo proxy)",
+      "aiProviders": "Tus mensajes al AI Coach van al proveedor que elijas (Groq/Anthropic/Gemini) cuando lo usas"
     },
     "backups": {
       "title": "Backups automáticos",

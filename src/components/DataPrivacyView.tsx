@@ -280,8 +280,18 @@ export function DataPrivacyView({ onClose }: Props) {
           <Section title={t("dataPrivacy.notStored.title")} detail="">
             <ul className="list-disc list-inside text-white/70 ml-2 space-y-0.5 text-xs">
               <li>{t("dataPrivacy.notStored.chatLogs")}</li>
-              <li>{t("dataPrivacy.notStored.telemetry")}</li>
               <li>{t("dataPrivacy.notStored.otherPlayers")}</li>
+            </ul>
+          </Section>
+
+          <Section
+            title={t("dataPrivacy.egress.title")}
+            detail={t("dataPrivacy.egress.detail")}
+          >
+            <ul className="list-disc list-inside text-white/70 ml-2 space-y-0.5 text-xs">
+              <li>{t("dataPrivacy.egress.crashReports")}</li>
+              <li>{t("dataPrivacy.egress.proxy")}</li>
+              <li>{t("dataPrivacy.egress.aiProviders")}</li>
             </ul>
           </Section>
 
