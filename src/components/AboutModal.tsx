@@ -47,7 +47,7 @@ export function AboutModal({ onClose }: Props) {
 
   const handleCheck = async () => {
     if (!isTauri()) {
-      push({ type: "warn", title: "Solo disponible en la app de escritorio" });
+      push({ type: "warn", title: t("about.desktopOnly") });
       return;
     }
     setChecking(true);
@@ -57,20 +57,20 @@ export function AboutModal({ onClose }: Props) {
       if (update) {
         push({
           type: "success",
-          title: `Nueva versión: ${update.version}`,
-          detail: "Banner superior para instalar.",
+          title: t("about.newVersion", { version: update.version }),
+          detail: t("about.installFromBanner"),
         });
       } else {
         push({
           type: "success",
-          title: "Estás en la última versión",
+          title: t("about.upToDate"),
           detail: `v${version}`,
         });
       }
     } catch (e) {
       push({
         type: "error",
-        title: "No se pudo comprobar updates",
+        title: t("about.checkFailed"),
         detail: (e as Error).message,
       });
     } finally {
@@ -88,7 +88,7 @@ export function AboutModal({ onClose }: Props) {
       const dir = await appLogDir();
       await openPath(dir);
     } catch (e) {
-      setUpdateStatus(`No pude abrir la carpeta de logs: ${(e as Error).message}`);
+      setUpdateStatus(t("about.openLogsFailed", { error: (e as Error).message }));
     }
   };
 
@@ -122,9 +122,9 @@ export function AboutModal({ onClose }: Props) {
         </div>
 
         <dl className="space-y-2 text-sm">
-          <Row label="Versión" value={version} />
-          <Row label="Build" value="release" />
-          <Row label="Plataforma" value="Windows / Tauri 2" />
+          <Row label={t("about.version")} value={version} />
+          <Row label={t("about.build")} value="release" />
+          <Row label={t("about.platform")} value="Windows / Tauri 2" />
         </dl>
 
         <div className="space-y-2 pt-2 border-t border-border-subtle">
@@ -145,7 +145,7 @@ export function AboutModal({ onClose }: Props) {
               className="px-3 py-2 bg-bg-elev border border-border-subtle text-white/80 rounded hover:bg-bg-card transition flex items-center justify-center gap-2 text-sm"
             >
               <Eye className="w-4 h-4" />
-              Ver logs
+              {t("about.viewLogs")}
             </button>
             <button
               onClick={handleOpenLogs}
@@ -165,9 +165,9 @@ export function AboutModal({ onClose }: Props) {
         </div>
 
         <p className="text-[10px] text-white/40 text-center pt-2 border-t border-border-subtle space-y-1">
-          <span className="block">Licencia MIT · Ver LICENSE en raíz del paquete</span>
-          <span className="block">No endorsado por Riot Games · League of Legends © Riot Games, Inc.</span>
-          <span className="block">Para soporte: incluye versión + logs en tu reporte.</span>
+          <span className="block">{t("about.licenseMit")}</span>
+          <span className="block">{t("about.notEndorsed")}</span>
+          <span className="block">{t("about.supportNote")}</span>
         </p>
       </div>
       {showFeedback && (

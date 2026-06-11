@@ -942,7 +942,20 @@
     "viewChangelog": "Ver novedades",
     "checkUpdates": "Buscar actualizaciones",
     "openLogs": "Abrir carpeta de logs",
-    "reportIssue": "Reportar un problema"
+    "reportIssue": "Reportar un problema",
+    "desktopOnly": "Solo disponible en la app de escritorio",
+    "newVersion": "Nueva versión: {{version}}",
+    "installFromBanner": "Banner superior para instalar.",
+    "upToDate": "Estás en la última versión",
+    "checkFailed": "No se pudo comprobar updates",
+    "openLogsFailed": "No pude abrir la carpeta de logs: {{error}}",
+    "version": "Versión",
+    "build": "Build",
+    "platform": "Plataforma",
+    "viewLogs": "Ver logs",
+    "licenseMit": "Licencia MIT · Ver LICENSE en raíz del paquete",
+    "notEndorsed": "No endorsado por Riot Games · League of Legends © Riot Games, Inc.",
+    "supportNote": "Para soporte: incluye versión + logs en tu reporte."
   },
   "diagnostics": {
     "title": "Diagnóstico",
