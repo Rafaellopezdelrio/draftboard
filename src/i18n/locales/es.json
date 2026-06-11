@@ -854,6 +854,23 @@
       "resetPrefsConfirm": "Restablecer"
     }
   },
+  "metaSource": {
+    "title": "Fuente del meta tier",
+    "optDpm": "dpm.lol (filtrado por tu rango — Iron → Challenger · default)",
+    "optProplay": "Pro play (LCK/LEC/LCS/LPL) — requiere sync",
+    "optSoloq": "SoloQ Master+ — requiere sync + API key Riot",
+    "optBlend": "Mezcla pro + SoloQ — requiere sync",
+    "optOpgg": "op.gg legacy (cambia a dpm.lol)",
+    "descOpgg": "Datos live de op.gg via nuestro proxy. 170+ champs, sin configurar nada. Lo más completo.",
+    "descDpm": "Datos live de dpm.lol filtrados por rango y región. Elige tu bracket exacto desde el botón de Tier List.",
+    "descProplay": "Usa picks/winrates de las ligas pro. Refleja el meta competitivo. Sincroniza desde ⚙.",
+    "descSoloq": "Master+ SoloQ. Datos masivos pero meta de SoloQ (no pro).",
+    "descBlend": "Mezcla pro (alto signal) + SoloQ (alto volumen). Pondera según games.",
+    "proWindow": "Ventana pro (días)",
+    "proWindowTitle": "7-90 días. Pulsa Enter o cambia foco para guardar.",
+    "unsaved": "sin guardar",
+    "saved": "guardado"
+  },
   "serviceErrors": {
     "riotIdEmpty": "Riot ID vacío.",
     "riotIdTooLong": "Riot ID demasiado largo (max 32 caracteres).",
