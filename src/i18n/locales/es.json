@@ -931,7 +931,31 @@
     "title": "Diagnóstico",
     "running": "Ejecutando comprobaciones...",
     "copyReport": "Copiar reporte",
-    "rerun": "Volver a ejecutar"
+    "rerun": "Volver a ejecutar",
+    "checks": {
+      "internet": "Conexión a internet",
+      "lcuClient": "Cliente de LoL (LCU)",
+      "riotAccount": "Cuenta Riot (vía LCU)",
+      "db": "Base de datos local"
+    },
+    "detail": {
+      "noNet": "Sin red. Comprueba tu conexión.",
+      "workerDegraded": "HTTP {{status}} — features pueden estar degradadas",
+      "workerUnreachable": "Inalcanzable: {{detail}}",
+      "liveAvailable": "Datos en vivo disponibles (estás en partida)",
+      "liveNoGame": "Sin partida activa (esperado fuera de juego)",
+      "riotKeyMissing": "No configurada (opcional, solo necesaria para scout y meta global)",
+      "riotKeyValid": "Válida",
+      "riotKeyInvalid": "Inválida o caducada: {{detail}}",
+      "aiConfigured": "Configurada ({{provider}})",
+      "aiMissing": "No configurada (opcional, {{provider}}). Groq es gratis.",
+      "lcuConnected": "Conectado: {{name}}",
+      "lcuPuuid": "PUUID: {{puuid}}...",
+      "lcuClosed": "Cliente cerrado. Abre LoL para usar todas las features.",
+      "lcuNoActive": "Sin LCU activo",
+      "versionUnknown": "Desconocida",
+      "versionBrowser": "Modo browser (dev)"
+    }
   },
   "errors": {
     "generic": "Algo se rompió",

@@ -931,7 +931,31 @@
     "title": "Diagnostics",
     "running": "Running checks...",
     "copyReport": "Copy report",
-    "rerun": "Re-run"
+    "rerun": "Re-run",
+    "checks": {
+      "internet": "Internet connection",
+      "lcuClient": "LoL client (LCU)",
+      "riotAccount": "Riot account (via LCU)",
+      "db": "Local database"
+    },
+    "detail": {
+      "noNet": "No network. Check your connection.",
+      "workerDegraded": "HTTP {{status}} — features may be degraded",
+      "workerUnreachable": "Unreachable: {{detail}}",
+      "liveAvailable": "Live data available (you're in a game)",
+      "liveNoGame": "No active game (expected when not playing)",
+      "riotKeyMissing": "Not set (optional, only needed for scout and global meta)",
+      "riotKeyValid": "Valid",
+      "riotKeyInvalid": "Invalid or expired: {{detail}}",
+      "aiConfigured": "Configured ({{provider}})",
+      "aiMissing": "Not set (optional, {{provider}}). Groq is free.",
+      "lcuConnected": "Connected: {{name}}",
+      "lcuPuuid": "PUUID: {{puuid}}...",
+      "lcuClosed": "Client closed. Open LoL to use all features.",
+      "lcuNoActive": "No active LCU",
+      "versionUnknown": "Unknown",
+      "versionBrowser": "Browser mode (dev)"
+    }
   },
   "errors": {
     "generic": "Something broke",

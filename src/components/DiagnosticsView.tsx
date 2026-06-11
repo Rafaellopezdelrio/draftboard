@@ -31,15 +31,15 @@ export function DiagnosticsView({ onClose }: Props) {
   useEscape(onClose);
   useFocusTrap(dialogRef, true);
   const [checks, setChecks] = useState<Check[]>([
-    { name: "Conexión a internet", status: "pending" },
+    { name: t("diagnostics.checks.internet"), status: "pending" },
     { name: "Data Dragon (Riot CDN)", status: "pending" },
     { name: "Cloudflare Worker (backend)", status: "pending" },
-    { name: "Cliente de LoL (LCU)", status: "pending" },
+    { name: t("diagnostics.checks.lcuClient"), status: "pending" },
     { name: "Live Client API (in-game)", status: "pending" },
-    { name: "Cuenta Riot (vía LCU)", status: "pending" },
+    { name: t("diagnostics.checks.riotAccount"), status: "pending" },
     { name: "Riot API Key", status: "pending" },
     { name: "AI provider key", status: "pending" },
-    { name: "Base de datos local", status: "pending" },
+    { name: t("diagnostics.checks.db"), status: "pending" },
     { name: "App version", status: "pending" },
   ]);
   const [copied, setCopied] = useState(false);
@@ -59,9 +59,9 @@ export function DiagnosticsView({ onClose }: Props) {
           await fetch("https://ddragon.leagueoflegends.com/api/versions.json", {
             signal: AbortSignal.timeout(NETWORK_TIMEOUTS_MS.diagnostic),
           });
-          return { name: "Conexión a internet", status: "ok" };
+          return { name: t("diagnostics.checks.internet"), status: "ok" };
         } catch {
-          return { name: "Conexión a internet", status: "fail", detail: "Sin red. Comprueba tu conexión." };
+          return { name: t("diagnostics.checks.internet"), status: "fail", detail: t("diagnostics.detail.noNet") };
         }
       })(),
 
@@ -85,9 +85,9 @@ export function DiagnosticsView({ onClose }: Props) {
           });
           return res.ok
             ? { name: "Cloudflare Worker (backend)", status: "ok", detail: `HTTP ${res.status}` }
-            : { name: "Cloudflare Worker (backend)", status: "warn", detail: `HTTP ${res.status} — features pueden estar degradadas` };
+            : { name: "Cloudflare Worker (backend)", status: "warn", detail: t("diagnostics.detail.workerDegraded", { status: res.status }) };
         } catch (e) {
-          return { name: "Cloudflare Worker (backend)", status: "fail", detail: `Inalcanzable: ${String(e).slice(0, 80)}` };
+          return { name: "Cloudflare Worker (backend)", status: "fail", detail: t("diagnostics.detail.workerUnreachable", { detail: String(e).slice(0, 80) }) };
         }
       })(),
 
@@ -118,10 +118,10 @@ export function DiagnosticsView({ onClose }: Props) {
         try {
           const live = await invoke<unknown>("live_client_all_game_data");
           return live && typeof live === "object"
-            ? { name: "Live Client API (in-game)", status: "ok", detail: "Datos en vivo disponibles (estás en partida)" }
-            : { name: "Live Client API (in-game)", status: "warn", detail: "Sin partida activa (esperado fuera de juego)" };
+            ? { name: "Live Client API (in-game)", status: "ok", detail: t("diagnostics.detail.liveAvailable") }
+            : { name: "Live Client API (in-game)", status: "warn", detail: t("diagnostics.detail.liveNoGame") };
         } catch {
-          return { name: "Live Client API (in-game)", status: "warn", detail: "Sin partida activa (esperado fuera de juego)" };
+          return { name: "Live Client API (in-game)", status: "warn", detail: t("diagnostics.detail.liveNoGame") };
         }
       })(),
 
@@ -129,13 +129,13 @@ export function DiagnosticsView({ onClose }: Props) {
       (async () => {
         const cfg = await loadSettings();
         if (!cfg?.apiKey) {
-          return { name: "Riot API Key", status: "warn", detail: "No configurada (opcional, solo necesaria para scout y meta global)" };
+          return { name: "Riot API Key", status: "warn", detail: t("diagnostics.detail.riotKeyMissing") };
         }
         try {
           await getAccount(cfg);
-          return { name: "Riot API Key", status: "ok", detail: "Válida" };
+          return { name: "Riot API Key", status: "ok", detail: t("diagnostics.detail.riotKeyValid") };
         } catch (e) {
-          return { name: "Riot API Key", status: "fail", detail: `Inválida o caducada: ${String(e).slice(0, 80)}` };
+          return { name: "Riot API Key", status: "fail", detail: t("diagnostics.detail.riotKeyInvalid", { detail: String(e).slice(0, 80) }) };
         }
       })(),
 
@@ -159,8 +159,8 @@ export function DiagnosticsView({ onClose }: Props) {
           }
         }
         return aiKey
-          ? { name: "AI provider key", status: "ok", detail: `Configurada (${provider})` }
-          : { name: "AI provider key", status: "warn", detail: `No configurada (opcional, ${provider}). Groq es gratis.` };
+          ? { name: "AI provider key", status: "ok", detail: t("diagnostics.detail.aiConfigured", { provider }) }
+          : { name: "AI provider key", status: "warn", detail: t("diagnostics.detail.aiMissing", { provider }) };
       })(),
 
       // 9. DB
@@ -169,9 +169,9 @@ export function DiagnosticsView({ onClose }: Props) {
           const { getDb } = await import("../db/client");
           const db = await getDb();
           await db.select("SELECT COUNT(*) FROM matches");
-          return { name: "Base de datos local", status: "ok" };
+          return { name: t("diagnostics.checks.db"), status: "ok" };
         } catch (e) {
-          return { name: "Base de datos local", status: "fail", detail: String(e) };
+          return { name: t("diagnostics.checks.db"), status: "fail", detail: String(e) };
         }
       })(),
     ];
@@ -196,25 +196,25 @@ export function DiagnosticsView({ onClose }: Props) {
         }
         if (parsed) {
           next.push({
-            name: "Cliente de LoL (LCU)",
+            name: t("diagnostics.checks.lcuClient"),
             status: "ok",
-            detail: `Conectado: ${parsed.gameName}`,
+            detail: t("diagnostics.detail.lcuConnected", { name: parsed.gameName }),
           });
           next.push({
-            name: "Cuenta Riot (vía LCU)",
+            name: t("diagnostics.checks.riotAccount"),
             status: "ok",
-            detail: `PUUID: ${parsed.puuid}...`,
+            detail: t("diagnostics.detail.lcuPuuid", { puuid: parsed.puuid }),
           });
         } else {
           next.push({
-            name: "Cliente de LoL (LCU)",
+            name: t("diagnostics.checks.lcuClient"),
             status: "warn",
-            detail: "Cliente cerrado. Abre LoL para usar todas las features.",
+            detail: t("diagnostics.detail.lcuClosed"),
           });
           next.push({
-            name: "Cuenta Riot (vía LCU)",
+            name: t("diagnostics.checks.riotAccount"),
             status: "warn",
-            detail: "Sin LCU activo",
+            detail: t("diagnostics.detail.lcuNoActive"),
           });
         }
       } else {
@@ -230,10 +230,10 @@ export function DiagnosticsView({ onClose }: Props) {
         const v = await getVersion();
         next.push({ name: "App version", status: "ok", detail: `v${v}` });
       } catch {
-        next.push({ name: "App version", status: "warn", detail: "Desconocida" });
+        next.push({ name: "App version", status: "warn", detail: t("diagnostics.detail.versionUnknown") });
       }
     } else {
-      next.push({ name: "App version", status: "warn", detail: "Modo browser (dev)" });
+      next.push({ name: "App version", status: "warn", detail: t("diagnostics.detail.versionBrowser") });
     }
 
     setChecks(next);
