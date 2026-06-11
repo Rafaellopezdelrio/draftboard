@@ -1,6 +1,7 @@
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
 import "./App.css";
 import { useDraftStore } from "./state/draftStore";
+import { useShallow } from "zustand/react/shallow";
 import type { Role } from "./types/champion";
 import { DraftBoard } from "./components/DraftBoard";
 import { SuggestionPanel } from "./components/SuggestionPanel";
@@ -187,6 +188,11 @@ const ROLES: Role[] = ["TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY"];
 
 function App() {
   const { t } = useTranslation();
+  // Select only the fields the shell actually uses, shallow-compared. Without
+  // this the root subscribed to the WHOLE store and re-rendered the entire App
+  // subtree on every champ-select frame — including the per-second `timerSec`
+  // tick and `phase`/`myCellId` changes the shell never reads. Setters are
+  // stable Zustand references, so they're safe to include.
   const {
     ally,
     enemy,
@@ -197,7 +203,19 @@ function App() {
     myChampionIntent,
     myChampionLocked,
     reset,
-  } = useDraftStore();
+  } = useDraftStore(
+    useShallow((s) => ({
+      ally: s.ally,
+      enemy: s.enemy,
+      bans: s.bans,
+      myRole: s.myRole,
+      setMyRole: s.setMyRole,
+      enemySummonerIds: s.enemySummonerIds,
+      myChampionIntent: s.myChampionIntent,
+      myChampionLocked: s.myChampionLocked,
+      reset: s.reset,
+    }))
+  );
   const { status: lcuStatus, session: lcuSession } = useLcuSync();
   const prefs = usePrefsStore((s) => s.prefs);
   const loadPrefs = usePrefsStore((s) => s.load);
