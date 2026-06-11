@@ -44,9 +44,9 @@ export function PreferencesView({ onClose }: Props) {
     if (!query.trim()) return SECTIONS;
     return SECTIONS.map((sec) => ({
       ...sec,
-      items: sec.items.filter((it) => matchesQuery(it, query)),
+      items: sec.items.filter((it) => matchesQuery(it, query, t)),
     })).filter((sec) => sec.items.length > 0);
-  }, [query]);
+  }, [query, t]);
 
   // Apply a preset: write each declared key, leave the rest alone. We
   // await each set() so the SQLite-backed persistence finishes before
@@ -128,11 +128,11 @@ export function PreferencesView({ onClose }: Props) {
                   key={p.id}
                   onClick={() => applyPreset(p)}
                   className="text-left p-2 rounded bg-bg-card/50 ring-1 ring-border-subtle hover:bg-bg-hover hover:ring-accent/40 transition"
-                  title={p.description}
+                  title={t(p.description)}
                 >
-                  <p className="text-[11px] font-semibold text-white">{p.label}</p>
+                  <p className="text-[11px] font-semibold text-white">{t(p.label)}</p>
                   <p className="text-[9px] text-white/45 mt-0.5 leading-snug">
-                    {p.description}
+                    {t(p.description)}
                   </p>
                 </button>
               ))}
@@ -160,14 +160,14 @@ export function PreferencesView({ onClose }: Props) {
           {visibleSections.map((sec) => (
             <section key={sec.title}>
               <h3 className="text-xs uppercase tracking-wide text-white/50 mb-2">
-                {sec.title}
+                {t(sec.title)}
               </h3>
               <div className="space-y-1">
                 {sec.items.map((item) => (
                   <Toggle
                     key={item.key}
-                    label={item.label}
-                    detail={item.detail}
+                    label={t(item.label)}
+                    detail={item.detail ? t(item.detail) : undefined}
                     danger={item.danger}
                     checked={prefs[item.key] as boolean}
                     onChange={(v) => set(item.key, v)}

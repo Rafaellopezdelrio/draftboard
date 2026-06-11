@@ -6,14 +6,22 @@
 // Each item references a `keyof Preferences` — TypeScript catches typos
 // at compile time. Adding a new pref to prefsStore + this file is the
 // only change needed to expose it in the modal.
+//
+// i18n: `title`, `label`, `detail`, and preset `label`/`description` hold
+// i18n KEY strings (prefsConfig.*), not display text — same key-config
+// pattern as appCommands.ts. PreferencesView resolves them through t() at
+// render so the taxonomy is bilingual without duplicating this table.
 
 import type { Preferences } from "../../state/prefsStore";
 
 export interface Section {
+  /** i18n key (prefsConfig.sections.*). */
   title: string;
   items: Array<{
     key: keyof Preferences;
+    /** i18n key (prefsConfig.items.*.label). */
     label: string;
+    /** i18n key (prefsConfig.items.*.detail). */
     detail?: string;
     danger?: boolean;
   }>;
@@ -28,148 +36,149 @@ export type BoolPrefKey = {
 
 export interface Preset {
   id: string;
+  /** i18n key (prefsConfig.presets.*.label). */
   label: string;
+  /** i18n key (prefsConfig.presets.*.description). */
   description: string;
   values: Partial<Record<BoolPrefKey, boolean>>;
 }
 
 export const SECTIONS: Section[] = [
   {
-    title: "Paneles del draft",
+    title: "prefsConfig.sections.draftPanels",
     items: [
-      { key: "showSuggestions", label: "Top picks sugeridos" },
-      { key: "showDraftWinrate", label: "Probabilidad de ganar el draft" },
-      { key: "showCompAnalysis", label: "Análisis de composición" },
-      { key: "showBuildPanel", label: "Panel de build (items, runas, skills)" },
-      { key: "showEnemyScout", label: "Scout de enemigos" },
+      { key: "showSuggestions", label: "prefsConfig.items.showSuggestions.label" },
+      { key: "showDraftWinrate", label: "prefsConfig.items.showDraftWinrate.label" },
+      { key: "showCompAnalysis", label: "prefsConfig.items.showCompAnalysis.label" },
+      { key: "showBuildPanel", label: "prefsConfig.items.showBuildPanel.label" },
+      { key: "showEnemyScout", label: "prefsConfig.items.showEnemyScout.label" },
     ],
   },
   {
-    title: "Cómo se calculan las sugerencias",
+    title: "prefsConfig.sections.scoring",
     items: [
       {
         key: "usePersonalStats",
-        label: "Mi winrate personal por campeón",
-        detail: "Usa tus partidas reales para puntuar campeones que dominas",
+        label: "prefsConfig.items.usePersonalStats.label",
+        detail: "prefsConfig.items.usePersonalStats.detail",
       },
       {
         key: "useMastery",
-        label: "Mis maestrías",
-        detail: "Sube los campeones con maestría 5+ en el ranking",
+        label: "prefsConfig.items.useMastery.label",
+        detail: "prefsConfig.items.useMastery.detail",
       },
       {
         key: "useMetaTier",
-        label: "Tier list del meta global",
-        detail: "Datos de partidas Master+ (sincroniza en ⚙ > Sincronizar meta)",
+        label: "prefsConfig.items.useMetaTier.label",
+        detail: "prefsConfig.items.useMetaTier.detail",
       },
     ],
   },
   {
-    title: "Seguridad y experiencia",
+    title: "prefsConfig.sections.safetyUx",
     items: [
       {
         key: "safeMode",
-        label: "Modo seguro (desactiva todas las acciones automáticas)",
-        detail: "Solo lectura. Tú haces todos los clicks. La opción más conservadora frente al ToS de Riot.",
+        label: "prefsConfig.items.safeMode.label",
+        detail: "prefsConfig.items.safeMode.detail",
       },
       {
         key: "beginnerMode",
-        label: "Modo principiante",
-        detail: "Más explicaciones, tooltips y razones detrás de cada sugerencia.",
+        label: "prefsConfig.items.beginnerMode.label",
+        detail: "prefsConfig.items.beginnerMode.detail",
       },
     ],
   },
   {
-    title: "Acciones automáticas (LCU)",
+    title: "prefsConfig.sections.lcuAuto",
     items: [
       {
         key: "showRuneImportButton",
-        label: "Mostrar botón 'Aplicar runas al cliente'",
+        label: "prefsConfig.items.showRuneImportButton.label",
       },
       {
         key: "autoApplyRunes",
-        label: "Aplicar runas al confirmar campeón (lock-in)",
-        detail: "Aplica automáticamente las runas recomendadas al cerrar tu pick",
+        label: "prefsConfig.items.autoApplyRunes.label",
+        detail: "prefsConfig.items.autoApplyRunes.detail",
         danger: true,
       },
       {
         key: "autoApplyOnHover",
-        label: "Aplicar runas al hover (intent)",
-        detail: "Aplica las runas en cuanto pones intent, antes del lock",
+        label: "prefsConfig.items.autoApplyOnHover.label",
+        detail: "prefsConfig.items.autoApplyOnHover.detail",
         danger: true,
       },
       {
         key: "showSpellImportButton",
-        label: "Mostrar botón 'Aplicar hechizos al cliente'",
+        label: "prefsConfig.items.showSpellImportButton.label",
       },
       {
         key: "autoApplySpells",
-        label: "Aplicar hechizos al confirmar campeón (lock-in)",
-        detail: "Sobrescribe los summoner spells con los recomendados al lockear",
+        label: "prefsConfig.items.autoApplySpells.label",
+        detail: "prefsConfig.items.autoApplySpells.detail",
         danger: true,
       },
       {
         key: "autoApplyItemSet",
-        label: "Generar item set al cliente (visible en tienda in-game)",
-        detail: "Añade un item set 'Draftboard' a tu cuenta con starter/boots/core/situational al lockear. No borra tus otros sets.",
+        label: "prefsConfig.items.autoApplyItemSet.label",
+        detail: "prefsConfig.items.autoApplyItemSet.detail",
       },
       {
         key: "notifyOnEnemyHotStreak",
-        label: "Avisar si un enemigo está en racha",
+        label: "prefsConfig.items.notifyOnEnemyHotStreak.label",
       },
     ],
   },
   {
-    title: "Coach (post-game)",
+    title: "prefsConfig.sections.coachPostGame",
     items: [
-      { key: "coachAfterMatch", label: "Abrir coach automáticamente al acabar partida" },
-      { key: "coachShowGpi", label: "Mostrar GPI score y radar" },
+      { key: "coachAfterMatch", label: "prefsConfig.items.coachAfterMatch.label" },
+      { key: "coachShowGpi", label: "prefsConfig.items.coachShowGpi.label" },
     ],
   },
   {
-    title: "Tiempo real",
+    title: "prefsConfig.sections.realtime",
     items: [
-      { key: "liveTimer", label: "Mostrar timer del champ select en cabecera" },
-      { key: "liveScoutRefresh", label: "Refrescar scout enemigos cada 60s" },
+      { key: "liveTimer", label: "prefsConfig.items.liveTimer.label" },
+      { key: "liveScoutRefresh", label: "prefsConfig.items.liveScoutRefresh.label" },
       {
         key: "showInGameOverlay",
-        label: "Overlay transparente in-game (experimental)",
-        detail: "Ventana always-on-top con coach en vivo (alma/barón/muertes/HP), scores, objetivos y timers. Aparece solo durante partidas reales. Experimental: posición y click-through aún en ajuste — actívalo para probarlo en partida.",
+        label: "prefsConfig.items.showInGameOverlay.label",
+        detail: "prefsConfig.items.showInGameOverlay.detail",
       },
     ],
   },
   {
-    title: "Interfaz",
-    items: [{ key: "compactMode", label: "Modo compacto (paneles más densos)" }],
+    title: "prefsConfig.sections.ui",
+    items: [{ key: "compactMode", label: "prefsConfig.items.compactMode.label" }],
   },
   {
-    title: "Privacidad",
+    title: "prefsConfig.sections.privacy",
     items: [
       {
         key: "telemetryEnabled",
-        label: "Enviar reportes de error anónimos (Sentry)",
-        detail:
-          "Solo crashes y trazas de error — sin nombres, sin chat, sin partidas. Ayuda a arreglar bugs rápido. Cumple GDPR.",
+        label: "prefsConfig.items.telemetryEnabled.label",
+        detail: "prefsConfig.items.telemetryEnabled.detail",
       },
     ],
   },
   {
-    title: "Coach por voz",
+    title: "prefsConfig.sections.voiceCoach",
     items: [
       {
         key: "voiceCoachEnabled",
-        label: "Anuncios de voz en draft",
-        detail: "TTS del navegador anuncia bans recomendados, picks fuertes y enemigos en racha.",
+        label: "prefsConfig.items.voiceCoachEnabled.label",
+        detail: "prefsConfig.items.voiceCoachEnabled.detail",
       },
     ],
   },
   {
-    title: "AI Coach",
+    title: "prefsConfig.sections.aiCoach",
     items: [
       {
         key: "aiCoachEnabled",
-        label: "Habilitar AI Coach",
-        detail: "Análisis natural con LLM. Por defecto Groq (gratis). Configura la key abajo.",
+        label: "prefsConfig.items.aiCoachEnabled.label",
+        detail: "prefsConfig.items.aiCoachEnabled.detail",
       },
     ],
   },
@@ -183,8 +192,8 @@ export const SECTIONS: Section[] = [
 export const PRESETS: Preset[] = [
   {
     id: "beginner",
-    label: "Principiante",
-    description: "Toda la ayuda visible, auto-acciones moderadas",
+    label: "prefsConfig.presets.beginner.label",
+    description: "prefsConfig.presets.beginner.description",
     values: {
       showSuggestions: true,
       showDraftWinrate: true,
@@ -210,8 +219,8 @@ export const PRESETS: Preset[] = [
   },
   {
     id: "competitive",
-    label: "Competitivo",
-    description: "Panel limpio, automatización plena, sin distracciones",
+    label: "prefsConfig.presets.competitive.label",
+    description: "prefsConfig.presets.competitive.description",
     values: {
       showSuggestions: true,
       showDraftWinrate: false,
@@ -237,8 +246,8 @@ export const PRESETS: Preset[] = [
   },
   {
     id: "silent",
-    label: "Silencioso",
-    description: "Solo lecturas. La app NO toca tu cliente de LoL.",
+    label: "prefsConfig.presets.silent.label",
+    description: "prefsConfig.presets.silent.description",
     values: {
       showSuggestions: true,
       showDraftWinrate: true,
@@ -259,15 +268,18 @@ export const PRESETS: Preset[] = [
   },
 ];
 
-/** Match a single toggle entry against the search query (label + detail). */
+/** Match a single toggle entry against the search query (label + detail).
+ * `label`/`detail` are i18n keys, so the caller passes a translate fn and we
+ * match against the RESOLVED display text — search works in both languages. */
 export function matchesQuery(
   item: { label: string; detail?: string },
-  q: string
+  q: string,
+  t: (key: string) => string
 ): boolean {
   if (!q.trim()) return true;
   const needle = q.trim().toLowerCase();
   return (
-    item.label.toLowerCase().includes(needle) ||
-    (item.detail?.toLowerCase().includes(needle) ?? false)
+    t(item.label).toLowerCase().includes(needle) ||
+    (item.detail ? t(item.detail).toLowerCase().includes(needle) : false)
   );
 }

@@ -864,6 +864,53 @@
       "resetPrefsConfirm": "Reset"
     }
   },
+  "prefsConfig": {
+    "sections": {
+      "draftPanels": "Draft panels",
+      "scoring": "How suggestions are scored",
+      "safetyUx": "Safety & experience",
+      "lcuAuto": "Automatic actions (LCU)",
+      "coachPostGame": "Coach (post-game)",
+      "realtime": "Real-time",
+      "ui": "Interface",
+      "privacy": "Privacy",
+      "voiceCoach": "Voice coach",
+      "aiCoach": "AI Coach"
+    },
+    "items": {
+      "showSuggestions": { "label": "Suggested top picks" },
+      "showDraftWinrate": { "label": "Draft win probability" },
+      "showCompAnalysis": { "label": "Composition analysis" },
+      "showBuildPanel": { "label": "Build panel (items, runes, skills)" },
+      "showEnemyScout": { "label": "Enemy scout" },
+      "usePersonalStats": { "label": "My personal winrate per champion", "detail": "Uses your real games to score champions you're good at" },
+      "useMastery": { "label": "My masteries", "detail": "Bumps champions with mastery 5+ up the ranking" },
+      "useMetaTier": { "label": "Global meta tier list", "detail": "Master+ match data (sync in ⚙ > Sync meta)" },
+      "safeMode": { "label": "Safe mode (disables all automatic actions)", "detail": "Read-only. You make every click. The most conservative option re: Riot's ToS." },
+      "beginnerMode": { "label": "Beginner mode", "detail": "More explanations, tooltips and the reasons behind each suggestion." },
+      "showRuneImportButton": { "label": "Show the 'Apply runes to client' button" },
+      "autoApplyRunes": { "label": "Apply runes on lock-in", "detail": "Automatically applies the recommended runes when you lock your pick" },
+      "autoApplyOnHover": { "label": "Apply runes on hover (intent)", "detail": "Applies runes as soon as you set intent, before lock" },
+      "showSpellImportButton": { "label": "Show the 'Apply spells to client' button" },
+      "autoApplySpells": { "label": "Apply spells on lock-in", "detail": "Overwrites your summoner spells with the recommended ones on lock" },
+      "autoApplyItemSet": { "label": "Push item set to client (visible in the in-game shop)", "detail": "Adds a 'Draftboard' item set to your account with starter/boots/core/situational on lock. Doesn't delete your other sets." },
+      "notifyOnEnemyHotStreak": { "label": "Warn when an enemy is on a hot streak" },
+      "coachAfterMatch": { "label": "Open the coach automatically after a match" },
+      "coachShowGpi": { "label": "Show GPI score and radar" },
+      "liveTimer": { "label": "Show the champ-select timer in the header" },
+      "liveScoutRefresh": { "label": "Refresh enemy scout every 60s" },
+      "showInGameOverlay": { "label": "Transparent in-game overlay (experimental)", "detail": "Always-on-top window with a live coach (soul/baron/deaths/HP), scores, objectives and timers. Only appears during real games. Experimental: position and click-through are still being tuned — enable it to try it in a game." },
+      "compactMode": { "label": "Compact mode (denser panels)" },
+      "telemetryEnabled": { "label": "Send anonymous error reports (Sentry)", "detail": "Crashes and error traces only — no names, no chat, no matches. Helps fix bugs fast. GDPR-compliant." },
+      "voiceCoachEnabled": { "label": "Voice announcements in draft", "detail": "The browser's TTS announces recommended bans, strong picks and enemies on a streak." },
+      "aiCoachEnabled": { "label": "Enable AI Coach", "detail": "Natural LLM analysis. Groq by default (free). Set the key below." }
+    },
+    "presets": {
+      "beginner": { "label": "Beginner", "description": "All help visible, moderate auto-actions" },
+      "competitive": { "label": "Competitive", "description": "Clean panel, full automation, no distractions" },
+      "silent": { "label": "Silent", "description": "Reads only. The app does NOT touch your LoL client." }
+    }
+  },
   "phaseTimer": {
     "PLANNING": "Planning",
     "BAN_PICK": "Ban/Pick",
