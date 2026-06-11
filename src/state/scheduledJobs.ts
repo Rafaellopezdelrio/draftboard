@@ -30,13 +30,31 @@ const PATCH_POLL_INTERVAL_MS = 6 * 60 * 60 * 1000; // every 6h
 
 export function useScheduledJobs() {
   useEffect(() => {
+    // Re-entrancy guards: these callbacks are async and network-heavy (meta
+    // aggregation walks 150 summoners × 10 matches), so a slow run could still
+    // be in flight when the next interval tick fires → double aggregation /
+    // redundant DB upserts. A boolean in-flight flag makes a tick a no-op while
+    // the previous one is still running (the setTimeout-reschedule pattern the
+    // self-rescheduling hooks use avoids this structurally; an interval needs
+    // an explicit flag).
+    let personalRunning = false;
+    let metaRunning = false;
+
     // Personal data: try every 5min while client is open
     const personalTimer = setInterval(() => {
-      syncPersonalData().catch(() => {}); // silent fail, will retry
+      if (personalRunning) return;
+      personalRunning = true;
+      syncPersonalData()
+        .catch(() => {}) // silent fail, will retry
+        .finally(() => {
+          personalRunning = false;
+        });
     }, PERSONAL_SYNC_INTERVAL_MS);
 
     // Meta aggregation: SoloQ + Pro play. Pro play needs no key.
     const metaTimer = setInterval(async () => {
+      if (metaRunning) return;
+      metaRunning = true;
       try {
         const prefs = usePrefsStore.getState().prefs;
         const patch = await fetchLatestPatch();
@@ -62,6 +80,8 @@ export function useScheduledJobs() {
         }
       } catch {
         // ignore
+      } finally {
+        metaRunning = false;
       }
     }, 60 * 60 * 1000); // check hourly
 
