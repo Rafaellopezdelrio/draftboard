@@ -120,13 +120,17 @@ export function useNetworkStatus(): NetworkStatus {
     };
   }, [probe]);
 
+  // Memoized so consumers can safely list `retry` in effect deps without
+  // re-running every render (probe is itself a stable useCallback).
+  const retry = useCallback(async () => {
+    await probe();
+  }, [probe]);
+
   return {
     online,
     workerReachable,
     ok: online && workerReachable,
     lastOkAt,
-    retry: async () => {
-      await probe();
-    },
+    retry,
   };
 }
