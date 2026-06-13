@@ -162,7 +162,7 @@ import { validateProxyUrl } from "./services/inputValidation";
 import type { ChampionPersonalStat } from "./services/matchRepo";
 import { usePrefsStore } from "./state/prefsStore";
 import { probeRustRecoveryMarker } from "./db/client";
-import { setUiLocale } from "./i18n";
+import { setUiLocale, i18n } from "./i18n";
 import { useTranslation } from "react-i18next";
 import { useAutoActions } from "./state/autoActions";
 import { useOverlayFollowLol } from "./hooks/useOverlayFollowLol";
@@ -332,6 +332,26 @@ function App() {
   const setPref = usePrefsStore((s) => s.set);
   useEffect(() => {
     if (prefsLoaded) setUiLocale(uiLocale);
+  }, [uiLocale, prefsLoaded]);
+
+  // Relabel the native system-tray menu to match the UI locale. The menu is
+  // built in Rust with Spanish first-paint defaults (Mostrar/Ocultar/Salir);
+  // without this an EN user keeps a Spanish tray. Resolve labels for the
+  // explicit `uiLocale` (not the live t()) so we don't race i18next's async
+  // changeLanguage. No-op outside Tauri.
+  useEffect(() => {
+    if (!prefsLoaded || !("__TAURI_INTERNALS__" in window)) return;
+    void import("@tauri-apps/api/core")
+      .then(({ invoke }) =>
+        invoke("set_tray_labels", {
+          show: i18n.t("tray.show", { lng: uiLocale }),
+          hide: i18n.t("tray.hide", { lng: uiLocale }),
+          quit: i18n.t("tray.quit", { lng: uiLocale }),
+        })
+      )
+      .catch(() => {
+        /* tray relabel is best-effort; never block the UI */
+      });
   }, [uiLocale, prefsLoaded]);
 
   // Center-column tabs. The actionable column used to stack picks + build +

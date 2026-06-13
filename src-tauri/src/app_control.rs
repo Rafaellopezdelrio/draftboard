@@ -87,3 +87,28 @@ pub async fn set_tray_tooltip(app: tauri::AppHandle, text: String) -> Result<(),
     }
     Ok(())
 }
+
+/// Handles to the tray menu items, kept in managed state so the frontend
+/// can relabel them when the UI locale changes. The menu is built once in
+/// lib.rs with Spanish defaults (first paint before prefs hydrate); the
+/// frontend then calls `set_tray_labels` with the i18n-resolved strings on
+/// boot and on every locale switch — without this, EN users keep a Spanish
+/// tray (Mostrar/Ocultar/Salir) forever.
+pub struct TrayMenuItems {
+    pub show: tauri::menu::MenuItem<tauri::Wry>,
+    pub hide: tauri::menu::MenuItem<tauri::Wry>,
+    pub quit: tauri::menu::MenuItem<tauri::Wry>,
+}
+
+#[tauri::command]
+pub async fn set_tray_labels(
+    items: tauri::State<'_, TrayMenuItems>,
+    show: String,
+    hide: String,
+    quit: String,
+) -> Result<(), String> {
+    items.show.set_text(show).map_err(|e| e.to_string())?;
+    items.hide.set_text(hide).map_err(|e| e.to_string())?;
+    items.quit.set_text(quit).map_err(|e| e.to_string())?;
+    Ok(())
+}

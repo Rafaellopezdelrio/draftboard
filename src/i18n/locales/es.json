@@ -917,6 +917,11 @@
     "FINALIZATION": "Finalización",
     "GAME_STARTING": "Empieza..."
   },
+  "tray": {
+    "show": "Mostrar",
+    "hide": "Ocultar",
+    "quit": "Salir"
+  },
   "changelog": {
     "title": "Novedades de Draftboard"
   },

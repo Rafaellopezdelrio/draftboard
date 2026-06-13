@@ -23,7 +23,8 @@ mod overlay;
 mod panic_logger;
 
 use app_control::{
-    center_main_window, consume_reset_marker, emergency_reset, restart_app, set_tray_tooltip,
+    center_main_window, consume_reset_marker, emergency_reset, restart_app, set_tray_labels,
+    set_tray_tooltip, TrayMenuItems,
 };
 use db_admin::{
     consume_db_recovery_marker, db_backup_to, db_list_auto_backups, db_quarantine_corrupt,
@@ -252,6 +253,11 @@ pub fn run() {
                 })
                 .build(app)?;
 
+            // Hand the menu-item handles to managed state so the frontend can
+            // relabel them with i18n strings once prefs hydrate (the labels
+            // above are Spanish defaults for first paint). See set_tray_labels.
+            app.manage(TrayMenuItems { show, hide, quit });
+
             // Intercept the main window's close button so X → hide-to-tray
             // instead of quit. The user explicitly quits via tray menu
             // "Salir" or Ctrl+Shift+Q. Standard Discord/Mobalytics UX —
@@ -302,7 +308,8 @@ pub fn run() {
             restart_app,
             consume_reset_marker,
             center_main_window,
-            set_tray_tooltip
+            set_tray_tooltip,
+            set_tray_labels
         ])
         .run(tauri::generate_context!())
         .unwrap_or_else(|e| {
