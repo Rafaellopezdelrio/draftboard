@@ -58,7 +58,7 @@ export async function callAi(p: AiCallParams): Promise<string> {
   }
   if (!p.apiKey?.trim()) {
     throw new Error(
-      `Necesitas una API key de ${PROVIDER_LABELS[p.provider]}. Configúrala en Prefs.`
+      i18n.t("serviceErrors.aiKeyNeeded", { provider: PROVIDER_LABELS[p.provider] })
     );
   }
   switch (p.provider) {
@@ -86,7 +86,7 @@ async function callGroqViaProxy(p: AiCallParams, proxyUrl: string): Promise<stri
       messages,
     }),
   });
-  if (res.status === 429) throw new Error("Demasiadas peticiones, espera 1 min");
+  if (res.status === 429) throw new Error(i18n.t("serviceErrors.proxyRateLimit"));
   if (!res.ok)
     throw new Error(
       `AI Coach (${res.status}): ${(await res.text()).slice(0, 200)}`

@@ -965,7 +965,9 @@
     "noConnection": "No connection to {{target}}: {{detail}}",
     "keyExpired": "Invalid or expired API key. Dev keys last 24h — regenerate at developer.riotgames.com.",
     "riotIdNotFound": "Riot ID not found in the selected region.",
-    "lastMustBeUser": "The last message must be from the user"
+    "lastMustBeUser": "The last message must be from the user",
+    "aiKeyNeeded": "You need a {{provider}} API key. Set it in Prefs.",
+    "proxyRateLimit": "Too many requests, wait 1 min"
   },
   "engine": {
     "betterMetaTier": "Your team has the better meta tier",
