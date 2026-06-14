@@ -11,6 +11,24 @@ use tauri::Manager as _;
 
 use crate::db::{epoch_secs_to_ymd, ymd_to_epoch_secs};
 
+/// True for a rolling auto-backup filename (`auto-YYYY-MM-DD.db`).
+fn is_auto_backup_name(name: &str) -> bool {
+    name.starts_with("auto-") && name.ends_with(".db")
+}
+
+/// True when an `auto-YYYY-MM-DD.db` snapshot's encoded date is strictly older
+/// than `cutoff_secs` (epoch) — i.e. it should be pruned. Extracted pure so the
+/// "which backups get deleted" decision (the data-loss-adjacent path) is
+/// unit-testable without a filesystem or clock. Unparseable names return false
+/// (keep — never delete a snapshot we can't confidently date).
+fn backup_expired_by_name(name: &str, cutoff_secs: u64) -> bool {
+    name.strip_prefix("auto-")
+        .and_then(|s| s.strip_suffix(".db"))
+        .and_then(ymd_to_epoch_secs)
+        .map(|secs| secs < cutoff_secs)
+        .unwrap_or(false)
+}
+
 /// Rolling auto-backup of the SQLite DB. Called from `setup()` BEFORE
 /// the SQL plugin opens its first connection, so the snapshot is always
 /// pre-migration. Behaviour:
@@ -58,7 +76,7 @@ pub fn rolling_db_backup(app: &tauri::AppHandle) -> Result<(), String> {
             let Some(name) = p.file_name().and_then(|n| n.to_str()) else {
                 continue;
             };
-            if !name.starts_with("auto-") || !name.ends_with(".db") {
+            if !is_auto_backup_name(name) {
                 continue;
             }
             if let Ok(meta) = e.metadata() {
@@ -72,15 +90,8 @@ pub fn rolling_db_backup(app: &tauri::AppHandle) -> Result<(), String> {
                 }
             }
             // Belt-and-suspenders: also check name-encoded date.
-            if let Some(ymd) = name
-                .strip_prefix("auto-")
-                .and_then(|s| s.strip_suffix(".db"))
-            {
-                if let Some(ymd_secs) = ymd_to_epoch_secs(ymd) {
-                    if ymd_secs < cutoff {
-                        let _ = fs::remove_file(&p);
-                    }
-                }
+            if backup_expired_by_name(name, cutoff) {
+                let _ = fs::remove_file(&p);
             }
         }
     }
@@ -408,5 +419,25 @@ mod tests {
         // Non-absolute (relative) paths.
         assert!(validate_db_path("backup.db").is_err());
         assert!(validate_db_path("./backup.db").is_err());
+    }
+
+    #[test]
+    fn is_auto_backup_name_matches_only_rolling_snapshots() {
+        assert!(is_auto_backup_name("auto-2026-06-14.db"));
+        assert!(!is_auto_backup_name("manual-backup.db"));
+        assert!(!is_auto_backup_name("auto-2026-06-14.sqlite"));
+        assert!(!is_auto_backup_name("lol-draft-advisor.db"));
+    }
+
+    #[test]
+    fn backup_expired_by_name_prunes_only_dates_before_cutoff() {
+        // Anchor the cutoff at a known date, then probe the day on either side.
+        let cutoff = ymd_to_epoch_secs("2026-06-10").expect("valid ymd");
+        assert!(backup_expired_by_name("auto-2026-06-09.db", cutoff)); // older → prune
+        assert!(!backup_expired_by_name("auto-2026-06-10.db", cutoff)); // == cutoff → keep (strict <)
+        assert!(!backup_expired_by_name("auto-2026-06-11.db", cutoff)); // newer → keep
+        // Unparseable / non-snapshot names are never pruned by this path.
+        assert!(!backup_expired_by_name("auto-not-a-date.db", cutoff));
+        assert!(!backup_expired_by_name("manual.db", cutoff));
     }
 }
