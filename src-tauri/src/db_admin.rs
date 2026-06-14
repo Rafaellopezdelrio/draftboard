@@ -302,9 +302,31 @@ pub async fn db_quarantine_corrupt(app: tauri::AppHandle) -> Result<String, Stri
 /// We don't expose the source path or let the frontend pick the source —
 /// it's always the app's own DB. The target comes from a native file
 /// picker so we never write to arbitrary locations.
+/// Guard a frontend-supplied backup/restore path. These commands are meant to
+/// act only on a native-file-dialog result, but the Rust layer can't see where
+/// the string came from — so reject the shapes a compromised/XSS frontend would
+/// use: parent-dir traversal, UNC/network locations (an exfil-write channel),
+/// and non-absolute paths. A normal local dialog result (absolute, e.g.
+/// `C:\Users\me\Downloads\x.db`) passes — the user can still save anywhere
+/// local, we just block traversal + network targets.
+fn validate_db_path(path: &str) -> Result<(), String> {
+    if path.contains("..") {
+        return Err("path contains traversal".to_string());
+    }
+    // UNC / network path (\\server\share or //host/share) — exfil-write vector.
+    if path.starts_with("\\\\") || path.starts_with("//") {
+        return Err("network paths are not allowed".to_string());
+    }
+    if !std::path::Path::new(path).is_absolute() {
+        return Err("path must be absolute".to_string());
+    }
+    Ok(())
+}
+
 #[tauri::command]
 pub async fn db_backup_to(app: tauri::AppHandle, target_path: String) -> Result<u64, String> {
     use std::fs;
+    validate_db_path(&target_path)?;
     let app_data = app
         .path()
         .app_data_dir()
@@ -325,6 +347,8 @@ pub async fn db_backup_to(app: tauri::AppHandle, target_path: String) -> Result<
 pub async fn db_restore_from(app: tauri::AppHandle, source_path: String) -> Result<u64, String> {
     use std::fs;
     use std::io::Read;
+
+    validate_db_path(&source_path)?;
 
     // Validate magic header. SQLite 3 files start with "SQLite format 3\0".
     let mut f = fs::File::open(&source_path).map_err(|e| format!("can't open source: {e}"))?;
@@ -351,4 +375,38 @@ pub async fn db_restore_from(app: tauri::AppHandle, source_path: String) -> Resu
 
     let bytes = fs::copy(&source_path, &target).map_err(|e| format!("copy failed: {e}"))?;
     Ok(bytes)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn validate_db_path_accepts_absolute_local_paths() {
+        // `is_absolute()` is platform-dependent (a C:\ path is absolute on
+        // Windows but relative on Linux, and vice-versa), so assert each
+        // platform's own native-dialog shape — the prod target is Windows.
+        #[cfg(windows)]
+        {
+            assert!(validate_db_path(r"C:\Users\me\Downloads\draftboard.db").is_ok());
+            assert!(validate_db_path(r"C:\Users\me\backup.sqlite").is_ok());
+        }
+        #[cfg(unix)]
+        {
+            assert!(validate_db_path("/home/me/Downloads/draftboard.db").is_ok());
+        }
+    }
+
+    #[test]
+    fn validate_db_path_rejects_traversal_unc_and_relative() {
+        // Parent-dir traversal.
+        assert!(validate_db_path(r"C:\Users\me\..\..\Windows\System32\x.db").is_err());
+        assert!(validate_db_path("/home/me/../../etc/passwd").is_err());
+        // UNC / network exfil-write targets.
+        assert!(validate_db_path(r"\\attacker\share\steal.db").is_err());
+        assert!(validate_db_path("//attacker/share/steal.db").is_err());
+        // Non-absolute (relative) paths.
+        assert!(validate_db_path("backup.db").is_err());
+        assert!(validate_db_path("./backup.db").is_err());
+    }
 }
