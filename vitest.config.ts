@@ -28,13 +28,15 @@ export default defineConfig({
         "src-tauri/**",
       ],
       thresholds: {
-        // "No regression" gate. Current baseline ~17% statements. Every bug
-        // we fix adds a test, gradually tightening these numbers. Tighten
-        // by +5% every sprint until we hit 70%.
-        statements: 15,
-        branches: 60,
-        functions: 25,
-        lines: 15,
+        // "No regression" gate, set a few points below the measured actuals
+        // (≈35% stmts / 78% branches / 52% fns as of 2026-06) so normal churn
+        // doesn't false-fail while a real coverage drop does. Meets the
+        // TESTING_POLICY 2026-06-01 milestone (25% stmts / 45% fns). Ratchet
+        // up toward the actuals each sprint until we hit the 70% goal.
+        statements: 30,
+        branches: 70,
+        functions: 45,
+        lines: 30,
       },
     },
   },
