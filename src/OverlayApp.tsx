@@ -274,7 +274,7 @@ export function OverlayApp() {
             <button
               onClick={close}
               className="text-white/40 hover:text-white transition pointer-events-auto"
-              aria-label="Cerrar overlay"
+              aria-label={t("overlay.close")}
             >
               <X className="w-3 h-3" />
             </button>
@@ -287,7 +287,7 @@ export function OverlayApp() {
         <div className="flex items-center justify-between px-1">
           <span
             className="text-blue-300 font-bold tabular-nums text-base leading-none"
-            title="Tu equipo"
+            title={t("overlay.yourTeam")}
           >
             {myKills}
           </span>
@@ -296,7 +296,7 @@ export function OverlayApp() {
           </span>
           <span
             className="text-red-300 font-bold tabular-nums text-base leading-none"
-            title="Equipo enemigo"
+            title={t("overlay.enemyTeam")}
           >
             {theirKills}
           </span>
@@ -357,7 +357,7 @@ export function OverlayApp() {
         {allies.length > 0 && (
           <div className="border-t border-white/10 pt-1.5 space-y-0.5">
             <p className="text-[8px] uppercase tracking-widest text-blue-300/80 font-semibold">
-              Aliados
+              {t("overlay.allies")}
             </p>
             {allies.map((p) => (
               <PlayerLine key={p.summonerName} p={p} />
@@ -367,7 +367,7 @@ export function OverlayApp() {
         {enemies.length > 0 && (
           <div className="border-t border-white/10 pt-1.5 space-y-0.5">
             <p className="text-[8px] uppercase tracking-widest text-red-300/80 font-semibold">
-              Enemigos
+              {t("overlay.enemies")}
             </p>
             {enemies.map((p) => (
               <PlayerLine key={p.summonerName} p={p} enemy />

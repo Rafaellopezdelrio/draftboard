@@ -917,6 +917,13 @@
     "FINALIZATION": "Finalizing",
     "GAME_STARTING": "Starting..."
   },
+  "overlay": {
+    "close": "Close overlay",
+    "yourTeam": "Your team",
+    "enemyTeam": "Enemy team",
+    "allies": "Allies",
+    "enemies": "Enemies"
+  },
   "tray": {
     "show": "Show",
     "hide": "Hide",
