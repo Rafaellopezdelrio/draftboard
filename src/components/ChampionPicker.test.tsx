@@ -13,6 +13,7 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ChampionPicker } from "./ChampionPicker";
+import { i18n } from "../i18n";
 import type { Champion } from "../types/champion";
 
 function mockChamp(overrides: Partial<Champion> = {}): Champion {
@@ -41,7 +42,7 @@ describe("ChampionPicker — ARIA + mouse contract", () => {
     expect(dialog).toHaveAttribute("aria-modal", "true");
     const labelId = dialog.getAttribute("aria-labelledby");
     expect(labelId).toBeTruthy();
-    expect(document.getElementById(labelId!)).toHaveTextContent("Seleccionar campeón");
+    expect(document.getElementById(labelId!)).toHaveTextContent(i18n.t("championPicker.title"));
   });
 
   it("renders role=listbox with role=option entries", () => {
@@ -103,7 +104,7 @@ describe("ChampionPicker — ARIA + mouse contract", () => {
     );
     const status = screen.getByRole("status");
     expect(status).toHaveAttribute("aria-live", "polite");
-    expect(status).toHaveTextContent("Sin resultados");
+    expect(status).toHaveTextContent(i18n.t("championPicker.noResults"));
   });
 
   it("backdrop click fires onClose, dialog click does NOT", () => {
