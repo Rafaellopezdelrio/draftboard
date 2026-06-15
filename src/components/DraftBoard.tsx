@@ -1,5 +1,6 @@
 import { useMemo, useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
+import { useShallow } from "zustand/react/shallow";
 import type { ChampionDb } from "../types/champion";
 import { useDraftStore, type Side } from "../state/draftStore";
 import { ChampionPicker } from "./ChampionPicker";
@@ -12,7 +13,19 @@ interface Props {
 
 export function DraftBoard({ db, lcuConnected = false }: Props) {
   const { t } = useTranslation();
-  const { ally, enemy, bans, setPick, setBan, reset } = useDraftStore();
+  // Shallow-select only the slots/setters the board uses, so champ-select
+  // frames that touch unrelated store fields (phase, timerSec, myCellId) don't
+  // re-render the whole grid. Setters are stable Zustand refs.
+  const { ally, enemy, bans, setPick, setBan, reset } = useDraftStore(
+    useShallow((s) => ({
+      ally: s.ally,
+      enemy: s.enemy,
+      bans: s.bans,
+      setPick: s.setPick,
+      setBan: s.setBan,
+      reset: s.reset,
+    }))
+  );
   const [picker, setPicker] = useState<
     | { kind: "pick"; side: Side; index: number }
     | { kind: "ban"; side: Side; index: number }

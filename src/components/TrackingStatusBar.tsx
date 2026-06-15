@@ -10,6 +10,7 @@
 
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useShallow } from "zustand/react/shallow";
 import { Wifi, WifiOff, Swords, Activity, Clock } from "lucide-react";
 import type { LcuStatus } from "../services/lcuService";
 import type { GamePhase } from "../state/inGameDetection";
@@ -23,7 +24,12 @@ interface Props {
 
 export function TrackingStatusBar({ lcuStatus, gamePhase }: Props) {
   const { t } = useTranslation();
-  const draftState = useDraftStore();
+  // Only the three slot arrays are read (for hasDraftData); shallow-select so
+  // the always-mounted bar doesn't re-render on every unrelated store mutation
+  // on top of its own 1s tick.
+  const draftState = useDraftStore(
+    useShallow((s) => ({ ally: s.ally, enemy: s.enemy, bans: s.bans }))
+  );
   const liveGame = useLiveGame(true);
 
   // Tick every second so "Xs ago" updates without each consumer re-rendering.
