@@ -35,3 +35,7 @@ Tauri-plugin-sql runs these in order on app start. Tracked in the
 | 4 | `004_matchup_tracking.sql` | Per-matchup personal stats |
 | 5 | `005_ai_memory.sql` | AI conversation memory + lesson plans + champion guides |
 | 6 | `006_ai_matchup_tips_cache.sql` | Cached matchup tips from AI |
+| 7 | `007_aggregate_patch_indexes.sql` | Patch indexes on meta_aggregate / counter_aggregate |
+| 8 | `008_chat_history.sql` | Persisted AI coach chat conversations + messages |
+| 9 | `009_champion_tips.sql` | Cached AI pre-game tips per (champion, role, patch) |
+| 10 | `010_match_vision_gold.sql` | Per-match vision score + gold earned (nullable) for leak analysis |
