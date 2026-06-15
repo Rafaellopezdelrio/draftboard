@@ -74,7 +74,11 @@ export function LogViewerModal({ onClose }: Props) {
   }
 
   useEffect(() => {
+    // Load the log once when the modal opens; a refresh control re-reads it
+    // explicitly. loadLog is a fresh closure each render — adding it to deps
+    // would re-read the file on every render.
     loadLog();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function copyAll() {

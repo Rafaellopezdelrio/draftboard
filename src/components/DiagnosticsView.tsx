@@ -45,7 +45,11 @@ export function DiagnosticsView({ onClose }: Props) {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
+    // Run the probes once when the dialog opens; the "re-run" button covers
+    // manual refresh. runChecks closes over fresh state each render, so adding
+    // it to deps would re-fire the whole probe batch on every render.
     runChecks();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function runChecks() {
