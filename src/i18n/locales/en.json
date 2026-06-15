@@ -793,6 +793,7 @@
   "dataPrivacy": {
     "title": "Your data",
     "matchesCount": "{{count}} matches saved",
+    "backupDbTitle": "Save a database backup",
     "stored": {
       "title": "What do we store?",
       "detail": "Everything in local SQLite. Your match data never leaves this PC.",

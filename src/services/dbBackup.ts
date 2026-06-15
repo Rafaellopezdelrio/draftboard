@@ -12,6 +12,7 @@
 
 import { invoke } from "@tauri-apps/api/core";
 import { save, open } from "@tauri-apps/plugin-dialog";
+import { i18n } from "../i18n";
 
 function isTauri(): boolean {
   return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
@@ -52,7 +53,7 @@ export async function listAutoBackups(): Promise<AutoBackupEntry[]> {
  * Same Rust validation as the manual file picker — magic header check +
  * safety copy to .pre-restore. */
 export async function restoreFromPath(sourcePath: string): Promise<number> {
-  if (!isTauri()) throw new Error("Solo disponible en la app de escritorio");
+  if (!isTauri()) throw new Error(i18n.t("about.desktopOnly"));
   return await invoke<number>("db_restore_from", { sourcePath });
 }
 
@@ -70,11 +71,11 @@ export interface RestoreResult {
  */
 export async function backupDatabase(): Promise<BackupResult> {
   if (!isTauri()) {
-    throw new Error("Solo disponible en la app de escritorio");
+    throw new Error(i18n.t("about.desktopOnly"));
   }
   const filename = `draftboard-backup-${new Date().toISOString().slice(0, 10)}.db`;
   const target = await save({
-    title: "Guardar copia de seguridad de la base de datos",
+    title: i18n.t("dataPrivacy.backupDbTitle"),
     defaultPath: filename,
     filters: [{ name: "SQLite DB", extensions: ["db", "sqlite", "sqlite3"] }],
   });
@@ -95,10 +96,10 @@ export async function backupDatabase(): Promise<BackupResult> {
  */
 export async function restoreDatabase(): Promise<RestoreResult> {
   if (!isTauri()) {
-    throw new Error("Solo disponible en la app de escritorio");
+    throw new Error(i18n.t("about.desktopOnly"));
   }
   const source = await open({
-    title: "Selecciona una copia de seguridad de Draftboard",
+    title: i18n.t("dataPrivacy.toast.pickBackup"),
     multiple: false,
     directory: false,
     filters: [{ name: "SQLite DB", extensions: ["db", "sqlite", "sqlite3"] }],

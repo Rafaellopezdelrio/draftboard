@@ -793,6 +793,7 @@
   "dataPrivacy": {
     "title": "Tus datos",
     "matchesCount": "{{count}} partidas guardadas",
+    "backupDbTitle": "Guardar copia de seguridad de la base de datos",
     "stored": {
       "title": "¿Qué guardamos?",
       "detail": "Todo en SQLite local. Tus partidas nunca salen de aquí.",
