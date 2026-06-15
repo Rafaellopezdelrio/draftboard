@@ -112,7 +112,7 @@ function maybeProxify(url: string): string {
   return `${proxyUrl}/api/${m[1]}${m[2]}`;
 }
 
-async function api<T>(url: string, key: string, attempt = 0): Promise<T> {
+async function api<T>(url: string, key: string, attempt = 0, rlAttempt = 0): Promise<T> {
   await limiter.take();
   const finalUrl = maybeProxify(url);
   // When using the proxy, the X-Riot-Token header is injected server-side.
@@ -127,7 +127,7 @@ async function api<T>(url: string, key: string, attempt = 0): Promise<T> {
     // Network-level error — retry up to 3 times with exponential backoff
     if (attempt < 3) {
       await new Promise((r) => setTimeout(r, 500 * 2 ** attempt));
-      return api(url, key, attempt + 1);
+      return api(url, key, attempt + 1, rlAttempt);
     }
     throw new Error(
       i18n.t("serviceErrors.noConnection", {
@@ -137,9 +137,20 @@ async function api<T>(url: string, key: string, attempt = 0): Promise<T> {
     );
   }
   if (res.status === 429) {
-    const retry = parseInt(res.headers.get("Retry-After") ?? "5", 10);
-    await new Promise((r) => setTimeout(r, retry * 1000));
-    return api(url, key, attempt);
+    // Bound rate-limit retries. Previously this recursed with an
+    // un-incremented `attempt`, so a sustained 429 (proxy misconfig, hard
+    // throttle, or a broken proxy returning Retry-After: 0) looped forever and
+    // the caller's await hung with no error. Cap the retry count and clamp the
+    // wait (≥1s avoids a busy loop on Retry-After: 0; ≤30s avoids sleeping for
+    // a malicious huge value; NaN → 5s), then surface a rate-limit error so
+    // callers fall back to cached data.
+    if (rlAttempt >= 5) {
+      throw new Error(i18n.t("serviceErrors.proxyRateLimit"));
+    }
+    const raw = parseInt(res.headers.get("Retry-After") ?? "5", 10);
+    const waitSec = Number.isFinite(raw) ? Math.min(Math.max(raw, 1), 30) : 5;
+    await new Promise((r) => setTimeout(r, waitSec * 1000));
+    return api(url, key, attempt, rlAttempt + 1);
   }
   if (res.status === 401 || res.status === 403) {
     throw new Error(i18n.t("serviceErrors.keyExpired"));
@@ -150,7 +161,7 @@ async function api<T>(url: string, key: string, attempt = 0): Promise<T> {
   if (res.status >= 500 && attempt < 3) {
     // Server error — Riot occasionally has 503s, retry
     await new Promise((r) => setTimeout(r, 1000 * 2 ** attempt));
-    return api(url, key, attempt + 1);
+    return api(url, key, attempt + 1, rlAttempt);
   }
   if (!res.ok) throw new Error(`Riot API ${res.status}: ${url}`);
   return res.json() as Promise<T>;
