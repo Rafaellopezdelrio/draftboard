@@ -94,3 +94,14 @@ jobs:
 
       - name: Unit tests
         run: cd src-tauri && cargo test --release
+
+      # Dependency vulnerability scan against the RustSec advisory DB. The
+      # network-facing crate tree (reqwest / tokio-tungstenite / rustls, plus a
+      # deliberate localhost-only NoVerify TLS path) is worth watching.
+      # Non-blocking for now — surfaces advisories without gating merges; flip
+      # continue-on-error off once the baseline is clean.
+      - name: cargo audit (advisory scan)
+        continue-on-error: true
+        run: |
+          cargo install cargo-audit --locked
+          cd src-tauri && cargo audit
