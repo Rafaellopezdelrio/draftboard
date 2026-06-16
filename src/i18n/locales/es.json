@@ -361,7 +361,8 @@
     "yourTeam": "Tu equipo",
     "enemies": "Enemigos",
     "resetDraft": "Reiniciar draft",
-    "rightClickGuide": "Click derecho: ver guía de {{name}}"
+    "rightClickGuide": "Click derecho: ver guía de {{name}}",
+    "pickSlot": "Pick {{n}}"
   },
   "suggestions": {
     "empty": "Selecciona algún campeón para ver sugerencias.",
@@ -584,7 +585,10 @@
     "waiting": "Esperando respuesta...",
     "askPlaceholder": "Escribe tu pregunta...",
     "sendTip": "Enviar mensaje (Enter)",
-    "conversationLabel": "Conversación con el coach AI"
+    "conversationLabel": "Conversación con el coach AI",
+    "emptyTitle": "Pregúntame lo que quieras sobre tu juego",
+    "emptyBody": "Tengo acceso a tus últimas 20 partidas, maestrías y rango. Puedo analizar patrones, sugerir picks, plan de mejora.",
+    "send": "Enviar"
   },
   "championGuide": {
     "attack": "Ataque",
@@ -744,7 +748,8 @@
     "no": "No",
     "confirm": "Confirmar",
     "yourMain": "tu main",
-    "hide": "Ocultar"
+    "hide": "Ocultar",
+    "unknownError": "Error desconocido"
   },
   "settings": {
     "title": "Configuración",
@@ -808,7 +813,8 @@
     "betaOption": "Beta (acceso anticipado)",
     "proxyActiveTitle": "🌟 Modo proxy premium activo",
     "proxyActiveBodyPrefix": "Las features que necesitan Riot API funcionan sin que tú configures key. El proxy",
-    "proxyActiveBodySuffix": "se encarga."
+    "proxyActiveBodySuffix": "se encarga.",
+    "resync": "Re-sync"
   },
   "preferences": {
     "title": "Preferencias",
@@ -1193,7 +1199,13 @@
     "technicalDetails": "Detalles técnicos",
     "copyToClipboard": "Copiar error al portapapeles",
     "copied": "Copiado",
-    "tellUs": "Contarnos qué pasó"
+    "tellUs": "Contarnos qué pasó",
+    "dbLoad": {
+      "title": "No pude cargar los datos",
+      "body": "Algo bloqueó la primera descarga de campeones y meta. Suele ser red sin conexión o el backend caído.",
+      "diagnostics": "Diagnóstico",
+      "offlineNote": "La app sigue funcionando offline si ya cargaste datos antes."
+    }
   },
   "patchBanner": {
     "newPatch": "Parche nuevo:",
@@ -1288,5 +1300,12 @@
     "counters": "Counters según items enemigos",
     "dragon": "Dragón",
     "baron": "Barón"
+  },
+  "toast": {
+    "region": "Notificaciones",
+    "dismiss": "Cerrar notificación"
+  },
+  "grade": {
+    "tooltip": "Grade: {{grade}}"
   }
 }

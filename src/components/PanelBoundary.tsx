@@ -9,6 +9,7 @@
 // down the whole app.
 
 import { useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { AlertTriangle, RotateCw } from "lucide-react";
 import { SentryErrorBoundary, captureException } from "../services/sentry";
 
@@ -47,12 +48,13 @@ function InlineFallback({
   name: string;
   onRetry: () => void;
 }) {
+  const { t } = useTranslation();
   const message =
     error instanceof Error
       ? error.message
       : typeof error === "string"
         ? error
-        : "Error desconocido";
+        : t("common.unknownError");
 
   // Re-report with panel tag so triage knows which panel crashed.
   // Sentry dedups identical events so this is safe to call on every render.
@@ -80,7 +82,7 @@ function InlineFallback({
         className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider px-2 py-1 rounded ring-1 ring-accent/40 bg-accent/10 text-accent hover:bg-accent/20 transition"
       >
         <RotateCw className="w-3 h-3" />
-        Reintentar
+        {t("common.retry")}
       </button>
     </div>
   );

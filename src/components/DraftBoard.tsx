@@ -261,7 +261,7 @@ function SideColumn({
                   </>
                 ) : (
                   <p className="text-[10px] text-white/25 uppercase tracking-widest">
-                    Pick {slot.index + 1}
+                    {t("draft.pickSlot", { n: slot.index + 1 })}
                   </p>
                 )}
               </div>

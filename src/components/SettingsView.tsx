@@ -378,7 +378,7 @@ export function SettingsView({ onClose }: Props) {
             className="px-3 py-2 bg-bg-card border border-bad/40 rounded text-bad/90 hover:border-bad disabled:opacity-50"
             title={t("settings.resyncTooltip")}
           >
-            Re-sync
+            {t("settings.resync")}
           </button>
           <button
             disabled={busy}

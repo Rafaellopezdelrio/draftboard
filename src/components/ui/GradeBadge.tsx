@@ -1,5 +1,7 @@
 // OP.GG-style letter grade badge based on a 0-100 score.
 
+import { useTranslation } from "react-i18next";
+
 interface Props {
   score: number; // 0-1
   size?: "sm" | "md" | "lg";
@@ -25,6 +27,7 @@ const STYLES = {
 } as const;
 
 export function GradeBadge({ score, size = "md" }: Props) {
+  const { t } = useTranslation();
   const { grade, tier } = scoreToGrade(score);
   const sz =
     size === "sm"
@@ -35,7 +38,7 @@ export function GradeBadge({ score, size = "md" }: Props) {
   return (
     <span
       className={`inline-flex items-center justify-center rounded-md font-extrabold tracking-tight ring-1 ${sz} ${STYLES[tier]}`}
-      title={`Grade: ${grade}`}
+      title={t("grade.tooltip", { grade })}
     >
       {grade}
     </span>

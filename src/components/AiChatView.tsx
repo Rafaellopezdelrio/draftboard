@@ -311,11 +311,10 @@ export function AiChatView({ db, onClose }: Props) {
                   <Sparkles className="w-5 h-5 text-accent shrink-0 mt-0.5" />
                   <div>
                     <p className="text-sm font-semibold text-white mb-1">
-                      Pregúntame lo que quieras sobre tu juego
+                      {t("aiChat.emptyTitle")}
                     </p>
                     <p className="text-xs text-white/65 leading-snug">
-                      Tengo acceso a tus últimas 20 partidas, maestrías y rango.
-                      Puedo analizar patrones, sugerir picks, plan de mejora.
+                      {t("aiChat.emptyBody")}
                     </p>
                   </div>
                 </div>
@@ -426,7 +425,7 @@ export function AiChatView({ db, onClose }: Props) {
               title={t("aiChat.sendTip")}
             >
               <Send className="w-3.5 h-3.5" />
-              Enviar
+              {t("aiChat.send")}
             </button>
           </form>
           {!apiKey && (

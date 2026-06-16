@@ -536,16 +536,15 @@ function App() {
         <div className="max-w-md w-full bg-bg-card border border-bad/40 rounded-lg p-6 space-y-4">
           <div>
             <p className="text-lg font-semibold text-bad">
-              No pude cargar los datos
+              {t("errors.dbLoad.title")}
             </p>
             <p className="text-sm text-white/65 mt-2">
-              Algo bloqueó la primera descarga de campeones y meta. Suele ser
-              red sin conexión o el backend caído.
+              {t("errors.dbLoad.body")}
             </p>
           </div>
           <details className="text-xs text-white/45">
             <summary className="cursor-pointer hover:text-white/70">
-              Detalles técnicos
+              {t("errors.technicalDetails")}
             </summary>
             <pre className="mt-2 p-2 bg-bg rounded text-[10px] overflow-auto max-h-32">
               {error}
@@ -556,7 +555,7 @@ function App() {
               onClick={retryDbBoot}
               className="flex-1 px-3 py-2 bg-accent text-black font-medium rounded hover:bg-accent-deep transition"
             >
-              Reintentar
+              {t("common.retry")}
             </button>
             <button
               onClick={() => {
@@ -565,11 +564,11 @@ function App() {
               }}
               className="flex-1 px-3 py-2 bg-bg-elev border border-border-subtle text-white/80 rounded hover:bg-bg-card transition"
             >
-              Diagnóstico
+              {t("errors.dbLoad.diagnostics")}
             </button>
           </div>
           <p className="text-[10px] text-white/40 text-center">
-            La app sigue funcionando offline si ya cargaste datos antes.
+            {t("errors.dbLoad.offlineNote")}
           </p>
         </div>
         {showDiag && <DiagnosticsView onClose={() => setShowDiag(false)} />}

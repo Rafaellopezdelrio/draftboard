@@ -18,6 +18,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useTranslation } from "react-i18next";
 import {
   AlertCircle,
   AlertTriangle,
@@ -130,6 +131,8 @@ export function ToastProvider({ children }: ProviderProps) {
     return () => window.removeEventListener("keydown", onKey);
   }, [toasts, dismiss]);
 
+  const { t } = useTranslation();
+
   return (
     <ToastContext.Provider value={{ push, dismiss, dismissAll }}>
       {children}
@@ -137,7 +140,7 @@ export function ToastProvider({ children }: ProviderProps) {
           a toast is always reachable even when a dialog is open. */}
       <div
         role="region"
-        aria-label="Notificaciones"
+        aria-label={t("toast.region")}
         aria-live="polite"
         className="fixed top-4 right-4 z-[90] flex flex-col gap-2 max-w-sm w-full pointer-events-none"
       >
@@ -150,12 +153,13 @@ export function ToastProvider({ children }: ProviderProps) {
 }
 
 function ToastCard({
-  toast: t,
+  toast,
   onDismiss,
 }: {
   toast: Toast;
   onDismiss: () => void;
 }) {
+  const { t } = useTranslation();
   const variants: Record<
     ToastType,
     { ring: string; bg: string; text: string; Icon: typeof Info }
@@ -165,33 +169,33 @@ function ToastCard({
     warn: { ring: "ring-meh/40", bg: "bg-meh/10", text: "text-meh", Icon: AlertTriangle },
     error: { ring: "ring-bad/40", bg: "bg-bad/15", text: "text-bad", Icon: AlertCircle },
   };
-  const v = variants[t.type];
+  const v = variants[toast.type];
   return (
     <div
-      role={t.type === "error" ? "alert" : "status"}
+      role={toast.type === "error" ? "alert" : "status"}
       className={`pointer-events-auto rounded-lg ring-1 ${v.ring} ${v.bg} shadow-2xl p-3 flex items-start gap-2 animate-[scaleIn_180ms_ease-out]`}
     >
       <v.Icon className={`w-4 h-4 shrink-0 mt-0.5 ${v.text}`} aria-hidden="true" />
       <div className="flex-1 min-w-0">
-        <p className={`text-sm font-medium ${v.text}`}>{t.title}</p>
-        {t.detail && (
-          <p className="text-xs text-white/70 mt-0.5 leading-snug">{t.detail}</p>
+        <p className={`text-sm font-medium ${v.text}`}>{toast.title}</p>
+        {toast.detail && (
+          <p className="text-xs text-white/70 mt-0.5 leading-snug">{toast.detail}</p>
         )}
-        {t.action && (
+        {toast.action && (
           <button
             onClick={() => {
-              t.action!.onClick();
+              toast.action!.onClick();
               onDismiss();
             }}
             className={`mt-1.5 text-[10px] uppercase tracking-widest font-semibold ${v.text} hover:underline`}
           >
-            {t.action.label}
+            {toast.action.label}
           </button>
         )}
       </div>
       <button
         onClick={onDismiss}
-        aria-label="Cerrar notificación"
+        aria-label={t("toast.dismiss")}
         className="text-white/40 hover:text-white shrink-0"
       >
         <X className="w-3.5 h-3.5" />
