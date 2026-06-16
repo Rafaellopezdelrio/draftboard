@@ -339,14 +339,14 @@ export function OverlayApp() {
             {timers.nextDragonAt !== null && (
               <ObjectiveRow
                 icon={<Sparkles className="w-2.5 h-2.5 text-orange-300" />}
-                label="Drake"
+                label={t("liveGame.dragon")}
                 etaSec={timers.nextDragonAt - timers.gameTime}
               />
             )}
             {timers.nextBaronAt !== null && (
               <ObjectiveRow
                 icon={<Crown className="w-2.5 h-2.5 text-purple-300" />}
-                label="Baron"
+                label={t("liveGame.baron")}
                 etaSec={timers.nextBaronAt - timers.gameTime}
               />
             )}

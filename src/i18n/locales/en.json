@@ -1272,5 +1272,21 @@
     "errorPrefix": "Error:",
     "description": "The error was reported automatically. You can retry — if it fails again, close the view and try something else.",
     "copy": "Copy"
+  },
+  "liveTimers": {
+    "heading": "Objectives · timers",
+    "spawnNow": "↑ Spawn now",
+    "next": "Next: {{label}}",
+    "lastAt": "last at {{time}}",
+    "firstSpawn": "1st spawn: {{min}}min",
+    "respawn": "Respawn: {{min}}min",
+    "wardTip": "Ward the river 30s before spawn. Push side waves first.",
+    "dead": "dead",
+    "now": "now"
+  },
+  "liveGame": {
+    "counters": "Counters by enemy items",
+    "dragon": "Drake",
+    "baron": "Baron"
   }
 }

@@ -1272,5 +1272,21 @@
     "errorPrefix": "Error:",
     "description": "El error se reportó automáticamente. Puedes reintentar — si vuelve a fallar, cierra la vista y prueba otra cosa.",
     "copy": "Copiar"
+  },
+  "liveTimers": {
+    "heading": "Objetivos · timers",
+    "spawnNow": "↑ Spawn ahora",
+    "next": "Próximo: {{label}}",
+    "lastAt": "último a {{time}}",
+    "firstSpawn": "1ª spawn: {{min}}min",
+    "respawn": "Respawn: {{min}}min",
+    "wardTip": "Wardea río 30s antes del spawn. Empuja waves laterales primero.",
+    "dead": "muerto",
+    "now": "ahora"
+  },
+  "liveGame": {
+    "counters": "Counters según items enemigos",
+    "dragon": "Dragón",
+    "baron": "Barón"
   }
 }

@@ -249,7 +249,7 @@ export function LiveGamePanel({ db }: LiveGamePanelProps = {}) {
       <div className="flex items-center justify-between text-xs mb-2">
         <span
           className="text-blue-300 font-semibold tabular-nums"
-          title="Tu equipo"
+          title={t("overlay.yourTeam")}
         >
           {myKills}
         </span>
@@ -258,7 +258,7 @@ export function LiveGamePanel({ db }: LiveGamePanelProps = {}) {
         </span>
         <span
           className="text-red-300 font-semibold tabular-nums"
-          title="Equipo enemigo"
+          title={t("overlay.enemyTeam")}
         >
           {theirKills}
         </span>
@@ -303,7 +303,7 @@ export function LiveGamePanel({ db }: LiveGamePanelProps = {}) {
           <div className="flex items-center gap-1.5 mb-1">
             <Shield className="w-3 h-3 text-accent" />
             <p className="text-[10px] uppercase tracking-widest text-accent font-semibold">
-              Counters según items enemigos
+              {t("liveGame.counters")}
             </p>
           </div>
           {inGameSuggestions.map((s) => (
@@ -339,7 +339,7 @@ export function LiveGamePanel({ db }: LiveGamePanelProps = {}) {
           {timers.nextDragonAt !== null && (
             <ObjectiveRow
               icon={<Sparkles className="w-3 h-3 text-orange-300" />}
-              label="Dragón"
+              label={t("liveGame.dragon")}
               etaSec={timers.nextDragonAt - gameTime}
               now={timers.nextDragonAt <= gameTime}
             />
@@ -347,7 +347,7 @@ export function LiveGamePanel({ db }: LiveGamePanelProps = {}) {
           {timers.nextBaronAt !== null && (
             <ObjectiveRow
               icon={<Crown className="w-3 h-3 text-purple-300" />}
-              label="Barón"
+              label={t("liveGame.baron")}
               etaSec={timers.nextBaronAt - gameTime}
               now={timers.nextBaronAt <= gameTime}
             />
