@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { readLobby, dodgeHint, type LobbyRead } from "./lobbyInsights";
+import { readLobby, dodgeHint, isSmurf, type LobbyRead } from "./lobbyInsights";
 import type { ScoutedPlayer } from "../services/lobbyScout";
 
 function read(over: Partial<LobbyRead>): LobbyRead {
@@ -105,5 +105,35 @@ describe("dodgeHint", () => {
 
   it("stays quiet without balance data", () => {
     expect(dodgeHint(read({ balance: null }))).toBeNull();
+  });
+});
+
+describe("isSmurf", () => {
+  it("flags a low-level ranked account with a small sample", () => {
+    expect(isSmurf(sp({ level: 45, soloGames: 20 }))).toBe(true);
+  });
+
+  it("flags a low-level ranked account with a strong win rate (even at volume)", () => {
+    expect(isSmurf(sp({ level: 45, soloGames: 200, soloWinRate: 0.62 }))).toBe(true);
+  });
+
+  it("does NOT flag a low-level account grinding at an average win rate", () => {
+    expect(isSmurf(sp({ level: 45, soloGames: 200, soloWinRate: 0.5 }))).toBe(false);
+  });
+
+  it("does NOT flag a high-level account", () => {
+    expect(isSmurf(sp({ level: 120, soloGames: 20 }))).toBe(false);
+  });
+
+  it("does NOT flag an unranked low-level account", () => {
+    expect(isSmurf(sp({ level: 45, soloRank: null, soloGames: 20 }))).toBe(false);
+  });
+
+  it("does NOT flag a fresh IRON IV placement account", () => {
+    expect(isSmurf(sp({ level: 45, soloRank: "IRON IV", soloGames: 20 }))).toBe(false);
+  });
+
+  it("does NOT flag a player we failed to load", () => {
+    expect(isSmurf(sp({ level: 45, soloGames: 20, loaded: false }))).toBe(false);
   });
 });

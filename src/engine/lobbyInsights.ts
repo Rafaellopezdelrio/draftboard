@@ -41,6 +41,25 @@ function reliability(p: ScoutedPlayer): number {
   return rv + wrAdj;
 }
 
+// Smurf window: a ranked account below this level is a fresh account climbing.
+const SMURF_LEVEL = 80;
+// Either a small ranked sample or a strong win rate confirms "climbing fast",
+// so a genuine low-level returning player isn't over-flagged on level alone.
+const SMURF_GAMES = 60;
+const SMURF_WR = 0.58;
+
+/**
+ * Smurf heuristic from LCU-only data (ToS-safe): a ranked account at a low
+ * level = a new account climbing fast — the signal Porofessor surfaces. Pure
+ * so the panel badge and any engine read share ONE definition instead of the
+ * panel re-deriving its own inline version.
+ */
+export function isSmurf(p: ScoutedPlayer): boolean {
+  if (!p.loaded || p.level <= 0 || p.level >= SMURF_LEVEL) return false;
+  if (!p.soloRank || p.soloRank === "IRON IV") return false;
+  return p.soloGames < SMURF_GAMES || p.soloWinRate >= SMURF_WR;
+}
+
 // Language-neutral stat line used as a {{stat}} param inside localized
 // reasons (e.g. "GOLD II, 55% · 30g"). "unranked" stays as LoL jargon.
 function fmt(p: ScoutedPlayer): string {

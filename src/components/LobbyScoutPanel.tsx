@@ -8,7 +8,7 @@ import { useTranslation } from "react-i18next";
 import { Shield, Users, Star, ShieldAlert, Swords } from "lucide-react";
 import { Panel } from "./ui/Panel";
 import { scoutTeam, type ScoutedPlayer } from "../services/lobbyScout";
-import { readLobby, dodgeHint } from "../engine/lobbyInsights";
+import { readLobby, dodgeHint, isSmurf } from "../engine/lobbyInsights";
 import type { LcuChampSelectSession, LcuPlayer } from "../services/lcuService";
 import type { ChampionDb } from "../types/champion";
 
@@ -226,10 +226,9 @@ function PlayerRow({ p, db }: { p: ScoutedPlayer; db: ChampionDb }) {
   const champ = Object.values(db.champions).find(
     (c) => Number(c.key) === p.championId
   );
-  // Smurf heuristic: ranked stats on a low-level account = brand-new
-  // account climbing fast. The 30-50 range is the typical smurf window
-  // (account just hit the level required to play ranked).
-  const smurfHint = p.level < 80 && p.soloRank && p.soloRank !== "IRON IV";
+  // Smurf heuristic lives in the engine (isSmurf) so the badge and any
+  // engine-level read share one definition.
+  const smurfHint = isSmurf(p);
 
   const wrColor =
     p.soloWinRate >= 0.55
