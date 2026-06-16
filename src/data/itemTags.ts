@@ -61,7 +61,7 @@ export const ITEM_TAGS: Record<number, ItemSignal> = {
   3083: { hp: 850 },                         // Warmog's
   4401: { hp: 200, armor: 20, mr: 20 },      // Force of Nature components... skip
   3211: { hp: 250, mr: 30 },                 // Spectre's Cowl (also has Hollow Radiance? leave as is)
-  3071: { hp: 400, ad: 55, heal: true },     // Black Cleaver (has heal? no — has rage. Skip heal)
+  3071: { hp: 400, ad: 55 },                 // Black Cleaver — armor shred + rage, no lifesteal
 
   // --- HEAL / LIFESTEAL (triggers grievous wounds rec) ---
   3072: { ad: 80, heal: true },              // Bloodthirster
