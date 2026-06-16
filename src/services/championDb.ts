@@ -75,40 +75,14 @@ export async function loadChampionDb(force = false): Promise<ChampionDb> {
       dpmPromise,
     ]);
 
-  let meta: MetaTier[];
-  let metaSourceUsed: NonNullable<ChampionDb["metaSourceUsed"]>;
   // op.gg is the default and most accurate source (live data, millions of
   // games). Only fall back to user-synced data if they explicitly chose it.
-  if (source === "dpm" && dpmMeta.length > 0) {
-    meta = dpmMeta;
-    metaSourceUsed = "dpm";
-  } else if (source === "opgg" && opggMeta.length > 0) {
-    meta = opggMeta;
-    metaSourceUsed = "opgg";
-  } else if (source === "proplay" && proplayMeta.length > 0) {
-    meta = proplayMeta;
-    metaSourceUsed = "proplay";
-  } else if (source === "soloq" && soloqMeta.length > 0) {
-    meta = soloqMeta;
-    metaSourceUsed = "soloq";
-  } else if (source === "blend" && (proplayMeta.length > 0 || soloqMeta.length > 0)) {
-    meta = blendMetaSources(proplayMeta, soloqMeta);
-    metaSourceUsed = "blend";
-  } else if (opggMeta.length > 0) {
-    // Fallback to op.gg whenever the user-preferred source returns no data
-    // (e.g. they chose proplay but never synced).
-    meta = opggMeta;
-    metaSourceUsed = "opgg";
-  } else if (proplayMeta.length > 0) {
-    meta = proplayMeta;
-    metaSourceUsed = "proplay";
-  } else if (soloqMeta.length > 0) {
-    meta = soloqMeta;
-    metaSourceUsed = "soloq";
-  } else {
-    meta = buildMetaList(champions);
-    metaSourceUsed = "static";
-  }
+  // The full fallback matrix lives in resolveMeta (pure + unit-tested).
+  const { meta, used: metaSourceUsed } = resolveMeta(
+    source,
+    { opgg: opggMeta, soloq: soloqMeta, proplay: proplayMeta, dpm: dpmMeta },
+    () => buildMetaList(champions)
+  );
 
   // OFF-META FILTER: drop entries where the champion isn't legitimately
   // played in that role (Vayne TOP, Shaco SUPPORT, Yasuo ADC, etc.).
@@ -220,6 +194,39 @@ function blendMetaSources(pro: MetaTier[], soloq: MetaTier[]): MetaTier[] {
     map.set(k, blended);
   }
   return Array.from(map.values());
+}
+
+export interface MetaSourceArrays {
+  opgg: MetaTier[];
+  soloq: MetaTier[];
+  proplay: MetaTier[];
+  dpm: MetaTier[];
+}
+
+/**
+ * Decide which meta source to actually use from the user's preferred source
+ * and what each fetch returned. Pure + exported so the full fallback matrix is
+ * unit-tested: preferred source → (if empty) op.gg → pro → soloq → static.
+ * This chain is the data-moat resilience for when op.gg / dpm.lol break or a
+ * source the user picked was never synced.
+ */
+export function resolveMeta(
+  source: NonNullable<ChampionDb["metaSourceRequested"]>,
+  s: MetaSourceArrays,
+  staticFallback: () => MetaTier[]
+): { meta: MetaTier[]; used: NonNullable<ChampionDb["metaSourceUsed"]> } {
+  if (source === "dpm" && s.dpm.length > 0) return { meta: s.dpm, used: "dpm" };
+  if (source === "opgg" && s.opgg.length > 0) return { meta: s.opgg, used: "opgg" };
+  if (source === "proplay" && s.proplay.length > 0) return { meta: s.proplay, used: "proplay" };
+  if (source === "soloq" && s.soloq.length > 0) return { meta: s.soloq, used: "soloq" };
+  if (source === "blend" && (s.proplay.length > 0 || s.soloq.length > 0))
+    return { meta: blendMetaSources(s.proplay, s.soloq), used: "blend" };
+  // Preferred source empty → fall back to whatever DID return data, op.gg first
+  // (the most accurate general source), then our own synced data, then static.
+  if (s.opgg.length > 0) return { meta: s.opgg, used: "opgg" };
+  if (s.proplay.length > 0) return { meta: s.proplay, used: "proplay" };
+  if (s.soloq.length > 0) return { meta: s.soloq, used: "soloq" };
+  return { meta: staticFallback(), used: "static" };
 }
 
 interface MetaSourcePref {
