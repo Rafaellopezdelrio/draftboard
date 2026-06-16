@@ -595,7 +595,33 @@
     "tipLearn": "Learn the basic combos in practice tool before SoloQ",
     "tipSpike": "Identify the power spikes (check the Summary tab)",
     "tipBuild": "See builds per role in the Build & runes tab",
-    "whenFacing": "When you face them"
+    "whenFacing": "When you face them",
+    "role": "Role",
+    "loadingGuide": "Loading guide...",
+    "statsRiot": "Riot stats",
+    "lore": "Lore",
+    "tabs": {
+      "overview": "Overview",
+      "abilities": "Abilities",
+      "build": "Build & runes",
+      "tips": "Tips",
+      "ai": "AI guide"
+    },
+    "abil": {
+      "cd": "CD:",
+      "cost": "Cost:",
+      "range": "Range:"
+    },
+    "ai": {
+      "configureKey": "Set an API key ({{provider}}) in Prefs",
+      "title": "AI guide · {{role}} · {{patch}}",
+      "cached": "cached",
+      "description": "Generate an AI guide for {{name}} as {{role}} tuned to the current patch. It is cached: next time is instant.",
+      "generate": "Generate AI guide",
+      "needKey": "You need an API key ({{provider}}) in Prefs. Groq is free.",
+      "generating": "Generating pro guide...",
+      "regenerate": "regenerate"
+    }
   },
   "metaSync": {
     "listingMaster": "Listing Master league",

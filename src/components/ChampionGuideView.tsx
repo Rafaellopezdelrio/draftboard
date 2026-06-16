@@ -43,6 +43,7 @@ type Tab = "overview" | "abilities" | "build" | "tips" | "ai";
 const ROLE_LIKE: Role[] = ["TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY"];
 
 export function ChampionGuideView({ db, championKey, onClose }: Props) {
+  const { t } = useTranslation();
   useEscape(onClose);
   const champ = db.champions[championKey];
   const [tab, setTab] = useState<Tab>("overview");
@@ -126,7 +127,7 @@ export function ChampionGuideView({ db, championKey, onClose }: Props) {
         <div className="px-5 pt-3 pb-1 border-b border-border-subtle">
           <div className="flex items-center gap-2 mb-2">
             <span className="text-[10px] uppercase tracking-widest text-white/40 font-semibold">
-              Rol
+              {t("championGuide.role")}
             </span>
             <div className="flex gap-1">
               {ROLE_LIKE.map((r) => {
@@ -153,11 +154,11 @@ export function ChampionGuideView({ db, championKey, onClose }: Props) {
           </div>
           <Tabs<Tab>
             tabs={[
-              { value: "overview", label: "Resumen", icon: <Info className="w-3 h-3" /> },
-              { value: "abilities", label: "Habilidades", icon: <Wand2 className="w-3 h-3" /> },
-              { value: "build", label: "Build & runas", icon: <Mountain className="w-3 h-3" /> },
-              { value: "tips", label: "Tips", icon: <Lightbulb className="w-3 h-3" /> },
-              { value: "ai", label: "Guía AI", icon: <Bot className="w-3 h-3" /> },
+              { value: "overview", label: t("championGuide.tabs.overview"), icon: <Info className="w-3 h-3" /> },
+              { value: "abilities", label: t("championGuide.tabs.abilities"), icon: <Wand2 className="w-3 h-3" /> },
+              { value: "build", label: t("championGuide.tabs.build"), icon: <Mountain className="w-3 h-3" /> },
+              { value: "tips", label: t("championGuide.tabs.tips"), icon: <Lightbulb className="w-3 h-3" /> },
+              { value: "ai", label: t("championGuide.tabs.ai"), icon: <Bot className="w-3 h-3" /> },
             ]}
             active={tab}
             onChange={setTab}
@@ -167,7 +168,7 @@ export function ChampionGuideView({ db, championKey, onClose }: Props) {
         {/* Body */}
         <div className="overflow-y-auto p-5 space-y-3 flex-1">
           {loading && (
-            <p className="text-white/40 text-sm text-center py-8">Cargando guía...</p>
+            <p className="text-white/40 text-sm text-center py-8">{t("championGuide.loadingGuide")}</p>
           )}
 
           {!loading && tab === "overview" && detail && (
@@ -240,7 +241,7 @@ function OverviewTab({
 
       <Panel padding="sm">
         <p className="text-[10px] uppercase tracking-widest text-white/45 font-semibold mb-2">
-          Stats Riot
+          {t("championGuide.statsRiot")}
         </p>
         <div className="grid grid-cols-4 gap-2">
           {stats.map((s) => (
@@ -267,7 +268,7 @@ function OverviewTab({
       {detail.lore && (
         <Panel padding="sm">
           <p className="text-[10px] uppercase tracking-widest text-white/45 font-semibold mb-2">
-            Lore
+            {t("championGuide.lore")}
           </p>
           <p className="text-xs text-white/65 leading-relaxed line-clamp-6">
             {detail.lore}
@@ -279,6 +280,7 @@ function OverviewTab({
 }
 
 function AbilitiesTab({ detail, patch }: { detail: ChampionDetail; patch: string }) {
+  const { t } = useTranslation();
   const passive = detail.passive;
   const abilities = [
     { key: "P", spell: { ...passive, cooldown: [], cost: [], range: [] } },
@@ -317,14 +319,14 @@ function AbilitiesTab({ detail, patch }: { detail: ChampionDetail; patch: string
               {spell.cooldown && spell.cooldown.length > 0 && (
                 <div className="flex gap-3 mt-2 text-[10px] text-white/50">
                   <span>
-                    CD:{" "}
+                    {t("championGuide.abil.cd")}{" "}
                     <span className="text-white/80 tabular-nums">
                       {spell.cooldown.join("/")}s
                     </span>
                   </span>
                   {spell.cost && spell.cost.some((c) => c > 0) && (
                     <span>
-                      Cost:{" "}
+                      {t("championGuide.abil.cost")}{" "}
                       <span className="text-white/80 tabular-nums">
                         {spell.cost.join("/")}
                       </span>
@@ -332,7 +334,7 @@ function AbilitiesTab({ detail, patch }: { detail: ChampionDetail; patch: string
                   )}
                   {spell.range && spell.range.some((r) => r > 0) && (
                     <span>
-                      Range:{" "}
+                      {t("championGuide.abil.range")}{" "}
                       <span className="text-white/80 tabular-nums">
                         {spell.range[0]}
                       </span>
@@ -430,6 +432,7 @@ function AiGuideTab({
   role: Role;
   patch: string;
 }) {
+  const { t } = useTranslation();
   const provider = usePrefsStore((s) => s.prefs.aiProvider);
   const apiKey = usePrefsStore((s) =>
     s.prefs.aiProvider === "groq"
@@ -459,13 +462,13 @@ function AiGuideTab({
 
   async function generate(force = false) {
     if (!apiKey) {
-      setErr(`Configura API key (${provider}) en Prefs`);
+      setErr(t("championGuide.ai.configureKey", { provider }));
       return;
     }
     setErr(null);
     setLoading(true);
     try {
-      const t = await generateChampionGuide({
+      const guideText = await generateChampionGuide({
         provider,
         apiKey,
         championId,
@@ -475,7 +478,7 @@ function AiGuideTab({
         language: lang,
         force,
       });
-      setText(t);
+      setText(guideText);
       setCached(true);
     } catch (e) {
       setErr(String(e));
@@ -490,12 +493,12 @@ function AiGuideTab({
         <div className="flex items-center gap-2">
           <Bot className="w-3.5 h-3.5 text-accent" />
           <p className="text-[10px] uppercase tracking-widest text-accent font-semibold">
-            Guía AI · {role} · {displayPatch(patch)}
+            {t("championGuide.ai.title", { role, patch: displayPatch(patch) })}
           </p>
         </div>
         {cached && (
           <span className="text-[9px] uppercase tracking-widest text-good">
-            cacheado
+            {t("championGuide.ai.cached")}
           </span>
         )}
       </div>
@@ -503,8 +506,7 @@ function AiGuideTab({
       {!text && !loading && (
         <>
           <p className="text-xs text-white/65 mb-2">
-            Genera una guía AI para {championName} en {role} adaptada al parche actual.
-            Se cachea: la próxima vez será instantánea.
+            {t("championGuide.ai.description", { name: championName, role })}
           </p>
           <button
             onClick={() => generate(false)}
@@ -512,11 +514,11 @@ function AiGuideTab({
             className="px-3 py-1.5 bg-accent text-black font-medium rounded-md text-xs disabled:opacity-50 inline-flex items-center gap-1.5"
           >
             <Sparkles className="w-3 h-3" />
-            Generar guía AI
+            {t("championGuide.ai.generate")}
           </button>
           {!apiKey && (
             <p className="text-[10px] text-meh mt-2">
-              Necesitas API key ({provider}) en Prefs. Groq es gratis.
+              {t("championGuide.ai.needKey", { provider })}
             </p>
           )}
         </>
@@ -524,7 +526,7 @@ function AiGuideTab({
 
       {loading && (
         <p className="text-white/50 text-xs text-center py-6">
-          Generando guía profesional...
+          {t("championGuide.ai.generating")}
         </p>
       )}
 
@@ -540,7 +542,7 @@ function AiGuideTab({
             disabled={loading || !apiKey}
             className="mt-3 text-[10px] text-white/45 hover:text-accent uppercase tracking-widest"
           >
-            regenerar
+            {t("championGuide.ai.regenerate")}
           </button>
         </>
       )}

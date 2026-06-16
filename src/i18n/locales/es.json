@@ -595,7 +595,33 @@
     "tipLearn": "Aprende sus combos básicos en práctica antes de SoloQ",
     "tipSpike": "Identifica el power spike (revisa tab Resumen)",
     "tipBuild": "Mira las builds por rol en tab Build & runas",
-    "whenFacing": "Cuando lo enfrentas"
+    "whenFacing": "Cuando lo enfrentas",
+    "role": "Rol",
+    "loadingGuide": "Cargando guía...",
+    "statsRiot": "Stats Riot",
+    "lore": "Lore",
+    "tabs": {
+      "overview": "Resumen",
+      "abilities": "Habilidades",
+      "build": "Build & runas",
+      "tips": "Tips",
+      "ai": "Guía AI"
+    },
+    "abil": {
+      "cd": "CD:",
+      "cost": "Coste:",
+      "range": "Rango:"
+    },
+    "ai": {
+      "configureKey": "Configura API key ({{provider}}) en Prefs",
+      "title": "Guía AI · {{role}} · {{patch}}",
+      "cached": "cacheado",
+      "description": "Genera una guía AI para {{name}} en {{role}} adaptada al parche actual. Se cachea: la próxima vez será instantánea.",
+      "generate": "Generar guía AI",
+      "needKey": "Necesitas API key ({{provider}}) en Prefs. Groq es gratis.",
+      "generating": "Generando guía profesional...",
+      "regenerate": "regenerar"
+    }
   },
   "metaSync": {
     "listingMaster": "Listando Master league",
