@@ -196,7 +196,7 @@ function MatchupColumn({
             <li
               key={m.championKey}
               className="flex items-center justify-between gap-1.5 text-[11px] text-white/70"
-              title={`${m.play.toLocaleString()} partidas`}
+              title={t("build.games", { count: m.play })}
             >
               <span className="truncate pr-1 flex-1">{m.championName}</span>
               <span

@@ -4,6 +4,7 @@
 // back to pure letters until DDragon champion data loads.
 
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   getChampionSpells,
   spellIconUrl,
@@ -19,6 +20,7 @@ interface Props {
 }
 
 export function SkillOrderSection({ order, championId, patch }: Props) {
+  const { t } = useTranslation();
   // Re-render when champion spell data finishes loading. The first
   // call to getChampionSpells kicks the fetch; subsequent calls are
   // cache hits.
@@ -48,7 +50,7 @@ export function SkillOrderSection({ order, championId, patch }: Props) {
   return (
     <div className="space-y-1.5">
       <p className="text-[10px] uppercase tracking-widest text-white/45">
-        Subida de habilidades
+        {t("build.skillOrder.heading")}
       </p>
 
       {/* Top row: 4 ability icons (or letter fallback) with level badge. */}
@@ -62,7 +64,7 @@ export function SkillOrderSection({ order, championId, patch }: Props) {
             <div
               key={letter}
               className={`relative ${isPriority ? "ring-2 ring-accent/60 rounded" : ""}`}
-              title={spell ? `${letter}: ${spell.name}` : `${letter}: nivel ${lvl ?? "?"}`}
+              title={spell ? `${letter}: ${spell.name}` : t("build.skillOrder.levelHint", { letter, lvl: lvl ?? "?" })}
             >
               {spell ? (
                 <img
@@ -96,7 +98,7 @@ export function SkillOrderSection({ order, championId, patch }: Props) {
                 ? "bg-accent/20 ring-accent/50 text-accent"
                 : "bg-bg-card ring-border-subtle text-white/80"
             }`}
-            title={`Nivel ${i + 1}: ${s}`}
+            title={t("build.skillOrder.levelAt", { n: i + 1, skill: s })}
           >
             {s}
           </span>

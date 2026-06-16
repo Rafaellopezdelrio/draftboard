@@ -4,6 +4,7 @@
 // but anchored to typical SoloQ progression: starter at 0min, boots
 // ~5-7min, core 3 by ~25min, full build by 35min+.
 
+import { useTranslation } from "react-i18next";
 import type { OpggBuildPath } from "../../services/opggBuilds";
 
 interface Props {
@@ -25,24 +26,25 @@ export function BuyOrderTimeline({
   sixth,
   patch,
 }: Props) {
+  const { t } = useTranslation();
   const phases: Array<{
     label: string;
     time: string;
     ids: number[];
     emphasis: boolean;
   }> = [];
-  if (starter) phases.push({ label: "Inicio", time: "0:00", ids: starter.ids, emphasis: false });
-  if (boots) phases.push({ label: "Botas", time: "~6:00", ids: boots.ids, emphasis: false });
-  if (core) phases.push({ label: "Core 3", time: "~22:00", ids: core.ids, emphasis: true });
-  if (fourth) phases.push({ label: "4º", time: "~28:00", ids: fourth.ids, emphasis: false });
-  if (fifth) phases.push({ label: "5º", time: "~35:00", ids: fifth.ids, emphasis: false });
-  if (sixth) phases.push({ label: "6º", time: "~40:00+", ids: sixth.ids, emphasis: false });
+  if (starter) phases.push({ label: t("build.pathStarter"), time: "0:00", ids: starter.ids, emphasis: false });
+  if (boots) phases.push({ label: t("build.pathBoots"), time: "~6:00", ids: boots.ids, emphasis: false });
+  if (core) phases.push({ label: t("build.pathCore3"), time: "~22:00", ids: core.ids, emphasis: true });
+  if (fourth) phases.push({ label: t("build.buyOrder.fourth"), time: "~28:00", ids: fourth.ids, emphasis: false });
+  if (fifth) phases.push({ label: t("build.buyOrder.fifth"), time: "~35:00", ids: fifth.ids, emphasis: false });
+  if (sixth) phases.push({ label: t("build.buyOrder.sixth"), time: "~40:00+", ids: sixth.ids, emphasis: false });
   if (phases.length === 0) return null;
 
   return (
     <div className="border-t border-white/5 pt-2">
       <p className="text-[10px] uppercase tracking-widest text-white/45 mb-1.5">
-        Orden de compra · timeline
+        {t("build.buyOrder.heading")}
       </p>
       <div className="flex items-stretch gap-1 overflow-x-auto pb-1">
         {phases.map((p, i) => {
@@ -52,7 +54,7 @@ export function BuyOrderTimeline({
             <div
               key={i}
               className={`flex flex-col items-center gap-0.5 shrink-0 ${p.emphasis ? "ring-1 ring-accent/40 rounded p-1 bg-accent/5" : ""}`}
-              title={`${p.label} · aprox ${p.time}`}
+              title={t("build.buyOrder.approx", { label: p.label, time: p.time })}
             >
               <span className="text-[9px] uppercase tracking-wider text-white/45">
                 {p.time}

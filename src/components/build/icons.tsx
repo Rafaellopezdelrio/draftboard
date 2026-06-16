@@ -5,6 +5,7 @@
 // the whole BuildPanel module + its 1k LOC of unrelated logic.
 
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { getItemMeta, subscribeToItemMeta } from "../../services/itemMeta";
 
 /**
@@ -13,6 +14,7 @@ import { getItemMeta, subscribeToItemMeta } from "../../services/itemMeta";
  * tooltip shows name + plaintext + gold cost once items.json loads.
  */
 export function ItemIcon({ patch, id }: { patch: string; id: number }) {
+  const { t } = useTranslation();
   // Re-render hook: title flips from "Item {id}" to real name once
   // items.json finishes loading via subscribeToItemMeta.
   const [, force] = useState(0);
@@ -25,7 +27,7 @@ export function ItemIcon({ patch, id }: { patch: string; id: number }) {
   if (meta?.name) titleParts.push(meta.name);
   if (meta?.plaintext) titleParts.push(meta.plaintext);
   if (meta?.goldTotal && meta.goldTotal > 0) titleParts.push(`${meta.goldTotal}g`);
-  const title = titleParts.length > 0 ? titleParts.join(" · ") : `Item ${id}`;
+  const title = titleParts.length > 0 ? titleParts.join(" · ") : t("build.itemFallback", { id });
   return (
     <img
       src={`https://ddragon.leagueoflegends.com/cdn/${patch}/img/item/${id}.png`}
@@ -47,14 +49,16 @@ export function ItemIcon({ patch, id }: { patch: string; id: number }) {
  * manifest). Kept thin — fall through to default opacity dim on 404.
  */
 export function PerkIcon({ id, small = false }: { id: number; small?: boolean }) {
+  const { t } = useTranslation();
   const size = small ? "w-5 h-5" : "w-8 h-8";
+  const fallback = t("build.perkFallback", { id });
   return (
     <img
       src={`https://raw.communitydragon.org/latest/game/assets/perks/${id}.png`}
-      alt={`Perk ${id}`}
+      alt={fallback}
       className={`${size} rounded`}
       onError={(e) => ((e.target as HTMLImageElement).style.opacity = "0.3")}
-      title={`Perk ${id}`}
+      title={fallback}
     />
   );
 }
@@ -73,15 +77,17 @@ export function SpellIcon({
   meta?: { name: string; icon: string };
   patch: string;
 }) {
+  const { t } = useTranslation();
   const src = meta
     ? `https://ddragon.leagueoflegends.com/cdn/${patch}/img/spell/${meta.icon}`
     : `https://raw.communitydragon.org/latest/game/data/spells/icons2d/summoner_flash.png`;
+  const fallback = meta?.name ?? t("build.spellFallback", { id });
   return (
     <img
       src={src}
-      alt={meta?.name ?? `Spell ${id}`}
+      alt={fallback}
       className="w-8 h-8 rounded border border-border-subtle"
-      title={meta?.name ?? `Spell ${id}`}
+      title={fallback}
       onError={(e) => ((e.target as HTMLImageElement).style.opacity = "0.3")}
     />
   );

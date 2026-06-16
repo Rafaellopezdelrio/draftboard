@@ -4,6 +4,7 @@
 // Extracted from BuildPanel.tsx so changes to row presentation don't
 // touch the parent file. Pure presentational — no state, no fetches.
 
+import { useTranslation } from "react-i18next";
 import type { OpggBuildPath } from "../../services/opggBuilds";
 import { tierFromWinRate } from "../../engine/buildClassifier";
 import { TierBadge } from "../ui/TierBadge";
@@ -21,6 +22,7 @@ interface Props {
 }
 
 export function BuildRow({ label, path, patch, highlight = false }: Props) {
+  const { t } = useTranslation();
   // Filter to valid item IDs only. Aggregation sometimes emits 0 or
   // sub-1000 IDs (consumables, removed items) that don't render.
   const validIds = Array.from(new Set(path.ids)).filter((id) => id > 0);
@@ -36,7 +38,7 @@ export function BuildRow({ label, path, patch, highlight = false }: Props) {
       className={`flex items-center gap-2 ${
         highlight ? "p-1.5 rounded bg-accent/10 ring-1 ring-accent/30" : ""
       }`}
-      title={`${path.play.toLocaleString()} partidas · ${(path.pickRate * 100).toFixed(1)}% pick rate`}
+      title={`${t("build.games", { count: path.play })} · ${t("build.pickRate", { pct: (path.pickRate * 100).toFixed(1) })}`}
     >
       <span className="text-[10px] uppercase tracking-wider text-white/45 w-12 shrink-0">
         {label}

@@ -217,7 +217,23 @@
     "threatTier": "Tier amenaza {{tier}}",
     "firstSkills": "Primeros 3:",
     "maxOrder": "Maxear:",
-    "patchImpact": "Impacto de parche"
+    "patchImpact": "Impacto de parche",
+    "buyOrder": {
+      "heading": "Orden de compra · timeline",
+      "fourth": "4º",
+      "fifth": "5º",
+      "sixth": "6º",
+      "approx": "{{label}} · aprox {{time}}"
+    },
+    "skillOrder": {
+      "heading": "Subida de habilidades",
+      "levelHint": "{{letter}}: nivel {{lvl}}",
+      "levelAt": "Nivel {{n}}: {{skill}}"
+    },
+    "pickRate": "{{pct}}% pick rate",
+    "itemFallback": "Objeto {{id}}",
+    "perkFallback": "Runa {{id}}",
+    "spellFallback": "Hechizo {{id}}"
   },
   "scout": {
     "title": "Scout enemigos",
@@ -879,37 +895,111 @@
       "aiCoach": "AI Coach"
     },
     "items": {
-      "showSuggestions": { "label": "Top picks sugeridos" },
-      "showDraftWinrate": { "label": "Probabilidad de ganar el draft" },
-      "showCompAnalysis": { "label": "Análisis de composición" },
-      "showBuildPanel": { "label": "Panel de build (items, runas, skills)" },
-      "showEnemyScout": { "label": "Scout de enemigos" },
-      "usePersonalStats": { "label": "Mi winrate personal por campeón", "detail": "Usa tus partidas reales para puntuar campeones que dominas" },
-      "useMastery": { "label": "Mis maestrías", "detail": "Sube los campeones con maestría 5+ en el ranking" },
-      "useMetaTier": { "label": "Tier list del meta global", "detail": "Datos de partidas Master+ (sincroniza en ⚙ > Sincronizar meta)" },
-      "safeMode": { "label": "Modo seguro (desactiva todas las acciones automáticas)", "detail": "Solo lectura. Tú haces todos los clicks. La opción más conservadora frente al ToS de Riot." },
-      "beginnerMode": { "label": "Modo principiante", "detail": "Más explicaciones, tooltips y razones detrás de cada sugerencia." },
-      "showRuneImportButton": { "label": "Mostrar botón 'Aplicar runas al cliente'" },
-      "autoApplyRunes": { "label": "Aplicar runas al confirmar campeón (lock-in)", "detail": "Aplica automáticamente las runas recomendadas al cerrar tu pick" },
-      "autoApplyOnHover": { "label": "Aplicar runas al hover (intent)", "detail": "Aplica las runas en cuanto pones intent, antes del lock" },
-      "showSpellImportButton": { "label": "Mostrar botón 'Aplicar hechizos al cliente'" },
-      "autoApplySpells": { "label": "Aplicar hechizos al confirmar campeón (lock-in)", "detail": "Sobrescribe los summoner spells con los recomendados al lockear" },
-      "autoApplyItemSet": { "label": "Generar item set al cliente (visible en tienda in-game)", "detail": "Añade un item set 'Draftboard' a tu cuenta con starter/boots/core/situational al lockear. No borra tus otros sets." },
-      "notifyOnEnemyHotStreak": { "label": "Avisar si un enemigo está en racha" },
-      "coachAfterMatch": { "label": "Abrir coach automáticamente al acabar partida" },
-      "coachShowGpi": { "label": "Mostrar GPI score y radar" },
-      "liveTimer": { "label": "Mostrar timer del champ select en cabecera" },
-      "liveScoutRefresh": { "label": "Refrescar scout enemigos cada 60s" },
-      "showInGameOverlay": { "label": "Overlay transparente in-game (experimental)", "detail": "Ventana always-on-top con coach en vivo (alma/barón/muertes/HP), scores, objetivos y timers. Aparece solo durante partidas reales. Experimental: posición y click-through aún en ajuste — actívalo para probarlo en partida." },
-      "compactMode": { "label": "Modo compacto (paneles más densos)" },
-      "telemetryEnabled": { "label": "Enviar reportes de error anónimos (Sentry)", "detail": "Solo crashes y trazas de error — sin nombres, sin chat, sin partidas. Ayuda a arreglar bugs rápido. Cumple GDPR." },
-      "voiceCoachEnabled": { "label": "Anuncios de voz en draft", "detail": "TTS del navegador anuncia bans recomendados, picks fuertes y enemigos en racha." },
-      "aiCoachEnabled": { "label": "Habilitar AI Coach", "detail": "Análisis natural con LLM. Por defecto Groq (gratis). Configura la key abajo." }
+      "showSuggestions": {
+        "label": "Top picks sugeridos"
+      },
+      "showDraftWinrate": {
+        "label": "Probabilidad de ganar el draft"
+      },
+      "showCompAnalysis": {
+        "label": "Análisis de composición"
+      },
+      "showBuildPanel": {
+        "label": "Panel de build (items, runas, skills)"
+      },
+      "showEnemyScout": {
+        "label": "Scout de enemigos"
+      },
+      "usePersonalStats": {
+        "label": "Mi winrate personal por campeón",
+        "detail": "Usa tus partidas reales para puntuar campeones que dominas"
+      },
+      "useMastery": {
+        "label": "Mis maestrías",
+        "detail": "Sube los campeones con maestría 5+ en el ranking"
+      },
+      "useMetaTier": {
+        "label": "Tier list del meta global",
+        "detail": "Datos de partidas Master+ (sincroniza en ⚙ > Sincronizar meta)"
+      },
+      "safeMode": {
+        "label": "Modo seguro (desactiva todas las acciones automáticas)",
+        "detail": "Solo lectura. Tú haces todos los clicks. La opción más conservadora frente al ToS de Riot."
+      },
+      "beginnerMode": {
+        "label": "Modo principiante",
+        "detail": "Más explicaciones, tooltips y razones detrás de cada sugerencia."
+      },
+      "showRuneImportButton": {
+        "label": "Mostrar botón 'Aplicar runas al cliente'"
+      },
+      "autoApplyRunes": {
+        "label": "Aplicar runas al confirmar campeón (lock-in)",
+        "detail": "Aplica automáticamente las runas recomendadas al cerrar tu pick"
+      },
+      "autoApplyOnHover": {
+        "label": "Aplicar runas al hover (intent)",
+        "detail": "Aplica las runas en cuanto pones intent, antes del lock"
+      },
+      "showSpellImportButton": {
+        "label": "Mostrar botón 'Aplicar hechizos al cliente'"
+      },
+      "autoApplySpells": {
+        "label": "Aplicar hechizos al confirmar campeón (lock-in)",
+        "detail": "Sobrescribe los summoner spells con los recomendados al lockear"
+      },
+      "autoApplyItemSet": {
+        "label": "Generar item set al cliente (visible en tienda in-game)",
+        "detail": "Añade un item set 'Draftboard' a tu cuenta con starter/boots/core/situational al lockear. No borra tus otros sets."
+      },
+      "notifyOnEnemyHotStreak": {
+        "label": "Avisar si un enemigo está en racha"
+      },
+      "coachAfterMatch": {
+        "label": "Abrir coach automáticamente al acabar partida"
+      },
+      "coachShowGpi": {
+        "label": "Mostrar GPI score y radar"
+      },
+      "liveTimer": {
+        "label": "Mostrar timer del champ select en cabecera"
+      },
+      "liveScoutRefresh": {
+        "label": "Refrescar scout enemigos cada 60s"
+      },
+      "showInGameOverlay": {
+        "label": "Overlay transparente in-game (experimental)",
+        "detail": "Ventana always-on-top con coach en vivo (alma/barón/muertes/HP), scores, objetivos y timers. Aparece solo durante partidas reales. Experimental: posición y click-through aún en ajuste — actívalo para probarlo en partida."
+      },
+      "compactMode": {
+        "label": "Modo compacto (paneles más densos)"
+      },
+      "telemetryEnabled": {
+        "label": "Enviar reportes de error anónimos (Sentry)",
+        "detail": "Solo crashes y trazas de error — sin nombres, sin chat, sin partidas. Ayuda a arreglar bugs rápido. Cumple GDPR."
+      },
+      "voiceCoachEnabled": {
+        "label": "Anuncios de voz en draft",
+        "detail": "TTS del navegador anuncia bans recomendados, picks fuertes y enemigos en racha."
+      },
+      "aiCoachEnabled": {
+        "label": "Habilitar AI Coach",
+        "detail": "Análisis natural con LLM. Por defecto Groq (gratis). Configura la key abajo."
+      }
     },
     "presets": {
-      "beginner": { "label": "Principiante", "description": "Toda la ayuda visible, auto-acciones moderadas" },
-      "competitive": { "label": "Competitivo", "description": "Panel limpio, automatización plena, sin distracciones" },
-      "silent": { "label": "Silencioso", "description": "Solo lecturas. La app NO toca tu cliente de LoL." }
+      "beginner": {
+        "label": "Principiante",
+        "description": "Toda la ayuda visible, auto-acciones moderadas"
+      },
+      "competitive": {
+        "label": "Competitivo",
+        "description": "Panel limpio, automatización plena, sin distracciones"
+      },
+      "silent": {
+        "label": "Silencioso",
+        "description": "Solo lecturas. La app NO toca tu cliente de LoL."
+      }
     }
   },
   "phaseTimer": {
