@@ -10,20 +10,12 @@
 // actual rank fixes the "Mel is mid in low elo but never in Challenger"
 // problem that the plat+ aggregate can't solve.
 
-import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
+import { httpFetch } from "./httpClient";
 import type { MetaTier, Role } from "../types/champion";
 import { getRiotProxyUrl } from "./riotApi";
 import { withRetry, RateLimitError, throwIfRateLimited } from "./retry";
 import { trackFetch } from "./breadcrumbs";
 import { emitFetchFailure } from "./fetchNotify";
-
-function isTauri(): boolean {
-  return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
-}
-const httpFetch: typeof fetch = (input, init) =>
-  isTauri()
-    ? (tauriFetch as unknown as typeof fetch)(input, init)
-    : fetch(input, init);
 
 export type DpmTier =
   | "all" | "iron" | "bronze" | "silver" | "silver_plus" | "gold" | "gold_plus"

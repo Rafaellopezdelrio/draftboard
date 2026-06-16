@@ -8,17 +8,9 @@
 // We filter to major regions (LCK, LEC, LCS, LPL, LCP, MSI, Worlds) and the most
 // recent N days. Aggregate to populate `meta_aggregate` (championId, position).
 
-import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
+import { httpFetch } from "./httpClient";
 import { getDb, isTauri } from "../db/client";
 import type { ChampionDb } from "../types/champion";
-
-function isTauriEnv(): boolean {
-  return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
-}
-const httpFetch: typeof fetch = (input, init) =>
-  isTauriEnv()
-    ? (tauriFetch as unknown as typeof fetch)(input, init)
-    : fetch(input, init);
 
 const LEAGUEPEDIA_API = "https://lol.fandom.com/api.php";
 

@@ -1,17 +1,9 @@
 // Multi-provider AI client. Default: Groq (free, fast, no card).
 // Falls back to Anthropic (paid, best quality) or Google Gemini (free tier).
 
-import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
+import { httpFetch } from "./httpClient";
 import { getRiotProxyUrl } from "./riotApi";
 import { i18n } from "../i18n";
-
-function isTauri(): boolean {
-  return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
-}
-const httpFetch: typeof fetch = (input, init) =>
-  isTauri()
-    ? (tauriFetch as unknown as typeof fetch)(input, init)
-    : fetch(input, init);
 
 export type AiProvider = "groq" | "anthropic" | "gemini";
 

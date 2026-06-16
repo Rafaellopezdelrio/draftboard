@@ -6,20 +6,12 @@
 // the list of pros that ran it, total games, and WR — letting the UI
 // show "5 pros went Sundered → Voltaic" instead of one averaged blob.
 
-import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
+import { httpFetch } from "./httpClient";
 import { getRiotProxyUrl } from "./riotApi";
 import type { Role } from "../types/champion";
 import { withRetry, RateLimitError, throwIfRateLimited } from "./retry";
 import { trackFetch } from "./breadcrumbs";
 import { emitFetchFailure } from "./fetchNotify";
-
-function isTauri(): boolean {
-  return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
-}
-const httpFetch: typeof fetch = (input, init) =>
-  isTauri()
-    ? (tauriFetch as unknown as typeof fetch)(input, init)
-    : fetch(input, init);
 
 export interface ProBuildVariant {
   /** "id1-id2" string of the core pair (sorted asc), e.g. "6610-6699". */

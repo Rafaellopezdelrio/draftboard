@@ -11,20 +11,12 @@
 // We keep the SQLite aggregator as a fallback for when op.gg is down or
 // for users who explicitly synced pro/SoloQ data.
 
-import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
+import { httpFetch } from "./httpClient";
 import { getRiotProxyUrl } from "./riotApi";
 import { withRetry, RateLimitError, throwIfRateLimited } from "./retry";
 import { trackFetch } from "./breadcrumbs";
 import { emitFetchFailure } from "./fetchNotify";
 import type { Role } from "../types/champion";
-
-function isTauri(): boolean {
-  return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
-}
-const httpFetch: typeof fetch = (input, init) =>
-  isTauri()
-    ? (tauriFetch as unknown as typeof fetch)(input, init)
-    : fetch(input, init);
 
 export interface OpggBuildPath {
   ids: number[];

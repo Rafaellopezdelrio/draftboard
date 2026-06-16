@@ -7,15 +7,8 @@
 //
 // Uses Tauri's HTTP plugin when available (no CORS), falls back to fetch in browser.
 
-import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
+import { httpFetch } from "./httpClient";
 import { i18n } from "../i18n";
-
-function isTauri(): boolean {
-  return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
-}
-
-const httpFetch: typeof fetch = (input, init) =>
-  isTauri() ? (tauriFetch as unknown as typeof fetch)(input, init) : fetch(input, init);
 
 export type Region = "euw1" | "na1" | "kr" | "eun1" | "br1" | "la1" | "la2" | "oc1" | "tr1" | "ru" | "jp1";
 export type Cluster = "europe" | "americas" | "asia" | "sea";

@@ -6,18 +6,10 @@
 // is a backup when Riot's page format changes; its data is sparser but
 // at least exposes patch metadata.
 
-import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
+import { httpFetch } from "./httpClient";
 import { getRiotProxyUrl } from "./riotApi";
 import { withRetry, RateLimitError, throwIfRateLimited } from "./retry";
 import { trackFetch } from "./breadcrumbs";
-
-function isTauri(): boolean {
-  return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
-}
-const httpFetch: typeof fetch = (input, init) =>
-  isTauri()
-    ? (tauriFetch as unknown as typeof fetch)(input, init)
-    : fetch(input, init);
 
 export interface PatchChange {
   championId: string; // Data Dragon id (e.g. "LeeSin")

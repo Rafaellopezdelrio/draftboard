@@ -6,20 +6,12 @@
 // counters. For features like "live WR vs the actual enemy laner in your
 // draft" we need the FULL grid. This service is the entry point.
 
-import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
+import { httpFetch } from "./httpClient";
 import { getRiotProxyUrl } from "./riotApi";
 import type { Role } from "../types/champion";
 import { withRetry, RateLimitError, throwIfRateLimited } from "./retry";
 import { trackFetch } from "./breadcrumbs";
 import { emitFetchFailure } from "./fetchNotify";
-
-function isTauri(): boolean {
-  return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
-}
-const httpFetch: typeof fetch = (input, init) =>
-  isTauri()
-    ? (tauriFetch as unknown as typeof fetch)(input, init)
-    : fetch(input, init);
 
 export interface OpggMatchup {
   play: number;

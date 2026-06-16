@@ -5,20 +5,12 @@
 // (chunked transfer + JSON-RPC). The CF Worker handles all that complexity
 // server-side and returns simple JSON. Plus edge caching makes it fast.
 
-import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
+import { httpFetch } from "./httpClient";
 import type { MetaTier, Role } from "../types/champion";
 import { getRiotProxyUrl } from "./riotApi";
 import { withRetry, RateLimitError, throwIfRateLimited } from "./retry";
 import { trackFetch } from "./breadcrumbs";
 import { emitFetchFailure } from "./fetchNotify";
-
-function isTauri(): boolean {
-  return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
-}
-const httpFetch: typeof fetch = (input, init) =>
-  isTauri()
-    ? (tauriFetch as unknown as typeof fetch)(input, init)
-    : fetch(input, init);
 
 interface OpggLaneEntry {
   name: string;
