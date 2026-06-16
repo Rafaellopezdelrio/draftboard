@@ -19,8 +19,8 @@ import {
   findMyPlayer,
   attributeObjectives,
   liveChampionKey,
-  type LiveGameEvent,
 } from "../services/liveClient";
+import { deriveTimers, type DerivedTimers } from "../services/liveTimers";
 import { displayGameMode } from "../data/gameModeNames";
 import { setOverlayVisible } from "../services/overlay";
 import { usePrefsStore } from "../state/prefsStore";
@@ -66,56 +66,11 @@ function coachSevClass(sev: LiveCoachSeverity): string {
   }
 }
 
-// Riot's respawn timers (seconds after kill). Values match the live game
-// timers shown on the in-game minimap, sourced from Riot's published patch
-// notes. Tune if a future patch changes them.
-const DRAGON_RESPAWN_SEC = 5 * 60;     // 5min
-const BARON_RESPAWN_SEC = 6 * 60;      // 6min (after first spawn at 25min)
-const FIRST_DRAGON_SPAWN_SEC = 5 * 60; // 5min from game start
-// Herald respawn (4min, until 20min when Baron spawns) intentionally left
-// out for phase 1 — needs separate event tracking we'll add later.
-
 function formatTime(seconds: number): string {
   const s = Math.max(0, Math.floor(seconds));
   const m = Math.floor(s / 60);
   const r = s % 60;
   return `${m}:${r.toString().padStart(2, "0")}`;
-}
-
-interface DerivedTimers {
-  /** Game time in seconds when the next dragon should be killable. */
-  nextDragonAt: number | null;
-  nextBaronAt: number | null;
-}
-
-function deriveTimers(
-  events: LiveGameEvent[],
-  gameTime: number
-): DerivedTimers {
-  let lastDragonKill: number | null = null;
-  let lastBaronKill: number | null = null;
-
-  // Team attribution of objective kills lives in liveClient.attributeObjectives
-  // (joins KillerName -> allPlayers[].team). Here we only need the last-kill
-  // timestamps to project the next spawn.
-  for (const ev of events) {
-    if (ev.EventName === "DragonKill" && typeof ev.EventTime === "number") {
-      lastDragonKill = ev.EventTime;
-    } else if (ev.EventName === "BaronKill" && typeof ev.EventTime === "number") {
-      lastBaronKill = ev.EventTime;
-    }
-  }
-
-  const nextDragonAt =
-    lastDragonKill !== null
-      ? lastDragonKill + DRAGON_RESPAWN_SEC
-      : gameTime < FIRST_DRAGON_SPAWN_SEC
-        ? FIRST_DRAGON_SPAWN_SEC
-        : null;
-  const nextBaronAt =
-    lastBaronKill !== null ? lastBaronKill + BARON_RESPAWN_SEC : null;
-
-  return { nextDragonAt, nextBaronAt };
 }
 
 interface LiveGamePanelProps {

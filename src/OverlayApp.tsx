@@ -30,6 +30,7 @@ import {
   attributeObjectives,
   type LiveGamePlayer,
 } from "./services/liveClient";
+import { deriveTimers } from "./services/liveTimers";
 import {
   coachLiveGame,
   type LiveCoachSeverity,
@@ -49,10 +50,6 @@ function ovCoachColor(sev: LiveCoachSeverity): string {
       return "text-white/70";
   }
 }
-
-const DRAGON_RESPAWN_SEC = 5 * 60;
-const BARON_RESPAWN_SEC = 6 * 60;
-const FIRST_DRAGON_SPAWN_SEC = 5 * 60;
 
 function formatTime(seconds: number): string {
   const s = Math.max(0, Math.floor(seconds));
@@ -132,25 +129,11 @@ export function OverlayApp() {
     return () => ro.disconnect();
   }, [inGame]);
 
-  const timers = useMemo(() => {
-    if (!snapshot) return null;
-    let lastDragon: number | null = null;
-    let lastBaron: number | null = null;
-    for (const ev of snapshot.events) {
-      if (ev.EventName === "DragonKill") lastDragon = ev.EventTime;
-      else if (ev.EventName === "BaronKill") lastBaron = ev.EventTime;
-    }
-    const gameTime = snapshot.gameData.gameTime;
-    const nextDragonAt =
-      lastDragon !== null
-        ? lastDragon + DRAGON_RESPAWN_SEC
-        : gameTime < FIRST_DRAGON_SPAWN_SEC
-          ? FIRST_DRAGON_SPAWN_SEC
-          : null;
-    const nextBaronAt =
-      lastBaron !== null ? lastBaron + BARON_RESPAWN_SEC : null;
-    return { nextDragonAt, nextBaronAt, gameTime };
-  }, [snapshot]);
+  const timers = useMemo(
+    () =>
+      snapshot ? deriveTimers(snapshot.events, snapshot.gameData.gameTime) : null,
+    [snapshot]
+  );
 
   if (!inGame || !snapshot) {
     // No active game → render NOTHING visible. The Tauri window itself
@@ -340,14 +323,14 @@ export function OverlayApp() {
               <ObjectiveRow
                 icon={<Sparkles className="w-2.5 h-2.5 text-orange-300" />}
                 label={t("liveGame.dragon")}
-                etaSec={timers.nextDragonAt - timers.gameTime}
+                etaSec={timers.nextDragonAt - gameTime}
               />
             )}
             {timers.nextBaronAt !== null && (
               <ObjectiveRow
                 icon={<Crown className="w-2.5 h-2.5 text-purple-300" />}
                 label={t("liveGame.baron")}
-                etaSec={timers.nextBaronAt - timers.gameTime}
+                etaSec={timers.nextBaronAt - gameTime}
               />
             )}
           </div>
