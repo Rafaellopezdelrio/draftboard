@@ -10,7 +10,7 @@ import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useLiveGame, useLiveGameTime } from "../hooks/useLiveGame";
 import type { LiveGameEvent } from "../services/liveClient";
-import { Activity, Crown, Eye, Flame, Skull } from "lucide-react";
+import { Activity, Bug, Crown, Eye, Flame, Skull } from "lucide-react";
 
 interface TimerRow {
   name: string;
@@ -37,6 +37,18 @@ const TIMERS: TimerRow[] = [
     ringColor: "border-orange-300/40 bg-orange-300/5",
     firstSpawnSec: 5 * 60,
     respawnSec: 5 * 60,
+  },
+  {
+    // Void Grubs (S14): spawn once at 6:00, despawn when Herald takes over at
+    // ~14:00. One-time window like Atakhan — no respawn, no kill tracking
+    // (Riot's HordeKill events aren't surfaced in our snapshot).
+    name: "Voidgrubs",
+    IconComponent: Bug,
+    color: "text-green-300",
+    fillColor: "bg-green-300",
+    ringColor: "border-green-300/40 bg-green-300/5",
+    firstSpawnSec: 6 * 60,
+    respawnSec: 0,
   },
   {
     name: "Herald",

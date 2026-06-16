@@ -27,13 +27,15 @@ describe("InGameTimers — static fallback (no live data)", () => {
     mockState.snapshot = null;
   });
 
-  it("renders the 4 canonical objectives with first-spawn minutes", () => {
+  it("renders the 5 canonical objectives with first-spawn minutes", () => {
     render(<InGameTimers />);
     expect(screen.getByText(/Drake/)).toBeInTheDocument();
+    expect(screen.getByText(/Voidgrubs/)).toBeInTheDocument();
     expect(screen.getByText(/Herald/)).toBeInTheDocument();
     expect(screen.getByText(/Baron/)).toBeInTheDocument();
     expect(screen.getByText(/Atakhan/)).toBeInTheDocument();
     expect(screen.getByText(/1ª spawn: 5min/)).toBeInTheDocument();
+    expect(screen.getByText(/1ª spawn: 6min/)).toBeInTheDocument();
     expect(screen.getByText(/1ª spawn: 14min/)).toBeInTheDocument();
     expect(screen.getByText(/1ª spawn: 25min/)).toBeInTheDocument();
   });
