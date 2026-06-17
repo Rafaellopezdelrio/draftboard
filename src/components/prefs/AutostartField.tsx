@@ -5,6 +5,7 @@
 // changed it.
 
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   disableAutostart,
   enableAutostart,
@@ -12,6 +13,7 @@ import {
 } from "../../services/autostart";
 
 export function AutostartField() {
+  const { t } = useTranslation();
   const [enabled, setEnabled] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -35,7 +37,7 @@ export function AutostartField() {
   return (
     <section>
       <h3 className="text-xs uppercase tracking-wide text-white/50 mb-2">
-        Inicio
+        {t("prefs.autostart.title")}
       </h3>
       <label className="flex items-center gap-3 cursor-pointer p-2 rounded hover:bg-white/5 transition">
         <input
@@ -47,11 +49,11 @@ export function AutostartField() {
         />
         <div className="flex-1">
           <p className="text-sm text-white">
-            Iniciar con Windows
-            {busy && <span className="ml-2 text-xs text-white/40">aplicando...</span>}
+            {t("prefs.autostart.toggle")}
+            {busy && <span className="ml-2 text-xs text-white/40">{t("prefs.autostart.applying")}</span>}
           </p>
           <p className="text-xs text-white/50 mt-0.5">
-            Arranca Draftboard al iniciar sesión (minimizado en bandeja del sistema).
+            {t("prefs.autostart.desc")}
           </p>
         </div>
       </label>

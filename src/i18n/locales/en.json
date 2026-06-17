@@ -831,7 +831,35 @@
     "confirmResetLabel": "Reset"
   },
   "prefs": {
-    "aiCoachLang": "AI Coach language (responses)"
+    "aiCoachLang": "AI Coach language (responses)",
+    "autostart": {
+      "title": "Startup",
+      "toggle": "Start with Windows",
+      "applying": "applying...",
+      "desc": "Launches Draftboard at login (minimized to the system tray)."
+    },
+    "proxy": {
+      "title": "Riot API — premium mode (proxy)",
+      "active": "active",
+      "placeholder": "https://draftboard-riot-proxy.your-account.workers.dev",
+      "descActive": "Using the proxy. You don't need your own Riot API key. Faster (edge cache) and the key never expires.",
+      "descInactivePrefix": "Paste your Cloudflare Worker URL here to avoid renewing the dev key every 24h. See ",
+      "descInactiveSuffix": " in the repo to deploy (free, ~5 min)."
+    },
+    "theme": {
+      "title": "Brand color",
+      "swatchTitle": "Applies the {{name}} color to buttons, badges and highlights.",
+      "desc": "The change is instant. Mint is the default."
+    },
+    "ai": {
+      "title": "AI provider",
+      "proxyNote": "✓ AI Coach is active automatically via the proxy. You don't need to configure anything. (Power users: paste your own key below to use your own quota.)",
+      "groqFree": "✓ 100% free. No card. Create an account and copy the key (30s).",
+      "geminiFree": "✓ Generous free quota. Requires a Google account.",
+      "anthropicPaid": "⚠️ Pay per use (≈ $0.005-0.03 per response). Best quality.",
+      "keyPlaceholderProxy": "optional — the proxy already injects a shared key",
+      "getKey": "Get your free key at {{host}} →"
+    }
   },
   "tabs": {
     "picks": "Picks",
@@ -1386,5 +1414,10 @@
       "Sivir": "Infinite wave clear, scales well",
       "Draven": "Snowball ADC — win early or lose late"
     }
+  },
+  "aiProviders": {
+    "groq": "Groq (free, Llama 3.3 70B)",
+    "anthropic": "Anthropic (Claude — paid)",
+    "gemini": "Google Gemini (free with quota)"
   }
 }

@@ -831,7 +831,35 @@
     "confirmResetLabel": "Restablecer"
   },
   "prefs": {
-    "aiCoachLang": "Idioma del AI Coach (respuestas)"
+    "aiCoachLang": "Idioma del AI Coach (respuestas)",
+    "autostart": {
+      "title": "Inicio",
+      "toggle": "Iniciar con Windows",
+      "applying": "aplicando...",
+      "desc": "Arranca Draftboard al iniciar sesión (minimizado en bandeja del sistema)."
+    },
+    "proxy": {
+      "title": "Riot API — modo premium (proxy)",
+      "active": "activo",
+      "placeholder": "https://draftboard-riot-proxy.tu-cuenta.workers.dev",
+      "descActive": "Usando proxy. No necesitas tu propia API key Riot. Más rápido (caché en edge) y la key nunca caduca.",
+      "descInactivePrefix": "Pega aquí la URL de tu Cloudflare Worker para evitar tener que renovar la dev key cada 24h. Ver ",
+      "descInactiveSuffix": " en el repo para deployar (gratis, ~5 min)."
+    },
+    "theme": {
+      "title": "Color de marca",
+      "swatchTitle": "Aplica color {{name}} a botones, badges y resaltados.",
+      "desc": "El cambio es inmediato. Mint es el predeterminado."
+    },
+    "ai": {
+      "title": "Proveedor de IA",
+      "proxyNote": "✓ AI Coach activo automáticamente vía proxy. No necesitas configurar nada. (Power users: pega tu propia key abajo para usar tu propia cuota.)",
+      "groqFree": "✓ 100% gratis. Sin tarjeta. Crea cuenta y copia la key (30s).",
+      "geminiFree": "✓ Cuota gratuita generosa. Necesita cuenta Google.",
+      "anthropicPaid": "⚠️ Pago por uso (≈ 0.005-0.03$ por respuesta). Mejor calidad.",
+      "keyPlaceholderProxy": "opcional — proxy ya inyecta key compartida",
+      "getKey": "Obtén tu key gratis en {{host}} →"
+    }
   },
   "tabs": {
     "picks": "Picks",
@@ -1386,5 +1414,10 @@
       "Sivir": "Wave clear infinito, escala bien",
       "Draven": "Snowball ADC — gana early o pierde late"
     }
+  },
+  "aiProviders": {
+    "groq": "Groq (gratis, Llama 3.3 70B)",
+    "anthropic": "Anthropic (Claude — pago)",
+    "gemini": "Google Gemini (gratis con cuota)"
   }
 }

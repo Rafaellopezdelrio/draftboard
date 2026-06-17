@@ -42,7 +42,7 @@ export function AnthropicKeyField() {
   return (
     <section>
       <h3 className="text-xs uppercase tracking-wide text-white/50 mb-2">
-        AI provider
+        {t("prefs.ai.title")}
       </h3>
       <div className="space-y-2">
         <select
@@ -52,32 +52,25 @@ export function AnthropicKeyField() {
         >
           {(Object.keys(PROVIDER_LABELS) as AiProvider[]).map((p) => (
             <option key={p} value={p}>
-              {PROVIDER_LABELS[p]}
+              {t(PROVIDER_LABELS[p])}
             </option>
           ))}
         </select>
 
         {proxyHandlesIt ? (
           <p className="text-xs text-good bg-good/10 border border-good/30 rounded p-2">
-            ✓ AI Coach activo automáticamente vía proxy. No necesitas configurar
-            nada. (Power users: pega tu propia key abajo para usar tu propia cuota.)
+            {t("prefs.ai.proxyNote")}
           </p>
         ) : (
           <>
             {provider === "groq" && (
-              <p className="text-xs text-good">
-                ✓ 100% gratis. Sin tarjeta. Crea cuenta y copia la key (30s).
-              </p>
+              <p className="text-xs text-good">{t("prefs.ai.groqFree")}</p>
             )}
             {provider === "gemini" && (
-              <p className="text-xs text-good">
-                ✓ Cuota gratuita generosa. Necesita cuenta Google.
-              </p>
+              <p className="text-xs text-good">{t("prefs.ai.geminiFree")}</p>
             )}
             {provider === "anthropic" && (
-              <p className="text-xs text-meh">
-                ⚠️ Pago por uso (≈ 0.005-0.03$ por respuesta). Mejor calidad.
-              </p>
+              <p className="text-xs text-meh">{t("prefs.ai.anthropicPaid")}</p>
             )}
           </>
         )}
@@ -86,7 +79,7 @@ export function AnthropicKeyField() {
           type="password"
           value={currentKey}
           onChange={(e) => setKey(e.target.value)}
-          placeholder={proxyHandlesIt ? "opcional — proxy ya inyecta key compartida" : placeholder}
+          placeholder={proxyHandlesIt ? t("prefs.ai.keyPlaceholderProxy") : placeholder}
           className="w-full bg-bg px-3 py-2 rounded outline-none border border-border-subtle focus:border-accent text-white text-sm"
         />
         {!proxyHandlesIt && (
@@ -96,7 +89,7 @@ export function AnthropicKeyField() {
             rel="noreferrer"
             className="text-xs text-accent/80 hover:text-accent block"
           >
-            Obtén tu key gratis en {new URL(PROVIDER_SIGNUP_URLS[provider]).hostname} →
+            {t("prefs.ai.getKey", { host: new URL(PROVIDER_SIGNUP_URLS[provider]).hostname })}
           </a>
         )}
 

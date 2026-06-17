@@ -29,10 +29,12 @@ const MODELS: Record<AiProvider, string> = {
   gemini: "gemini-2.0-flash",
 };
 
+// i18n keys (aiProviders.*) — resolved via t()/i18n.t at the call sites so the
+// provider dropdown + key-needed error localize.
 export const PROVIDER_LABELS: Record<AiProvider, string> = {
-  groq: "Groq (gratis, Llama 3.3 70B)",
-  anthropic: "Anthropic (Claude — pago)",
-  gemini: "Google Gemini (gratis con cuota)",
+  groq: "aiProviders.groq",
+  anthropic: "aiProviders.anthropic",
+  gemini: "aiProviders.gemini",
 };
 
 export const PROVIDER_SIGNUP_URLS: Record<AiProvider, string> = {
@@ -50,7 +52,7 @@ export async function callAi(p: AiCallParams): Promise<string> {
   }
   if (!p.apiKey?.trim()) {
     throw new Error(
-      i18n.t("serviceErrors.aiKeyNeeded", { provider: PROVIDER_LABELS[p.provider] })
+      i18n.t("serviceErrors.aiKeyNeeded", { provider: i18n.t(PROVIDER_LABELS[p.provider]) })
     );
   }
   switch (p.provider) {
