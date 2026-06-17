@@ -268,6 +268,7 @@
     "aiTips": "AI tips"
   },
   "coach": {
+    "topInsight": "Top insight",
     "aiAnalyzing": "Analyzing...",
     "aiAnalyze": "Analyze with AI",
     "apiKeyHint": "Paste your API key ({{provider}}) in Prefs. Groq is free.",
@@ -474,7 +475,61 @@
     "manualSummary": "Manual mode enabled. When you open the LoL client, the app will detect your account automatically."
   },
   "tipCarousel": {
-    "label": "Tip"
+    "label": "Tip",
+    "champTips": {
+      "LeeSin": [
+        "Insec toward your team, not into the wall — pull the carry out of position.",
+        "Max Q for better wave-clear and early prio.",
+        "Ward-jump out after a gank — saves Flash."
+      ],
+      "Jinx": [
+        "Switch AA → Minigun before a teamfight for mobility.",
+        "Traps on flank routes — free info for peelers.",
+        "Q resets give an endless chase — hunt for picks."
+      ],
+      "Yasuo": [
+        "Wait for an ally engage to ult — don't waste your own Knockup.",
+        "E through caster minions to dodge abilities in lane.",
+        "Wind Wall blocks projectiles only — not AAs, not dashes."
+      ],
+      "Ahri": [
+        "E → Q → AA → R; don't R first unless escaping.",
+        "Roam to the side opposite jungle prio.",
+        "Q charm during wave management makes pushing easy."
+      ],
+      "Vayne": [
+        "Tumble cancels the AA animation — use it between each auto in trades.",
+        "Condemn the carry into a wall = guaranteed kill.",
+        "Stack Q passive before engaging — true damage makes up for being squishy."
+      ]
+    },
+    "roleTips": {
+      "TOP": [
+        "Ward tri-bush + river — river ganks are most common at 3min.",
+        "Spend TP on a kill or to cancel a gank, not to push.",
+        "Freeze near your tower if behind — denies enemy ganks."
+      ],
+      "JUNGLE": [
+        "Track the enemy buff — their first clear reveals their path.",
+        "Gank lanes that win trades — ganking a losing lane is a 50/50.",
+        "If you're down on farm, play for ganks + objectives to generate value."
+      ],
+      "MIDDLE": [
+        "Wave management: push before roaming, freeze after a kill.",
+        "Roam bot lane minute 5-9 — more feed potential than top.",
+        "Track the enemy jungler — their cooldown = your all-in window."
+      ],
+      "BOTTOM": [
+        "Trade after your support has mana — only Support has bars.",
+        "Last-hitting is priority #1 — zero lane damage if your CS is low.",
+        "Reset windows on long waves + after backing."
+      ],
+      "UTILITY": [
+        "Roam after pushing the wave — invisible to the enemy.",
+        "Ward tri-bush at 2:50 — invades, dragons, fast clears.",
+        "Position BEHIND your ADC in teamfights — peel > engage for enchanters."
+      ]
+    }
   },
   "playstyle": {
     "title": "Your style"

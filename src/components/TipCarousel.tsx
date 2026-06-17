@@ -11,6 +11,7 @@
 
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { Lightbulb } from "lucide-react";
 import { Panel } from "./ui/Panel";
 import { usePrefsStore } from "../state/prefsStore";
@@ -23,73 +24,35 @@ interface Props {
   patch: string;
 }
 
-// Per-champion tips. Add more as we see specific user demand. Each entry
-// is a short imperative ("Q max first") so the user can scan quickly.
-const CHAMPION_TIPS: Record<string, string[]> = {
-  "Lee Sin": [
-    "Insec hacia tu equipo, no contra el muro — saca al carry de posición.",
-    "Q max para mejor wave-clear y prio temprana.",
-    "Ward jump pa salida tras gankear — ahorra Flash.",
-  ],
-  "Jinx": [
-    "Cambia AA → MiniGun antes de teamfight para movilidad.",
-    "Trampas en flank routes — info gratis pa peelers.",
-    "Resets de Q garantizan persecución infinita — busca picks.",
-  ],
-  "Yasuo": [
-    "Espera engage aliado pa tu ulti — no malgastes Knockup propio.",
-    "E sobre minions caster pa esquivar habilidades en lane.",
-    "Wind Wall sólo proyectiles — no para AA, no para dashes.",
-  ],
-  "Ahri": [
-    "E → Q → AA → R, no R first salvo escape.",
-    "Roam side opuesto a jungle prio.",
-    "Q charm en wave management hace push fácil.",
-  ],
-  "Vayne": [
-    "Tumble cancela animación de AA — usa entre cada auto en trades.",
-    "Condemn al carry contra muro = kill garantizado.",
-    "Stack Q passive antes de engage — daño verdadero compensa squishy.",
-  ],
+// Champions with a curated tip set. The tip TEXT lives in the locale files
+// (tipCarousel.champTips.<key> / tipCarousel.roleTips.<ROLE>) so it localizes;
+// here we only map a champion display name → its locale key segment. Add more
+// as we see specific user demand.
+const CHAMPION_TIP_KEYS: Record<string, string> = {
+  "Lee Sin": "LeeSin",
+  "Jinx": "Jinx",
+  "Yasuo": "Yasuo",
+  "Ahri": "Ahri",
+  "Vayne": "Vayne",
 };
 
-// Per-role generic tips when champion has no specific entry.
-const ROLE_TIPS: Record<Role, string[]> = {
-  TOP: [
-    "Ward Tri-bush + river — gank desde river es lo más común a 3min.",
-    "TP debe gastarse en kill o cancelando gank, no en push.",
-    "Freeze cerca de tu torre si vas detrás — niega gank enemigo.",
-  ],
-  JUNGLE: [
-    "Track buff enemigo — clear inicial revela su path.",
-    "Ataca lanes que ganan trades — gank perdiendo lane = 50/50.",
-    "Si pierdes farm, juega gankeo + objetivos pa generar valor.",
-  ],
-  MIDDLE: [
-    "Wave management: empuja antes de roam, congela tras kill.",
-    "Roam botlane minuto 5-9 — más feed potencial que top.",
-    "Track jungla enemiga — su CD = tu ventana de all-in.",
-  ],
-  BOTTOM: [
-    "Trade tras maná soporte — solo Soporte tiene barras.",
-    "Last hit es prioridad #1 — daño cero en lane si CS bajo.",
-    "Reset windows en oleadas largas + post-back.",
-  ],
-  UTILITY: [
-    "Roam tras pushear oleada — Q&A invisible al enemy.",
-    "Ward tribush minuto 2:50 — invades, dragones, fastclear.",
-    "Posiciona BEHIND tu ADC en teamfights — peel > engage para enchanters.",
-  ],
-};
-
-function getTipsFor(champion: Champion | null, role: Role | null): string[] {
+function getTipsFor(
+  champion: Champion | null,
+  role: Role | null,
+  t: TFunction
+): string[] {
   if (!role && !champion) return [];
   const tips: string[] = [];
-  if (champion && CHAMPION_TIPS[champion.name]) {
-    tips.push(...CHAMPION_TIPS[champion.name]);
+  const champKey = champion ? CHAMPION_TIP_KEYS[champion.name] : undefined;
+  if (champKey) {
+    tips.push(
+      ...(t(`tipCarousel.champTips.${champKey}`, { returnObjects: true }) as string[])
+    );
   }
-  if (role && ROLE_TIPS[role]) {
-    tips.push(...ROLE_TIPS[role]);
+  if (role) {
+    tips.push(
+      ...(t(`tipCarousel.roleTips.${role}`, { returnObjects: true }) as string[])
+    );
   }
   return tips;
 }
@@ -110,7 +73,7 @@ export function TipCarousel({ champion, role, patch }: Props) {
   const champKey = champion?.key ?? null;
   const champName = champion?.name ?? null;
   const [aiTips, setAiTips] = useState<string[]>([]);
-  const tips = [...aiTips, ...getTipsFor(champion, role)];
+  const tips = [...aiTips, ...getTipsFor(champion, role, t)];
   const [idx, setIdx] = useState(0);
 
   // AI tips (cache-first) for the active champion+role. Debounced so a

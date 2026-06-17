@@ -94,7 +94,7 @@ export function ProBuildsSection({ championId, role, patch }: Props) {
                 ? "bg-accent/15 ring-accent/50 text-accent"
                 : "bg-bg-card/40 ring-border-subtle text-white/50 hover:bg-bg-hover"
             }`}
-            title={`${v.games} partidas · ${(v.winRate * 100).toFixed(0)}% WR`}
+            title={`${t("build.games", { count: v.games })} · ${(v.winRate * 100).toFixed(0)}% WR`}
           >
             #{i + 1} · {v.games} pros
           </button>

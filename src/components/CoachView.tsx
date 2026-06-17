@@ -262,7 +262,7 @@ export function CoachView({ db, onClose }: Props) {
                 <div className={`border rounded p-3 ${sevPalette}`}>
                   <div className="flex items-baseline justify-between mb-1.5">
                     <p className={`text-[10px] uppercase tracking-widest font-semibold ${sevColor}`}>
-                      ⚡ Top insight
+                      ⚡ {t("coach.topInsight")}
                     </p>
                     <span className={`text-[10px] uppercase tracking-wider ${sevColor}`}>
                       {t(insight.labelKey)} · {insight.score}/100

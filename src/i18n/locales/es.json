@@ -268,6 +268,7 @@
     "aiTips": "AI tips"
   },
   "coach": {
+    "topInsight": "Insight principal",
     "aiAnalyzing": "Analizando...",
     "aiAnalyze": "Analizar con AI",
     "apiKeyHint": "Pega tu API key ({{provider}}) en Prefs. Groq es gratis.",
@@ -474,7 +475,61 @@
     "manualSummary": "Modo manual activado. Cuando abras el cliente de LoL, la app detectará tu cuenta automáticamente."
   },
   "tipCarousel": {
-    "label": "Tip"
+    "label": "Tip",
+    "champTips": {
+      "LeeSin": [
+        "Insec hacia tu equipo, no contra el muro — saca al carry de posición.",
+        "Q max para mejor wave-clear y prio temprana.",
+        "Ward jump pa salida tras gankear — ahorra Flash."
+      ],
+      "Jinx": [
+        "Cambia AA → MiniGun antes de teamfight para movilidad.",
+        "Trampas en flank routes — info gratis pa peelers.",
+        "Resets de Q garantizan persecución infinita — busca picks."
+      ],
+      "Yasuo": [
+        "Espera engage aliado pa tu ulti — no malgastes Knockup propio.",
+        "E sobre minions caster pa esquivar habilidades en lane.",
+        "Wind Wall sólo proyectiles — no para AA, no para dashes."
+      ],
+      "Ahri": [
+        "E → Q → AA → R, no R first salvo escape.",
+        "Roam side opuesto a jungle prio.",
+        "Q charm en wave management hace push fácil."
+      ],
+      "Vayne": [
+        "Tumble cancela animación de AA — usa entre cada auto en trades.",
+        "Condemn al carry contra muro = kill garantizado.",
+        "Stack Q passive antes de engage — daño verdadero compensa squishy."
+      ]
+    },
+    "roleTips": {
+      "TOP": [
+        "Ward Tri-bush + river — gank desde river es lo más común a 3min.",
+        "TP debe gastarse en kill o cancelando gank, no en push.",
+        "Freeze cerca de tu torre si vas detrás — niega gank enemigo."
+      ],
+      "JUNGLE": [
+        "Track buff enemigo — clear inicial revela su path.",
+        "Ataca lanes que ganan trades — gank perdiendo lane = 50/50.",
+        "Si pierdes farm, juega gankeo + objetivos pa generar valor."
+      ],
+      "MIDDLE": [
+        "Wave management: empuja antes de roam, congela tras kill.",
+        "Roam botlane minuto 5-9 — más feed potencial que top.",
+        "Track jungla enemiga — su CD = tu ventana de all-in."
+      ],
+      "BOTTOM": [
+        "Trade tras maná soporte — solo Soporte tiene barras.",
+        "Last hit es prioridad #1 — daño cero en lane si CS bajo.",
+        "Reset windows en oleadas largas + post-back."
+      ],
+      "UTILITY": [
+        "Roam tras pushear oleada — Q&A invisible al enemy.",
+        "Ward tribush minuto 2:50 — invades, dragones, fastclear.",
+        "Posiciona BEHIND tu ADC en teamfights — peel > engage para enchanters."
+      ]
+    }
   },
   "playstyle": {
     "title": "Tu estilo"
