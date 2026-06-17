@@ -11,7 +11,7 @@ function spike(over: Partial<PowerSpikeProfile>): PowerSpikeProfile {
     firstItem: 7,
     twoItems: 9,
     fullBuild: 8,
-    summary: "test spike",
+    summaryKey: "powerSpikes.summary.Yasuo",
     ...over,
   };
 }

@@ -9,6 +9,7 @@
 
 import type { LiveGamePlayer } from "../services/liveClient";
 import type { PowerSpikeProfile } from "../data/powerSpikes";
+import { i18n } from "../i18n";
 
 export type LiveCoachSeverity = "critical" | "warn" | "good" | "info";
 
@@ -252,7 +253,7 @@ export function coachLiveGame(args: LiveCoachArgs): LiveCoachInsight[] {
         key: "spike-weak",
         severity: "warn",
         textKey: "liveCoach.spikeWeak",
-        params: { rating, summary: spikeProfile.summary },
+        params: { rating, summary: i18n.t(spikeProfile.summaryKey) },
       });
     }
   }

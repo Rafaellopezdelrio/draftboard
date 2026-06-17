@@ -18,7 +18,7 @@ export function PowerSpikesBars({ championId }: Props) {
       defaultOpen={false}
       storageKey="powerSpikes"
       title={t("build.powerSpikes")}
-      summary={profile.summary}
+      summary={t(profile.summaryKey)}
     >
       <div className="space-y-1.5">
       <div className="flex items-end gap-1 h-12">
@@ -32,20 +32,20 @@ export function PowerSpikesBars({ championId }: Props) {
                 : "bg-bad/70";
           return (
             <div
-              key={b.label}
+              key={b.labelKey}
               className="flex-1 flex flex-col items-center justify-end gap-1"
-              title={b.tooltip}
+              title={t(b.tooltipKey)}
             >
               <div
                 className={`${color} w-full rounded-t transition-all`}
                 style={{ height: `${h}%` }}
               />
-              <span className="text-[10px] text-white/50">{b.label}</span>
+              <span className="text-[10px] text-white/50">{t(b.labelKey)}</span>
             </div>
           );
         })}
       </div>
-      <p className="text-xs text-white/70">{profile.summary}</p>
+      <p className="text-xs text-white/70">{t(profile.summaryKey)}</p>
       </div>
     </Panel>
   );
