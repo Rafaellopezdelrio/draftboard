@@ -888,6 +888,10 @@
   },
   "prefs": {
     "aiCoachLang": "AI Coach language (responses)",
+    "toggle": {
+      "advanced": "advanced",
+      "advancedAria": "advanced option"
+    },
     "autostart": {
       "title": "Startup",
       "toggle": "Start with Windows",

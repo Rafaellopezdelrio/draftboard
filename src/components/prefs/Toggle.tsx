@@ -2,6 +2,8 @@
 // Wired up with role="switch" + aria-describedby so screen readers
 // announce both the label and the detail text correctly.
 
+import { useTranslation } from "react-i18next";
+
 interface Props {
   label: string;
   detail?: string;
@@ -11,6 +13,7 @@ interface Props {
 }
 
 export function Toggle({ label, detail, danger, checked, onChange }: Props) {
+  const { t } = useTranslation();
   // Unique id wiring up the visible label to the checkbox for screen
   // readers and click-target expansion. Without it, hitting the visual
   // label was a click-on-label trick that worked only because the input
@@ -37,8 +40,8 @@ export function Toggle({ label, detail, danger, checked, onChange }: Props) {
         <p className={`text-sm ${danger ? "text-meh" : "text-white"}`}>
           {label}
           {danger && (
-            <span className="ml-2 text-xs text-meh" aria-label="opción avanzada">
-              ⚠️ avanzado
+            <span className="ml-2 text-xs text-meh" aria-label={t("prefs.toggle.advancedAria")}>
+              ⚠️ {t("prefs.toggle.advanced")}
             </span>
           )}
         </p>
