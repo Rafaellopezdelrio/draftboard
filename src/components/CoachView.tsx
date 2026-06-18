@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { i18n } from "../i18n";
 import { analyzeMatch, type Insight } from "../engine/coachEngine";
 import { computeGpi, type GpiScore } from "../engine/gpiEngine";
 import { deriveTopInsight } from "../engine/topInsight";
@@ -98,7 +99,7 @@ export function CoachView({ db, onClose }: Props) {
     (async () => {
       try {
         const cfg = await loadSettings();
-        if (!cfg || !cfg.puuid) throw new Error("Configura primero tu Riot ID en ⚙");
+        if (!cfg || !cfg.puuid) throw new Error(i18n.t("coach.needRiotId"));
         const [full, timeline, rank] = await Promise.all([
           getMatchFull(cfg, matchId),
           getMatchTimeline(cfg, matchId),

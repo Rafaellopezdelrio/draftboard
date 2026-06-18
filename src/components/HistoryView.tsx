@@ -1,5 +1,6 @@
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { recentMatches, type MatchRow } from "../services/matchRepo";
 import type { ChampionDb, Role } from "../types/champion";
 import { queueLabel, isRelevantQueue } from "../data/queueNames";
@@ -303,6 +304,7 @@ export function HistoryView({ db, onClose }: Props) {
 // only rows whose `m` ref changes get re-rendered. The `db` prop is
 // stable across the session so identity check is enough.
 const MatchRowCard = memo(function MatchRowCard({ db, m }: { db: ChampionDb; m: MatchRow }) {
+  const { t } = useTranslation();
   const champ = db.champions[String(m.championId)];
   const opp = m.opponentChampionId
     ? db.champions[String(m.opponentChampionId)]
@@ -310,7 +312,7 @@ const MatchRowCard = memo(function MatchRowCard({ db, m }: { db: ChampionDb; m: 
   const kda = ((m.kills + m.assists) / Math.max(1, m.deaths)).toFixed(2);
   const cspm = (m.cs / (m.durationSec / 60)).toFixed(1);
   const date = new Date(m.gameEndTimestampMs);
-  const ago = formatTimeAgo(date);
+  const ago = formatTimeAgo(date, t);
 
   return (
     <div
@@ -394,10 +396,10 @@ function computeStreak(matches: MatchRow[]): { win: boolean; count: number } | n
   return { win: first.win, count };
 }
 
-function formatTimeAgo(d: Date): string {
+function formatTimeAgo(d: Date, t: TFunction): string {
   const ms = Date.now() - d.getTime();
   const s = ms / 1000;
-  if (s < 60) return "ahora";
+  if (s < 60) return t("history.now");
   const m = s / 60;
   if (m < 60) return `${Math.floor(m)}min`;
   const h = m / 60;

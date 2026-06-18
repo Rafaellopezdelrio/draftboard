@@ -269,6 +269,7 @@
   },
   "coach": {
     "topInsight": "Insight principal",
+    "needRiotId": "Configura primero tu Riot ID en ⚙",
     "aiAnalyzing": "Analizando...",
     "aiAnalyze": "Analizar con AI",
     "apiKeyHint": "Pega tu API key ({{provider}}) en Prefs. Groq es gratis.",
@@ -1348,6 +1349,7 @@
   },
   "history": {
     "title": "Historial",
+    "now": "ahora",
     "filterByChampion": "Filtrar por campeón...",
     "matches": "Partidas",
     "winrate": "Winrate",

@@ -269,6 +269,7 @@
   },
   "coach": {
     "topInsight": "Top insight",
+    "needRiotId": "Set up your Riot ID first in ⚙",
     "aiAnalyzing": "Analyzing...",
     "aiAnalyze": "Analyze with AI",
     "apiKeyHint": "Paste your API key ({{provider}}) in Prefs. Groq is free.",
@@ -1348,6 +1349,7 @@
   },
   "history": {
     "title": "History",
+    "now": "now",
     "filterByChampion": "Filter by champion...",
     "matches": "Matches",
     "winrate": "Winrate",
