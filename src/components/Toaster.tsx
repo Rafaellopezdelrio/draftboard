@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { useEffect } from "react";
+import { i18n } from "../i18n";
 
 export type ToastSeverity = "info" | "warn" | "bad" | "good";
 
@@ -83,7 +84,7 @@ function ToastCard({ t, onClose }: { t: Toast; onClose: () => void }) {
       <button
         onClick={onClose}
         className="text-white/40 hover:text-white text-xs"
-        aria-label="Cerrar"
+        aria-label={i18n.t("toast.dismiss")}
       >
         ✕
       </button>
