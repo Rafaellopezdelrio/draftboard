@@ -1365,7 +1365,26 @@
     "emptyFilters": "No matches with these filters",
     "emptyFiltersDetail": "Change role, queue or search to see more results.",
     "emptyAll": "No matches yet",
-    "emptyAllDetail": "Open the LoL client to auto-detect, or add your Riot ID in Settings ⚙️."
+    "emptyAllDetail": "Open the LoL client to auto-detect, or add your Riot ID in Settings ⚙️.",
+    "queue": {
+      "ranked": "Ranked",
+      "soloq": "SoloQ",
+      "flex": "Flex",
+      "normal": "Normal",
+      "aram": "ARAM",
+      "arena": "Arena",
+      "rotation": "Rotation",
+      "all": "All"
+    },
+    "role": {
+      "all": "All roles",
+      "top": "Top",
+      "jungle": "Jungle",
+      "mid": "Mid",
+      "adc": "ADC",
+      "sup": "Sup",
+      "filterLabel": "Filter by role"
+    }
   },
   "viewBoundary": {
     "title": "Something broke in this view",

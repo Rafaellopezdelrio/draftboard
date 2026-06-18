@@ -1365,7 +1365,26 @@
     "emptyFilters": "Sin partidas con estos filtros",
     "emptyFiltersDetail": "Cambia el rol, la cola o la búsqueda para ver más resultados.",
     "emptyAll": "Sin partidas aún",
-    "emptyAllDetail": "Abre el cliente de LoL para detectarte automáticamente, o añade tu Riot ID en Configuración ⚙️."
+    "emptyAllDetail": "Abre el cliente de LoL para detectarte automáticamente, o añade tu Riot ID en Configuración ⚙️.",
+    "queue": {
+      "ranked": "Ranked",
+      "soloq": "SoloQ",
+      "flex": "Flex",
+      "normal": "Normal",
+      "aram": "ARAM",
+      "arena": "Arena",
+      "rotation": "Rotación",
+      "all": "Todas"
+    },
+    "role": {
+      "all": "Todos los roles",
+      "top": "Top",
+      "jungle": "Jungla",
+      "mid": "Mid",
+      "adc": "ADC",
+      "sup": "Sup",
+      "filterLabel": "Filtrar por rol"
+    }
   },
   "viewBoundary": {
     "title": "Algo se rompió en esta vista",

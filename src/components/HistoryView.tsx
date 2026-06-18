@@ -24,29 +24,31 @@ type QueueFilter = "ALL" | "RANKED" | "NORMAL" | "ARAM" | "ROTATION" | number;
 
 // Queue families. Each label maps to multiple queue IDs.
 // Source: https://static.developer.riotgames.com/docs/lol/queues.json
+// `label` holds an i18n key (history.queue.* / history.role.*) resolved at the
+// render site via t() so the filter tabs localize.
 const QUEUE_TABS: Array<{ value: QueueFilter; label: string; ids?: number[] }> = [
   // Ranked SR
-  { value: "RANKED", label: "Ranked", ids: [420, 440] },
-  { value: 420, label: "SoloQ", ids: [420] },
-  { value: 440, label: "Flex", ids: [440] },
+  { value: "RANKED", label: "history.queue.ranked", ids: [420, 440] },
+  { value: 420, label: "history.queue.soloq", ids: [420] },
+  { value: 440, label: "history.queue.flex", ids: [440] },
   // Normal SR
-  { value: "NORMAL", label: "Normal", ids: [400, 430, 490] },
+  { value: "NORMAL", label: "history.queue.normal", ids: [400, 430, 490] },
   // ARAM (Howling Abyss only)
-  { value: "ARAM", label: "ARAM", ids: [450, 720] },
+  { value: "ARAM", label: "history.queue.aram", ids: [450, 720] },
   // Arena (permanent 2v2v2v2 mode, separate tab)
-  { value: 1700, label: "Arena", ids: [1700] },
+  { value: 1700, label: "history.queue.arena", ids: [1700] },
   // Rotating event modes only (URF / OFA / Nexus Blitz / Spellbook)
-  { value: "ROTATION", label: "Rotación", ids: [900, 1020, 1300, 1400, 1900] },
-  { value: "ALL", label: "Todas" },
+  { value: "ROTATION", label: "history.queue.rotation", ids: [900, 1020, 1300, 1400, 1900] },
+  { value: "ALL", label: "history.queue.all" },
 ];
 
 const ROLE_TABS: Array<{ value: Role | "ALL"; label: string }> = [
-  { value: "ALL", label: "Todos los roles" },
-  { value: "TOP", label: "Top" },
-  { value: "JUNGLE", label: "Jungla" },
-  { value: "MIDDLE", label: "Mid" },
-  { value: "BOTTOM", label: "ADC" },
-  { value: "UTILITY", label: "Sup" },
+  { value: "ALL", label: "history.role.all" },
+  { value: "TOP", label: "history.role.top" },
+  { value: "JUNGLE", label: "history.role.jungle" },
+  { value: "MIDDLE", label: "history.role.mid" },
+  { value: "BOTTOM", label: "history.role.adc" },
+  { value: "UTILITY", label: "history.role.sup" },
 ];
 
 export function HistoryView({ db, onClose }: Props) {
@@ -156,7 +158,7 @@ export function HistoryView({ db, onClose }: Props) {
 
           {/* Queue tabs (underline style) */}
           <Tabs
-            tabs={QUEUE_TABS.map((t) => ({ value: t.value, label: t.label }))}
+            tabs={QUEUE_TABS.map((q) => ({ value: q.value, label: t(q.label) }))}
             active={queueTab}
             onChange={setQueueTab}
           />
@@ -165,7 +167,7 @@ export function HistoryView({ db, onClose }: Props) {
           <div className="flex items-center justify-between gap-2 mt-2">
             <div
               role="tablist"
-              aria-label="Filtrar por rol"
+              aria-label={t("history.role.filterLabel")}
               className="flex gap-1 flex-wrap"
             >
               {ROLE_TABS.map((r) => (
@@ -180,7 +182,7 @@ export function HistoryView({ db, onClose }: Props) {
                       : "text-white/55 hover:text-white/85"
                   }`}
                 >
-                  {r.label}
+                  {t(r.label)}
                 </button>
               ))}
             </div>
