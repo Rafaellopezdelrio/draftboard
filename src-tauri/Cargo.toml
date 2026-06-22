@@ -1,6 +1,6 @@
 [package]
 name = "lol-draft-advisor-app"
-version = "0.3.0"
+version = "0.4.0"
 description = "Draftboard — Pro-level LoL draft advisor + AI coach"
 authors = ["Draftboard"]
 edition = "2021"
