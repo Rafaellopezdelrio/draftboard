@@ -30,7 +30,7 @@ import {
   attributeObjectives,
   type LiveGamePlayer,
 } from "./services/liveClient";
-import { deriveTimers } from "./services/liveTimers";
+import { deriveTimers, formatTime } from "./services/liveTimers";
 import {
   coachLiveGame,
   type LiveCoachSeverity,
@@ -49,13 +49,6 @@ function ovCoachColor(sev: LiveCoachSeverity): string {
     default:
       return "text-white/70";
   }
-}
-
-function formatTime(seconds: number): string {
-  const s = Math.max(0, Math.floor(seconds));
-  const m = Math.floor(s / 60);
-  const r = s % 60;
-  return `${m}:${r.toString().padStart(2, "0")}`;
 }
 
 export function OverlayApp() {

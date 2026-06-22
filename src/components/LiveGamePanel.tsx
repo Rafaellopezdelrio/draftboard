@@ -20,7 +20,7 @@ import {
   attributeObjectives,
   liveChampionKey,
 } from "../services/liveClient";
-import { deriveTimers, type DerivedTimers } from "../services/liveTimers";
+import { deriveTimers, formatTime, type DerivedTimers } from "../services/liveTimers";
 import { displayGameMode } from "../data/gameModeNames";
 import { setOverlayVisible } from "../services/overlay";
 import { usePrefsStore } from "../state/prefsStore";
@@ -64,13 +64,6 @@ function coachSevClass(sev: LiveCoachSeverity): string {
     default:
       return "bg-bg-card border border-border-subtle text-white/80";
   }
-}
-
-function formatTime(seconds: number): string {
-  const s = Math.max(0, Math.floor(seconds));
-  const m = Math.floor(s / 60);
-  const r = s % 60;
-  return `${m}:${r.toString().padStart(2, "0")}`;
 }
 
 interface LiveGamePanelProps {

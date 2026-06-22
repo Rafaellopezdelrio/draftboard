@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   deriveTimers,
+  formatTime,
   DRAGON_RESPAWN_SEC,
   BARON_RESPAWN_SEC,
   FIRST_DRAGON_SPAWN_SEC,
@@ -47,5 +48,22 @@ describe("deriveTimers", () => {
     const r = deriveTimers([bad], 120);
     // Falls through to the first-spawn projection, not NaN.
     expect(r.nextDragonAt).toBe(FIRST_DRAGON_SPAWN_SEC);
+  });
+});
+
+describe("formatTime", () => {
+  it("formats seconds as M:SS with zero-padded seconds", () => {
+    expect(formatTime(0)).toBe("0:00");
+    expect(formatTime(5)).toBe("0:05");
+    expect(formatTime(65)).toBe("1:05");
+    expect(formatTime(600)).toBe("10:00");
+  });
+
+  it("clamps negatives to 0:00 (a passed ETA shouldn't read negative)", () => {
+    expect(formatTime(-30)).toBe("0:00");
+  });
+
+  it("keeps M:SS past an hour (no hour rollover for objective timers)", () => {
+    expect(formatTime(3661)).toBe("61:01");
   });
 });

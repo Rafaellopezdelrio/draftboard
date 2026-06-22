@@ -22,6 +22,15 @@ export interface DerivedTimers {
   nextBaronAt: number | null;
 }
 
+/** Seconds → "M:SS". Clamps negatives to 0 so a passed ETA reads "0:00", not
+ *  "-1:59". Shared by the live panel + overlay clocks. */
+export function formatTime(seconds: number): string {
+  const s = Math.max(0, Math.floor(seconds));
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return `${m}:${r.toString().padStart(2, "0")}`;
+}
+
 /**
  * Project the next dragon/baron spawn from the past kill events. Pure: depends
  * only on the event log + current game time, so it's trivially testable and
