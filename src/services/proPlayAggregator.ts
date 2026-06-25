@@ -10,6 +10,8 @@
 
 import { httpFetch } from "./httpClient";
 import { getDb, isTauri } from "../db/client";
+import { buildBatchInserts } from "../db/batchInsert";
+import { i18n } from "../i18n";
 import type { ChampionDb } from "../types/champion";
 
 const LEAGUEPEDIA_API = "https://lol.fandom.com/api.php";
@@ -188,7 +190,7 @@ export async function aggregateFromProPlay(
 
   // Write into meta_aggregate with a "proplay-" patch label so it doesn't
   // overwrite Master+ data if both are configured.
-  onProgress({ phase: "Guardando", done: 0, total: counts.size });
+  onProgress({ phase: i18n.t("metaSync.saving"), done: 0, total: counts.size });
   const dbConn = await getDb();
   const proPatch = `proplay-${patch}`;
   await dbConn.execute("DELETE FROM meta_aggregate WHERE patch = $1", [proPatch]);
@@ -196,19 +198,27 @@ export async function aggregateFromProPlay(
   let totalGames = 0;
   for (const v of counts.values()) totalGames += v.games;
 
-  let i = 0;
+  // Batch the per-(champion,position) rows into a few multi-row INSERTs instead
+  // of one execute() round-trip each (counts can be 200+). Same buildBatchInserts
+  // helper metaAggregator uses.
+  const now = Date.now();
+  const rows: unknown[][] = [];
   for (const [k, v] of counts) {
     const [champKey, pos] = k.split("|");
     const wr = v.games > 0 ? v.wins / v.games : 0;
     const pickRate = totalGames > 0 ? v.games / totalGames : 0;
-    await dbConn.execute(
-      `INSERT INTO meta_aggregate (champion_id, position, games, wins, win_rate, pick_rate, ban_rate, patch, updated_ts_ms)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
-      [Number(champKey), pos, v.games, v.wins, wr, pickRate, 0, proPatch, Date.now()]
-    );
-    i++;
-    if (i % 10 === 0)
-      onProgress({ phase: "Guardando", done: i, total: counts.size });
+    rows.push([Number(champKey), pos, v.games, v.wins, wr, pickRate, 0, proPatch, now]);
+  }
+  const chunks = buildBatchInserts(
+    "meta_aggregate",
+    ["champion_id", "position", "games", "wins", "win_rate", "pick_rate", "ban_rate", "patch", "updated_ts_ms"],
+    rows
+  );
+  let done = 0;
+  for (const chunk of chunks) {
+    await dbConn.execute(chunk.sql, chunk.params);
+    done = Math.min(done + Math.ceil(counts.size / Math.max(1, chunks.length)), counts.size);
+    onProgress({ phase: i18n.t("metaSync.saving"), done, total: counts.size });
   }
 
   await dbConn.execute(
