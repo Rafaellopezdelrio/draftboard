@@ -78,6 +78,12 @@ interface DpmResponse {
   entries: DpmEntry[];
 }
 
+// 30min in-memory dedupe, keyed by bucket — the tier list is patch-stable, so
+// re-fetching it on every championDb refresh within a session is wasted work.
+// Matches the cache opggBuilds / proBuilds already use.
+const CACHE_TTL_MS = 30 * 60 * 1000;
+const cache = new Map<string, { ts: number; data: MetaTier[] }>();
+
 /**
  * Fetch the dpm.lol tier list for a specific (tier, platform, timeframe)
  * bucket. Returns the app's MetaTier[] shape with championKey mapped from
@@ -98,6 +104,10 @@ export async function fetchDpmMeta(
     console.warn("[dpm] no proxy configured — skipping");
     return [];
   }
+  const cacheKey = `${tier}:${platform}:${timeframe}`;
+  const cached = cache.get(cacheKey);
+  if (cached && Date.now() - cached.ts < CACHE_TTL_MS) return cached.data;
+
   const url =
     `${proxyUrl}/dpm/tierlist?tier=${encodeURIComponent(tier)}` +
     `&platform=${encodeURIComponent(platform)}` +
@@ -133,6 +143,8 @@ export async function fetchDpmMeta(
         (unknown > 0 ? ` (${unknown} unknown names)` : "") +
         (data.totalMatches ? ` — ${data.totalMatches.toLocaleString()} matches` : "")
     );
+    // Only cache a real result — 0 entries means a parse miss, retry next time.
+    if (out.length > 0) cache.set(cacheKey, { ts: Date.now(), data: out });
     return out;
   } catch (e) {
     // eslint-disable-next-line no-console
