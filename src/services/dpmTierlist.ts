@@ -9,13 +9,9 @@
 // to Challenger. op.gg's MCP only exposes plat+. Letting users pick their
 // actual rank fixes the "Mel is mid in low elo but never in Challenger"
 // problem that the plat+ aggregate can't solve.
-
-import { httpFetch } from "./httpClient";
 import type { MetaTier, Role } from "../types/champion";
 import { getRiotProxyUrl } from "./riotApi";
-import { withRetry, RateLimitError, throwIfRateLimited } from "./retry";
-import { trackFetch } from "./breadcrumbs";
-import { emitFetchFailure } from "./fetchNotify";
+import { fetchProxyJson } from "./proxyFetch";import { emitFetchFailure } from "./fetchNotify";
 
 export type DpmTier =
   | "all" | "iron" | "bronze" | "silver" | "silver_plus" | "gold" | "gold_plus"
@@ -109,30 +105,7 @@ export async function fetchDpmMeta(
   try {
     // Retry 3x on transient errors — dpm.lol scraping via worker can flake
     // on cold starts. 4xx are programmer errors and stop retry early.
-    const data = await withRetry(
-      async () => {
-        const res = await httpFetch(url, {
-          method: "GET",
-          headers: { Accept: "application/json" },
-        });
-        throwIfRateLimited(res, url);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        trackFetch(url, "ok");
-        return (await res.json()) as DpmResponse;
-      },
-      {
-        attempts: 3,
-        baseDelayMs: 500,
-        // Allow 429 retries via RateLimitError + Retry-After. Other 4xx
-        // are non-retriable.
-        shouldRetry: (err) => {
-          if (err instanceof RateLimitError) return true;
-          return !String((err as Error)?.message ?? "").match(/HTTP 4\d\d/);
-        },
-        onRetry: (e, n) =>
-          trackFetch(url, "fail", `attempt ${n}: ${String(e).slice(0, 80)}`),
-      }
-    );
+    const data = await fetchProxyJson<DpmResponse>(url);
 
     const out: MetaTier[] = [];
     let unknown = 0;

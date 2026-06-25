@@ -10,12 +10,8 @@
 //
 // We keep the SQLite aggregator as a fallback for when op.gg is down or
 // for users who explicitly synced pro/SoloQ data.
-
-import { httpFetch } from "./httpClient";
 import { getRiotProxyUrl } from "./riotApi";
-import { withRetry, RateLimitError, throwIfRateLimited } from "./retry";
-import { trackFetch } from "./breadcrumbs";
-import { emitFetchFailure } from "./fetchNotify";
+import { fetchProxyJson } from "./proxyFetch";import { emitFetchFailure } from "./fetchNotify";
 import type { Role } from "../types/champion";
 
 export interface OpggBuildPath {
@@ -138,30 +134,7 @@ export async function fetchOpggBuild(
   try {
     // Cold start + dual-request (default + spells) on worker can flake.
     // 4xx aborts retry (bad champion name / role).
-    const data = await withRetry(
-      async () => {
-        const res = await httpFetch(url, {
-          method: "GET",
-          headers: { Accept: "application/json" },
-        });
-        throwIfRateLimited(res, url);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        trackFetch(url, "ok");
-        return (await res.json()) as OpggBuild;
-      },
-      {
-        attempts: 3,
-        baseDelayMs: 500,
-        // Allow 429 retries (handled via RateLimitError + Retry-After).
-        // Other 4xx are non-retriable programmer errors.
-        shouldRetry: (err) => {
-          if (err instanceof RateLimitError) return true;
-          return !String((err as Error)?.message ?? "").match(/HTTP 4\d\d/);
-        },
-        onRetry: (e, n) =>
-          trackFetch(url, "fail", `attempt ${n}: ${String(e).slice(0, 80)}`),
-      }
-    );
+    const data = await fetchProxyJson<OpggBuild>(url);
     cache.set(cacheKey, { ts: Date.now(), data });
     return data;
   } catch (e) {

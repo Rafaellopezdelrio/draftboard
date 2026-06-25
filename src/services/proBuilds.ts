@@ -5,13 +5,9 @@
 // Each variant carries the core 2-item pair, a representative full build,
 // the list of pros that ran it, total games, and WR — letting the UI
 // show "5 pros went Sundered → Voltaic" instead of one averaged blob.
-
-import { httpFetch } from "./httpClient";
 import { getRiotProxyUrl } from "./riotApi";
 import type { Role } from "../types/champion";
-import { withRetry, RateLimitError, throwIfRateLimited } from "./retry";
-import { trackFetch } from "./breadcrumbs";
-import { emitFetchFailure } from "./fetchNotify";
+import { fetchProxyJson } from "./proxyFetch";import { emitFetchFailure } from "./fetchNotify";
 
 export interface ProBuildVariant {
   /** "id1-id2" string of the core pair (sorted asc), e.g. "6610-6699". */
@@ -81,30 +77,7 @@ export async function fetchProBuilds(
   try {
     // Worker → u.gg GraphQL → variant clustering. Flaky on cold start.
     // Retry 3x; 4xx aborts early (bad champ id / role).
-    const data = await withRetry(
-      async () => {
-        const res = await httpFetch(url, {
-          method: "GET",
-          headers: { Accept: "application/json" },
-        });
-        throwIfRateLimited(res, url);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        trackFetch(url, "ok");
-        return (await res.json()) as ProBuildsResponse;
-      },
-      {
-        attempts: 3,
-        baseDelayMs: 500,
-        // Allow 429 retries via RateLimitError + Retry-After. Other 4xx
-        // are non-retriable.
-        shouldRetry: (err) => {
-          if (err instanceof RateLimitError) return true;
-          return !String((err as Error)?.message ?? "").match(/HTTP 4\d\d/);
-        },
-        onRetry: (e, n) =>
-          trackFetch(url, "fail", `attempt ${n}: ${String(e).slice(0, 80)}`),
-      }
-    );
+    const data = await fetchProxyJson<ProBuildsResponse>(url);
     cache.set(cacheKey, { ts: Date.now(), data });
     return data;
   } catch (e) {

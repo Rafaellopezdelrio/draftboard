@@ -5,11 +5,9 @@
 // Why this exists: op.gg's MCP only returns top 3 strong + top 3 weak
 // counters. For features like "live WR vs the actual enemy laner in your
 // draft" we need the FULL grid. This service is the entry point.
-
-import { httpFetch } from "./httpClient";
 import { getRiotProxyUrl } from "./riotApi";
 import type { Role } from "../types/champion";
-import { withRetry, RateLimitError, throwIfRateLimited } from "./retry";
+import { fetchProxyJson } from "./proxyFetch";
 import { trackFetch } from "./breadcrumbs";
 import { emitFetchFailure } from "./fetchNotify";
 
@@ -105,30 +103,7 @@ export async function fetchOpggMatchups(
   try {
     // Worker scrapes op.gg's counter page (Next.js streaming chunk).
     // Cold-start 5xx happens; 4xx (bad champ slug) doesn't retry.
-    const data = await withRetry(
-      async () => {
-        const res = await httpFetch(url, {
-          method: "GET",
-          headers: { Accept: "application/json" },
-        });
-        throwIfRateLimited(res, url);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        trackFetch(url, "ok");
-        return (await res.json()) as OpggMatchupResponse;
-      },
-      {
-        attempts: 3,
-        baseDelayMs: 500,
-        // Allow 429 retries via RateLimitError + Retry-After. Other 4xx
-        // are non-retriable.
-        shouldRetry: (err) => {
-          if (err instanceof RateLimitError) return true;
-          return !String((err as Error)?.message ?? "").match(/HTTP 4\d\d/);
-        },
-        onRetry: (e, n) =>
-          trackFetch(url, "fail", `attempt ${n}: ${String(e).slice(0, 80)}`),
-      }
-    );
+    const data = await fetchProxyJson<OpggMatchupResponse>(url);
     const matchups = data.matchups ?? [];
     if (matchups.length === 0) {
       // HTTP 200 but zero matchups = op.gg changed their page structure and
