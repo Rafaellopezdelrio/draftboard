@@ -1,20 +1,21 @@
 # Draftboard — Session Handoff (2026-06-23)
 
 ## Status
-- **Release v0.4.0 IN FLIGHT**: tag `v0.4.0` pushed → GitHub Action building the
-  signed installer + public Release. **Not yet announced to the auto-updater.**
-- main @ `78ebc6d`. 930 tests green, `tsc --noEmit` + `eslint src` clean.
+- **Release v0.4.0 SHIPPED + LIVE.** Tag → CI built the signed installer + public
+  GitHub Release; worker deployed (`draftboard-riot-proxy`, version `8d77c05b`);
+  `/updater/latest.json` verified serving `version:"0.4.0"` with the real sig.
+  Existing 0.3.0 users now get the auto-update prompt.
+- main @ `0a51666` (+ this handoff). 930 tests green, `tsc --noEmit` + `eslint src` clean.
 
-## ⚠️ FINISH THE v0.4.0 RELEASE (blocking — do this first)
-1. Watch CI: https://github.com/Rafaellopezdelrio/draftboard/actions
-2. When green → Release at `/releases/tag/v0.4.0` with `Draftboard_0.4.0_x64-setup.exe` + `.exe.sig`.
-3. Copy the `.sig` content (printed in the Action log, or the `.exe.sig` file next to the installer).
-4. Paste it into `cloudflare-worker/src/worker.js` → `LATEST_VERSION.platforms["windows-x86_64"].signature`,
-   replacing the placeholder `"PASTE_V0_4_0_SIG_FROM_CI_ACTION_LOG"`.
-   - `cloudflare-worker` is a **git submodule on GitLab** (`draft_cloudflare`). Commit+push inside it,
-     then bump the submodule pointer in the parent repo and push that too.
-5. `cd cloudflare-worker && npx wrangler deploy` → auto-updater starts announcing 0.4.0.
-- Until 4–5 are done: the Release is downloadable, but existing 0.3.0 users get **no** auto-update prompt.
+## Release flow used (for next time — docs/releasing.md)
+1. Bump version in package.json + src-tauri/tauri.conf.json + Cargo.toml (+ Cargo.lock), commit.
+2. `git tag -a vX.Y.Z` + `git push origin vX.Y.Z` → CI builds + publishes signed Release.
+3. Grab `.exe.sig` — fastest: `curl -sL <release>/download/vX.Y.Z/Draftboard_X.Y.Z_x64-setup.exe.sig`
+   (public asset, no auth needed). Verify it decodes to `file:Draftboard_X.Y.Z_x64-setup.exe`.
+4. Paste into `cloudflare-worker/src/worker.js` LATEST_VERSION.signature (submodule = GitLab `draft_cloudflare`;
+   commit there, then bump the pointer in the parent).
+5. `cd cloudflare-worker && npx wrangler deploy`. Needs `npx wrangler login` (CLI OAuth, not the dashboard
+   login) on the account that owns the worker — verify with `npx wrangler whoami` (account `8c973372…`).
 
 ## What shipped this session (22 commits, `e974f73`→`78ebc6d`)
 - **Bugs fixed**: Black Cleaver wrongly flagged as a healer → false Grievous-Wounds rec (`8257a56`);
