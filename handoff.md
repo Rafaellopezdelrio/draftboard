@@ -45,10 +45,30 @@
 - Commit convention: end messages with the Co-Authored-By line. **Standing rule for this project:
   commit AND push every change automatically — don't ask.**
 
+## 🔴 OPEN BUG — champ-select pick detection broken (found in live test 2026-06-25)
+**Impact: HIGH.** The build / coach / suggestion panels stay empty in champ select AND in-game because
+the local champion never resolves. Root cause = Riot's **anonymized champ select**: the LCU session
+players now carry `obfuscatedPuuid` / `obfuscatedSummonerId` / `playerAlias` / `nameVisibilityType`, and
+`myTeam[].championId` + `session.actions[].championId` are 0 / empty where the app looks.
+
+Live-log signature (current build):
+```
+[lcuSync] my cell N has no champ in myTeam OR actions — championId=0 ... actionPickCells=[none]
+```
+- `buildChampionKey = liveDerived.key ?? myChampionLocked ?? myChampionIntent` (App.tsx:530) → all three null.
+- Likely also breaks in-game `findMyPlayer` (liveClient) — Live Client identity matching under anonymity.
+
+**Fix approach (next session):** instrument lcuSync just after the warn (~L383) with a throttled raw dump
+outside the `lastBlindWarnedCell` dedup — `console.warn("[DIAG]", JSON.stringify(s.actions).slice(0,1400),
+JSON.stringify(myPlayer).slice(0,500))` gated by a `Date.now()-lastRawDiagMs>8000` throttle. Run `npm run
+tauri dev`, hover a champ in a real champ select, read where Riot now puts `championId`, then update the
+parse in lcuSync (and verify findMyPlayer handles obfuscated identities in-game). The session app was open
++ LCU-connected when this was found; the diagnostic was reverted (uncommitted).
+
 ## Open / not done
 - **Live-game testing** (overlay topmost/click-through, auto-apply runes/items, live coach, lobby scout):
-  needs LoL running on the machine — NOT verifiable headless. This is the biggest untested surface; do a
-  real game pass before trusting the in-game features end-to-end.
+  needs LoL running on the machine — NOT verifiable headless. Note the champ-select bug above blocks the
+  build/coach surfaces until fixed.
 - metaAggregator does non-atomic per-table DELETE+INSERT. Left alone on purpose: the code comment documents
   that tauri-plugin-sql can't hold BEGIN/COMMIT across `execute()` calls (pooled connections); batching
   already minimizes the partial-write window. Not a bug — a deliberate tradeoff.
