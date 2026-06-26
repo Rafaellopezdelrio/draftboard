@@ -530,6 +530,23 @@ function App() {
   const buildChampionKey =
     liveDerived.key ?? myChampionLocked ?? myChampionIntent ?? null;
 
+  // Auto-hide the draft board when there's nothing to draft AND we're connected
+  // to the LCU: Riot's anonymized champ select hides every championId, so the
+  // roster comes through empty and the left 40% column is dead space. Offline
+  // keeps the board for manual drafting. Hiding it collapses the grid to one
+  // column so the build/coach rail takes the full width.
+  const hasRosterData =
+    allyKeys.length > 0 || enemyKeys.length > 0 || bannedKeys.length > 0;
+  const showDraftBoard = !lcuStatus.connected || hasRosterData;
+
+  // Never sit on an empty Build tab: when no champion is resolved, fall back to
+  // Picks so the actionable column shows the suggestions instead of a dead
+  // "lock your champion" panel. The lock→Build auto-jump (above) brings them
+  // back the moment a champ resolves.
+  useEffect(() => {
+    if (!buildChampionKey && centerTab === "build") setCenterTab("picks");
+  }, [buildChampionKey, centerTab]);
+
   if (error) {
     return (
       <main className="h-full flex items-center justify-center p-8">
@@ -734,8 +751,14 @@ function App() {
           rail so panels distribute horizontally instead of becoming one
           giant scroll-needing column. Falls back to single column on
           narrow viewports. */}
-      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-4">
-        <DraftBoard db={db} lcuConnected={lcuStatus.connected} />
+      <div
+        className={`grid grid-cols-1 gap-4 ${
+          showDraftBoard ? "xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]" : ""
+        }`}
+      >
+        {showDraftBoard && (
+          <DraftBoard db={db} lcuConnected={lcuStatus.connected} />
+        )}
         <div
           className={`grid grid-cols-1 lg:grid-cols-2 ${prefs.compactMode ? "gap-2" : "gap-4"}`}
         >
