@@ -1499,5 +1499,51 @@
     "groq": "Groq (gratis, Llama 3.3 70B)",
     "anthropic": "Anthropic (Claude — pago)",
     "gemini": "Google Gemini (gratis con cuota)"
+  },
+  "buildArchetype": {
+    "critDps": {
+      "name": "Crit DPS",
+      "desc": "Build escalado a late game. Stack crit + AS para DPS sostenido. Posiciona y kitea."
+    },
+    "lethalityBurst": {
+      "name": "Lethality Burst",
+      "desc": "Burst contra squishies. Penetración fija para 100→0 carries. Mata target prioritario, retira."
+    },
+    "onhit": {
+      "name": "On-hit",
+      "desc": "Daño escalado con cada auto + efectos on-hit. Devasta tanks. Mantén ventana de AA."
+    },
+    "tankFrontline": {
+      "name": "Tank · Frontline",
+      "desc": "Soaks daño + engage. Hp + resistencias maximizadas. Quédate delante, protege carries."
+    },
+    "bruiserDps": {
+      "name": "Bruiser · DPS",
+      "desc": "Sustain en peleas + daño sostenido. Brawl prolongado, busca trades 1v1 favorables."
+    },
+    "burstAp": {
+      "name": "Burst AP",
+      "desc": "One-shot squishies con combo de habilidades. Posicionamiento agresivo, retira tras burst."
+    },
+    "dpsAp": {
+      "name": "DPS AP",
+      "desc": "AP escalado con duración. Sustain + daño continuo. Lucha extendida favorable."
+    },
+    "enchanterPeel": {
+      "name": "Enchanter · Peel",
+      "desc": "Heal + shield para tu carry. Cuida posición, item active timing es clave."
+    },
+    "lethalityHybrid": {
+      "name": "Lethality · Híbrido",
+      "desc": "Penetración con utilidad. Antishield + lockdown. Pick-off al carry enemigo."
+    },
+    "tankHybrid": {
+      "name": "Tank · Híbrido",
+      "desc": "Resistencia + engage. Inicia peleas, soak daño. CC para tus carries."
+    },
+    "standard": {
+      "name": "Build estándar",
+      "desc": "Build óptima según el meta actual."
+    }
   }
 }

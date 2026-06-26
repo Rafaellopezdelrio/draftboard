@@ -6,6 +6,7 @@
 // item-tag data — no API call, no AI cost.
 
 import { ITEM_TAGS, type ItemSignal } from "../data/itemTags";
+import { i18n } from "../i18n";
 
 export type BuildArchetype =
   | "Lethality"
@@ -175,8 +176,8 @@ export function classifyBuild(coreItemIds: number[]): BuildClassification {
   if (stats.critItems >= 2) {
     return {
       archetype: "Crit DPS",
-      name: "Crit DPS",
-      description: "Build escalado a late game. Stack crit + AS para DPS sostenido. Posiciona y kitea.",
+      name: i18n.t("buildArchetype.critDps.name"),
+      description: i18n.t("buildArchetype.critDps.desc"),
       stats,
     };
   }
@@ -184,8 +185,8 @@ export function classifyBuild(coreItemIds: number[]): BuildClassification {
   if (lethalHits >= 2) {
     return {
       archetype: "Lethality",
-      name: "Lethality Burst",
-      description: "Burst contra squishies. Penetración fija para 100→0 carries. Mata target prioritario, retira.",
+      name: i18n.t("buildArchetype.lethalityBurst.name"),
+      description: i18n.t("buildArchetype.lethalityBurst.desc"),
       stats,
     };
   }
@@ -193,8 +194,8 @@ export function classifyBuild(coreItemIds: number[]): BuildClassification {
   if (onhitHits >= 2) {
     return {
       archetype: "On-hit",
-      name: "On-hit",
-      description: "Daño escalado con cada auto + efectos on-hit. Devasta tanks. Mantén ventana de AA.",
+      name: i18n.t("buildArchetype.onhit.name"),
+      description: i18n.t("buildArchetype.onhit.desc"),
       stats,
     };
   }
@@ -202,8 +203,8 @@ export function classifyBuild(coreItemIds: number[]): BuildClassification {
   if (tankHits >= 3 || (tankHits >= 2 && stats.hp >= 800)) {
     return {
       archetype: "Tank",
-      name: "Tank · Frontline",
-      description: "Soaks daño + engage. Hp + resistencias maximizadas. Quédate delante, protege carries.",
+      name: i18n.t("buildArchetype.tankFrontline.name"),
+      description: i18n.t("buildArchetype.tankFrontline.desc"),
       stats,
     };
   }
@@ -211,8 +212,8 @@ export function classifyBuild(coreItemIds: number[]): BuildClassification {
   if (bruiserHits >= 2) {
     return {
       archetype: "Bruiser",
-      name: "Bruiser · DPS",
-      description: "Sustain en peleas + daño sostenido. Brawl prolongado, busca trades 1v1 favorables.",
+      name: i18n.t("buildArchetype.bruiserDps.name"),
+      description: i18n.t("buildArchetype.bruiserDps.desc"),
       stats,
     };
   }
@@ -220,8 +221,8 @@ export function classifyBuild(coreItemIds: number[]): BuildClassification {
   if (burstApHits >= 2 && stats.ap >= 200) {
     return {
       archetype: "Burst AP",
-      name: "Burst AP",
-      description: "One-shot squishies con combo de habilidades. Posicionamiento agresivo, retira tras burst.",
+      name: i18n.t("buildArchetype.burstAp.name"),
+      description: i18n.t("buildArchetype.burstAp.desc"),
       stats,
     };
   }
@@ -229,8 +230,8 @@ export function classifyBuild(coreItemIds: number[]): BuildClassification {
   if (dpsApHits >= 2) {
     return {
       archetype: "DPS AP",
-      name: "DPS AP",
-      description: "AP escalado con duración. Sustain + daño continuo. Lucha extendida favorable.",
+      name: i18n.t("buildArchetype.dpsAp.name"),
+      description: i18n.t("buildArchetype.dpsAp.desc"),
       stats,
     };
   }
@@ -238,8 +239,8 @@ export function classifyBuild(coreItemIds: number[]): BuildClassification {
   if (enchanterHits >= 2) {
     return {
       archetype: "Enchanter",
-      name: "Enchanter · Peel",
-      description: "Heal + shield para tu carry. Cuida posición, item active timing es clave.",
+      name: i18n.t("buildArchetype.enchanterPeel.name"),
+      description: i18n.t("buildArchetype.enchanterPeel.desc"),
       stats,
     };
   }
@@ -247,23 +248,23 @@ export function classifyBuild(coreItemIds: number[]): BuildClassification {
   if (lethalHits === 1 && idSet.has(3814)) {
     return {
       archetype: "Lethality",
-      name: "Lethality · Híbrido",
-      description: "Penetración con utilidad. Antishield + lockdown. Pick-off al carry enemigo.",
+      name: i18n.t("buildArchetype.lethalityHybrid.name"),
+      description: i18n.t("buildArchetype.lethalityHybrid.desc"),
       stats,
     };
   }
   if (tankHits >= 2) {
     return {
       archetype: "Tank",
-      name: "Tank · Híbrido",
-      description: "Resistencia + engage. Inicia peleas, soak daño. CC para tus carries.",
+      name: i18n.t("buildArchetype.tankHybrid.name"),
+      description: i18n.t("buildArchetype.tankHybrid.desc"),
       stats,
     };
   }
   return {
     archetype: "Otro",
-    name: "Build estándar",
-    description: "Build óptima según el meta actual.",
+    name: i18n.t("buildArchetype.standard.name"),
+    description: i18n.t("buildArchetype.standard.desc"),
     stats,
   };
 }

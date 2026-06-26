@@ -1499,5 +1499,51 @@
     "groq": "Groq (free, Llama 3.3 70B)",
     "anthropic": "Anthropic (Claude — paid)",
     "gemini": "Google Gemini (free with quota)"
+  },
+  "buildArchetype": {
+    "critDps": {
+      "name": "Crit DPS",
+      "desc": "Late-game scaling build. Stack crit + AS for sustained DPS. Position and kite."
+    },
+    "lethalityBurst": {
+      "name": "Lethality Burst",
+      "desc": "Burst vs squishies. Flat pen to 100→0 carries. Kill the priority target, then retreat."
+    },
+    "onhit": {
+      "name": "On-hit",
+      "desc": "Damage scales with every auto + on-hit effects. Shreds tanks. Keep your AA window up."
+    },
+    "tankFrontline": {
+      "name": "Tank · Frontline",
+      "desc": "Soaks damage + engages. HP + resists maxed. Stay in front, protect the carries."
+    },
+    "bruiserDps": {
+      "name": "Bruiser · DPS",
+      "desc": "Sustain in fights + steady damage. Extended brawls, look for favorable 1v1 trades."
+    },
+    "burstAp": {
+      "name": "Burst AP",
+      "desc": "One-shot squishies with your ability combo. Aggressive positioning, retreat after the burst."
+    },
+    "dpsAp": {
+      "name": "DPS AP",
+      "desc": "AP that scales with fight duration. Sustain + continuous damage. Favors extended fights."
+    },
+    "enchanterPeel": {
+      "name": "Enchanter · Peel",
+      "desc": "Heal + shield for your carry. Mind your position; item active timing is key."
+    },
+    "lethalityHybrid": {
+      "name": "Lethality · Hybrid",
+      "desc": "Penetration with utility. Anti-shield + lockdown. Pick off the enemy carry."
+    },
+    "tankHybrid": {
+      "name": "Tank · Hybrid",
+      "desc": "Resists + engage. Start fights, soak damage. CC for your carries."
+    },
+    "standard": {
+      "name": "Standard build",
+      "desc": "Optimal build for the current meta."
+    }
   }
 }
