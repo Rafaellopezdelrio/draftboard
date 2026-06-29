@@ -28,9 +28,9 @@ jobs:
       # No submodules: the Vite frontend + vitest don't need the CF Worker
       # source (it deploys separately via wrangler). Fetching it also breaks
       # checkout — cloudflare-worker is an orphaned gitlink with no .gitmodules.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: "20"
           cache: "npm"
@@ -72,7 +72,7 @@ jobs:
     name: Rust (clippy + fmt + test)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
