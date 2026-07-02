@@ -9,10 +9,12 @@ import {
   fetchLiveGameSnapshot,
   findMyPlayer,
   liveChampionKey,
+  liveRosterKeys,
   attributeObjectives,
   type LiveGameActivePlayer,
   type LiveGameEvent,
   type LiveGamePlayer,
+  type LiveGameSnapshot,
 } from "./liveClient";
 import type { ChampionDb } from "../types/champion";
 
@@ -235,5 +237,68 @@ describe("attributeObjectives — join event killers to teams", () => {
     ];
     const r = attributeObjectives([ev("DragonKill", "Rafa", 305)], players);
     expect(r.dragonsByTeam).toEqual({ ORDER: 1, CHAOS: 0 });
+  });
+});
+
+describe("liveRosterKeys — in-game roster from the Live Client player list", () => {
+  const db = {
+    champions: {
+      "72": { id: "Skarner", key: "72", name: "Skarner" },
+      "64": { id: "LeeSin", key: "64", name: "Lee Sin" },
+      "99": { id: "Lux", key: "99", name: "Lux" },
+    },
+  } as unknown as ChampionDb;
+
+  const snap = (
+    activeName: string | null,
+    players: LiveGamePlayer[]
+  ): LiveGameSnapshot => ({
+    activePlayer: activeName
+      ? ({ summonerName: activeName, currentGold: 0, level: 1 } as LiveGameActivePlayer)
+      : null,
+    allPlayers: players,
+    events: [],
+    gameData: { gameMode: "CLASSIC", gameTime: 60, mapNumber: 11 },
+  });
+
+  it("splits ally/enemy by the local player's team (me on CHAOS)", () => {
+    const r = liveRosterKeys(
+      db,
+      snap("Rafa", [
+        mkPlayer({ summonerName: "Rafa", team: "CHAOS", championName: "Skarner" }),
+        mkPlayer({ summonerName: "Mate", team: "CHAOS", championName: "Lee Sin" }),
+        mkPlayer({ summonerName: "Foe", team: "ORDER", championName: "Lux" }),
+      ])
+    );
+    expect(r.allyKeys.sort()).toEqual(["64", "72"]);
+    expect(r.enemyKeys).toEqual(["99"]);
+  });
+
+  it("falls back to ORDER=ally when the local player can't be resolved", () => {
+    const r = liveRosterKeys(
+      db,
+      snap(null, [
+        mkPlayer({ summonerName: "A", team: "ORDER", championName: "Skarner" }),
+        mkPlayer({ summonerName: "B", team: "CHAOS", championName: "Lux" }),
+      ])
+    );
+    expect(r.allyKeys).toEqual(["72"]);
+    expect(r.enemyKeys).toEqual(["99"]);
+  });
+
+  it("skips champions the db can't map instead of nulling them", () => {
+    const r = liveRosterKeys(
+      db,
+      snap("Rafa", [
+        mkPlayer({ summonerName: "Rafa", team: "ORDER", championName: "Skarner" }),
+        mkPlayer({ summonerName: "New", team: "ORDER", championName: "BrandNewChamp" }),
+      ])
+    );
+    expect(r.allyKeys).toEqual(["72"]);
+  });
+
+  it("returns empty arrays for a null or empty snapshot", () => {
+    expect(liveRosterKeys(db, null)).toEqual({ allyKeys: [], enemyKeys: [] });
+    expect(liveRosterKeys(db, snap("Rafa", []))).toEqual({ allyKeys: [], enemyKeys: [] });
   });
 });

@@ -154,7 +154,7 @@ import { useAppShortcuts } from "./hooks/useAppShortcuts";
 import { useScheduledJobs } from "./state/scheduledJobs";
 import { useGamePhase } from "./state/inGameDetection";
 import { useLiveGame } from "./hooks/useLiveGame";
-import { findMyPlayer, liveChampionKey } from "./services/liveClient";
+import { findMyPlayer, liveChampionKey, liveRosterKeys } from "./services/liveClient";
 import { lcuPositionToRole } from "./services/lcuService";
 import { personalStatsByChampion } from "./services/matchRepo";
 import { setRiotProxyUrl } from "./services/riotApi";
@@ -456,8 +456,51 @@ function App() {
     prevLockedRef.current = myChampionLocked;
   }, [myChampionLocked]);
 
-  const { allyKeys, enemyKeys, enemyChampionIds, bannedKeys } =
+  // In-game, the Live Client is the source of truth for BOTH the champion
+  // and the role — champ select is over, so myChampionLocked/intent are
+  // cleared. The old code fell through to suggestions[0] (the top meta pick
+  // for the role), showing e.g. Warwick's build while the player is on
+  // Jarvan. We also adopt the live `position` as the role (effect below).
+  // Memoised so it only recomputes when the snapshot changes.
+  const liveGame = useLiveGame(true);
+  const liveDerived = useMemo<{ key: string | null; role: Role | null }>(() => {
+    if (!db || !liveGame.inGame || !liveGame.snapshot) return { key: null, role: null };
+    const me = findMyPlayer(
+      liveGame.snapshot.activePlayer,
+      liveGame.snapshot.allPlayers
+    );
+    if (!me) return { key: null, role: null };
+    return { key: liveChampionKey(db, me), role: lcuPositionToRole(me.position) };
+  }, [db, liveGame.inGame, liveGame.snapshot]);
+
+  const { allyKeys: lcuAllyKeys, enemyKeys: lcuEnemyKeys, enemyChampionIds, bannedKeys } =
     useDraftDerivations({ ally, enemy, bans });
+
+  // In-game roster fallback: Riot's anonymized champ select can leave the LCU
+  // roster empty, but the Live Client player list is never anonymized — derive
+  // ally/enemy champions from it so comp analysis, matchup tips, win conditions
+  // and matchup-aware builds keep working in-game. Join-signature memos keep the
+  // array refs stable across the 2s poll (the roster never changes mid-game), so
+  // downstream effects (op.gg counter fetches) don't re-fire every snapshot.
+  const liveRoster = useMemo(
+    () =>
+      db && liveGame.inGame
+        ? liveRosterKeys(db, liveGame.snapshot)
+        : { allyKeys: [], enemyKeys: [] },
+    [db, liveGame.inGame, liveGame.snapshot]
+  );
+  const liveAllySig = liveRoster.allyKeys.join(",");
+  const liveEnemySig = liveRoster.enemyKeys.join(",");
+  const liveAllyKeys = useMemo(
+    () => (liveAllySig ? liveAllySig.split(",") : []),
+    [liveAllySig]
+  );
+  const liveEnemyKeys = useMemo(
+    () => (liveEnemySig ? liveEnemySig.split(",") : []),
+    [liveEnemySig]
+  );
+  const allyKeys = lcuAllyKeys.length > 0 ? lcuAllyKeys : liveAllyKeys;
+  const enemyKeys = lcuEnemyKeys.length > 0 ? lcuEnemyKeys : liveEnemyKeys;
 
   // Live op.gg matchup counters for the current enemies — feeds the engine's
   // counter dimension with broad data (the personal db.counters is too sparse).
@@ -493,25 +536,6 @@ function App() {
     bannedKeys,
     suggestedKeys,
   });
-
-  // In-game, the Live Client is the source of truth for BOTH the champion
-  // and the role — champ select is over, so myChampionLocked/intent are
-  // cleared. The old code fell through to suggestions[0] (the top meta pick
-  // for the role), showing e.g. Warwick's build while the player is on
-  // Jarvan. We also adopt the live `position` as the role: useRoleDerivation
-  // keys off locked/intent (null in-game) so it can't help here, and a user
-  // who boots Draftboard mid-game never had myRole set in champ select.
-  // Memoised so it only recomputes when the snapshot changes.
-  const liveGame = useLiveGame(true);
-  const liveDerived = useMemo<{ key: string | null; role: Role | null }>(() => {
-    if (!db || !liveGame.inGame || !liveGame.snapshot) return { key: null, role: null };
-    const me = findMyPlayer(
-      liveGame.snapshot.activePlayer,
-      liveGame.snapshot.allPlayers
-    );
-    if (!me) return { key: null, role: null };
-    return { key: liveChampionKey(db, me), role: lcuPositionToRole(me.position) };
-  }, [db, liveGame.inGame, liveGame.snapshot]);
 
   // Adopt the live role in-game (authoritative lane). Inert out-of-game
   // (role null) so champ-select's useRoleDerivation keeps ownership there;

@@ -206,6 +206,32 @@ export function liveChampionKey(
   return null;
 }
 
+/**
+ * Derive the full draft roster (ally/enemy champion keys) from the Live Client
+ * player list. In-game data is NOT anonymized — all 10 champions are visible —
+ * so this restores the comp/matchup/win-condition panels when Riot's anonymized
+ * champ select left the LCU roster empty. Ally side = the local player's team
+ * (via findMyPlayer); falls back to ORDER=ally when "me" can't be resolved.
+ * Champions the db can't map (brand-new release) are skipped, not nulled.
+ */
+export function liveRosterKeys(
+  db: ChampionDb,
+  snapshot: LiveGameSnapshot | null
+): { allyKeys: string[]; enemyKeys: string[] } {
+  if (!snapshot || snapshot.allPlayers.length === 0)
+    return { allyKeys: [], enemyKeys: [] };
+  const me = findMyPlayer(snapshot.activePlayer, snapshot.allPlayers);
+  const myTeam = me?.team ?? "ORDER";
+  const allyKeys: string[] = [];
+  const enemyKeys: string[] = [];
+  for (const p of snapshot.allPlayers) {
+    const key = liveChampionKey(db, p);
+    if (!key) continue;
+    (p.team === myTeam ? allyKeys : enemyKeys).push(key);
+  }
+  return { allyKeys, enemyKeys };
+}
+
 export interface ObjectiveControl {
   /** Dragons taken by each team. The Live Client event log carries no team on
    *  events, so this is the ONLY way to know dragon-soul state. */
