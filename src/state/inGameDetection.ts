@@ -1,5 +1,11 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { getCurrentSummoner } from "../services/lcuService";
+import {
+  rosterFromGameflow,
+  applyGameflowRoster,
+  type GameflowGameData,
+} from "./gameflowRoster";
 
 export type GamePhase =
   | "None"
@@ -19,8 +25,12 @@ interface GameflowSession {
     gameId?: number;
     queue?: { id: number; description: string };
     isCustomGame?: boolean;
-  };
+  } & GameflowGameData;
 }
+
+// Local player's identity for gameflow team-side resolution. Fetched lazily
+// once per mount; cleared on unmount so an account switch re-resolves.
+let gfMe: { puuid?: string | null; summonerId?: number | null } | null = null;
 
 function isTauri(): boolean {
   return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
@@ -76,12 +86,39 @@ export function useGamePhase(): { phase: GamePhase | null; gameId?: number } {
         }
         return next;
       });
+
+      // Loading-screen roster bridge: once the game is starting, the gameflow
+      // payload (already in hand — zero extra IPC) carries teamOne/teamTwo.
+      // Fill the draft board from it when anonymized champ select left it
+      // empty; applyGameflowRoster never overwrites a populated board.
+      if (
+        (next.phase === "GameStart" || next.phase === "InProgress") &&
+        session?.gameData
+      ) {
+        if (!gfMe) {
+          const me = await getCurrentSummoner();
+          if (cancelled) return;
+          if (me?.puuid) gfMe = { puuid: me.puuid };
+        }
+        if (gfMe) {
+          const wrote = applyGameflowRoster(
+            rosterFromGameflow(session.gameData, gfMe)
+          );
+          if (wrote) {
+            // eslint-disable-next-line no-console
+            console.info("[useGamePhase] board filled from gameflow roster (anonymized-select bridge)");
+          }
+        }
+      }
+
       timer = setTimeout(tick, consecutiveNulls >= 12 ? 30000 : 5000);
     };
     tick();
     return () => {
       cancelled = true;
       if (timer) clearTimeout(timer);
+      // Re-resolve identity on remount (account switch / HMR).
+      gfMe = null;
     };
   }, []);
 
