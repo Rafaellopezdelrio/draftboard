@@ -320,6 +320,57 @@ describe("lcuSync.applySession — defensive parsing", () => {
     expect(s.enemy[0].championKey).toBe("64"); // enemy — from actions lock
   });
 
+  it("ANONYMIZED champ select (2026 shape): obfuscated fields + red-side cells still resolve via actions", () => {
+    // Live-log regression (2026-06-25): Riot's anonymized champ select ships
+    // obfuscatedPuuid/obfuscatedSummonerId/playerAlias/nameVisibilityType,
+    // leaves puuid empty and every myTeam/theirTeam championId at 0. The pick
+    // truth only exists in actions[][]. Red side (cells 5-9), me at cell 9,
+    // exactly as captured in the live session.
+    setLocalPuuid("ME"); // real puuid cached, but session carries none → cellId fallback
+    const anon = (cellId: number) =>
+      player(cellId, 0, {
+        puuid: "",
+        obfuscatedPuuid: `obf-${cellId}`,
+        obfuscatedSummonerId: 90000 + cellId,
+        playerAlias: "",
+        nameVisibilityType: "HIDDEN",
+        gameName: "",
+        internalName: "",
+        isAutofilled: false,
+        isHumanoid: true,
+        pickMode: 0,
+        pickTurn: 1,
+        playerType: "PLAYER",
+        selectedSkinId: 0,
+        spell1Id: 4,
+        spell2Id: 11,
+        tagLine: "",
+        team: 2,
+        wardSkinId: -1,
+      });
+    const session = {
+      localPlayerCellId: 9,
+      myTeam: [anon(5), anon(6), anon(7), anon(8), anon(9)],
+      theirTeam: [anon(0), anon(1), anon(2), anon(3), anon(4)],
+      actions: [
+        [
+          { type: "pick", actorCellId: 9, championId: 72, completed: true, id: 10 }, // me — Skarner locked
+          { type: "pick", actorCellId: 5, championId: 64, completed: true, id: 11 }, // ally — Lee Sin
+          { type: "pick", actorCellId: 0, championId: 157, completed: false, id: 12 }, // enemy hover
+        ],
+      ],
+      bans: { myTeamBans: [], theirTeamBans: [] },
+      timer: { phase: "BAN_PICK", adjustedTimeLeftInPhase: 30000 },
+    } as unknown as Parameters<typeof applySession>[0];
+
+    applySession(session);
+    const s = useDraftStore.getState();
+    expect(s.ally[4].championKey).toBe("72"); // me (cell 9 = idx 4) — from actions
+    expect(s.myChampionLocked).toBe("72"); // build panel path
+    expect(s.ally[0].championKey).toBe("64"); // ally lock via actions
+    expect(s.enemy[0].championKey).toBe("157"); // enemy hover via actions
+  });
+
   it("BLIND PICK: locked over hover when both present for same cell", () => {
     const blind = {
       localPlayerCellId: 0,
