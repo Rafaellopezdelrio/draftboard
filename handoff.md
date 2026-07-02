@@ -58,7 +58,16 @@ Live-log signature (current build):
 - `buildChampionKey = liveDerived.key ?? myChampionLocked ?? myChampionIntent` (App.tsx:530) → all three null.
 - Likely also breaks in-game `findMyPlayer` (liveClient) — Live Client identity matching under anonymity.
 
-**Fix approach (next session):** instrument lcuSync just after the warn (~L383) with a throttled raw dump
+**Mitigations SHIPPED (2026-06-26):** the impact is now limited to the champ-select phase itself:
+- `liveRosterKeys` (liveClient) — in-game, ally/enemy champs derive from the Live Client player list
+  (never anonymized) → comp/matchups/win-conditions/builds work all game (`c649cb9`).
+- `gameflowRoster` bridge — loading screen / game start, board fills from gameflow teamOne/teamTwo
+  (side resolved by puuid only, never guessed; never overwrites a populated board) (`74a9f12`).
+- Parse pinned: regression test with the exact anonymized session shape passes → the champ-select
+  parse is NOT the bug; remaining suspect is Riot omitting OTHER players' pick actions (`871d978`).
+- Layout degrades gracefully: empty board auto-hides, Build tab falls back to Picks (`62fec3a`).
+
+**Remaining fix (needs a live game):** instrument lcuSync just after the warn (~L383) with a throttled raw dump
 outside the `lastBlindWarnedCell` dedup — `console.warn("[DIAG]", JSON.stringify(s.actions).slice(0,1400),
 JSON.stringify(myPlayer).slice(0,500))` gated by a `Date.now()-lastRawDiagMs>8000` throttle. Run `npm run
 tauri dev`, hover a champ in a real champ select, read where Riot now puts `championId`, then update the
