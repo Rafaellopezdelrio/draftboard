@@ -142,6 +142,8 @@ let lastSpokenEnemyBanIds: Set<number> = new Set();
 // dedup the "my champ + intent both 0" log so it doesn't spam every
 // frame.
 let lastBlindWarnedCell: number | null = null;
+// Throttle for the [lcu-shape] raw-payload capture below (1 dump / 10s max).
+let lastShapeDumpMs = 0;
 
 /** Compact signature of a session frame for log dedup. */
 let lastDiagSignature = "";
@@ -382,6 +384,23 @@ function applySession(s: LcuChampSelectSession | null | undefined) {
       );
     }
     if (locked !== null) lastBlindWarnedCell = null;
+
+    // Shape capture for the anonymized-champ-select investigation (2026-06):
+    // whenever the local champ stays unresolved, dump the raw actions +
+    // myPlayer to the disk log (console.warn is file-mirrored) so ANY real
+    // champ select the user plays records where Riot now puts the pick —
+    // no instrumented build needed. Throttled to one dump / 10s; goes quiet
+    // forever once resolution works again. Grep the log for [lcu-shape].
+    if (locked === null && intent === null && Date.now() - lastShapeDumpMs > 10000) {
+      lastShapeDumpMs = Date.now();
+      // eslint-disable-next-line no-console
+      console.warn(
+        "[lcu-shape] unresolved champ — actions=",
+        JSON.stringify(s.actions)?.slice(0, 1500),
+        "myPlayer=",
+        JSON.stringify(myPlayer)?.slice(0, 500)
+      );
+    }
 
     store.setLocalSelection(myCell, intent, locked);
 
