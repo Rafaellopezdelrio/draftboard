@@ -74,7 +74,9 @@ const SPLIT_PUSHERS = new Set([
   "Sett", "Riven", "Irelia",
 ]);
 
-function profileTeam(db: ChampionDb, keys: string[]): CompProfile {
+// Exported: CompAnalysis renders the AD/AP/true-damage split from the same
+// profile the win-condition engine reasons over (one source of truth).
+export function profileTeam(db: ChampionDb, keys: string[]): CompProfile {
   let ap = 0, ad = 0;
   let trueDmg = 0;
   let engageScore = 0;

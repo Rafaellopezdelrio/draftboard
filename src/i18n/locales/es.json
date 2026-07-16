@@ -344,6 +344,12 @@
       "splitpush": "Splitpush",
       "pick": "Pick",
       "wave-clear": "Wave clear"
+    },
+    "dmg": {
+      "ad": "AD",
+      "ap": "AP",
+      "true": "{{count}} con daño verdadero",
+      "trueTitle": "Campeones con daño verdadero significativo — resistencias no lo mitigan"
     }
   },
   "bans": {

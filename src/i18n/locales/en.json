@@ -344,6 +344,12 @@
       "splitpush": "Splitpush",
       "pick": "Pick",
       "wave-clear": "Wave clear"
+    },
+    "dmg": {
+      "ad": "AD",
+      "ap": "AP",
+      "true": "{{count}} with true damage",
+      "trueTitle": "Champions with significant true damage — resists don't mitigate it"
     }
   },
   "bans": {

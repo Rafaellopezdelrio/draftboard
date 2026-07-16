@@ -899,7 +899,7 @@ function App() {
             </PanelBoundary>
             {prefs.showCompAnalysis && (
               <PanelBoundary name="CompAnalysis">
-                <CompAnalysis db={db} allyKeys={allyKeys} />
+                <CompAnalysis db={db} allyKeys={allyKeys} enemyKeys={enemyKeys} />
               </PanelBoundary>
             )}
             <PanelBoundary name="MatchupTipsPanel">
