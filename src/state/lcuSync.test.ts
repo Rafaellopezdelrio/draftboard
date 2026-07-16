@@ -389,6 +389,33 @@ describe("lcuSync.applySession — defensive parsing", () => {
     expect(useDraftStore.getState().ally[0].championKey).toBe("157");
   });
 
+  it("live bans render from ban actions while s.bans arrays stay empty (mid-draft)", () => {
+    // Live-log pin (2026-07-16 game): s.bans.myTeamBans/theirTeamBans stayed
+    // [] through FINALIZATION (diag `b0+0`) while actions carried all 10 bans
+    // (`ab10`). The board must render bans from the actions fallback.
+    const frame = {
+      localPlayerCellId: 0,
+      myTeam: [player(0, 266)],
+      theirTeam: [player(5, 23)],
+      bans: { myTeamBans: [], theirTeamBans: [] },
+      actions: [
+        [
+          { type: "ban", actorCellId: 0, championId: 11, completed: true, id: 1, isAllyAction: true },
+          { type: "ban", actorCellId: 1, championId: 22, completed: true, id: 2, isAllyAction: true },
+          { type: "ban", actorCellId: 5, championId: 33, completed: true, id: 3, isAllyAction: false },
+          // hovered (not yet locked) enemy ban must render too
+          { type: "ban", actorCellId: 6, championId: 44, completed: false, id: 4, isAllyAction: false },
+        ],
+      ],
+    } as unknown as Parameters<typeof applySession>[0];
+    applySession(frame);
+    const s = useDraftStore.getState();
+    expect(s.bans.ally[0]).toBe("11");
+    expect(s.bans.ally[1]).toBe("22");
+    expect(s.bans.enemy[0]).toBe("33");
+    expect(s.bans.enemy[1]).toBe("44"); // hover included
+  });
+
   it("transition frame (no bans field, no actions) preserves previously-set bans", () => {
     // Regression for surrender-vote / post-pick frame: LCU sometimes
     // pushes a frame with neither s.bans nor s.actions while the user
