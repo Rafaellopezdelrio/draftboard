@@ -145,7 +145,15 @@ if (isOverlayWindow()) {
 // and offers a single "reintentar" click.
 const FallbackComponent = isOverlayWindow() ? OverlayErrorScreen : ErrorScreen;
 
-ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
+// HMR guard: Vite can re-evaluate this module without a full page reload,
+// and calling createRoot() twice on the same container logs a React error and
+// double-mounts. Cache the root on the container so re-evals reuse it.
+const container = document.getElementById("root") as HTMLElement & {
+  __reactRoot?: ReactDOM.Root;
+};
+const root = (container.__reactRoot ??= ReactDOM.createRoot(container));
+
+root.render(
   <React.StrictMode>
     <SentryErrorBoundary
       fallback={({ error, resetError }) => (
