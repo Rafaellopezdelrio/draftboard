@@ -1,0 +1,19 @@
+# cargo-audit policy. CI runs `cargo audit` as a BLOCKING gate — any advisory
+# NOT listed here fails the build. Each ignore documents why it's accepted and
+# what unblocks it; re-check on every Tauri upgrade.
+
+[advisories]
+ignore = [
+  # quick-xml < 0.41 DoS (quadratic dup-attr check / unbounded NsReader alloc).
+  # Pulled transitively via plist -> tauri-utils, which pins quick-xml 0.39.x —
+  # unfixable on our side until tauri-utils bumps. Exposure is minimal for the
+  # shipped Windows app: plist parsing is a build-time / macOS-bundle concern,
+  # not a runtime input path. (2026-07-17)
+  "RUSTSEC-2026-0194",
+  "RUSTSEC-2026-0195",
+  # rsa "Marvin" timing sidechannel — no fixed release exists upstream.
+  # Transitive dependency; we perform no RSA private-key operations on
+  # attacker-timed paths (updater uses minisign/ed25519). Re-check when a
+  # fixed rsa release ships. (2026-07-17)
+  "RUSTSEC-2023-0071",
+]
