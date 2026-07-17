@@ -114,6 +114,11 @@
       "kp": "Get closer to objectives and rotations — in your losses you play isolated from the team.",
       "vision": "Buy control wards, ward before objectives and clear enemy vision.",
       "gold": "Grow your economy: don't lose waves and grab plates / objectives so you don't fall behind on items."
+    },
+    "adherence": {
+      "title": "Advice adherence",
+      "followed": "You followed the suggestion",
+      "notFollowed": "You didn't"
     }
   },
   "liveCoach": {

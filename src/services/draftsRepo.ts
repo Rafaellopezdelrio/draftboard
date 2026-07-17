@@ -81,6 +81,29 @@ export interface AdviceStats {
   notFollowedWins: number;
 }
 
+/** Fold the grouped (followed, win, n) rows into AdviceStats. Pure + exported
+ *  for tests — this is the aggregation the adherence panel's numbers rest on. */
+export function aggregateAdviceRows(
+  rows: Array<{ followed: number; win: number; n: number }>
+): AdviceStats {
+  const s: AdviceStats = {
+    followedGames: 0,
+    followedWins: 0,
+    notFollowedGames: 0,
+    notFollowedWins: 0,
+  };
+  for (const r of rows) {
+    if (r.followed === 1) {
+      s.followedGames += r.n;
+      if (r.win === 1) s.followedWins += r.n;
+    } else {
+      s.notFollowedGames += r.n;
+      if (r.win === 1) s.notFollowedWins += r.n;
+    }
+  }
+  return s;
+}
+
 /** Win rate when you followed the top suggestion vs when you didn't, over the
  *  drafts that have been linked to a match outcome. */
 export async function draftAdviceStats(): Promise<AdviceStats> {
@@ -98,17 +121,7 @@ export async function draftAdviceStats(): Promise<AdviceStats> {
      JOIN matches m ON d.match_id = m.match_id
      GROUP BY d.followed_suggestion, m.win`
   );
-  const s = { ...empty };
-  for (const r of rows) {
-    if (r.followed === 1) {
-      s.followedGames += r.n;
-      if (r.win === 1) s.followedWins += r.n;
-    } else {
-      s.notFollowedGames += r.n;
-      if (r.win === 1) s.notFollowedWins += r.n;
-    }
-  }
-  return s;
+  return aggregateAdviceRows(rows);
 }
 
 export async function recentDrafts(limit = 50): Promise<DraftRecord[]> {

@@ -4,6 +4,7 @@
 // outcomes, so it stays invisible until there's a meaningful signal.
 
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { draftAdviceStats, type AdviceStats } from "../services/draftsRepo";
 import { Panel } from "./ui/Panel";
 
@@ -14,6 +15,7 @@ function wr(wins: number, games: number): number {
 }
 
 export function DraftAdherencePanel() {
+  const { t } = useTranslation();
   const [stats, setStats] = useState<AdviceStats | null>(null);
 
   useEffect(() => {
@@ -32,11 +34,11 @@ export function DraftAdherencePanel() {
   return (
     <Panel padding="sm">
       <p className="text-[11px] uppercase tracking-widest text-white/40 mb-2">
-        Adherencia al consejo
+        {t("trends.adherence.title")}
       </p>
       <div className="flex gap-6 text-sm">
         <div>
-          <p className="text-white/55 text-xs">Seguiste la sugerencia</p>
+          <p className="text-white/55 text-xs">{t("trends.adherence.followed")}</p>
           <p className="text-good font-semibold">
             {followedWr}% WR{" "}
             <span className="text-white/40 text-xs font-normal">
@@ -45,7 +47,7 @@ export function DraftAdherencePanel() {
           </p>
         </div>
         <div>
-          <p className="text-white/55 text-xs">No la seguiste</p>
+          <p className="text-white/55 text-xs">{t("trends.adherence.notFollowed")}</p>
           <p className="text-white/80 font-semibold">
             {notWr}% WR{" "}
             <span className="text-white/40 text-xs font-normal">

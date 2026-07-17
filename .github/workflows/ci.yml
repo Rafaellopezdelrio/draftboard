@@ -38,6 +38,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # BLOCKING dependency-advisory gate (prod deps, high+). Baseline verified
+      # clean 2026-07-17; if this starts failing, a real advisory landed — fix
+      # or pin, don't re-soften the gate.
+      - name: npm audit (prod, high+)
+        if: matrix.os == 'ubuntu-latest'
+        run: npm audit --omit=dev --audit-level=high
+
       - name: Type check
         run: npm run typecheck
 

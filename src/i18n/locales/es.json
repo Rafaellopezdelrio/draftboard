@@ -114,6 +114,11 @@
       "kp": "Acércate a objetivos y rotaciones — en tus derrotas juegas aislado del equipo.",
       "vision": "Compra control wards, wardea antes de objetivos y limpia la visión enemiga.",
       "gold": "Sube tu economía: no pierdas oleadas y recoge plates / objetivos para no quedarte sin ítems."
+    },
+    "adherence": {
+      "title": "Adherencia al consejo",
+      "followed": "Seguiste la sugerencia",
+      "notFollowed": "No la seguiste"
     }
   },
   "liveCoach": {
