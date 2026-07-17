@@ -1,6 +1,7 @@
 import type {
   MatchFull,
   MatchParticipant,
+  MatchTimeline,
 } from "../services/riotApi";
 import type { Role } from "../types/champion";
 import { bracketForTier, baselineFor } from "./rankBenchmarks";
@@ -28,7 +29,8 @@ export interface GpiScore {
 export function computeGpi(
   match: MatchFull,
   myPuuid: string,
-  rankTier?: string | null
+  rankTier?: string | null,
+  timeline?: MatchTimeline | null
 ): GpiScore | null {
   const me = match.participants.find((p) => p.puuid === myPuuid);
   if (!me) return null;
@@ -45,7 +47,7 @@ export function computeGpi(
   const survivability = scoreSurvivability(me, minutes);
   const objectives = scoreObjectives(me, team);
   const versatility = scoreVersatility(me);
-  const laning = scoreLaning(me, match.participants);
+  const laning = scoreLaning(me, match.participants, timeline);
 
   const total =
     farming * 0.18 +
@@ -71,14 +73,58 @@ export function computeGpi(
   };
 }
 
-// Matchup dominance vs your direct lane opponent (CS + gold lead by game end).
+// Matchup dominance vs your direct lane opponent, measured where laning is
+// actually decided: the timeline frame nearest 14:00 (end of laning phase).
+// End-of-game totals were WRONG for this — a splitpusher who lost lane but
+// out-farmed you for 30 minutes read as "you lost lane" even when you took
+// first tower (real user report). Falls back to end-of-game diffs only when
+// no timeline is available (older cached matches).
+const LANING_END_MS = 14 * 60 * 1000;
+
+function laningDiffAt14(
+  timeline: MatchTimeline | null | undefined,
+  meId: number,
+  oppId: number
+): { gold: number; cs: number } | null {
+  if (!timeline || !Array.isArray(timeline.frames) || timeline.frames.length === 0)
+    return null;
+  let best = timeline.frames[0];
+  let bestDelta = Math.abs(best.timestamp - LANING_END_MS);
+  for (const f of timeline.frames) {
+    const d = Math.abs(f.timestamp - LANING_END_MS);
+    if (d < bestDelta) {
+      bestDelta = d;
+      best = f;
+    }
+  }
+  const mine = best.participantFrames?.[String(meId)];
+  const theirs = best.participantFrames?.[String(oppId)];
+  if (!mine || !theirs) return null;
+  return {
+    gold: mine.totalGold - theirs.totalGold,
+    cs:
+      mine.minionsKilled +
+      mine.jungleMinionsKilled -
+      (theirs.minionsKilled + theirs.jungleMinionsKilled),
+  };
+}
 // A proxy for "did you win your lane" without needing the timeline. Even = 50;
 // a big CS + gold lead pushes toward 100, falling behind toward 0.
-function scoreLaning(me: MatchParticipant, all: MatchParticipant[]): number {
+function scoreLaning(
+  me: MatchParticipant,
+  all: MatchParticipant[],
+  timeline?: MatchTimeline | null
+): number {
   const opp = all.find(
     (p) => p.teamId !== me.teamId && p.position === me.position && me.position !== ""
   );
   if (!opp) return 50; // no resolvable opponent (ARAM / role mismatch)
+
+  // Preferred: lead at ~14:00. Typical stomp ≈ +1000g / +30cs → ~90.
+  const at14 = laningDiffAt14(timeline, me.participantId, opp.participantId);
+  if (at14) return clamp(50 + at14.cs * 0.5 + at14.gold / 40);
+
+  // Fallback (no timeline): end-of-game diffs, larger magnitudes → softer scale.
   const csDiff = me.cs - opp.cs;
   const goldDiff = me.goldEarned - opp.goldEarned;
   return clamp(50 + csDiff * 0.3 + goldDiff / 200);

@@ -108,7 +108,7 @@ export function CoachView({ db, onClose }: Props) {
         setMatchFull(full);
         setMatchTimeline(timeline);
         setInsights(analyzeMatch({ match: full, timeline, myPuuid: cfg.puuid }));
-        setGpi(computeGpi(full, cfg.puuid, rank?.tier ?? null));
+        setGpi(computeGpi(full, cfg.puuid, rank?.tier ?? null, timeline));
       } catch (e) {
         setErr(String(e));
       } finally {

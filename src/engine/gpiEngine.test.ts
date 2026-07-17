@@ -246,3 +246,60 @@ describe("computeGpi", () => {
     expect(s.categories.aggression).toBeGreaterThan(50);
   });
 });
+
+describe("laning — measured at ~14:00 via timeline, not end-of-game totals", () => {
+  // Real user report: won lane + first tower vs Darius, but the splitpusher
+  // out-farmed them over 35 minutes → end-of-game diffs said "lost lane".
+  const me = mkParticipant({
+    puuid: "me",
+    participantId: 1,
+    teamId: 100,
+    position: "TOP",
+    cs: 220,
+    goldEarned: 12000, // behind at game end
+  });
+  const darius = mkParticipant({
+    puuid: "opp",
+    participantId: 6,
+    teamId: 200,
+    position: "TOP",
+    cs: 280,
+    goldEarned: 14500, // ahead at game end (late splitpush farm)
+  });
+
+  const frame = (timestamp: number, myGold: number, myCs: number, oppGold: number, oppCs: number) => ({
+    timestamp,
+    events: [],
+    participantFrames: {
+      "1": { participantId: 1, currentGold: 0, totalGold: myGold, level: 10, xp: 0, minionsKilled: myCs, jungleMinionsKilled: 0, position: { x: 0, y: 0 } },
+      "6": { participantId: 6, currentGold: 0, totalGold: oppGold, level: 10, xp: 0, minionsKilled: oppCs, jungleMinionsKilled: 0, position: { x: 0, y: 0 } },
+    },
+  });
+
+  const timeline = {
+    matchId: "EUW1_test",
+    participantToPuuid: { 1: "me", 6: "opp" },
+    // At 14:00 I'm +800g / +20cs — clearly won lane.
+    frames: [frame(0, 500, 0, 500, 0), frame(14 * 60 * 1000, 5800, 120, 5000, 100), frame(35 * 60 * 1000, 12000, 220, 14500, 280)],
+  } as unknown as import("../services/riotApi").MatchTimeline;
+
+  it("scores the lane WON when ahead at 14:00, even if behind at game end", () => {
+    const s = computeGpi(mkMatch([me, darius], 2100), "me", null, timeline)!;
+    expect(s.categories.laning).toBeGreaterThan(60);
+  });
+
+  it("falls back to end-of-game diffs without a timeline (old behavior)", () => {
+    const s = computeGpi(mkMatch([me, darius], 2100), "me", null)!;
+    expect(s.categories.laning).toBeLessThan(50); // documents the fallback's limit
+  });
+
+  it("picks the frame nearest 14:00, not the last frame", () => {
+    // Identical mid-game but hugely behind on the last frame — must not matter.
+    const tl = {
+      ...timeline,
+      frames: [frame(13 * 60 * 1000, 6000, 130, 4800, 95), frame(40 * 60 * 1000, 10000, 240, 20000, 350)],
+    } as typeof timeline;
+    const s = computeGpi(mkMatch([me, darius], 2400), "me", null, tl)!;
+    expect(s.categories.laning).toBeGreaterThan(60);
+  });
+});
