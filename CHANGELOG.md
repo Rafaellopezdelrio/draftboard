@@ -4,6 +4,40 @@ All notable changes to Draftboard are documented here.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/);
 versions match the Tauri app version + the `vX.Y.Z` git tags.
 
+## [0.4.1] — 2026-07-17
+
+Recovery release for Riot's **anonymized champ select**, which could leave the
+draft board — and everything keyed off it — empty for the whole game.
+
+### Fixed
+- **In-game draft panels restored**: ally/enemy champions now derive from the
+  Live Client player list (never anonymized), so comp analysis, matchup tips,
+  win conditions and matchup-aware builds work all game.
+- **Loading-screen gap bridged**: the board fills from the gameflow session's
+  teams the moment the game is created (side resolved strictly by identity —
+  never guessed; a populated board is never overwritten).
+- Empty draft board auto-hides (build/coach rail takes the full width) and the
+  Build tab falls back to Picks instead of sitting on an empty panel.
+- Build archetype names/descriptions localized (were hardcoded Spanish).
+- History time-ago, queue/role filter tabs, Toggle/Toaster aria-labels and the
+  coach Riot-ID error localized.
+
+### Added
+- **AD/AP/true-damage split bars** in the comp analysis panel — your team AND
+  the enemy's, so you can balance your comp's damage and read the enemy's for
+  itemization (armor vs MR); a true-damage badge warns resists won't help.
+- `[lcu-shape]` diagnostic: when the local champion can't be resolved in champ
+  select, the raw session shape is captured to the disk log (throttled) so the
+  remaining root cause can be pinned from any real game.
+- Pro-play sync now batch-inserts (faster) and the dpm.lol tier list is cached
+  per bracket for 30min.
+
+### Fixed (post-game coach)
+- **Laning verdict now measured at ~14:00** via the match timeline instead of
+  end-of-game CS/gold totals — winning lane + first tower no longer reads as
+  "you lost lane" just because a splitpusher out-farmed you over 30 minutes.
+- Dev-only: guarded against double React root creation on hot reload.
+
 ## [0.4.0] — 2026-06-23
 
 First release since 0.3.0 (230 commits).
