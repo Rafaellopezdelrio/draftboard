@@ -389,6 +389,7 @@ pub async fn db_restore_from(app: tauri::AppHandle, source_path: String) -> Resu
 }
 
 #[cfg(test)]
+#[allow(clippy::expect_used)] // tests may panic on failure — that IS the assertion
 mod tests {
     use super::*;
 
@@ -436,7 +437,7 @@ mod tests {
         assert!(backup_expired_by_name("auto-2026-06-09.db", cutoff)); // older → prune
         assert!(!backup_expired_by_name("auto-2026-06-10.db", cutoff)); // == cutoff → keep (strict <)
         assert!(!backup_expired_by_name("auto-2026-06-11.db", cutoff)); // newer → keep
-        // Unparseable / non-snapshot names are never pruned by this path.
+                                                                        // Unparseable / non-snapshot names are never pruned by this path.
         assert!(!backup_expired_by_name("auto-not-a-date.db", cutoff));
         assert!(!backup_expired_by_name("manual.db", cutoff));
     }

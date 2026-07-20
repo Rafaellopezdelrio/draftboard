@@ -79,6 +79,9 @@ windows = { version = "0.61", features = [
     "Win32_UI_WindowsAndMessaging",
     "Win32_Graphics_Gdi",
     "Win32_Graphics_Dwm",
+    # DPAPI (CryptProtectData/CryptUnprotectData) — at-rest encryption of the
+    # user's BYO AI keys. See src/dpapi.rs.
+    "Win32_Security_Cryptography",
 ] }
 
 

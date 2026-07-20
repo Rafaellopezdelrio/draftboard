@@ -18,6 +18,7 @@
 mod app_control;
 mod db;
 mod db_admin;
+mod dpapi;
 mod lcu;
 mod overlay;
 mod panic_logger;
@@ -30,6 +31,7 @@ use db_admin::{
     consume_db_recovery_marker, db_backup_to, db_list_auto_backups, db_quarantine_corrupt,
     db_restore_from, preboot_db_integrity_check_and_quarantine, rolling_db_backup,
 };
+use dpapi::{dpapi_protect, dpapi_unprotect};
 use lcu::{
     lcu_apply_runes, lcu_apply_summoner_spells, lcu_current_summoner, lcu_get_json,
     lcu_push_item_set, lcu_status, lcu_summoner_by_id, live_client_all_game_data, LcuState,
@@ -305,6 +307,8 @@ pub fn run() {
             db_list_auto_backups,
             db_quarantine_corrupt,
             consume_db_recovery_marker,
+            dpapi_protect,
+            dpapi_unprotect,
             restart_app,
             consume_reset_marker,
             center_main_window,
