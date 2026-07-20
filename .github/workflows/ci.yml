@@ -58,6 +58,14 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: npm test
 
+      # E2E smoke (8 tests) — these rotted for months because nothing ran
+      # them; the TermsGate checkbox broke every one silently. Never again.
+      - name: E2E smoke (Linux only)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          npx playwright install chromium --with-deps
+          npm run test:e2e
+
       - name: Coverage gate (Linux only)
         if: matrix.os == 'ubuntu-latest'
         run: npm run test:coverage

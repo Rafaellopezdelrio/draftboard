@@ -78,16 +78,19 @@ async function dismissOnboarding(page: Page) {
 }
 
 test.describe("Draftboard smoke", () => {
-  // Every smoke test starts by dismissing the legal modal — the gate
-  // shows on each navigation in the browser-context test runner because
-  // prefs don't persist there. preAcceptTerms keeps the no-op placeholder
-  // for future addInitScript work.
+  // Every smoke test starts past the gates: navigate, tick + accept the
+  // TermsGate (checkbox REQUIRED — the accept button is disabled without
+  // it), then dismiss the onboarding wizard. The gates re-show on every
+  // navigation outside Tauri (prefs don't persist), so this runs per test
+  // and the tests themselves must NOT re-goto.
   test.beforeEach(async ({ page }) => {
     await preAcceptTerms(page);
+    await page.goto("/");
+    await acceptTerms(page);
+    await dismissOnboarding(page);
   });
 
   test("loads and shows the header chrome", async ({ page }) => {
-    await page.goto("/");
     await acceptTerms(page);
     // Either the splash ("Cargando datos...") shows briefly then resolves to
     // the header, or DDragon is fast and we land on the header straight away.
@@ -96,7 +99,6 @@ test.describe("Draftboard smoke", () => {
   });
 
   test("patch label uses Riot-year format (e.g. 26.x) not DDragon (16.x)", async ({ page }) => {
-    await page.goto("/");
     await acceptTerms(page);
     const label = page.getByText(/Patch\s+\d+\.\d+/i);
     await expect(label).toBeVisible({ timeout: 30_000 });
@@ -115,7 +117,6 @@ test.describe("Draftboard smoke", () => {
   });
 
   test("LCU status chip is present (shows 'Esperando cliente' when no Tauri)", async ({ page }) => {
-    await page.goto("/");
     await acceptTerms(page);
     // Without Tauri the watcher never connects; the offline chip should show.
     await expect(page.getByText(/Esperando cliente|Conectado/i)).toBeVisible({
@@ -124,7 +125,6 @@ test.describe("Draftboard smoke", () => {
   });
 
   test("role selector renders all 5 canonical roles", async ({ page }) => {
-    await page.goto("/");
     await acceptTerms(page);
     await page.getByText(/Patch\s+\d+\.\d+/i).waitFor({ timeout: 30_000 });
     const select = page.locator("select").first();
@@ -136,7 +136,6 @@ test.describe("Draftboard smoke", () => {
   });
 
   test("changing role updates draft store (panel rerenders)", async ({ page }) => {
-    await page.goto("/");
     await acceptTerms(page);
     await page.getByText(/Patch\s+\d+\.\d+/i).waitFor({ timeout: 30_000 });
     const select = page.locator("select").first();
@@ -147,7 +146,6 @@ test.describe("Draftboard smoke", () => {
   });
 
   test("header buttons open their respective modals", async ({ page }) => {
-    await page.goto("/");
     await acceptTerms(page);
     await page.getByText(/Patch\s+\d+\.\d+/i).waitFor({ timeout: 30_000 });
     await dismissOnboarding(page);
@@ -161,7 +159,6 @@ test.describe("Draftboard smoke", () => {
   });
 
   test("command palette opens with Ctrl+K", async ({ page }) => {
-    await page.goto("/");
     await acceptTerms(page);
     await page.getByText(/Patch\s+\d+\.\d+/i).waitFor({ timeout: 30_000 });
     await dismissOnboarding(page);
@@ -179,7 +176,9 @@ test.describe("Draftboard smoke", () => {
     page.on("console", (msg) => {
       if (msg.type() === "error") errors.push(msg.text());
     });
-    await page.goto("/");
+    // beforeEach already navigated (listeners missed that boot) — reload so
+    // this test observes a FULL bootstrap with the listeners attached.
+    await page.reload();
     await acceptTerms(page);
     await page.getByText(/Patch\s+\d+\.\d+/i).waitFor({ timeout: 30_000 });
     // Filter expected noise: Tauri plugin warnings, DevTools-only messages.
