@@ -34,28 +34,26 @@ export function ConfirmDialog({
 }: Props) {
   const { t } = useTranslation();
   const confirmRef = useRef<HTMLButtonElement | null>(null);
+  const cancelRef = useRef<HTMLButtonElement | null>(null);
   const dialogRef = useRef<HTMLDivElement | null>(null);
 
   // Trap focus inside the dialog so Tab can't escape to elements behind
   // it (would let user trigger a destructive action elsewhere by mistake).
   useFocusTrap(dialogRef, true);
 
-  // Focus the confirm button on mount; Enter accepts, Esc cancels.
-  // useFocusTrap already focuses the first focusable, but our preferred
-  // initial focus is the confirm button (destructive action gets the
-  // affirmative focus only if user clearly TAB'd to it from cancel).
-  // Actually safer: leave focus on cancel by default so Enter doesn't
-  // accidentally trigger destructive. Override Enter to fire confirm
-  // explicitly via document listener below.
+  // Keyboard: Esc cancels globally; Enter activates whichever button has
+  // focus (native <button> behavior — no global Enter override). A global
+  // Enter→confirm listener used to fire the DESTRUCTIVE action even after
+  // the user had Tab'd to Cancel. Initial focus goes to CANCEL so a stray
+  // Enter is always the safe choice; Tab reaches Confirm deliberately.
   useEffect(() => {
-    confirmRef.current?.focus();
+    cancelRef.current?.focus();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onCancel();
-      if (e.key === "Enter") onConfirm();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onConfirm, onCancel]);
+  }, [onCancel]);
 
   return (
     <div
@@ -94,6 +92,7 @@ export function ConfirmDialog({
         </p>
         <div className="flex gap-2 pt-2">
           <button
+            ref={cancelRef}
             onClick={onCancel}
             className="flex-1 px-3 py-2 bg-bg-elev border border-border-subtle text-white/80 rounded hover:bg-bg-card text-sm"
           >

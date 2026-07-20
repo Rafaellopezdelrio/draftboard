@@ -1,7 +1,8 @@
 // Locked-down ConfirmDialog contract:
 //   - role=alertdialog + aria-modal + aria-labelledby + aria-describedby
 //   - Confirm + Cancel buttons fire respective callbacks
-//   - Enter triggers confirm (keyboard accessibility)
+//   - Enter only activates the FOCUSED button (no global confirm override);
+//     initial focus is Cancel so a stray Enter is always the safe choice
 //   - Escape triggers cancel
 //   - X icon (top-right) also cancels
 //   - destructive=true applies bad-styling class hint
@@ -62,7 +63,10 @@ describe("ConfirmDialog", () => {
     expect(onCancel).toHaveBeenCalledTimes(1);
   });
 
-  it("Enter triggers onConfirm (keyboard accessibility)", () => {
+  it("a stray Enter does NOT fire the destructive confirm (no global override)", () => {
+    // Regression: a window-level Enter listener used to call onConfirm even
+    // when the user had Tab'd to Cancel. Enter now only activates the FOCUSED
+    // button via native behavior.
     const onConfirm = vi.fn();
     render(
       <ConfirmDialog
@@ -74,7 +78,21 @@ describe("ConfirmDialog", () => {
       />
     );
     fireEvent.keyDown(window, { key: "Enter" });
-    expect(onConfirm).toHaveBeenCalledTimes(1);
+    expect(onConfirm).not.toHaveBeenCalled();
+  });
+
+  it("initial focus lands on Cancel (safe default for destructive dialogs)", () => {
+    const { container } = render(
+      <ConfirmDialog
+        title="t"
+        message="m"
+        confirmLabel="OK"
+        onConfirm={() => {}}
+        onCancel={() => {}}
+      />
+    );
+    const focused = container.ownerDocument.activeElement as HTMLElement | null;
+    expect(focused?.textContent).not.toBe("OK");
   });
 
   it("Escape triggers onCancel", () => {

@@ -30,8 +30,12 @@ export function CountUp({
       const eased = 1 - Math.pow(1 - progress, 3);
       const v = startValue + delta * eased;
       setCurrent(v);
+      // Track what's on screen EVERY frame — if `value` changes mid-animation,
+      // the next run must start from the displayed number, not from the last
+      // COMPLETED animation's end (which made the count visibly jump backwards
+      // before re-counting).
+      startRef.current = v;
       if (progress < 1) raf = requestAnimationFrame(tick);
-      else startRef.current = value;
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
