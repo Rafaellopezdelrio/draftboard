@@ -1,8 +1,10 @@
+import { useTranslation } from "react-i18next";
 import type { DraftPrediction } from "../engine/draftWinrateEngine";
 import { CountUp } from "./ui/CountUp";
 import { TrendingUp, TrendingDown, Minus } from "lucide-react";
 
 export function DraftWinrateBadge({ pred }: { pred: DraftPrediction }) {
+  const { t } = useTranslation();
   const wr = pred.winrate * 100;
   const isGood = wr >= 55;
   const isBad = wr < 45;
@@ -32,7 +34,7 @@ export function DraftWinrateBadge({ pred }: { pred: DraftPrediction }) {
             <CountUp value={wr} suffix="%" />
           </p>
           <p className="text-[10px] uppercase tracking-widest text-white/50 mt-1 font-semibold">
-            probabilidad de ganar
+            {t("draft.winProbability")}
           </p>
         </div>
       </div>

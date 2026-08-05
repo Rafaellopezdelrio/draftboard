@@ -25,7 +25,9 @@ function MatchupTipsPanelInner({
 }: Props) {
   const { t } = useTranslation();
   const beginner = usePrefsStore((s) => s.prefs.beginnerMode);
-  const panelLang = usePrefsStore((s) => s.prefs.aiCoachLanguage);
+  // Curated tips are static UI copy, not AI output — they follow the
+  // interface locale. `aiCoachLanguage` (below) stays on the generated ones.
+  const panelLang = usePrefsStore((s) => s.prefs.uiLocale);
   const idToName = useMemo(() => {
     const m = new Map<string, string>();
     for (const c of Object.values(db.champions)) m.set(c.key, c.id);

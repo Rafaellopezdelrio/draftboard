@@ -375,7 +375,8 @@
     "enemies": "Enemies",
     "resetDraft": "Reset draft",
     "rightClickGuide": "Right-click: view {{name}} guide",
-    "pickSlot": "Pick {{n}}"
+    "pickSlot": "Pick {{n}}",
+    "winProbability": "win probability"
   },
   "suggestions": {
     "empty": "Pick a champion to see suggestions.",
