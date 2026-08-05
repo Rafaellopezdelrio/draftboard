@@ -911,13 +911,13 @@ mod tests {
     #[test]
     fn validate_lcu_path_rejects_attack_shapes() {
         for p in [
-            "/riotclient/region-locale",            // non-/lol- root
-            "/lol-summoner/../../riotclient/foo",    // traversal
+            "/riotclient/region-locale",              // non-/lol- root
+            "/lol-summoner/../../riotclient/foo",     // traversal
             "/lol-summoner/v1//double-slash",         // smuggled //
             "/lol-summoner/v1/x@evil.com/y",          // userinfo injection
-            "/lol-summoner/v1/x y",                    // whitespace
+            "/lol-summoner/v1/x y",                   // whitespace
             "/lol-summoner/v1/x\\y",                  // backslash
-            "https://evil.com/lol-x",                  // absolute URL (no leading /lol-)
+            "https://evil.com/lol-x",                 // absolute URL (no leading /lol-)
             "/lol-match-history/v1/m?cb=http://evil", // illegal query chars (: /)
         ] {
             assert!(validate_lcu_path(p).is_err(), "should reject: {p}");
