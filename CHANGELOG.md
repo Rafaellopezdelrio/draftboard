@@ -4,6 +4,31 @@ All notable changes to Draftboard are documented here.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/);
 versions match the Tauri app version + the `vX.Y.Z` git tags.
 
+## [0.4.2] — 2026-08-05
+
+Security and supply-chain hardening, plus the test suite that guards it.
+
+### Security
+- **BYO AI keys are encrypted at rest** with Windows DPAPI — a stolen prefs
+  file no longer hands over your Groq / Anthropic / Gemini keys.
+- **Blocking advisory gates in CI**: `npm audit` (prod deps, high+) and
+  `cargo audit` (RustSec) now fail the build instead of warning. Known-accepted
+  Rust advisories are documented with justification in
+  `src-tauri/.cargo/audit.toml`.
+- Fixed a `quinn-proto` denial-of-service advisory in the Rust dependency tree.
+
+### Fixed
+- ConfirmDialog no longer swallows a stray Enter as a confirmation.
+- CountUp retargets mid-flight instead of animating to a stale value.
+- Draft win-probability label and the curated matchup tips now follow the
+  interface language (they were pinned to Spanish / to the AI coach language).
+
+### Internal
+- Playwright smoke suite revived and gated in CI — it had rotted silently for
+  months because nothing ran it.
+- `scripts/screenshots.mjs` regenerates the README screenshots from the dev
+  server.
+
 ## [0.4.1] — 2026-07-17
 
 Recovery release for Riot's **anonymized champ select**, which could leave the
