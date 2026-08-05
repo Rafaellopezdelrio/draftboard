@@ -1,86 +1,81 @@
-# Draftboard — Session Handoff (2026-06-23)
+# Draftboard — Session Handoff (2026-08-05)
+
+Internal working notes: where the repo stands, what's verified, what's still
+open. Not user documentation — see [`../README.md`](../README.md) for that.
 
 ## Status
-- **Release v0.4.0 SHIPPED + LIVE.** Tag → CI built the signed installer + public
-  GitHub Release; worker deployed (`draftboard-riot-proxy`, version `8d77c05b`);
-  `/updater/latest.json` verified serving `version:"0.4.0"` with the real sig.
-  Existing 0.3.0 users now get the auto-update prompt.
-- main @ `0a51666` (+ this handoff). 930 tests green, `tsc --noEmit` + `eslint src` clean.
 
-## Release flow used (for next time — docs/releasing.md)
-1. Bump version in package.json + src-tauri/tauri.conf.json + Cargo.toml (+ Cargo.lock), commit.
-2. `git tag -a vX.Y.Z` + `git push origin vX.Y.Z` → CI builds + publishes signed Release.
-3. Grab `.exe.sig` — fastest: `curl -sL <release>/download/vX.Y.Z/Draftboard_X.Y.Z_x64-setup.exe.sig`
-   (public asset, no auth needed). Verify it decodes to `file:Draftboard_X.Y.Z_x64-setup.exe`.
-4. Paste into `cloudflare-worker/src/worker.js` LATEST_VERSION.signature (submodule = GitLab `draft_cloudflare`;
-   commit there, then bump the pointer in the parent).
-5. `cd cloudflare-worker && npx wrangler deploy`. Needs `npx wrangler login` (CLI OAuth, not the dashboard
-   login) on the account that owns the worker — verify with `npx wrangler whoami` (account `8c973372…`).
+- **main is green.** `tsc --noEmit`, `eslint src`, 961 vitest tests (117 files),
+  `cargo clippy -D warnings` and `cargo fmt --check` all pass locally.
+- Last release: **v0.4.1** (2026-07-17). Shipped since the tag and awaiting a
+  0.4.2 cut: BYO AI keys encrypted at rest with Windows DPAPI, blocking npm +
+  cargo advisory gates, the ConfirmDialog stray-Enter / CountUp retarget fix,
+  and the revived Playwright smoke suite (now gated in CI).
+- Coverage: **36.4% statements / 54.9% functions** (2026-07-27). Behind the
+  [`TESTING_POLICY.md`](../TESTING_POLICY.md) curve — 40/55 was due 2026-07-01,
+  60/70 is due 2026-09-01.
 
-## What shipped this session (22 commits, `e974f73`→`78ebc6d`)
-- **Bugs fixed**: Black Cleaver wrongly flagged as a healer → false Grievous-Wounds rec (`8257a56`);
-  overlay objective-timer could read NaN from a malformed event (`55f9794`).
-- **Dedup + tests**: shared `httpFetch` (9 files), `resolveMeta` meta-fallback, `deriveTimers`,
-  `formatTime`, `isSmurf` lobby engine.
-- **i18n (ES/EN)**: full sweep — powerSpikes (53 tips), TipCarousel (30), Preferences sub-fields
-  (autostart/proxy/theme/AI), History filter tabs, several a11y aria-labels. **Verified live** in the
-  dev server (ES↔EN toggle → zero Spanish leftovers, no console errors).
-- **New test coverage**: resolveMeta, buildMetaList, lookupPerkId, aggregateEnemyItems, isSmurf,
-  deriveTimers, formatTime. Engine + data (pure logic) ~100% covered.
-- **Misc**: Void Grubs objective timer, migrations README sync, app title + favicon (dropped Vite boilerplate).
+## Release flow (see also docs/releasing.md)
+
+1. Bump version in package.json + src-tauri/tauri.conf.json + Cargo.toml
+   (+ Cargo.lock), commit.
+2. `git tag -a vX.Y.Z` + `git push origin vX.Y.Z` → CI builds and publishes the
+   signed Release.
+3. Grab the `.exe.sig` — fastest:
+   `curl -sL <release>/download/vX.Y.Z/Draftboard_X.Y.Z_x64-setup.exe.sig`
+   (public asset, no auth). Verify it decodes to
+   `file:Draftboard_X.Y.Z_x64-setup.exe`.
+4. Paste into `cloudflare-worker/src/worker.js` `LATEST_VERSION.signature`
+   (submodule = GitLab `draft_cloudflare`; commit there, then bump the pointer
+   in the parent).
+5. `cd cloudflare-worker && npx wrangler deploy`. Needs `npx wrangler login`
+   (CLI OAuth, not the dashboard login) on the account that owns the worker —
+   verify with `npx wrangler whoami` (account `8c973372…`).
+
+**Steps 3–5 are manual and easy to forget.** Skipping them ships an installer
+that existing users never get offered: the updater manifest still advertises
+the old version.
 
 ## Repo facts / commands
-- Path: `D:\APPS\lol-draft-advisor`. Bash cwd resets to `C:\Users\rafae` each call → prefix `cd /d/APPS/lol-draft-advisor`.
+
+- Path: `D:\APPS\lol-draft-advisor`. Bash cwd resets to `C:\Users\rafae` each
+  call → prefix `cd /d/APPS/lol-draft-advisor`.
 - Stack: Tauri 2 (Rust) + React 19 + Vite 7 + TS + Tailwind 4 + Zustand + SQLite.
-- Verify: `npx tsc --noEmit` · `npx eslint src` · `npx vitest run` (930). Rust: `npm run rust:check`.
-- i18n: locale JSON `src/i18n/locales/{es,en}.json`; parity guarded by `src/i18n/i18n.test.ts`
-  (es/en key sets must match, no empty values; arrays are treated as a single leaf). Components use
-  `const { t } = useTranslation()`; services/non-components use `import { i18n } from "../i18n"; i18n.t(...)`.
-  Watch for `.map((t) => ...)` shadowing the translation `t` — rename the param.
-- Preview/browser audit: `.claude/launch.json` → `npm run dev` on port 1420. TermsGate gates the app;
-  to reach the UI in a browser, check the consent checkbox + click accept. Live-game data is null without
-  Tauri (overlay/live panels render empty), but the rest of the UI is auditable (good for i18n sweeps).
-- Release flow: `docs/releasing.md`. Version lives in package.json + src-tauri/tauri.conf.json +
-  src-tauri/Cargo.toml (+ Cargo.lock).
-- Commit convention: end messages with the Co-Authored-By line. **Standing rule for this project:
-  commit AND push every change automatically — don't ask.**
+- Verify: `npm run check:all` (typecheck + vitest + clippy + fmt). E2E:
+  `npm run test:e2e` (needs `npx playwright install chromium` once).
+- Screenshots for the README: `npm run dev`, then `node scripts/screenshots.mjs`.
+  Runs the app outside Tauri, so LCU/Live panels stay empty by design.
+- i18n: locale JSON `src/i18n/locales/{es,en}.json`; parity guarded by
+  `src/i18n/i18n.test.ts` (es/en key sets must match, no empty values; arrays
+  count as one leaf). Components use `const { t } = useTranslation()`;
+  services use `import { i18n } from "../i18n"; i18n.t(...)`. Watch for
+  `.map((t) => ...)` shadowing the translation `t` — rename the param.
+- Two language prefs, deliberately separate: `uiLocale` (interface, and the
+  curated matchup tips) vs `aiCoachLanguage` (what the AI replies in).
+- Preview/browser audit: `.claude/launch.json` → `npm run dev` on port 1420.
+  TermsGate then the onboarding wizard gate the UI; both must be dismissed
+  before anything else is reachable.
+- Commit convention: end messages with the Co-Authored-By line.
 
-## 🔴 OPEN BUG — champ-select pick detection broken (found in live test 2026-06-25)
-**Impact: HIGH.** The build / coach / suggestion panels stay empty in champ select AND in-game because
-the local champion never resolves. Root cause = Riot's **anonymized champ select**: the LCU session
-players now carry `obfuscatedPuuid` / `obfuscatedSummonerId` / `playerAlias` / `nameVisibilityType`, and
-`myTeam[].championId` + `session.actions[].championId` are 0 / empty where the app looks.
+## Open
 
-Live-log signature (current build):
-```
-[lcuSync] my cell N has no champ in myTeam OR actions — championId=0 ... actionPickCells=[none]
-```
-- `buildChampionKey = liveDerived.key ?? myChampionLocked ?? myChampionIntent` (App.tsx:530) → all three null.
-- Likely also breaks in-game `findMyPlayer` (liveClient) — Live Client identity matching under anonymity.
-
-**Mitigations SHIPPED (2026-06-26):** the impact is now limited to the champ-select phase itself:
-- `liveRosterKeys` (liveClient) — in-game, ally/enemy champs derive from the Live Client player list
-  (never anonymized) → comp/matchups/win-conditions/builds work all game (`c649cb9`).
-- `gameflowRoster` bridge — loading screen / game start, board fills from gameflow teamOne/teamTwo
-  (side resolved by puuid only, never guessed; never overwrites a populated board) (`74a9f12`).
-- Parse pinned: regression test with the exact anonymized session shape passes → the champ-select
-  parse is NOT the bug; remaining suspect is Riot omitting OTHER players' pick actions (`871d978`).
-- Layout degrades gracefully: empty board auto-hides, Build tab falls back to Picks (`62fec3a`).
-
-**Remaining fix (needs a live game):** instrument lcuSync just after the warn (~L383) with a throttled raw dump
-outside the `lastBlindWarnedCell` dedup — `console.warn("[DIAG]", JSON.stringify(s.actions).slice(0,1400),
-JSON.stringify(myPlayer).slice(0,500))` gated by a `Date.now()-lastRawDiagMs>8000` throttle. Run `npm run
-tauri dev`, hover a champ in a real champ select, read where Riot now puts `championId`, then update the
-parse in lcuSync (and verify findMyPlayer handles obfuscated identities in-game). The session app was open
-+ LCU-connected when this was found; the diagnostic was reverted (uncommitted).
-
-## Open / not done
-- **Live-game testing** (overlay topmost/click-through, auto-apply runes/items, live coach, lobby scout):
-  needs LoL running on the machine — NOT verifiable headless. Note the champ-select bug above blocks the
-  build/coach surfaces until fixed.
-- metaAggregator does non-atomic per-table DELETE+INSERT. Left alone on purpose: the code comment documents
-  that tauri-plugin-sql can't hold BEGIN/COMMIT across `execute()` calls (pooled connections); batching
-  already minimizes the partial-write window. Not a bug — a deliberate tradeoff.
-- i18n is thoroughly swept (multiple scan angles exhausted: accents, ES words, thrown errors, aria/placeholder/title,
-  es-locale formatting). Remaining accented-char hits are false positives (`·` separator, "Español"/"English"
-  language labels).
+- **Champ-select pick detection under Riot's anonymized champ select.** The LCU
+  session carries `obfuscatedPuuid` / `playerAlias`, and `myTeam[].championId` +
+  `session.actions[].championId` read 0 where the app looks, so the local
+  champion never resolves *during champ select*.
+  - Mitigated end-to-end everywhere else: in-game rosters come from the Live
+    Client player list, the loading screen fills from the gameflow session,
+    the empty board auto-hides and the Build tab falls back to Picks.
+  - The parse itself is pinned by a regression test against the real
+    anonymized shape — it is not the bug. Remaining suspect: Riot omitting the
+    other players' pick actions entirely.
+  - Diagnosis needs a live game: `[lcu-shape]` already dumps the unresolved
+    session to the disk log (throttled). Run `npm run tauri dev`, enter a real
+    champ select, then read where Riot puts `championId` now.
+- **Live-game surfaces are not verifiable headless**: overlay topmost /
+  click-through, auto-apply runes and items, live coach, lobby scout. They need
+  LoL actually running.
+- **metaAggregator does non-atomic per-table DELETE+INSERT.** Left alone on
+  purpose — tauri-plugin-sql can't hold BEGIN/COMMIT across `execute()` calls
+  (pooled connections); batching already minimizes the partial-write window.
+  A documented tradeoff, not a bug.

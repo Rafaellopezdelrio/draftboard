@@ -1,5 +1,9 @@
 # Draftboard
 
+[![CI](https://github.com/Rafaellopezdelrio/draftboard/actions/workflows/ci.yml/badge.svg)](https://github.com/Rafaellopezdelrio/draftboard/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/Rafaellopezdelrio/draftboard)](https://github.com/Rafaellopezdelrio/draftboard/releases)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 Pro-level draft advisor and AI coach for League of Legends.
 
 A free, privacy-first desktop application that helps players from Iron to
@@ -10,6 +14,17 @@ overlay, post-game AI coaching, and per-bracket tier lists.
 8 MB installer. All player data stays local (SQLite). All Riot API calls are
 routed through a Cloudflare Worker proxy with edge caching — no per-user API
 key required.
+
+![Champion select — suggestions, comp analysis and matchup tips](docs/screenshots/champ-select.png)
+
+Champion select: the engine ranks your pool against the live draft, scores the
+comp (engage / frontline / peel / burst, AD-AP split) and surfaces per-opponent
+matchup tips.
+
+![Per-bracket tier list from dpm.lol](docs/screenshots/tier-list.png)
+
+Tier list: per rank bracket and region, with win-rate / pick-rate / ban-rate and
+a pick-rate floor so small-sample champions don't fake their way into S tier.
 
 ## Features
 
@@ -109,10 +124,36 @@ npm run tauri dev
 Tests:
 
 ```bash
-npm test               # 208 unit/integration tests
-npm run test:watch
-npm run typecheck
+npm test               # 961 unit/integration tests (117 files)
+npm run test:e2e       # Playwright smoke suite
+npm run check:all      # typecheck + unit tests + clippy + rustfmt
 ```
+
+Regenerate the README screenshots (needs `npm run dev` running on 1420):
+
+```bash
+node scripts/screenshots.mjs
+```
+
+## Quality gates
+
+Every push to `main` and every PR runs [CI](.github/workflows/ci.yml). All of
+these are blocking — nothing merges around them:
+
+| Gate | What it catches |
+|---|---|
+| `npm audit --omit=dev --audit-level=high` | known advisories in shipped deps |
+| `cargo audit` (RustSec) | advisories in the Rust/network crate tree |
+| `tsc --noEmit` on Linux **and** Windows | case-sensitivity bugs a single OS hides |
+| `eslint` (react-hooks) | rules-of-hooks + stale-closure deps |
+| `vitest` (961 tests) | engine, services, stores, parsers |
+| Playwright smoke (8 tests) | the app actually boots and renders |
+| `vitest --coverage` | coverage may not regress below baseline |
+| `scripts/bundle-check.mjs` | chunk-size budget (hard fail over 650 KB) |
+| `cargo clippy -D warnings` + `cargo fmt --check` | Rust lint + format |
+
+Testing philosophy — every user-visible bug becomes a regression test before
+the fix lands — is written down in [`TESTING_POLICY.md`](TESTING_POLICY.md).
 
 Build production installer:
 
