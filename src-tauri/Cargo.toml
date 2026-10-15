@@ -59,7 +59,7 @@ anyhow = "1"
 once_cell = "1"
 log = "0.4"
 rustls = { version = "0.23", features = ["aws_lc_rs"] }
-sysinfo = { version = "0.32", default-features = false, features = ["system"] }
+sysinfo = { version = "0.39", default-features = false, features = ["system"] }
 # Bundled SQLite for pre-boot integrity check. Runs `PRAGMA integrity_check`
 # BEFORE tauri-plugin-sql attaches its handle, so we can quarantine a
 # corrupt DB by renaming it (no file-lock conflict). ~500KB binary
