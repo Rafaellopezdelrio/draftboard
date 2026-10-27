@@ -102,9 +102,17 @@ the old version.
   - The parse itself is pinned by a regression test against the real
     anonymized shape — it is not the bug. Remaining suspect: Riot omitting the
     other players' pick actions entirely.
-  - Diagnosis needs a live game: `[lcu-shape]` already dumps the unresolved
-    session to the disk log (throttled). Run `npm run tauri dev`, enter a real
-    champ select, then read where Riot puts `championId` now.
+  - Diagnosis needs a live game: `[lcu-shape]` dumps the unresolved session
+    to the disk log (throttled). Run `npm run tauri dev`, enter a real champ
+    select, then read where Riot puts `championId` now.
+  - 2026-10-27 real draft (16:05 UTC): `myTeamCells=[0:777,1:0,2:0,3:0,4:0]`,
+    `actionPickCells=[0,1,2,4]` with the local player on cell 3 — the local
+    cell had NO pick action at all. The old dump was sliced inside the bans
+    (second action group starts `id 100, actorCellId -1`), so it showed
+    nothing more. Now compacted to `id:type:actorCell:champ+flags` tokens —
+    the next real champ select logs the whole draft.
+  - Log lives at `%LOCALAPPDATA%\com.draftboard.app\logs\draftboard.log`
+    (timestamps UTC).
 - **Live-game surfaces are not verifiable headless**: overlay topmost /
   click-through, auto-apply runes and items, live coach, lobby scout. They need
   LoL actually running.
