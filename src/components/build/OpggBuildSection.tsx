@@ -33,6 +33,7 @@ import { BuyOrderTimeline } from "./BuyOrderTimeline";
 import { SkillOrderSection } from "./SkillOrderSection";
 import { MatchupGrid } from "./MatchupGrid";
 import { ProBuildsSection } from "./ProBuildsSection";
+import { LolvvvProBuild } from "./LolvvvProBuild";
 import { ItemIcon } from "./icons";
 
 interface Props {
@@ -397,6 +398,14 @@ export function OpggBuildSection({
 
       {/* Matchup grid — top-4 wins / top-4 losses with threat tiers. */}
       <MatchupGrid championDdId={champion.id} role={role} enemyDdIds={enemyDdIds} />
+
+      {/* Pro build from lolvvv.com — runes / skills / items, primary role only. */}
+      <LolvvvProBuild
+        championId={champion.id}
+        championName={champion.name}
+        role={role}
+        patch={patch}
+      />
 
       {/* Pro builds — clustered variants from u.gg pro match data. */}
       <ProBuildsSection

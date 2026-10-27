@@ -208,6 +208,12 @@
     "proBuilds": "Pro builds",
     "proBuildsLoading": "Cargando pro builds…",
     "proBuildsEmpty": "Sin partidas pro recientes para este campeón en {{role}}.",
+    "lolvvv": {
+      "title": "Build de pros",
+      "summary": "{{count}} partidas · {{regions}}",
+      "items": "Inicio → 1º · 2º · 3º objeto + botas",
+      "runes": "Runas de pros · {{pct}} las llevan"
+    },
     "games": "{{count}} partidas",
     "pros": "Pros:",
     "recentPro": "Últimas partidas pro",

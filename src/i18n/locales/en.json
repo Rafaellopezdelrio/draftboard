@@ -208,6 +208,12 @@
     "proBuilds": "Pro builds",
     "proBuildsLoading": "Loading pro builds…",
     "proBuildsEmpty": "No recent pro games for this champion in {{role}}.",
+    "lolvvv": {
+      "title": "Pro build",
+      "summary": "{{count}} games · {{regions}}",
+      "items": "Start → 1st · 2nd · 3rd item + boots",
+      "runes": "Pro runes · {{pct}} run them"
+    },
     "games": "{{count}} games",
     "pros": "Pros:",
     "recentPro": "Recent pro games",
