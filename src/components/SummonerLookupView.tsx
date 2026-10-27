@@ -118,7 +118,16 @@ export function SummonerLookupView({ db, onClose }: Props) {
       if (!usingProxy && !cfg.apiKey) {
         throw new Error(t("summonerLookup.needApiKey"));
       }
-      const account = await getAccountByRiotId(cfg, name.trim(), tag.trim());
+      // A full Riot ID typed into the name box ("Name#TAG") wins over the tag
+      // box — otherwise we'd look up "Name#TAG#EUW" and get a 404.
+      const hash = name.indexOf("#");
+      const gameName = (hash >= 0 ? name.slice(0, hash) : name).trim();
+      const tagLine = (hash >= 0 && name.slice(hash + 1).trim()) || tag.trim();
+      if (hash >= 0) {
+        setName(gameName);
+        setTag(tagLine);
+      }
+      const account = await getAccountByRiotId(cfg, gameName, tagLine);
       const [summoner, masteries, matchIds] = await Promise.all([
         getSummonerByPuuid(cfg, account.puuid).catch(() => null),
         getTopMasteries(cfg, account.puuid, 7).catch(() => []),
@@ -168,7 +177,7 @@ export function SummonerLookupView({ db, onClose }: Props) {
         recentMatches: recents.filter(Boolean) as ScoutData["recentMatches"],
       });
     } catch (e) {
-      setErr(String(e));
+      setErr(e instanceof Error ? e.message : String(e));
     } finally {
       setLoading(false);
     }
