@@ -22,8 +22,21 @@ open. Not user documentation — see [`../README.md`](../README.md) for that.
     `FiddleSticks`; fall back to numeric `championId`).
   - Verified fine: Riot API key (account/match-v5/timeline/league), op.gg
     tierlist/build/matchups, DDragon 16.21.1, worker `/health`.
-- `src-tauri/Cargo.lock` shows as modified in the working tree — not from the
-  2026-10-27 session; inspect before committing.
+- **2026-10-27 (later) — lolvvv pro builds** (committed + pushed, worker
+  **NOT deployed**: `WORKER_VERSION 2026-10-27.1` waits for the user's go,
+  together with the patch-notes fix above):
+  - Worker `GET /lolvvv/build?champion=<DDragon id>` scrapes lolvvv.com's
+    public build page (`__NEXT_DATA__`; robots.txt allows `/champion/`).
+    Only the champion's PRIMARY role is server-rendered — other roles load
+    through lolvvv's own GraphQL, which we deliberately don't call. Rune rows
+    come from DDragon `runesReforged.json` → a legal 9-perk page.
+  - App: `LolvvvProBuild` panel above the u.gg variants (items, spells, skill
+    order, rune page + apply). Hidden on off-role picks and on 404 (no pros).
+  - Until the deploy, the panel stays invisible (endpoint 404s on the live
+    worker) — nothing breaks.
+- `src-tauri/Cargo.lock` shows as modified in the working tree (tempfile's
+  getrandom 0.4.2 → 0.3.4, a local cargo re-resolve) — not from these
+  sessions; inspect before committing.
 - Coverage: **36.4% statements / 54.9% functions** (2026-07-27). Behind the
   [`TESTING_POLICY.md`](../TESTING_POLICY.md) curve — 40/55 was due 2026-07-01,
   60/70 is due 2026-09-01.
@@ -72,10 +85,13 @@ the old version.
 
 ## Open
 
-- **dpm.lol "All ranks" bracket is dead upstream**: `tier=all` → `422 Invalid
-  tier`. The app silently falls back to op.gg. The new value is unknown — dpm.lol
-  serves a Cloudflare challenge to local curl and `wrangler dev --remote` can't
-  open a preview on this account; probe it from the deployed worker.
+- **dpm.lol gates the worker too** (2026-10-27): uncached buckets (`all`,
+  `gold_plus`, `platinum_plus`, `diamond_plus`, `master`) get a Cloudflare
+  challenge (403) from the deployed worker; edge-cached ones still answer.
+  Mitigation committed (not deployed): 7-day last-good copy served on 403.
+  Not bypassing the challenge — if dpm stays gated, the op.gg fallback is the
+  real source. `tier=all` was already `422 Invalid tier` before; its new value
+  is still unknown (the browser pane's policy check failed this session).
 - **Champ-select pick detection under Riot's anonymized champ select.** The LCU
   session carries `obfuscatedPuuid` / `playerAlias`, and `myTeam[].championId` +
   `session.actions[].championId` read 0 where the app looks, so the local

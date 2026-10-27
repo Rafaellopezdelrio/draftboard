@@ -85,6 +85,11 @@ export function LolvvvProBuild({ championId, championName, role, patch }: Props)
       summary={t("build.lolvvv.summary", { count: data.games, regions })}
     >
       <div className="space-y-2.5">
+        {/* Panel only shows `summary` while collapsed — keep the sample visible. */}
+        <p className="text-[10px] text-white/45">
+          {t("build.lolvvv.summary", { count: data.games, regions })}
+        </p>
+
         {/* Starter → 1st / 2nd / 3rd item + boots. */}
         <div>
           <p className="text-[9px] uppercase tracking-widest text-white/40 mb-1">
