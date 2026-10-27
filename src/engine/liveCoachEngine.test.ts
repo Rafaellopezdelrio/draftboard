@@ -64,6 +64,14 @@ describe("coachLiveGame", () => {
     expect(r[0].severity).toBe("critical");
   });
 
+  it("does not scold a good game just for reaching 7 deaths (11/7/15)", () => {
+    const r = coachLiveGame({
+      ...base,
+      me: p({ position: "JUNGLE", scores: sc({ kills: 11, deaths: 7, assists: 15 }) }),
+    });
+    expect(r.some((i) => i.key.startsWith("deaths-"))).toBe(false);
+  });
+
   it("warns when behind your direct lane opponent in CS", () => {
     const r = coachLiveGame({
       ...base,

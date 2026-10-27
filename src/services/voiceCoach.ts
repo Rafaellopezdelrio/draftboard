@@ -11,6 +11,26 @@ function hasSpeech(): boolean {
   return typeof window !== "undefined" && typeof speechSynthesis !== "undefined";
 }
 
+const KDA_WORDS: Record<VoiceLang, [string, string][]> = {
+  es: [["asesinato", "asesinatos"], ["muerte", "muertes"], ["asistencia", "asistencias"]],
+  en: [["kill", "kills"], ["death", "deaths"], ["assist", "assists"]],
+};
+
+/**
+ * Speech engines read a K/D/A triple like "11/7/15" as a date ("11 de julio
+ * de 2015"). Spell it out as a score in the voice's language instead.
+ */
+export function speakable(message: string, lang: VoiceLang): string {
+  return message.replace(/\b(\d{1,2})\/(\d{1,2})\/(\d{1,2})\b/g, (...m: string[]) => {
+    const parts = KDA_WORDS[lang].map(([one, many], i) => {
+      const n = Number(m[i + 1]);
+      return `${n} ${n === 1 ? one : many}`;
+    });
+    const and = lang === "es" ? "y" : "and";
+    return `${parts[0]}, ${parts[1]} ${and} ${parts[2]}`;
+  });
+}
+
 class VoiceCoach {
   private enabled = false;
   private lang: VoiceLang = "es";
@@ -53,7 +73,7 @@ class VoiceCoach {
       if (this.spoken.has(dedupKey)) return;
       this.spoken.add(dedupKey);
     }
-    const u = new SpeechSynthesisUtterance(message);
+    const u = new SpeechSynthesisUtterance(speakable(message, this.lang));
     if (this.voice) u.voice = this.voice;
     u.lang = this.voice?.lang ?? (this.lang === "es" ? "es-ES" : "en-US");
     u.rate = 1.0;

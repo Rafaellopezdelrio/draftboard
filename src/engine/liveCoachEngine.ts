@@ -106,7 +106,10 @@ export function coachLiveGame(args: LiveCoachArgs): LiveCoachInsight[] {
   const a = me.scores.assists;
 
   // --- Death discipline -------------------------------------------------
-  if (d >= 7) {
+  // Deaths only hurt when they outweigh what you give: 11/7/15 is a good
+  // game, 1/7/2 is not. Critical needs many deaths AND a KDA under 2.
+  const kda = (k + a) / Math.max(1, d);
+  if (d >= 7 && kda < 2) {
     out.push({
       key: "deaths-critical",
       severity: "critical",
