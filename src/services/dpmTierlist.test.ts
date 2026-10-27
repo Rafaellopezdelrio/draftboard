@@ -1,10 +1,35 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   DPM_TIER_LABELS,
   DPM_TIER_ORDER,
   DPM_PLATFORM_LABELS,
+  fetchDpmMeta,
   type DpmTier,
 } from "./dpmTierlist";
+
+vi.mock("./riotApi", () => ({ getRiotProxyUrl: () => "https://proxy.test" }));
+vi.mock("./proxyFetch", () => ({
+  fetchProxyJson: vi.fn(async () => ({
+    tier: "emerald_plus",
+    platform: "euw1",
+    timeframe: "7days",
+    totalMatches: 1000,
+    entries: [
+      { name: "FiddleSticks", championId: 9, role: "JUNGLE", tier: "A", tierScore: 60, winRate: 0.51, pickRate: 0.02, banRate: 0.01, count: 500 },
+      { name: "Ghost", championId: 99999, role: "TOP", tier: "D", tierScore: 1, winRate: 0.4, pickRate: 0.001, banRate: 0, count: 120 },
+    ],
+  })),
+}));
+
+describe("fetchDpmMeta", () => {
+  it("regression: Fiddlesticks vanished from the meta — dpm sends 'FiddleSticks', DDragon id is 'Fiddlesticks'", async () => {
+    const nameToKey = new Map([["Fiddlesticks", "9"]]);
+    const out = await fetchDpmMeta("emerald_plus", "euw1", "7days", nameToKey);
+    // Name lookup misses on casing; the numeric championId (= DDragon key) recovers it.
+    expect(out.map((m) => [m.championKey, m.role])).toEqual([["9", "JUNGLE"]]);
+    // An id that isn't a real champion is still dropped, not invented.
+  });
+});
 
 // dpmTierlist's fetch is just a thin wrapper around the proxy and is
 // covered by the worker-side tests. Here we pin the public constants

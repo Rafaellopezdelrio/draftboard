@@ -101,6 +101,7 @@ export const CHAMPION_ARCHETYPES: Record<string, Archetype[]> = {
   Leona: ["engage", "frontline", "peel"],
   Lillia: ["engage", "sustain-dps"],
   Lissandra: ["engage", "pick", "burst"],
+  Locke: ["burst", "pick"], // newer champion (Assassin/Mage)
   Lucian: ["burst", "sustain-dps"],
   Lulu: ["peel"],
   Lux: ["pick", "poke", "burst"],
@@ -189,6 +190,7 @@ export const CHAMPION_ARCHETYPES: Record<string, Archetype[]> = {
   Yasuo: ["sustain-dps", "engage"],
   Yone: ["engage", "sustain-dps", "burst"],
   Yorick: ["splitpush", "sustain-dps"],
+  Yunara: ["sustain-dps"], // newer champion (Marksman)
   Yuumi: ["peel"],
   Zac: ["engage", "frontline"],
   Zaahen: ["frontline", "sustain-dps"], // newer champion

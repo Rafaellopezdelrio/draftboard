@@ -119,11 +119,15 @@ export async function fetchDpmMeta(
 
     const out: MetaTier[] = [];
     let unknown = 0;
+    const knownKeys = new Set(nameToKey.values());
     for (const e of data.entries) {
       // dpm.lol uses data-dragon ID style names ("LeeSin", "MasterYi", "MonkeyKing"…)
       // — they match what fetchChampions() returns as `c.id`, so the
-      // nameToKey lookup built in championDb covers them.
-      const key = nameToKey.get(e.name);
+      // nameToKey lookup built in championDb covers them. Not always: it
+      // sends "FiddleSticks" (Riot internal casing) vs DDragon "Fiddlesticks",
+      // so fall back to the numeric championId, which IS the DDragon key.
+      const byId = String(e.championId);
+      const key = nameToKey.get(e.name) ?? (knownKeys.has(byId) ? byId : undefined);
       if (!key) {
         unknown++;
         continue;

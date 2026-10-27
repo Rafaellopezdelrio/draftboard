@@ -24,7 +24,8 @@ export interface PatchSummary {
   fetchedAt: number;
 }
 
-const STORAGE_KEY = "lol-draft-advisor:patch-notes:v1";
+// v2: drop summaries cached from the broken pre-26.21 worker parser.
+const STORAGE_KEY = "lol-draft-advisor:patch-notes:v2";
 
 /**
  * Returns the latest patch summary, fetching from CDragon if cache is stale.

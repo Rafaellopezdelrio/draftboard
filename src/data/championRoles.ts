@@ -88,6 +88,7 @@ export const CHAMPION_ROLES: Record<string, Role[]> = {
   Leona: ["UTILITY"],
   Lillia: ["JUNGLE"],
   Lissandra: ["MIDDLE"],
+  Locke: ["MIDDLE", "JUNGLE"], // newer champion — dpm Emerald+ 30d: MID 7.8%, JG 0.9%
   Lucian: ["BOTTOM", "MIDDLE"],
   Lulu: ["UTILITY"],
   Lux: ["UTILITY", "MIDDLE"],
@@ -176,6 +177,7 @@ export const CHAMPION_ROLES: Record<string, Role[]> = {
   Yasuo: ["MIDDLE", "TOP", "BOTTOM"],
   Yone: ["MIDDLE", "TOP"],
   Yorick: ["TOP"],
+  Yunara: ["BOTTOM"], // newer champion — dpm Emerald+ 30d: BOT 12.5%
   Yuumi: ["UTILITY"],
   Zac: ["JUNGLE"],
   Zaahen: ["TOP"], // newer champion
