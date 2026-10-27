@@ -1,4 +1,4 @@
-# Draftboard — Session Handoff (2026-08-05)
+# Draftboard — Session Handoff (2026-10-27)
 
 Internal working notes: where the repo stands, what's verified, what's still
 open. Not user documentation — see [`../README.md`](../README.md) for that.
@@ -7,10 +7,23 @@ open. Not user documentation — see [`../README.md`](../README.md) for that.
 
 - **main is green.** `tsc --noEmit`, `eslint src`, 961 vitest tests (117 files),
   `cargo clippy -D warnings` and `cargo fmt --check` all pass locally.
-- Last release: **v0.4.1** (2026-07-17). Shipped since the tag and awaiting a
-  0.4.2 cut: BYO AI keys encrypted at rest with Windows DPAPI, blocking npm +
-  cargo advisory gates, the ConfirmDialog stray-Enter / CountUp retarget fix,
-  and the revived Playwright smoke suite (now gated in CI).
+- **Nothing after v0.4.0 has reached users.** Tag `v0.4.1` exists only locally
+  (never pushed → no CI Release), `0.4.2` is bumped in the manifests but not
+  tagged, and the worker updater still advertises **0.4.0**. Publishing =
+  release flow below (push tag → CI → signature into worker → deploy). Waiting
+  on the user's go.
+- **2026-10-27 data-rot pass** (app unused ~3 months; all committed + pushed):
+  - Worker patch-notes parser rewritten for Riot's `h3.change-title` layout +
+    buff/nerf from `A ⇒ B` numbers (26.21 returned 3 junk entries for 25
+    champs → banner said "mains unchanged"). Cache key v6. **Committed in the
+    submodule but NOT deployed yet** — `npx wrangler deploy` pending user OK.
+  - Locke / Yunara added to `championRoles` + `championArchetypes` (were
+    missing → never suggested). Fiddlesticks recovered in dpm meta (dpm sends
+    `FiddleSticks`; fall back to numeric `championId`).
+  - Verified fine: Riot API key (account/match-v5/timeline/league), op.gg
+    tierlist/build/matchups, DDragon 16.21.1, worker `/health`.
+- `src-tauri/Cargo.lock` shows as modified in the working tree — not from the
+  2026-10-27 session; inspect before committing.
 - Coverage: **36.4% statements / 54.9% functions** (2026-07-27). Behind the
   [`TESTING_POLICY.md`](../TESTING_POLICY.md) curve — 40/55 was due 2026-07-01,
   60/70 is due 2026-09-01.
@@ -59,6 +72,10 @@ the old version.
 
 ## Open
 
+- **dpm.lol "All ranks" bracket is dead upstream**: `tier=all` → `422 Invalid
+  tier`. The app silently falls back to op.gg. The new value is unknown — dpm.lol
+  serves a Cloudflare challenge to local curl and `wrangler dev --remote` can't
+  open a preview on this account; probe it from the deployed worker.
 - **Champ-select pick detection under Riot's anonymized champ select.** The LCU
   session carries `obfuscatedPuuid` / `playerAlias`, and `myTeam[].championId` +
   `session.actions[].championId` read 0 where the app looks, so the local
