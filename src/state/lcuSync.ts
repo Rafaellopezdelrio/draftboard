@@ -393,10 +393,21 @@ function applySession(s: LcuChampSelectSession | null | undefined) {
     // forever once resolution works again. Grep the log for [lcu-shape].
     if (locked === null && intent === null && Date.now() - lastShapeDumpMs > 10000) {
       lastShapeDumpMs = Date.now();
+      // One token per action, "id:type:actorCell:champ" + flags (+ completed,
+      // * in progress, A ally). Raw JSON hit the slice inside the 10 bans and
+      // never reached the pick actions — the part the investigation needs.
+      const compactActions = (Array.isArray(s.actions) ? s.actions : [])
+        .flat()
+        .map(
+          (a) =>
+            `${a.id}:${a.type}:${a.actorCellId}:${a.championId}` +
+            `${a.completed ? "+" : ""}${a.isInProgress ? "*" : ""}${a.isAllyAction ? "A" : ""}`
+        )
+        .join(" ");
       // eslint-disable-next-line no-console
       console.warn(
         "[lcu-shape] unresolved champ — actions=",
-        JSON.stringify(s.actions)?.slice(0, 1500),
+        compactActions.slice(0, 3000),
         "myPlayer=",
         JSON.stringify(myPlayer)?.slice(0, 500)
       );

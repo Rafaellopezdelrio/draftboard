@@ -9,7 +9,7 @@
 // These tests pin down the defensive guards so an ARAM-shaped payload
 // always writes picks into the draftStore.
 
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import {
   __testOnly_applySession as applySession,
   __testOnly_setLocalPuuid as setLocalPuuid,
@@ -369,6 +369,36 @@ describe("lcuSync.applySession — defensive parsing", () => {
     expect(s.myChampionLocked).toBe("72"); // build panel path
     expect(s.ally[0].championKey).toBe("64"); // ally lock via actions
     expect(s.enemy[0].championKey).toBe("157"); // enemy hover via actions
+  });
+
+  it("[lcu-shape] dump keeps the pick actions after a full ban phase (compact tokens)", () => {
+    // Live log 2026-10-27: the raw JSON dump was sliced inside the 10 bans,
+    // so the pick actions — where the unresolved champ should be — never
+    // reached the disk log.
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    // Step past the 10s dump throttle regardless of earlier tests.
+    const now = vi.spyOn(Date, "now").mockReturnValue(Date.now() + 1e9);
+    const bans = Array.from({ length: 10 }, (_, i) => ({
+      type: "ban", actorCellId: i, championId: 100 + i, completed: true,
+      isAllyAction: i < 5, isInProgress: false, id: i, duration: 0, pickTurn: 0,
+    }));
+    applySession({
+      localPlayerCellId: 3,
+      myTeam: [player(0, 777), player(1, 0), player(2, 0), player(3, 0), player(4, 0)],
+      theirTeam: [],
+      actions: [
+        bans,
+        [{ type: "pick", actorCellId: -1, championId: 59, completed: false, isAllyAction: false, isInProgress: true, id: 100 }],
+      ],
+      bans: { myTeamBans: [], theirTeamBans: [] },
+      timer: { phase: "BAN_PICK", adjustedTimeLeftInPhase: 30000 },
+    } as unknown as Parameters<typeof applySession>[0]);
+
+    const dump = warn.mock.calls.find((c) => String(c[0]).startsWith("[lcu-shape]"));
+    expect(dump?.[1]).toContain("0:ban:0:100+A");
+    expect(dump?.[1]).toContain("100:pick:-1:59*");
+    warn.mockRestore();
+    now.mockRestore();
   });
 
   it("BLIND PICK: locked over hover when both present for same cell", () => {

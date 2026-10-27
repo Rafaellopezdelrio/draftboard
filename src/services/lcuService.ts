@@ -134,6 +134,7 @@ export interface LcuChampSelectAction {
   completed: boolean;
   id: number;
   isAllyAction: boolean;
+  isInProgress?: boolean;
   type: "ban" | "pick" | string;
 }
 
