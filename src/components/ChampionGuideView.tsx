@@ -367,16 +367,12 @@ function TipsTab({
   // Use matchup tips as inverse — what enemies say about playing vs me
   const idToName = new Map<string, string>();
   for (const c of Object.values(db.champions)) idToName.set(c.key, c.id);
-  // tips that other champions have vs OUR champion
-  const ourEntry = Object.entries(db.champions).find(
-    ([, c]) => c.id === championId
-  );
-  const ourName = ourEntry?.[1].name ?? "";
 
   // Show tips ABOUT this champion when you face them. Same lang used as
   // the UI strings — the curated DB has parallel arrays for es/en.
+  // `versus` is the DDragon id (e.g. "MissFortune"), not the display name.
   const tipsForThisChamp = getMatchupTips(undefined, [championKey], idToName, uiLocale);
-  const tipsAboutEnemies = tipsForThisChamp.filter((tip) => tip.versus === ourName);
+  const tipsAboutEnemies = tipsForThisChamp.filter((tip) => tip.versus === championId);
 
   return (
     <div className="space-y-2">

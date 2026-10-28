@@ -335,13 +335,12 @@ describe("ChampionGuideView — tips tab", () => {
     expect(screen.queryByText("Cuando lo enfrentas")).not.toBeInTheDocument();
   });
 
-  // BUG: TipsTab keeps only tips whose `versus` (the DDragon id, e.g.
-  // "MissFortune") equals the champion's display name ("Miss Fortune"), so
-  // curated tips never render for champions whose id and name differ.
-  it.skip("shows curated tips for a champion whose display name differs from its id", async () => {
+  // Curated tips are keyed by DDragon id ("MissFortune"), not display name.
+  it("shows curated tips for a champion whose display name differs from its id", async () => {
     await renderGuide("21");
     openTab("Tips");
     expect(screen.getByText("Cuando lo enfrentas")).toBeInTheDocument();
+    expect(screen.getByText(/Esquiva su double-up \(Q\)/)).toBeInTheDocument();
   });
 });
 
