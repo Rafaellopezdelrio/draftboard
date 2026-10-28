@@ -75,7 +75,9 @@ function buildSystem(ctx: ChatContext, lang: "es" | "en"): string {
 
   const rankStr = ctx.currentRank
     ? `${ctx.currentRank.tier} ${ctx.currentRank.division} ${ctx.currentRank.lp}LP`
-    : "Sin rango detectado";
+    : lang === "en"
+      ? "No rank detected"
+      : "Sin rango detectado";
 
   if (lang === "en") {
     return `You are a professional League of Legends coach embedded in the user's draft advisor app. You answer their questions about gameplay, picks, builds, matchups, and improvement. Be concise (2-4 paragraphs max), specific, and actionable. Never use generic advice — reference their actual data.

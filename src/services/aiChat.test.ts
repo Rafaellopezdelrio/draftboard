@@ -183,12 +183,11 @@ describe("chatWithCoach", () => {
     expect(sys).toContain("- Last 10 matches: none");
   });
 
-  // BUG: buildSystem computes the unranked placeholder ("Sin rango detectado")
-  // before branching on language, so the English prompt leaks Spanish.
-  it.skip("does not leak the Spanish unranked placeholder into the English prompt", async () => {
+  it("does not leak the Spanish unranked placeholder into the English prompt", async () => {
     await chatWithCoach("groq", "", ask, ctx(), "en");
     const sys: string = callAi.mock.calls[0][0].systemPrompt;
     expect(sys).not.toContain("Sin rango detectado");
+    expect(sys).toContain("- Rank: No rank detected");
   });
 
   it("propagates provider errors", async () => {
