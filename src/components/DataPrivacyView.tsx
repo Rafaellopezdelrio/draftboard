@@ -241,8 +241,10 @@ export function DataPrivacyView({ onClose }: Props) {
   function clearPrefs() {
     setConfirmClearPrefs(true);
   }
-  function doClearPrefs() {
-    localStorage.removeItem("lol-draft-prefs");
+  // reset() wipes whichever backend is live (SQLite rows in the desktop
+  // app, the localStorage blob in browser mode); reload only after it lands.
+  async function doClearPrefs() {
+    await usePrefsStore.getState().reset();
     location.reload();
   }
 

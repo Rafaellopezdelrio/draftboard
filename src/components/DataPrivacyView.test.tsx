@@ -513,12 +513,10 @@ describe("DataPrivacyView — destructive actions", () => {
     expect(screen.queryByRole("alertdialog")).toBeNull();
   });
 
-  // BUG: doClearPrefs only removes the browser-mode localStorage blob. In the
-  // desktop app (isTauri() true) prefsStore persists to the SQLite
-  // `preferences` table, so after the reload every pref comes back unchanged.
-  // Correct behaviour: wipe the SQLite rows (e.g. via usePrefsStore.reset(),
-  // which handles both backends) BEFORE reloading.
-  it.skip("reset prefs deletes the persisted SQLite prefs in the desktop app before reloading", async () => {
+  // In the desktop app (isTauri() true) prefsStore persists to the SQLite
+  // `preferences` table, so the reset must wipe those rows BEFORE reloading
+  // or every pref comes back unchanged.
+  it("reset prefs deletes the persisted SQLite prefs in the desktop app before reloading", async () => {
     // setup.ts defines __TAURI_INTERNALS__, so the store runs its desktop
     // (SQLite) path against the mocked plugin-sql handle.
     expect(isTauri()).toBe(true);
@@ -540,18 +538,32 @@ describe("DataPrivacyView — destructive actions", () => {
   });
 
   it("reset prefs wipes the browser-mode localStorage blob and reloads after confirmation", async () => {
-    const removeItem = vi.fn();
-    const reload = vi.fn();
-    vi.stubGlobal("localStorage", { removeItem, getItem: vi.fn(), setItem: vi.fn() });
-    vi.stubGlobal("location", { reload });
-    await renderView();
-    fireEvent.click(btn(/Restablecer todas las preferencias/));
-    expect(screen.getByRole("alertdialog")).toHaveTextContent("¿Restablecer todas las preferencias?");
-    expect(removeItem).not.toHaveBeenCalled();
+    const g = globalThis as Record<string, unknown>;
+    delete g.__TAURI_INTERNALS__;
+    try {
+      expect(isTauri()).toBe(false);
+      const removeItem = vi.fn();
+      const reload = vi.fn();
+      vi.stubGlobal("localStorage", { removeItem, getItem: vi.fn(), setItem: vi.fn() });
+      vi.stubGlobal("location", { reload });
+      await renderView();
+      fireEvent.click(btn(/Restablecer todas las preferencias/));
+      expect(screen.getByRole("alertdialog")).toHaveTextContent("¿Restablecer todas las preferencias?");
+      expect(removeItem).not.toHaveBeenCalled();
 
-    fireEvent.click(btn("Restablecer"));
-    expect(removeItem).toHaveBeenCalledWith("lol-draft-prefs");
-    expect(reload).toHaveBeenCalledTimes(1);
+      await act(async () => {
+        fireEvent.click(btn("Restablecer"));
+      });
+      await waitFor(() => expect(reload).toHaveBeenCalledTimes(1));
+      expect(removeItem).toHaveBeenCalledWith("lol-draft-prefs");
+      expect(removeItem.mock.invocationCallOrder[0]).toBeLessThan(reload.mock.invocationCallOrder[0]);
+    } finally {
+      Object.defineProperty(globalThis, "__TAURI_INTERNALS__", {
+        value: undefined,
+        writable: true,
+        configurable: true,
+      });
+    }
   });
 
   it("cancelling the prefs reset leaves storage alone", async () => {
