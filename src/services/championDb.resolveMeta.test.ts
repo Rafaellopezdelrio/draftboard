@@ -29,6 +29,22 @@ describe("resolveMeta — meta-source fallback matrix (data-moat resilience)", (
     expect(r.meta.length).toBe(2);
   });
 
+  it("merges the same champion|role with a pick-rate-weighted winrate (pro tier wins)", () => {
+    const soloq: MetaTier = { championKey: "x", role: "TOP", tier: "B", winRate: 0.5, pickRate: 0.1, banRate: 0.2 };
+    // pickRate 0.02 → pro weight 0.4 + 0.1 = 0.5
+    const lowPro: MetaTier = { championKey: "x", role: "TOP", tier: "S", winRate: 0.6, pickRate: 0.02, banRate: 0.01 };
+    const [m] = resolveMeta("blend", arrays({ proplay: [lowPro], soloq: [soloq] }), staticFallback).meta;
+    expect(m.tier).toBe("S");
+    expect(m.winRate).toBeCloseTo(0.55);
+    expect(m.pickRate).toBe(0.1); // max of both
+    expect(m.banRate).toBe(0.2); // max of both
+
+    // pickRate 0.2 → 0.4 + 1.0, capped at 0.75 so SoloQ keeps a 25% say
+    const heavyPro = { ...lowPro, pickRate: 0.2 };
+    const [h] = resolveMeta("blend", arrays({ proplay: [heavyPro], soloq: [soloq] }), staticFallback).meta;
+    expect(h.winRate).toBeCloseTo(0.6 * 0.75 + 0.5 * 0.25);
+  });
+
   it("falls back to op.gg when the preferred source returned nothing", () => {
     // user picked dpm/proplay but it was never synced / the fetch failed
     const r = resolveMeta("dpm", arrays({ opgg: [tier("o")] }), staticFallback);
