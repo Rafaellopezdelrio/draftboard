@@ -35,12 +35,9 @@ function MatchupTipsPanelInner({
   }, [db]);
   const tips = getMatchupTips(undefined, enemyKeys, idToName, panelLang);
 
-  const enemyWithTip = new Set(
-    tips.map((t) => {
-      const found = Object.values(db.champions).find((c) => c.name === t.versus);
-      return found?.key ?? "";
-    })
-  );
+  // `versus` is the DDragon id ("MissFortune"), not the display name.
+  const byId = (id: string) => Object.values(db.champions).find((c) => c.id === id);
+  const enemyWithTip = new Set(tips.map((t) => byId(t.versus)?.key ?? ""));
   const enemiesWithoutTip = enemyKeys.filter((k) => !enemyWithTip.has(k));
 
   const visible = beginner ? tips : tips.slice(0, 3);
@@ -63,7 +60,7 @@ function MatchupTipsPanelInner({
             className="p-2 rounded ring-1 ring-border-subtle bg-bg-card/60"
           >
             <p className="text-[10px] uppercase tracking-widest text-accent font-semibold">
-              vs {t.versus}
+              vs {byId(t.versus)?.name ?? t.versus}
             </p>
             <p className="text-xs text-white/85 mt-0.5 leading-relaxed">
               {t.tip}

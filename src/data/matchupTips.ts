@@ -221,7 +221,7 @@ const TIPS: Record<string, BilingualTips> = {
       "Flash + R is her teamfight combo — ward flanks and spread out.",
     ],
   },
-  LeBlanc: {
+  Leblanc: {
     es: [
       "Compra QSS — su R chain CC te puede matar instant.",
       "Sigue a su clone con cuidado — su W return es escapatoria.",

@@ -23,6 +23,11 @@ describe("matchupTips — bilingual support", () => {
     expect(tips[0].tip).toMatch(/wave|wind|projectile|push/i);
   });
 
+  it("keys tips by DDragon id (Leblanc, not LeBlanc)", () => {
+    const tips = getMatchupTips(undefined, ["7"], new Map([["7", "Leblanc"]]), "es");
+    expect(tips.length).toBeGreaterThan(0);
+  });
+
   it("returns tips for each known enemy", () => {
     const tips = getMatchupTips(undefined, ["157", "238"], idToName, "es");
     const versus = new Set(tips.map((t) => t.versus));
