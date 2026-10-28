@@ -316,7 +316,7 @@ export function buildProAnalytics(
     deathsBy10,
     deathsAt5,
     soloDeaths,
-    deathsInLane: deathLocations.filter((l) => l === me.position.toLowerCase() || l === "lane").length,
+    deathsInLane: deathLocations.filter((l) => l === LANE_LOCATION[me.position]).length,
     deathLocations,
 
     goldLeadAt15: (me15?.totalGold ?? 0) - ((enemy15 ? enemy15.totalGold : 0) || 0),
@@ -392,6 +392,9 @@ function findFrameAt(t: MatchTimeline, minutes: number) {
   const target = minutes * 60 * 1000;
   return t.frames.find((f) => f.timestamp >= target) ?? null;
 }
+
+// Riot teamPosition → the coarseLocation() label of that lane.
+const LANE_LOCATION: Record<string, string | undefined> = { TOP: "top", MIDDLE: "mid", BOTTOM: "bot" };
 
 function coarseLocation(pos: { x: number; y: number }): string {
   // Summoner's Rift is ~14820 x 14881

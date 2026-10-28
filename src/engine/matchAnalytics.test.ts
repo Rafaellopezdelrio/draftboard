@@ -416,10 +416,9 @@ describe("buildProAnalytics — kills, deaths & locations", () => {
     expect(r.deathsInLane).toBe(1);
   });
 
-  // BUG: deathsInLane compares coarseLocation() labels ("mid", "bot") with
-  // position.toLowerCase() ("middle", "bottom"), and "lane" is never produced,
-  // so MIDDLE and BOTTOM players always get deathsInLane = 0. Only TOP matches.
-  it.skip("counts lane deaths for MIDDLE and BOTTOM players (label mismatch bug)", () => {
+  // Regression: deathsInLane used to compare coarseLocation() labels ("mid", "bot")
+  // with position.toLowerCase() ("middle", "bottom"), so only TOP ever matched.
+  it("counts lane deaths for MIDDLE and BOTTOM players", () => {
     const mid = buildProAnalytics(
       laneMatch(),
       laneTimeline([kill(3, 6, 1, [], { x: 7000, y: 7200 }), kill(6, 6, 1, [], { x: 8000, y: 8300 })]),
