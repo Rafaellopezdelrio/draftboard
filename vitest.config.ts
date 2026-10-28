@@ -29,14 +29,14 @@ export default defineConfig({
       ],
       thresholds: {
         // "No regression" gate, set a few points below the measured actuals
-        // (≈35% stmts / 78% branches / 52% fns as of 2026-06) so normal churn
-        // doesn't false-fail while a real coverage drop does. Meets the
-        // TESTING_POLICY 2026-06-01 milestone (25% stmts / 45% fns). Ratchet
-        // up toward the actuals each sprint until we hit the 70% goal.
-        statements: 30,
-        branches: 70,
-        functions: 45,
-        lines: 30,
+        // (≈69% stmts / 89% branches / 78% fns as of 2026-10-28) so normal
+        // churn doesn't false-fail while a real coverage drop does. Meets the
+        // TESTING_POLICY 2026-09-01 milestone (60% stmts / 70% fns). Ratchet
+        // up toward the actuals each sprint.
+        statements: 65,
+        branches: 85,
+        functions: 73,
+        lines: 65,
       },
     },
   },

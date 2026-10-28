@@ -249,7 +249,7 @@ describe("riotApi — client", () => {
     it("HTTP 404 surfaces the Riot-ID-not-found message", async () => {
       httpFetchMock.mockResolvedValue(res(404));
       await expect(getAccount(baseCfg)).rejects.toThrow(
-        "Riot ID no encontrado en la región seleccionada."
+        "Riot ID no encontrado. Revisa el nombre y el tag (lo que va después de #)."
       );
       expect(httpFetchMock).toHaveBeenCalledOnce();
     });
