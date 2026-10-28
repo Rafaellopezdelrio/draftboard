@@ -108,12 +108,39 @@ async function checkMeta() {
   }
 }
 
+// The Riot + Groq keys live as worker secrets. Dev keys expire after 24h and
+// any key can be revoked — probe both so an expiry fails this check (and
+// notifies the owner) instead of silently breaking scout / match history / AI.
+// The status path is edge-cached only 60s, so a 6-hourly run hits Riot.
+async function checkRiotKey() {
+  try {
+    const j = await getJson("/api/euw1/lol/status/v4/platform-data");
+    if (j.id) pass("riot key", `platform ${j.id}`);
+    else fail("riot key", "unexpected payload");
+  } catch (e) {
+    fail("riot key", e.message);
+  }
+}
+
+async function checkGroqKey() {
+  try {
+    const j = await getJson("/groq/openai/v1/models");
+    const n = (j.data ?? []).length;
+    if (n > 0) pass("groq key", `${n} models`);
+    else fail("groq key", "no models listed");
+  } catch (e) {
+    fail("groq key", e.message);
+  }
+}
+
 console.log(`Draftboard data-layer check -> ${BASE}\n`);
 await checkHealth();
 await checkCounters();
 await checkWukongSlug();
 await checkBuild();
 await checkMeta();
+await checkRiotKey();
+await checkGroqKey();
 
 if (failures > 0) {
   console.error(`\n${failures} check(s) failed.`);

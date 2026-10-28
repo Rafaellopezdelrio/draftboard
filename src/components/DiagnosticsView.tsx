@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { invoke } from "@tauri-apps/api/core";
 import { fetchLatestPatch } from "../services/dataDragon";
 import { loadSettings } from "../services/settingsRepo";
-import { getAccount } from "../services/riotApi";
+import { getAccount, getRiotProxyUrl } from "../services/riotApi";
 import { Copy, RefreshCw } from "lucide-react";
 import { NETWORK_TIMEOUTS_MS, UI_FEEDBACK_MS, WORKER_HEALTH_URL } from "../config";
 import { useFocusTrap } from "../hooks/useFocusTrap";
@@ -123,21 +123,32 @@ export function DiagnosticsView({ onClose }: Props) {
           const live = await invoke<unknown>("live_client_all_game_data");
           return live && typeof live === "object"
             ? { name: "Live Client API (in-game)", status: "ok", detail: t("diagnostics.detail.liveAvailable") }
-            : { name: "Live Client API (in-game)", status: "warn", detail: t("diagnostics.detail.liveNoGame") };
+            : { name: "Live Client API (in-game)", status: "ok", detail: t("diagnostics.detail.liveNoGame") };
         } catch {
-          return { name: "Live Client API (in-game)", status: "warn", detail: t("diagnostics.detail.liveNoGame") };
+          // Out of a match the Live Client is simply off — nothing to fix.
+          return { name: "Live Client API (in-game)", status: "ok", detail: t("diagnostics.detail.liveNoGame") };
         }
       })(),
 
-      // 7. Riot API key
+      // 7. Riot API key. By default Riot calls go through the worker, which
+      // adds the key server-side — a missing local key is no warning then.
       (async () => {
         const cfg = await loadSettings();
-        if (!cfg?.apiKey) {
+        const viaProxy = Boolean(getRiotProxyUrl());
+        if (!cfg?.apiKey && !viaProxy) {
           return { name: "Riot API Key", status: "warn", detail: t("diagnostics.detail.riotKeyMissing") };
+        }
+        // No Riot ID to look up → nothing to probe; the key lives server-side.
+        if (!cfg || (viaProxy && !(cfg.riotIdName && cfg.riotIdTag))) {
+          return { name: "Riot API Key", status: "ok", detail: t("diagnostics.detail.riotKeyProxy") };
         }
         try {
           await getAccount(cfg);
-          return { name: "Riot API Key", status: "ok", detail: t("diagnostics.detail.riotKeyValid") };
+          return {
+            name: "Riot API Key",
+            status: "ok",
+            detail: t(viaProxy ? "diagnostics.detail.riotKeyProxy" : "diagnostics.detail.riotKeyValid"),
+          };
         } catch (e) {
           return { name: "Riot API Key", status: "fail", detail: t("diagnostics.detail.riotKeyInvalid", { detail: String(e).slice(0, 80) }) };
         }
@@ -162,9 +173,14 @@ export function DiagnosticsView({ onClose }: Props) {
             // the diagnostics check still runs instead of throwing.
           }
         }
-        return aiKey
-          ? { name: "AI provider key", status: "ok", detail: t("diagnostics.detail.aiConfigured", { provider }) }
-          : { name: "AI provider key", status: "warn", detail: t("diagnostics.detail.aiMissing", { provider }) };
+        if (aiKey) {
+          return { name: "AI provider key", status: "ok", detail: t("diagnostics.detail.aiConfigured", { provider }) };
+        }
+        // Groq without a user key is proxied by the worker with its own key.
+        if (provider === "groq" && getRiotProxyUrl()) {
+          return { name: "AI provider key", status: "ok", detail: t("diagnostics.detail.aiProxy") };
+        }
+        return { name: "AI provider key", status: "warn", detail: t("diagnostics.detail.aiMissing", { provider }) };
       })(),
 
       // 9. DB
