@@ -1348,6 +1348,7 @@
     }
   },
   "tierList": {
+    "reloadFailed": "No se pudo actualizar la tier list",
     "source": "Fuente:",
     "dpmByRank": "dpm.lol (por rango)",
     "fallbackTip": "Pediste \"{{requested}}\" pero no hay datos; mostrando \"{{used}}\" como fallback.",

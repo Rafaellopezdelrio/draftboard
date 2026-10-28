@@ -11,6 +11,7 @@ const TIERLIST_TITLE_ID = "tierlist-view-title";
 import { displayPatch } from "../data/patchDisplay";
 import { Tabs } from "./ui/Tabs";
 import { TierBadge } from "./ui/TierBadge";
+import { useToast } from "./ui/ToastContainer";
 import { Search, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { usePrefsStore } from "../state/prefsStore";
 import {
@@ -59,6 +60,7 @@ const TIER_RANK: Record<MetaTier["tier"], number> = {
 
 export function TierListView({ db, onClose, onSelectChampion, onDbUpdate }: Props) {
   const { t } = useTranslation();
+  const { push: toast } = useToast();
   useEscape(onClose);
   const [role, setRole] = useState<Role | "ALL">("TOP");
   // Single-role view sorts by tier by default (mobalytics-style sections).
@@ -94,6 +96,9 @@ export function TierListView({ db, onClose, onSelectChampion, onDbUpdate }: Prop
       if (patch.timeframe) await setPref("dpmTimeframe", patch.timeframe);
       const fresh = await loadChampionDb(true);
       onDbUpdate?.(fresh);
+    } catch (e) {
+      // onChange drops this promise, so a failed reload must be handled here.
+      toast({ type: "error", title: t("tierList.reloadFailed"), detail: String(e) });
     } finally {
       setRefreshing(false);
     }
@@ -105,11 +110,11 @@ export function TierListView({ db, onClose, onSelectChampion, onDbUpdate }: Prop
   const rows = useMemo(() => {
     const filtered = db.meta.filter((m) => {
       if (role !== "ALL" && m.role !== role) return false;
-      if (search) {
-        const champ = db.champions[m.championKey];
-        if (!champ) return false;
-        return champ.name.toLowerCase().includes(search.toLowerCase());
-      }
+      // Unknown champions can't be rendered, so keep them out of the footer
+      // count, tier section counts and row numbering too.
+      const champ = db.champions[m.championKey];
+      if (!champ) return false;
+      if (search) return champ.name.toLowerCase().includes(search.toLowerCase());
       return true;
     });
     const sorted = [...filtered].sort((a, b) => {

@@ -9,6 +9,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, act, within } from "@testing-library/react";
 import { TierListView } from "./TierListView";
+import { ToastProvider } from "./ui/ToastContainer";
 import { usePrefsStore, DEFAULT_PREFS } from "../state/prefsStore";
 import type { ChampionDb, MetaTier } from "../types/champion";
 
@@ -226,15 +227,17 @@ describe("TierListView — role tabs + search", () => {
     expect(rowOrder()).toEqual(["Ahri"]);
   });
 
-  // BUG: rows whose champion is missing from db.champions are skipped at render
-  // time (`if (!c) return null`) but still counted in the footer, the tier
-  // section counts and the row numbering. With one unknown entry in MIDDLE the
-  // footer claims "2 campeones" while only Ahri is shown.
-  it.skip("footer count matches the rows actually rendered when a champion is unknown", () => {
+  // Rows whose champion is missing from db.champions can't be rendered, so they
+  // must not count in the footer, the tier section counts or the row numbering.
+  it("footer count matches the rows actually rendered when a champion is unknown", () => {
     const db = mkDb({ meta: [meta("999", "MIDDLE", "S+", 0.6, 0.1, 0.1), ...META] });
     render(<TierListView db={db} onClose={() => {}} />);
     fireEvent.click(screen.getByRole("tab", { name: "Mid" }));
+    expect(rowOrder()).toEqual(["Ahri"]);
     expect(screen.getByText("1 campeón · patch 26.10")).toBeInTheDocument();
+    // No phantom S+ section and Ahri is row #1.
+    expect(screen.getAllByText(/ Tier$/).map((e) => e.textContent)).toEqual(["S Tier"]);
+    expect(screen.getByText("1")).toBeInTheDocument();
   });
 });
 
@@ -374,18 +377,25 @@ describe("TierListView — source selector", () => {
     expect(screen.getByText("dpm.lol · Emerald+ · Korea")).toBeInTheDocument();
   });
 
-  // BUG: applyFilter has try/finally but no catch, and onChange drops the
-  // returned promise. When loadChampionDb rejects (offline: DDragon fetch
-  // throws after retries) the error escapes as an unhandled promise rejection
-  // and the user gets no feedback. Expected: the failure is caught (and ideally
-  // surfaced), controls re-enable.
-  it.skip("a failed reload is handled without an unhandled rejection", async () => {
+  // onChange drops applyFilter's promise, so a rejected reload (offline: DDragon
+  // fetch throws after retries) must be caught inside it, surfaced to the user
+  // as an error toast, and the controls must re-enable.
+  it("a failed reload is handled without an unhandled rejection", async () => {
     vi.mocked(loadChampionDb).mockRejectedValue(new Error("offline"));
-    render(<TierListView db={mkDb()} onClose={() => {}} />);
+    const onDbUpdate = vi.fn();
+    render(
+      <ToastProvider>
+        <TierListView db={mkDb()} onClose={() => {}} onDbUpdate={onDbUpdate} />
+      </ToastProvider>
+    );
     await act(async () => {
       fireEvent.change(screen.getByTitle("Región"), { target: { value: "kr" } });
     });
     for (const s of screen.getAllByRole("combobox")) expect(s).toBeEnabled();
+    expect(screen.queryByText("Actualizando…")).toBeNull();
+    expect(onDbUpdate).not.toHaveBeenCalled();
+    expect(screen.getByRole("alert")).toHaveTextContent("No se pudo actualizar la tier list");
+    expect(screen.getByRole("alert")).toHaveTextContent("offline");
   });
 });
 
