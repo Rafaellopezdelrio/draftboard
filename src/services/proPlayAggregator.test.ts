@@ -298,18 +298,25 @@ describe("aggregateFromProPlay", () => {
     expect(result).toEqual({ rows: 1, games: 500 });
   });
 
-  // BUG: when no page could be downloaded (network down, 5xx, 4×429, or a
-  // transient Cargo error on page 0), the function still DELETEs the existing
-  // proplay-<patch> rows and stamps proplay_last_run/proplay_games=0. A manual
-  // re-sync during a Leaguepedia outage wipes previously synced pro meta, and
-  // autoProSync then marks the patch as synced so it is never retried.
-  it.skip("BUG: leaves existing proplay rows untouched when nothing was downloaded", async () => {
-    httpFetchMock.mockRejectedValueOnce(new TypeError("Failed to fetch"));
-    await run();
+  // When no page could be downloaded, a re-sync during a Leaguepedia outage must
+  // not DELETE the previously synced proplay-<patch> rows nor stamp
+  // proplay_last_run (which would postpone the retry for META_AGG_INTERVAL).
+  it.each<[string, () => void]>([
+    ["a network error", () => httpFetchMock.mockRejectedValueOnce(new TypeError("Failed to fetch"))],
+    ["an HTTP 500", () => httpFetchMock.mockResolvedValueOnce(status(500))],
+    ["four 429s in a row", () => httpFetchMock.mockResolvedValue(status(429))],
+    [
+      "a transient Cargo error on the first page",
+      () => httpFetchMock.mockResolvedValueOnce(okJson({ error: { info: "MWException" } })),
+    ],
+  ])("leaves existing proplay rows untouched when nothing was downloaded (%s)", async (_, arrange) => {
+    arrange();
+    expect(await run()).toEqual({ rows: 0, games: 0 });
     expect(executeMock.mock.calls.map(([sql]) => String(sql))).not.toContain(
       "DELETE FROM meta_aggregate WHERE patch = $1"
     );
     expect(metaWrite("proplay_last_run")).toBeUndefined();
+    expect(metaWrite("proplay_games")).toBeUndefined();
   });
 });
 

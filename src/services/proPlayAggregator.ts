@@ -80,6 +80,7 @@ export async function aggregateFromProPlay(
 
   // Fetch in batches of 500 (Leaguepedia limit per call)
   const allRows: CargoRow[] = [];
+  let fetchFailed = false;
   let offset = 0;
   const PAGE = 500;
   const tournamentClause = MAJOR_TOURNAMENTS_LIKE.map(
@@ -136,7 +137,10 @@ export async function aggregateFromProPlay(
       }
       break;
     }
-    if (!resp || !resp.ok) break;
+    if (!resp || !resp.ok) {
+      fetchFailed = true;
+      break;
+    }
     const json = (await resp.json()) as CargoResponse;
     if (json.error) {
       const info = json.error.info ?? "error";
@@ -160,6 +164,7 @@ export async function aggregateFromProPlay(
           done: page,
           total: 6,
         });
+        fetchFailed = true;
         break;
       }
       throw new Error(`Leaguepedia: ${info}`);
@@ -171,6 +176,10 @@ export async function aggregateFromProPlay(
     // Inter-page delay — be polite to Fandom
     await new Promise((r) => setTimeout(r, 1500));
   }
+
+  // Nothing could be downloaded: keep the previously synced rows and don't stamp
+  // proplay_last_run, so the next scheduled run retries instead of waiting.
+  if (fetchFailed && allRows.length === 0) return { rows: 0, games: 0 };
 
   // Aggregate per (championKey, position)
   const counts = new Map<string, { games: number; wins: number }>();
