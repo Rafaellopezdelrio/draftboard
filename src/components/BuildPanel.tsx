@@ -57,15 +57,20 @@ function BuildPanelInner({ db, championKey, role, enemyKeys = [] }: Props) {
 
   useEffect(() => {
     const champId = Number(championKey);
+    let cancelled = false;
     Promise.all([
       loadAggregatedBuilds(db.patch, champId, role),
       loadAggregatedRunes(db.patch, champId, role),
       loadAggregatedSkillOrder(db.patch, champId, role),
     ]).then(([b, r, s]) => {
+      if (cancelled) return;
       setBuilds(b);
       setRunes(r);
       setSkills(s);
     });
+    return () => {
+      cancelled = true;
+    };
   }, [db.patch, championKey, role]);
 
   // Fetch op.gg build in parallel with synced aggregates.

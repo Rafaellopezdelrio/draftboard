@@ -433,12 +433,10 @@ describe("BuildPanel — champion switch", () => {
     expect(screen.getByTestId("opgg-section")).toHaveAttribute("data-build", "opgg-lux");
   });
 
-  // BUG: the aggregate effect (loadAggregatedBuilds/Runes/SkillOrder) has no
-  // cancellation guard, unlike the op.gg effect. Switching champion while the
-  // previous champion's SQLite queries are in flight lets the stale result land
-  // last and overwrite the new champion's final items / runes / skill order.
-  // Verified failing: Lux shows Jinx's "55% WR · 200 games".
-  it.skip("ignores late synced aggregates for the previous champion", async () => {
+  // Switching champion while the previous champion's SQLite aggregate queries
+  // are in flight must not let the stale result overwrite the new champion's
+  // final items / runes / skill order (Lux must not show Jinx's 200 games).
+  it("ignores late synced aggregates for the previous champion", async () => {
     const oldBuilds = deferred<BuildAgg[]>();
     vi.mocked(agg.loadAggregatedBuilds)
       .mockReturnValueOnce(oldBuilds.promise)
