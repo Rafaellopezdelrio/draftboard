@@ -1,12 +1,44 @@
-# Draftboard — Session Handoff (2026-10-27)
+# Draftboard — Session Handoff (2026-10-28)
 
 Internal working notes: where the repo stands, what's verified, what's still
 open. Not user documentation — see [`../README.md`](../README.md) for that.
 
 ## Status
 
-- **main is green.** `tsc --noEmit`, `eslint src`, 961 vitest tests (117 files),
-  `cargo clippy -D warnings` and `cargo fmt --check` all pass locally.
+- **main is green locally.** `tsc --noEmit`, `eslint src`, **1568 vitest tests**
+  (145 files, 0 skipped; worker tests excluded when the submodule is absent),
+  `cargo check --all-targets`.
+- **CI Rust job is red on `cargo audit`** (blocking gate). 2026-10-28 cleared
+  7 of 11 advisories with semver-compatible bumps (h2, quinn-proto, rustls,
+  rustls-webpki, webpki-roots/-root-certs). **4 remain:**
+  - RUSTSEC-2026-0235 `rkyv` 0.7 — only in Cargo.lock via rust_decimal's
+    unused `rkyv` feature (`cargo tree -i rkyv` prints nothing; not compiled).
+  - RUSTSEC-2026-0367/0368/0369 `zip` 4.x — via tauri-plugin-updater 2.10;
+    the fix (zip 9) needs updater ≥ 2.14 → tauri ≥ 2.12 (now 2.11.1).
+  Adding them to `src-tauri/.cargo/audit.toml` was blocked by the auto-mode
+  classifier (silencing security advisories) — **user decision**: approve
+  documented ignores, or upgrade Tauri + updater (the real fix).
+- **2026-10-28 coverage push**: 37.2% → **69.8% statements**, 57.6% → 78.3%
+  functions (meets TESTING_POLICY 60/70). 10 file groups, each written by one
+  agent and adversarially reviewed by another; gate ratcheted to 65/85/73/65.
+  The push surfaced **14 real bugs, all fixed with regression tests** (one
+  commit each): lane deaths for MID/BOT, spectator 404 by status (EN UI),
+  English AI prompt rank, pro-meta wiped on failed download, tier-list
+  reload failure + count, op.gg region slug, champion-guide + matchup-panel
+  tips for id≠name champions, LeBlanc tips key, prefs reset no-op in Tauri,
+  lobby-scout collapse state, enemy-scout retry, BuildPanel stale aggregates.
+- **Also 2026-10-27/28**: voice reads K/D/A as a score (not a date); death
+  warning needs KDA < 2; Diagnostics no longer flags keys the worker provides;
+  lookup accepts "Name#TAG" in the name box; `verify-data.mjs` probes the
+  worker's Riot + Groq keys.
+- **Keys**: worker `RIOT_API_KEY` = the non-expiring personal "Draftboard"
+  app key (no secret change since June, still valid); the portal's
+  "Development App" key expires daily but nothing uses it. Groq key valid.
+- **GitHub `scraper-watch.yml` is `disabled_inactivity`** (GitHub turns
+  scheduled workflows off after 60 days without commits). Re-enable in the
+  Actions tab; it is the only thing that pages on a dead key/scraper.
+- `git stash@{0}` holds the stray local Cargo.lock re-resolve (tempfile's
+  getrandom 0.4.2 → 0.3.4) — not from these sessions; drop it if unneeded.
 - **Nothing after v0.4.0 has reached users.** Tag `v0.4.1` exists only locally
   (never pushed → no CI Release), `0.4.2` is bumped in the manifests but not
   tagged, and the worker updater still advertises **0.4.0**. Publishing =
@@ -22,9 +54,8 @@ open. Not user documentation — see [`../README.md`](../README.md) for that.
     `FiddleSticks`; fall back to numeric `championId`).
   - Verified fine: Riot API key (account/match-v5/timeline/league), op.gg
     tierlist/build/matchups, DDragon 16.21.1, worker `/health`.
-- **2026-10-27 (later) — lolvvv pro builds** (committed + pushed, worker
-  **NOT deployed**: `WORKER_VERSION 2026-10-27.1` waits for the user's go,
-  together with the patch-notes fix above):
+- **2026-10-27 (later) — lolvvv pro builds** (worker **deployed**,
+  `WORKER_VERSION 2026-10-27.2`, together with the patch-notes fix above):
   - Worker `GET /lolvvv/build?champion=<DDragon id>` scrapes lolvvv.com's
     public build page (`__NEXT_DATA__`; robots.txt allows `/champion/`).
     Only the champion's PRIMARY role is server-rendered — other roles load
@@ -32,14 +63,10 @@ open. Not user documentation — see [`../README.md`](../README.md) for that.
     come from DDragon `runesReforged.json` → a legal 9-perk page.
   - App: `LolvvvProBuild` panel above the u.gg variants (items, spells, skill
     order, rune page + apply). Hidden on off-role picks and on 404 (no pros).
-  - Until the deploy, the panel stays invisible (endpoint 404s on the live
-    worker) — nothing breaks.
-- `src-tauri/Cargo.lock` shows as modified in the working tree (tempfile's
-  getrandom 0.4.2 → 0.3.4, a local cargo re-resolve) — not from these
-  sessions; inspect before committing.
-- Coverage: **36.4% statements / 54.9% functions** (2026-07-27). Behind the
-  [`TESTING_POLICY.md`](../TESTING_POLICY.md) curve — 40/55 was due 2026-07-01,
-  60/70 is due 2026-09-01.
+- Tooling lesson: never create a git worktree INSIDE the repo while
+  `tauri dev` runs — Vite sees the worktree's index.html/tsconfig and
+  full-reloads the app. Use a sibling dir (e.g. `D:\APPS\draftboard-cov`) with
+  a `node_modules` junction; run vitest there with `--no-cache`.
 
 ## Release flow (see also docs/releasing.md)
 
