@@ -479,14 +479,21 @@ describe("SummonerLookupView — op.gg link", () => {
     expect(opggHref()).toBe("https://www.op.gg/summoners/euw/Hide%20on%20bush-KR1");
   });
 
-  // BUG: the tag datalist suggests the region *labels* ("NA", "BR", "JP"),
-  // but the op.gg region lookup compares against the *values* ("NA1",
-  // "BR1", "JP1"), so picking the "NA" suggestion links to the EUW server.
-  it.skip("maps the suggested 'NA' tag to the NA op.gg server", async () => {
+  // The tag datalist suggests region labels ("NA", "BR", "JP") while Riot's
+  // default tags often carry a "1" ("NA1", "KR1", "EUW1"): both name the
+  // same op.gg server slug (the bare label, lowercased).
+  it.each([
+    ["NA", "na"],
+    ["na1", "na"],
+    ["KR1", "kr"],
+    ["EUW1", "euw"],
+    ["BR", "br"],
+    ["JP1", "jp"],
+  ])("maps the region tag %s to the %s op.gg server", async (tag, slug) => {
     setup();
     renderView();
-    await search("Doublelift", "NA");
-    expect(opggHref()).toMatch(/^https:\/\/www\.op\.gg\/summoners\/na\//);
+    await search("Doublelift", tag);
+    expect(opggHref()).toMatch(new RegExp(`^https://www\\.op\\.gg/summoners/${slug}/`));
   });
 });
 

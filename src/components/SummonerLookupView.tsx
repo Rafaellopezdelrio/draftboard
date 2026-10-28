@@ -437,10 +437,13 @@ export function SummonerLookupView({ db, onClose }: Props) {
                             // (most common in our user base). User can
                             // navigate to op.gg manually if the guess
                             // misses.
+                            // Labels are op.gg's slugs; Riot default tags may
+                            // add a "1" (NA1, KR1, EUW1), so accept both.
                             const tagUpper = (tag || "EUW").toUpperCase();
-                            const region = REGIONS.some((r) => r.value === tagUpper)
-                              ? tagUpper.toLowerCase()
-                              : "euw";
+                            const match = REGIONS.find(
+                              (r) => tagUpper === r.label || tagUpper === `${r.label}1`,
+                            );
+                            const region = match ? match.label.toLowerCase() : "euw";
                             return `https://www.op.gg/summoners/${region}/${encodeURIComponent(data.riotId)}-${data.tagLine}`;
                           })()}
                           target="_blank"
