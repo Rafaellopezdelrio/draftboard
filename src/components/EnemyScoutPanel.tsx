@@ -76,7 +76,9 @@ function EnemyScoutPanelInner({
         const sid = enemySummonerIds[i];
         const champId = enemyChampionIds[i] ?? undefined;
         if (sid <= 0) continue;
-        if (!force && scoutsRef.current[sid] && scoutsRef.current[sid] !== "loading") continue;
+        // Skip only loaded slots; "error" ones are retried on the next tick.
+        const prev = scoutsRef.current[sid];
+        if (!force && prev && prev !== "loading" && prev !== "error") continue;
         setScouts((s) => ({ ...s, [sid]: "loading" }));
         const lcuSum = await getSummonerById(sid);
         if (!lcuSum?.puuid) {

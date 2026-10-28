@@ -379,12 +379,9 @@ describe("EnemyScoutPanel", () => {
     expect(m.loadSettings).toHaveBeenCalledTimes(3);
   });
 
-  // BUG: the 60s refresh ("Refrescar scout enemigos cada 60s") calls
-  // runScout(false), which skips every summoner that has ANY entry — including
-  // "error". A slot that failed once (Riot 429, LCU hiccup) is never retried
-  // and loaded slots are never refreshed, so the interval only ever helps
-  // slots that never started (no config yet).
-  it.skip("live refresh retries a slot that previously failed", async () => {
+  // A slot that failed once (Riot 429, LCU hiccup) is retried on the next 60s
+  // tick; loaded slots stay skipped (covered above).
+  it("live refresh retries a slot that previously failed", async () => {
     vi.useFakeTimers();
     setPrefs({ liveScoutRefresh: true, notifyOnEnemyHotStreak: false });
     m.scoutPlayer.mockRejectedValueOnce(new Error("429")).mockResolvedValue(mkScout());
