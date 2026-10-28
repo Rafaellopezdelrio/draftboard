@@ -400,12 +400,9 @@ describe("riotApi — client", () => {
       );
     });
 
-    // BUG: the 404 -> "not in game" detection matches the *translated* error
-    // text ("no encontrado"), so with the UI in English the 404 message is
-    // "Riot ID not found in the selected region." and the function throws
-    // instead of returning null. LiveGameView then shows an error rather than
-    // "not in game". Skipped until riotApi signals 404 with a locale-free marker.
-    it.skip("returns null on 404 regardless of UI locale (en)", async () => {
+    // "Not in game" must be detected from the HTTP status, not from the
+    // translated error text, or an English UI turns a 404 into an error.
+    it("returns null on 404 regardless of UI locale (en)", async () => {
       await setUiLocale("en");
       try {
         httpFetchMock.mockResolvedValue(res(404));
@@ -415,11 +412,9 @@ describe("riotApi — client", () => {
       }
     });
 
-    // BUG (same root cause): the substring check also matches "404" anywhere in
-    // a non-404 error, e.g. the request URL embedded in "Riot API 503: <url>",
-    // so a server outage for a puuid containing "404" is reported as
-    // "not in game" instead of an error.
-    it.skip("rethrows a persistent 5xx even when the puuid contains '404'", async () => {
+    // A non-404 error whose text happens to contain "404" (here the request URL
+    // embedded in "Riot API 503: <url>") must not be read as "not in game".
+    it("rethrows a persistent 5xx even when the puuid contains '404'", async () => {
       httpFetchMock.mockResolvedValue(res(503));
       const p = getCurrentGameByPuuid(baseCfg, "abc404def");
       const assertion = expect(p).rejects.toThrow(/^Riot API 503: /);

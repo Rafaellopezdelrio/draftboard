@@ -105,6 +105,9 @@ function maybeProxify(url: string): string {
   return `${proxyUrl}/api/${m[1]}${m[2]}`;
 }
 
+/** HTTP 404 from Riot. Lets callers detect "not found" without parsing the translated message. */
+class RiotNotFoundError extends Error {}
+
 async function api<T>(url: string, key: string, attempt = 0, rlAttempt = 0): Promise<T> {
   await limiter.take();
   const finalUrl = maybeProxify(url);
@@ -149,7 +152,7 @@ async function api<T>(url: string, key: string, attempt = 0, rlAttempt = 0): Pro
     throw new Error(i18n.t("serviceErrors.keyExpired"));
   }
   if (res.status === 404) {
-    throw new Error(i18n.t("serviceErrors.riotIdNotFound"));
+    throw new RiotNotFoundError(i18n.t("serviceErrors.riotIdNotFound"));
   }
   if (res.status >= 500 && attempt < 3) {
     // Server error — Riot occasionally has 503s, retry
@@ -285,8 +288,7 @@ export async function getCurrentGameByPuuid(
       cfg.apiKey
     );
   } catch (e) {
-    const msg = String(e);
-    if (msg.includes("404") || msg.includes("no encontrado")) return null;
+    if (e instanceof RiotNotFoundError) return null;
     throw e;
   }
 }
