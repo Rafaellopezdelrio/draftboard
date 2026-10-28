@@ -62,8 +62,10 @@ function LobbyScoutPanelInner({ session, db }: Props) {
 
   if (!session) return null;
   if (myTeam.length === 0 && theirTeam.length === 0) {
+    // Keyed so React doesn't reuse this non-collapsible Panel as the
+    // collapsible one below: its open state must initialise from storage.
     return loading ? (
-      <Panel padding="sm">
+      <Panel key="loading" padding="sm">
         <p className="text-[10px] text-white/30 italic">{t("lobby.loading")}</p>
       </Panel>
     ) : null;

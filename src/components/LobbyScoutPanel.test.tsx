@@ -315,13 +315,11 @@ describe("LobbyScoutPanel", () => {
     ).toBeInTheDocument();
   });
 
-  // BUG: the loading state renders a NON-collapsible <Panel> at the same tree
-  // position as the real collapsible one, so React reuses the instance and its
-  // useState initialiser never re-runs: `open` stays true (non-collapsible
-  // default). Result: defaultOpen={false} and the persisted
-  // "panel-open:lobbyScout" = "0" are ignored after every scout, and the
-  // collapsed-header "⚠" dodge summary can never be seen.
-  it.skip("respects the persisted collapsed state after the loading phase (shows ⚠ in header)", async () => {
+  // The loading state renders a non-collapsible <Panel> at the same tree
+  // position as the real collapsible one. If React reused that instance, the
+  // collapsible Panel's useState initialiser would never run and `open` would
+  // stay true, ignoring the persisted "0" and hiding the "⚠" header summary.
+  it("respects the persisted collapsed state after the loading phase (shows ⚠ in header)", async () => {
     localStorage.setItem("panel-open:lobbyScout", "0");
     const user = userEvent.setup();
     scoutReturns(LOPSIDED.mine, LOPSIDED.theirs);
