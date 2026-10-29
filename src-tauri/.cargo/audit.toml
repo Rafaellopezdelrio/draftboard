@@ -16,4 +16,10 @@ ignore = [
   # attacker-timed paths (updater uses minisign/ed25519). Re-check when a
   # fixed rsa release ships. (2026-07-17)
   "RUSTSEC-2023-0071",
+  # rkyv 0.7 out-of-bounds read on archive validation. Listed in Cargo.lock
+  # only through rust_decimal (pulled by sqlx for the unused MySQL/Postgres
+  # backends) and its optional `rkyv` feature, which nothing enables — rkyv is
+  # not compiled into the app. Approved by the owner 2026-10-28.
+  # Unblock: rust_decimal moves to rkyv >= 0.8.17.
+  "RUSTSEC-2026-0235",
 ]

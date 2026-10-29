@@ -71,10 +71,10 @@ rusqlite = { version = "0.32", features = ["bundled"] }
 # with HWND_TOPMOST every ~1s while the overlay is visible so it doesn't
 # get hidden behind the game when the user clicks back into LoL.
 [target.'cfg(windows)'.dependencies]
-# Pinned to 0.61 to match the version Tauri 2 pulls in transitively. Mixing
+# Pinned to 0.62 to match the version Tauri 2.12 pulls in transitively. Mixing
 # windows-rs versions makes HWND types non-interchangeable — `win.hwnd()`
-# returns a 0.61 HWND, so SetWindowPos must come from the same crate version.
-windows = { version = "0.61", features = [
+# returns a 0.62 HWND, so SetWindowPos must come from the same crate version.
+windows = { version = "0.62", features = [
     "Win32_Foundation",
     "Win32_UI_WindowsAndMessaging",
     "Win32_Graphics_Gdi",
