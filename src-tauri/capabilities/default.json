@@ -6,6 +6,10 @@
   "permissions": [
     "core:default",
     "opener:default",
+    {
+      "identifier": "opener:allow-open-path",
+      "allow": [{ "path": "$APPLOG" }, { "path": "$APPLOG/**" }]
+    },
     "sql:default",
     "sql:allow-load",
     "sql:allow-execute",
@@ -22,6 +26,7 @@
     "dialog:allow-save",
     "dialog:allow-open",
     "fs:default",
+    "fs:allow-write-text-file",
     {
       "identifier": "http:default",
       "allow": [

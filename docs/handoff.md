@@ -8,16 +8,24 @@ open. Not user documentation — see [`../README.md`](../README.md) for that.
 - **main is green locally.** `tsc --noEmit`, `eslint src`, **1568 vitest tests**
   (145 files, 0 skipped; worker tests excluded when the submodule is absent),
   `cargo check --all-targets`.
-- **CI Rust job is red on `cargo audit`** (blocking gate). 2026-10-28 cleared
-  7 of 11 advisories with semver-compatible bumps (h2, quinn-proto, rustls,
-  rustls-webpki, webpki-roots/-root-certs). **4 remain:**
-  - RUSTSEC-2026-0235 `rkyv` 0.7 — only in Cargo.lock via rust_decimal's
-    unused `rkyv` feature (`cargo tree -i rkyv` prints nothing; not compiled).
-  - RUSTSEC-2026-0367/0368/0369 `zip` 4.x — via tauri-plugin-updater 2.10;
-    the fix (zip 9) needs updater ≥ 2.14 → tauri ≥ 2.12 (now 2.11.1).
-  Adding them to `src-tauri/.cargo/audit.toml` was blocked by the auto-mode
-  classifier (silencing security advisories) — **user decision**: approve
-  documented ignores, or upgrade Tauri + updater (the real fix).
+- **2026-10-29 Tauri 2.11 → 2.12.5** (+ all plugins to latest 2.x, npm
+  @tauri-apps/* to matching minors, windows-rs 0.61 → 0.62). `cargo audit`
+  passes: zip advisories fixed by updater 2.14.1 (zip 9.1.3); rkyv
+  (RUSTSEC-2026-0235) ignored with owner approval (not compiled).
+  Follow-ups from the changelog review:
+  - **Overlay focus**: tao 0.37.1 makes `show()` activate a `focus:false`
+    window, which would steal focus from LoL. Overlay now has
+    `"focusable": false`. **Not yet verified in game** — check the game keeps
+    focus when the overlay appears, and that drag + click-through still work.
+  - **Updater signed version**: CLI ≥ 2.12 writes `version:<x>` into the
+    .sig trusted comment and updater 2.14 checks it. The worker's
+    `LATEST_VERSION.version` must equal the tauri.conf.json version of the
+    build that produced the .sig. Don't enable `requireSignedVersion` yet.
+  - Capabilities: added `fs:allow-write-text-file` (prefs export was
+    missing it) and `opener:allow-open-path` on `$APPLOG` (About → open logs
+    folder). Retest both in the built app.
+  - Tray icon now comes from the exe's embedded ICO (largest entry) — check
+    it looks right.
 - **2026-10-28 coverage push**: 37.2% → **69.8% statements**, 57.6% → 78.3%
   functions (meets TESTING_POLICY 60/70). 10 file groups, each written by one
   agent and adversarially reviewed by another; gate ratcheted to 65/85/73/65.
