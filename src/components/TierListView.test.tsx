@@ -271,14 +271,14 @@ describe("TierListView — source selector", () => {
     const db = mkDb({ metaSourceCounts: { opgg: 10, proplay: 5, soloq: 0, dpm: 50 } });
     const { unmount } = render(<TierListView db={db} onClose={() => {}} />);
     let options = within(sourceSelect()).getAllByRole("option").map((o) => o.textContent);
-    expect(options).toEqual(["dpm.lol (por rango) · 50", "Pro play · 5", "Pro + SoloQ blend"]);
+    expect(options).toEqual(["dpm.lol (por rango) (en pausa: pendiente de permiso de dpm.lol) · 50", "Pro play · 5", "Pro + SoloQ blend"]);
     unmount();
 
     setPrefs({ metaSource: "opgg" });
     render(<TierListView db={{ ...db, metaSourceCounts: { opgg: 10, proplay: 0, soloq: 3, dpm: 0 } }} onClose={() => {}} />);
     options = within(sourceSelect()).getAllByRole("option").map((o) => o.textContent);
     expect(options).toEqual([
-      "dpm.lol (por rango)",
+      "dpm.lol (por rango) (en pausa: pendiente de permiso de dpm.lol)",
       "op.gg (legacy · 10)",
       "SoloQ Master+ · 3",
       "Pro + SoloQ blend",
@@ -288,7 +288,7 @@ describe("TierListView — source selector", () => {
   it("without source counts only the dpm option is offered", () => {
     render(<TierListView db={mkDb()} onClose={() => {}} />);
     const options = within(sourceSelect()).getAllByRole("option").map((o) => o.textContent);
-    expect(options).toEqual(["dpm.lol (por rango)"]);
+    expect(options).toEqual(["dpm.lol (por rango) (en pausa: pendiente de permiso de dpm.lol)"]);
   });
 
   it("flags a fallback when the used source differs from the requested one", () => {

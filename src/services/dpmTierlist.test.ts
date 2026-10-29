@@ -1,11 +1,14 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   DPM_TIER_LABELS,
   DPM_TIER_ORDER,
   DPM_PLATFORM_LABELS,
   fetchDpmMeta,
+  isDpmEnabled,
+  __testOnly_setDpmEnabled,
   type DpmTier,
 } from "./dpmTierlist";
+import { fetchProxyJson } from "./proxyFetch";
 
 vi.mock("./riotApi", () => ({ getRiotProxyUrl: () => "https://proxy.test" }));
 vi.mock("./proxyFetch", () => ({
@@ -21,7 +24,19 @@ vi.mock("./proxyFetch", () => ({
   })),
 }));
 
+describe("fetchDpmMeta — paused (dpm.lol ToS forbid automated access)", () => {
+  it("is off by default and requests nothing", async () => {
+    __testOnly_setDpmEnabled(false);
+    vi.mocked(fetchProxyJson).mockClear();
+    expect(isDpmEnabled()).toBe(false);
+    expect(await fetchDpmMeta("emerald_plus", "euw1", "7days", new Map())).toEqual([]);
+    expect(fetchProxyJson).not.toHaveBeenCalled();
+  });
+});
+
 describe("fetchDpmMeta", () => {
+  beforeEach(() => __testOnly_setDpmEnabled(true));
+
   it("regression: Fiddlesticks vanished from the meta — dpm sends 'FiddleSticks', DDragon id is 'Fiddlesticks'", async () => {
     const nameToKey = new Map([["Fiddlesticks", "9"]]);
     const out = await fetchDpmMeta("emerald_plus", "euw1", "7days", nameToKey);

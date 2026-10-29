@@ -82,6 +82,20 @@ interface DpmResponse {
 // re-fetching it on every championDb refresh within a session is wasted work.
 // Matches the cache opggBuilds / proBuilds already use.
 const CACHE_TTL_MS = 30 * 60 * 1000;
+/**
+ * dpm.lol's Terms of Service forbid automated access (scraping/crawling).
+ * Off until they grant permission (asked by email 2026-10-29); while off,
+ * nothing is requested and the meta pipeline falls back to op.gg.
+ */
+let dpmEnabled = false;
+export function isDpmEnabled(): boolean {
+  return dpmEnabled;
+}
+/** Test-only: exercise the (paused) fetch path. */
+export function __testOnly_setDpmEnabled(on: boolean): void {
+  dpmEnabled = on;
+}
+
 const cache = new Map<string, { ts: number; data: MetaTier[] }>();
 
 /**
@@ -98,6 +112,7 @@ export async function fetchDpmMeta(
   timeframe: DpmTimeframe,
   nameToKey: Map<string, string>
 ): Promise<MetaTier[]> {
+  if (!dpmEnabled) return [];
   const proxyUrl = getRiotProxyUrl();
   if (!proxyUrl) {
     // eslint-disable-next-line no-console

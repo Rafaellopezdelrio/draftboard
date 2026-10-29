@@ -1182,7 +1182,8 @@
     "proWindow": "Pro window (days)",
     "proWindowTitle": "7-90 days. Press Enter or blur to save.",
     "unsaved": "unsaved",
-    "saved": "saved"
+    "saved": "saved",
+    "dpmPaused": "(paused: awaiting dpm.lol's permission)"
   },
   "serviceErrors": {
     "riotIdEmpty": "Riot ID is empty.",

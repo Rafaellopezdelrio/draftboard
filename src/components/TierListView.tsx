@@ -21,6 +21,7 @@ import {
   type DpmTier,
   type DpmPlatform,
   type DpmTimeframe,
+  isDpmEnabled,
 } from "../services/dpmTierlist";
 import { loadChampionDb } from "../services/championDb";
 
@@ -257,8 +258,9 @@ export function TierListView({ db, onClose, onSelectChampion, onDbUpdate }: Prop
                   visuals. op.gg is hidden by default; user can re-enable via
                   Settings if needed. proplay/soloq/blend stay available when
                   synced (no point hiding sources that have real data). */}
-              <option value="dpm">
+              <option value="dpm" disabled={!isDpmEnabled()}>
                 {t("tierList.dpmByRank")}
+                {!isDpmEnabled() && ` ${t("metaSource.dpmPaused")}`}
                 {db.metaSourceCounts && db.metaSourceCounts.dpm > 0 && ` · ${db.metaSourceCounts.dpm}`}
               </option>
               {/* op.gg deprecated as default — keep option only if user

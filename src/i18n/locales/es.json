@@ -1182,7 +1182,8 @@
     "proWindow": "Ventana pro (días)",
     "proWindowTitle": "7-90 días. Pulsa Enter o cambia foco para guardar.",
     "unsaved": "sin guardar",
-    "saved": "guardado"
+    "saved": "guardado",
+    "dpmPaused": "(en pausa: pendiente de permiso de dpm.lol)"
   },
   "serviceErrors": {
     "riotIdEmpty": "Riot ID vacío.",

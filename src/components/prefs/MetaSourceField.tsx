@@ -6,6 +6,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { usePrefsStore } from "../../state/prefsStore";
+import { isDpmEnabled } from "../../services/dpmTierlist";
 
 export function MetaSourceField() {
   const { t } = useTranslation();
@@ -43,7 +44,10 @@ export function MetaSourceField() {
           }
           className="w-full bg-bg text-white text-sm px-3 py-2 rounded border border-border-subtle"
         >
-          <option value="dpm">🎯 {t("metaSource.optDpm")}</option>
+          <option value="dpm" disabled={!isDpmEnabled()}>
+            🎯 {t("metaSource.optDpm")}
+            {!isDpmEnabled() && ` ${t("metaSource.dpmPaused")}`}
+          </option>
           <option value="proplay">🏆 {t("metaSource.optProplay")}</option>
           <option value="soloq">{t("metaSource.optSoloq")}</option>
           <option value="blend">{t("metaSource.optBlend")}</option>
