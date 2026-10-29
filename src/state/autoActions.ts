@@ -246,20 +246,27 @@ export async function pickAutoRunePage(
     if (pro?.runePage) {
       const { primaryStyleId, subStyleId, selectedPerkIds } = pro.runePage;
       if (isLegalRunePage(primaryStyleId, subStyleId, selectedPerkIds)) {
+        logRunes(`${label}: page from lolvvv`);
         return { name: runePageName(label), primaryStyleId, subStyleId, selectedPerkIds };
       }
+      logRunes(`${label}: lolvvv page rejected as illegal`);
     }
 
     const build = await fetchOpggBuild(champ.id, role).catch(() => null);
     const top = build ? pickMostPopular(build.runes) : null;
     const fromOpgg = top ? opggRunesToPage(top, label) : null;
-    if (fromOpgg) return fromOpgg;
+    if (fromOpgg) {
+      logRunes(`${label}: page from op.gg`);
+      return fromOpgg;
+    }
+    logRunes(`${label}: no lolvvv page for the role, no usable op.gg page`);
   }
   const agg = await loadAggregatedRunes(db.patch, Number(championKey), role).catch(() => null);
   // The aggregate stores the 6 rune selections and the 3 shards apart; the
   // client needs all 9 in one list.
   if (!agg || agg.shards?.length !== 3) return null;
   if (!isLegalRunePage(agg.primaryStyle, agg.subStyle, agg.perks)) return null;
+  logRunes(`${label}: page from the local aggregate`);
   return {
     name: runePageName(label),
     primaryStyleId: agg.primaryStyle,
@@ -308,13 +315,18 @@ async function apply(
 ): Promise<boolean> {
   try {
     const page = await pagePromise;
-    if (!isLatest()) return true; // superseded while fetching — not a failure
     const label = `${db.champions[championKey]?.name ?? championKey} ${role}`;
+    if (!isLatest()) {
+      logRunes(`${label}: superseded or cancelled before writing`);
+      return true; // not a failure
+    }
     if (!page) {
+      logRunes(`${label}: no page from any source`);
       notifyRunes("noPage", i18n.t("autoRunes.noPage", { label }));
       return false;
     }
     const result = await applyRunesResult(page);
+    logRunes(`${label}: client write ${result.ok ? "ok" : `failed — ${result.detail}`}`);
     if (result.ok) return true;
     const reason = result.reason === "page-limit" ? "pageLimit" : "error";
     notifyRunes(reason, i18n.t(`autoRunes.${reason}`));
@@ -322,6 +334,13 @@ async function apply(
   } catch {
     return false; // auto-apply must never throw or interrupt UX
   }
+}
+
+// console.info is mirrored to the disk log (logger.ts): every auto-rune step
+// lands in draftboard.log so a failed apply in a real game can be traced.
+function logRunes(message: string) {
+  // eslint-disable-next-line no-console
+  console.info(`[auto-runes] ${message}`);
 }
 
 // One throttle bucket per reason (fetchNotify throttles 30s per source), so a
