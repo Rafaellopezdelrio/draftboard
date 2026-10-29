@@ -4,6 +4,54 @@ All notable changes to Draftboard are documented here.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/);
 versions match the Tauri app version + the `vX.Y.Z` git tags.
 
+## [Unreleased] — planned as 0.5.0
+
+Draft for the next release. 0.4.1 and 0.4.2 were never published, so 0.5.0
+ships everything below them too. Before tagging: play one real game (overlay
+focus, auto runes, champ-select capture) — see docs/handoff.md.
+
+### Added
+- **Pro build panel (lolvvv.com)**: runes, skill order, first three items,
+  boots and spells from pro accounts' soloQ + esports games over ~5 patches,
+  with one-click rune import. Shown for the champion's main role.
+
+### Changed
+- **Tauri 2.12** and every plugin on its latest 2.x. The in-game overlay is
+  now explicitly non-focusable so it never steals focus from League.
+- Voice coach reads a K/D/A as a score ("11 asesinatos, 7 muertes y 15
+  asistencias"), not as a date; the "you die too much" warning only fires
+  when deaths outweigh your kills + assists.
+- Diagnostics no longer flags the Riot / AI keys as missing: the Draftboard
+  server provides both.
+
+### Fixed
+- Player search accepts a full `Name#TAG` typed in the name box; clearer
+  not-found message; op.gg link opens the right region.
+- "Reset all preferences" actually resets them in the desktop app, and no
+  longer hangs if the reset fails. Preferences export to a file works again.
+- Curated matchup tips show for champions whose internal id differs from
+  their name (Miss Fortune, Wukong…) and for LeBlanc.
+- A failed pro-play download keeps the previous data instead of wiping it,
+  and Settings reports the failure instead of "synced 0 games".
+- Build panel never shows the previous champion's runes/items after a quick
+  switch; "Retry" can't overwrite a newer champion's build.
+- Tier list: failed refreshes are reported and the filter rolls back; the
+  champion count matches the visible rows.
+- Lobby scout remembers if you collapsed it; enemy scout retries players that
+  failed once.
+- English UI: "not in game" lookups no longer error, and the AI coach no
+  longer gets Spanish text.
+- Patch notes banner parses Riot's new layout; Locke and Yunara get roles and
+  archetypes; Fiddlesticks shows in dpm.lol meta.
+
+### Security
+- Rust dependencies past 10 RustSec advisories (rustls stack, h2,
+  quinn-proto, zip via the updater 2.14 bump); `cargo audit` is green.
+
+### Internal
+- Test suite 961 → ~1,600 tests, coverage 36% → 70% statements; the
+  coverage push surfaced and fixed 18 real bugs.
+
 ## [0.4.2] — 2026-08-05
 
 Security and supply-chain hardening, plus the test suite that guards it.
