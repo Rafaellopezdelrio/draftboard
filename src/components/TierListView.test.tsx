@@ -397,6 +397,54 @@ describe("TierListView — source selector", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("No se pudo actualizar la tier list");
     expect(screen.getByRole("alert")).toHaveTextContent("offline");
   });
+
+  // The pref must be saved before the reload (loadChampionDb reads it), so a
+  // failed reload has to roll it back or the selector/header would show the
+  // new source/bracket over the old data.
+  it("a failed reload restores the previous bracket and source prefs", async () => {
+    vi.mocked(loadChampionDb).mockRejectedValue(new Error("offline"));
+    render(
+      <ToastProvider>
+        <TierListView db={mkDb({ metaSourceCounts: { opgg: 0, proplay: 5, soloq: 0, dpm: 1 } })} onClose={() => {}} />
+      </ToastProvider>
+    );
+    await act(async () => {
+      fireEvent.change(screen.getByTitle("Región"), { target: { value: "kr" } });
+    });
+    expect(usePrefsStore.getState().prefs.dpmPlatform).toBe(DEFAULT_PREFS.dpmPlatform);
+    expect(screen.getByText("dpm.lol · Emerald+ · EUW")).toBeInTheDocument();
+    expect((screen.getByTitle("Región") as HTMLSelectElement).value).toBe(DEFAULT_PREFS.dpmPlatform);
+
+    await act(async () => {
+      fireEvent.change(sourceSelect(), { target: { value: "proplay" } });
+    });
+    expect(usePrefsStore.getState().prefs.metaSource).toBe("dpm");
+    expect(sourceSelect().value).toBe("dpm");
+  });
+
+  it("overlapping filter changes keep 'Actualizando…' until the last reload settles", async () => {
+    const resolvers: Array<(db: ChampionDb) => void> = [];
+    vi.mocked(loadChampionDb).mockImplementation(
+      () => new Promise<ChampionDb>((r) => resolvers.push(r))
+    );
+    render(<TierListView db={mkDb()} onClose={() => {}} />);
+
+    await act(async () => {
+      fireEvent.change(screen.getByTitle("Región"), { target: { value: "kr" } });
+      fireEvent.change(screen.getByTitle("Ventana de tiempo"), { target: { value: "30days" } });
+    });
+    expect(resolvers).toHaveLength(2);
+
+    await act(async () => {
+      resolvers[0](mkDb());
+    });
+    expect(screen.getByText("Actualizando…")).toBeInTheDocument();
+
+    await act(async () => {
+      resolvers[1](mkDb());
+    });
+    expect(screen.queryByText("Actualizando…")).toBeNull();
+  });
 });
 
 describe("TierListView — dialog behaviour", () => {

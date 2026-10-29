@@ -13,7 +13,7 @@ import { Tabs } from "./ui/Tabs";
 import { TierBadge } from "./ui/TierBadge";
 import { useToast } from "./ui/ToastContainer";
 import { Search, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
-import { usePrefsStore } from "../state/prefsStore";
+import { usePrefsStore, type Preferences } from "../state/prefsStore";
 import {
   DPM_TIER_LABELS,
   DPM_TIER_ORDER,
@@ -85,22 +85,37 @@ export function TierListView({ db, onClose, onSelectChampion, onDbUpdate }: Prop
   // branches, which left users stuck on their last dpm bracket after
   // switching back to op.gg.
   type SourceVal = typeof prefs.metaSource;
+  // Counts in-flight reloads so an earlier call's finally doesn't clear the
+  // spinner while a later one is still loading.
+  const inFlight = useRef(0);
   const applyFilter = async (
     patch: Partial<{ source: SourceVal; tier: DpmTier; platform: DpmPlatform; timeframe: DpmTimeframe }>
   ) => {
+    const changes: Array<[keyof Preferences, Preferences[keyof Preferences] | undefined]> = [
+      ["metaSource", patch.source],
+      ["dpmTier", patch.tier],
+      ["dpmPlatform", patch.platform],
+      ["dpmTimeframe", patch.timeframe],
+    ];
+    const previous = usePrefsStore.getState().prefs;
+    inFlight.current++;
     setRefreshing(true);
     try {
-      if (patch.source) await setPref("metaSource", patch.source);
-      if (patch.tier) await setPref("dpmTier", patch.tier);
-      if (patch.platform) await setPref("dpmPlatform", patch.platform);
-      if (patch.timeframe) await setPref("dpmTimeframe", patch.timeframe);
+      for (const [key, value] of changes) if (value) await setPref(key, value);
       const fresh = await loadChampionDb(true);
       onDbUpdate?.(fresh);
     } catch (e) {
+      // loadChampionDb reads the prefs, so they're saved before the reload; on
+      // failure roll back (unless a later change already overwrote them) so the
+      // selectors/header keep matching the data still on screen.
+      const current = usePrefsStore.getState().prefs;
+      for (const [key, value] of changes) {
+        if (value && current[key] === value) await setPref(key, previous[key]).catch(() => {});
+      }
       // onChange drops this promise, so a failed reload must be handled here.
       toast({ type: "error", title: t("tierList.reloadFailed"), detail: String(e) });
     } finally {
-      setRefreshing(false);
+      if (--inFlight.current === 0) setRefreshing(false);
     }
   };
   // Kept as an alias for the dpm-only call sites (tier/platform/timeframe).
