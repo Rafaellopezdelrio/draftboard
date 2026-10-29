@@ -38,7 +38,7 @@ vi.mock("../services/opggBuilds", async (importActual) => {
   const actual = await importActual<typeof import("../services/opggBuilds")>();
   return { ...actual, fetchOpggBuild: vi.fn() };
 });
-vi.mock("../services/lcuService", () => ({ applyRunes: vi.fn() }));
+vi.mock("../services/lcuService", () => ({ applyRunesResult: vi.fn() }));
 vi.mock("../engine/inGameAdapter", () => ({ suggestInGameAdaptations: vi.fn() }));
 // ItemIcon would lazily fetch DDragon items.json — keep it offline.
 vi.mock("../services/itemMeta", () => ({
@@ -102,13 +102,14 @@ const BUILDS: BuildAgg[] = [
 ];
 const SKILLS: SkillOrderAgg = { firstThree: "123", maxOrder: "132", games: 100, wins: 50 };
 const PERKS = [8008, 9111, 9104, 8014, 8304, 8345];
+const SHARDS = [5005, 5008, 5001];
 const RUNES: RuneAgg = {
   championId: 222,
   position: "BOTTOM",
   primaryStyle: 8000,
   subStyle: 8300,
   perks: PERKS,
-  shards: [],
+  shards: SHARDS,
   games: 100,
   wins: 55,
 };
@@ -287,19 +288,19 @@ describe("BuildPanel — rune import", () => {
   }
 
   it("applies the aggregate rune page and confirms inline + via toast", async () => {
-    const d = deferred<boolean>();
-    vi.mocked(lcu.applyRunes).mockReturnValue(d.promise);
+    const d = deferred<lcu.RuneApplyResult>();
+    vi.mocked(lcu.applyRunesResult).mockReturnValue(d.promise);
     fireEvent.click(await renderWithRunes());
 
     expect(screen.getByText("Aplicando...")).toBeInTheDocument();
-    expect(lcu.applyRunes).toHaveBeenCalledWith({
-      name: "Jinx BOTTOM",
+    expect(lcu.applyRunesResult).toHaveBeenCalledWith({
+      name: "Draftboard · Jinx BOTTOM",
       primaryStyleId: 8000,
       subStyleId: 8300,
-      selectedPerkIds: PERKS,
+      selectedPerkIds: [...PERKS, ...SHARDS],
     });
 
-    await act(async () => d.resolve(true));
+    await act(async () => d.resolve({ ok: true }));
     expect(screen.getByText("✓ Aplicadas")).toBeInTheDocument();
     const toast = screen.getByRole("status");
     expect(toast).toHaveTextContent("Runas aplicadas");
@@ -307,7 +308,7 @@ describe("BuildPanel — rune import", () => {
   });
 
   it("reports a failed import inline and with an error toast", async () => {
-    vi.mocked(lcu.applyRunes).mockResolvedValue(false);
+    vi.mocked(lcu.applyRunesResult).mockResolvedValue({ ok: false, reason: "error", detail: "x" });
     const btn = await renderWithRunes();
     await act(async () => {
       fireEvent.click(btn);
@@ -317,6 +318,16 @@ describe("BuildPanel — rune import", () => {
     const alert = screen.getByRole("alert");
     expect(alert).toHaveTextContent("Error aplicando runas");
     expect(alert).toHaveTextContent("Abre el cliente y reintenta.");
+  });
+
+  it("says to free a rune page slot when every slot is taken (never deletes the player's pages)", async () => {
+    vi.mocked(lcu.applyRunesResult).mockResolvedValue({ ok: false, reason: "page-limit", detail: "PAGE_LIMIT" });
+    const btn = await renderWithRunes();
+    await act(async () => {
+      fireEvent.click(btn);
+    });
+    expect(screen.getByText("Sin hueco: borra una página tuya")).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent("Draftboard nunca borra las tuyas");
   });
 
   it("hides the import button when the pref is off", async () => {

@@ -244,7 +244,9 @@
     "pickRate": "{{pct}}% pick rate",
     "itemFallback": "Item {{id}}",
     "perkFallback": "Perk {{id}}",
-    "spellFallback": "Spell {{id}}"
+    "spellFallback": "Spell {{id}}",
+    "applyPageLimit": "No free slot: delete one of your pages",
+    "toastPageLimitDetail": "All your rune page slots are in use. Delete or rename one in the client; Draftboard never deletes yours."
   },
   "scout": {
     "title": "Enemy scout",
@@ -1567,5 +1569,11 @@
       "name": "Standard build",
       "desc": "Optimal build for the current meta."
     }
+  },
+  "autoRunes": {
+    "title": "Auto runes",
+    "noPage": "No rune page found for {{label}}.",
+    "pageLimit": "All your rune page slots are in use: delete or rename one in the client. Draftboard never deletes yours.",
+    "error": "The League client rejected the rune page."
   }
 }

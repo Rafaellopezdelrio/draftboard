@@ -244,7 +244,9 @@
     "pickRate": "{{pct}}% pick rate",
     "itemFallback": "Objeto {{id}}",
     "perkFallback": "Runa {{id}}",
-    "spellFallback": "Hechizo {{id}}"
+    "spellFallback": "Hechizo {{id}}",
+    "applyPageLimit": "Sin hueco: borra una página tuya",
+    "toastPageLimitDetail": "Todas tus páginas de runas están ocupadas. Borra o renombra una en el cliente; Draftboard nunca borra las tuyas."
   },
   "scout": {
     "title": "Scout enemigos",
@@ -1567,5 +1569,11 @@
       "name": "Build estándar",
       "desc": "Build óptima según el meta actual."
     }
+  },
+  "autoRunes": {
+    "title": "Runas automáticas",
+    "noPage": "No encontré runas para {{label}}.",
+    "pageLimit": "Todas tus páginas de runas están ocupadas: borra o renombra una en el cliente. Draftboard nunca borra las tuyas.",
+    "error": "El cliente de LoL no aceptó la página de runas."
   }
 }

@@ -45,14 +45,28 @@ export interface RunePageInput {
   selectedPerkIds: number[];
 }
 
-export async function applyRunes(page: RunePageInput): Promise<boolean> {
-  if (!isTauri()) return false;
+export type RuneApplyResult =
+  | { ok: true }
+  | { ok: false; reason: "page-limit" | "error"; detail: string };
+
+/**
+ * Push a rune page and say why it failed: "page-limit" means every rune page
+ * slot is taken by the player's own pages (Draftboard never deletes those),
+ * so the UI can ask them to free one instead of "open the client".
+ */
+export async function applyRunesResult(page: RunePageInput): Promise<RuneApplyResult> {
+  if (!isTauri()) return { ok: false, reason: "error", detail: "not running in the desktop app" };
   try {
     await invoke("lcu_apply_runes", { page });
-    return true;
-  } catch {
-    return false;
+    return { ok: true };
+  } catch (e) {
+    const detail = String(e);
+    return { ok: false, reason: detail.includes("PAGE_LIMIT") ? "page-limit" : "error", detail };
   }
+}
+
+export async function applyRunes(page: RunePageInput): Promise<boolean> {
+  return (await applyRunesResult(page)).ok;
 }
 
 /**

@@ -10,7 +10,8 @@ import { useTranslation } from "react-i18next";
 import type { Role } from "../../types/champion";
 import { fetchLolvvvBuild, type LolvvvBuild } from "../../services/lolvvvBuilds";
 import { SUMMONER_SPELL_META } from "../../services/opggBuilds";
-import { applyRunes } from "../../services/lcuService";
+import { applyRunesResult } from "../../services/lcuService";
+import { runePageName } from "../../services/runePages";
 import { usePrefsStore } from "../../state/prefsStore";
 import { useToast } from "../ui/ToastContainer";
 import { Panel } from "../ui/Panel";
@@ -59,17 +60,23 @@ export function LolvvvProBuild({ championId, championName, role, patch }: Props)
   const applyPage = async () => {
     if (!page) return;
     setApplyStatus(t("build.applying"));
-    const ok = await applyRunes({
-      name: `${championName} · Pros`,
+    const res = await applyRunesResult({
+      name: runePageName(`${championName} · Pros`),
       primaryStyleId: page.primaryStyleId,
       subStyleId: page.subStyleId,
       selectedPerkIds: page.selectedPerkIds,
     });
-    setApplyStatus(ok ? t("build.applied") : t("build.applyError"));
+    const ok = res.ok;
+    const limit = !res.ok && res.reason === "page-limit";
+    setApplyStatus(ok ? t("build.applied") : limit ? t("build.applyPageLimit") : t("build.applyError"));
     pushToast({
       type: ok ? "success" : "error",
       title: ok ? t("build.toastAppliedTitle") : t("build.toastApplyErrorTitle"),
-      detail: ok ? t("build.toastAppliedDetail") : t("build.toastApplyErrorDetail"),
+      detail: ok
+        ? t("build.toastAppliedDetail")
+        : limit
+          ? t("build.toastPageLimitDetail")
+          : t("build.toastApplyErrorDetail"),
       durationMs: 3000,
     });
   };

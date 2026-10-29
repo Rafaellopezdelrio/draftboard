@@ -388,12 +388,60 @@ pub struct RunePageInput {
     pub selected_perk_ids: Vec<u32>,
 }
 
+/// Prefix of every rune page Draftboard writes (`runePageName` in the
+/// frontend). Pages are matched by name only, so keep the separator in it.
+const RUNE_PAGE_PREFIX: &str = "Draftboard · ";
+
+/// Serializes `apply_runes` (see its comment).
+static RUNE_APPLY_LOCK: Mutex<()> = Mutex::const_new(());
+
+/// True for the legacy auto-apply name `"<Champion> <ROLE> (auto)"`.
+fn is_legacy_auto_page(name: &str) -> bool {
+    name.strip_suffix(" (auto)")
+        .and_then(|rest| rest.rsplit_once(' '))
+        .is_some_and(|(champ, role)| {
+            !champ.is_empty() && matches!(role, "TOP" | "JUNGLE" | "MIDDLE" | "BOTTOM" | "UTILITY")
+        })
+}
+
+/// Ids of editable rune pages Draftboard created. The player's own pages are
+/// never touched — the old code deleted the FIRST editable page, which could
+/// be one of theirs.
+fn draftboard_page_ids(pages: &[Value]) -> Vec<i64> {
+    pages
+        .iter()
+        .filter(|p| {
+            p.get("isEditable")
+                .and_then(Value::as_bool)
+                .unwrap_or(false)
+        })
+        .filter(|p| {
+            let name = p.get("name").and_then(Value::as_str).unwrap_or("");
+            name.starts_with(RUNE_PAGE_PREFIX) || is_legacy_auto_page(name)
+        })
+        .filter_map(|p| p.get("id").and_then(Value::as_i64))
+        .collect()
+}
+
+/// Rune pages the player has created (editable, not the client's temporary
+/// recommendation page) — what counts against the owned page slots.
+fn used_page_slots(pages: &[Value]) -> usize {
+    pages
+        .iter()
+        .filter(|p| p.get("isEditable").and_then(Value::as_bool) == Some(true))
+        .filter(|p| p.get("isTemporary").and_then(Value::as_bool) != Some(true))
+        .count()
+}
+
 #[tauri::command]
 pub async fn lcu_apply_runes(page: RunePageInput) -> Result<(), String> {
     apply_runes(page).await.map_err(|e| e.to_string())
 }
 
 async fn apply_runes(page: RunePageInput) -> Result<()> {
+    // Manual "Apply" buttons and the auto-apply can fire together; each does
+    // GET → POST → DELETE, so interleaved runs would leave duplicate pages.
+    let _guard = RUNE_APPLY_LOCK.lock().await;
     let lf = read_lockfile()?;
     let auth = format!("riot:{}", lf.password);
     let auth_b64 = B64.encode(auth.as_bytes());
@@ -416,22 +464,7 @@ async fn apply_runes(page: RunePageInput) -> Result<()> {
         .json()
         .await?;
 
-    let editable = pages.iter().find(|p| {
-        p.get("isEditable")
-            .and_then(|v| v.as_bool())
-            .unwrap_or(false)
-    });
-
-    if let Some(existing) = editable {
-        if let Some(id) = existing.get("id").and_then(|v| v.as_i64()) {
-            let _ = client
-                .delete(format!("{}/lol-perks/v1/pages/{}", base, id))
-                .header("Authorization", format!("Basic {}", auth_b64))
-                .send()
-                .await;
-        }
-    }
-
+    let ours = draftboard_page_ids(&pages);
     let body = serde_json::json!({
         "name": page.name,
         "primaryStyleId": page.primary_style_id,
@@ -439,17 +472,62 @@ async fn apply_runes(page: RunePageInput) -> Result<()> {
         "selectedPerkIds": page.selected_perk_ids,
         "current": true,
     });
+    let post = || {
+        client
+            .post(format!("{}/lol-perks/v1/pages", base))
+            .header("Authorization", format!("Basic {}", auth_b64))
+            .json(&body)
+            .send()
+    };
+    let delete_ours = || async {
+        for id in &ours {
+            let _ = client
+                .delete(format!("{}/lol-perks/v1/pages/{}", base, id))
+                .header("Authorization", format!("Basic {}", auth_b64))
+                .send()
+                .await;
+        }
+    };
 
-    let resp = client
-        .post(format!("{}/lol-perks/v1/pages", base))
-        .header("Authorization", format!("Basic {}", auth_b64))
-        .json(&body)
-        .send()
-        .await?;
-    if !resp.status().is_success() {
-        return Err(anyhow!("apply runes returned {}", resp.status()));
+    // Create first, then drop the previous Draftboard page(s): a failed
+    // create must not leave the player with no page at all.
+    let mut resp = post().await?;
+    if resp.status().is_success() {
+        delete_ours().await;
+        return Ok(());
     }
-    Ok(())
+    // Only a full set of slots justifies freeing one of OUR pages; any other
+    // rejection (invalid page, client hiccup) must leave them in place.
+    let owned = client
+        .get(format!("{}/lol-perks/v1/inventory", base))
+        .header("Authorization", format!("Basic {}", auth_b64))
+        .send()
+        .await
+        .ok();
+    let owned = match owned {
+        Some(r) => r.json::<Value>().await.ok(),
+        None => None,
+    }
+    .and_then(|v| v.get("ownedPageCount").and_then(Value::as_u64));
+    let slots_full = owned.is_some_and(|n| used_page_slots(&pages) as u64 >= n);
+    if slots_full && !ours.is_empty() {
+        delete_ours().await;
+        resp = post().await?;
+        if resp.status().is_success() {
+            return Ok(());
+        }
+    } else if slots_full {
+        // The frontend maps this prefix to a "free a rune page slot" message.
+        // The player's own pages are never deleted.
+        return Err(anyhow!("PAGE_LIMIT: all rune page slots are in use"));
+    }
+    let status = resp.status();
+    let detail = resp.text().await.unwrap_or_default();
+    Err(anyhow!(
+        "apply runes returned {}: {}",
+        status,
+        detail.chars().take(200).collect::<String>()
+    ))
 }
 
 #[tauri::command]
@@ -850,6 +928,37 @@ mod tests {
     #![allow(clippy::unwrap_used, clippy::expect_used)] // unwrap/expect idiomatic in tests
 
     use super::*;
+
+    #[test]
+    fn rune_replace_only_touches_draftboard_pages() {
+        // Live client 2026-10-29: Riot's temporary recommendation page plus
+        // two of the player's own pages. None of them may be deleted.
+        let pages: Vec<Value> = serde_json::from_str(
+            r#"[
+              {"id": 1, "name": "Kayn - Conquistador", "isEditable": true, "isTemporary": true},
+              {"id": 2, "name": "Pollito", "isEditable": true},
+              {"id": 3, "name": "why not", "isEditable": true},
+              {"id": 4, "name": "Draftboard · Kayn JUNGLE", "isEditable": true},
+              {"id": 5, "name": "Kayn JUNGLE (auto)", "isEditable": true},
+              {"id": 6, "name": "Draftboard preset", "isEditable": false}
+            ]"#,
+        )
+        .unwrap();
+        assert_eq!(draftboard_page_ids(&pages), vec![4, 5]);
+        assert!(draftboard_page_ids(&pages[..3]).is_empty());
+        // Temporary recommendation page doesn't take a slot.
+        assert_eq!(used_page_slots(&pages), 4);
+    }
+
+    #[test]
+    fn legacy_auto_name_matches_only_the_old_shape() {
+        assert!(is_legacy_auto_page("Kayn JUNGLE (auto)"));
+        assert!(is_legacy_auto_page("Miss Fortune BOTTOM (auto)"));
+        assert!(!is_legacy_auto_page("Ezreal (auto)"));
+        assert!(!is_legacy_auto_page("my page (auto)"));
+        assert!(!is_legacy_auto_page(" TOP (auto)"));
+        assert!(!is_legacy_auto_page("Draftboard"));
+    }
 
     #[test]
     fn parse_lockfile_canonical_format() {

@@ -9,7 +9,7 @@ import * as lolvvv from "../../services/lolvvvBuilds";
 import * as lcu from "../../services/lcuService";
 
 vi.mock("../../services/lolvvvBuilds", () => ({ fetchLolvvvBuild: vi.fn() }));
-vi.mock("../../services/lcuService", () => ({ applyRunes: vi.fn() }));
+vi.mock("../../services/lcuService", () => ({ applyRunesResult: vi.fn() }));
 
 afterEach(() => vi.clearAllMocks());
 
@@ -58,13 +58,13 @@ describe("LolvvvProBuild", () => {
 
   it("applies the full rune page to the client", async () => {
     vi.mocked(lolvvv.fetchLolvvvBuild).mockResolvedValue(BUILD);
-    vi.mocked(lcu.applyRunes).mockResolvedValue(true);
+    vi.mocked(lcu.applyRunesResult).mockResolvedValue({ ok: true });
     render(<LolvvvProBuild championId="Aatrox" championName="Aatrox" role="TOP" patch="16.21.1" />);
 
     fireEvent.click(await screen.findByText("Aplicar →"));
     await waitFor(() =>
-      expect(lcu.applyRunes).toHaveBeenCalledWith({
-        name: "Aatrox · Pros",
+      expect(lcu.applyRunesResult).toHaveBeenCalledWith({
+        name: "Draftboard · Aatrox · Pros",
         primaryStyleId: 8000,
         subStyleId: 8400,
         selectedPerkIds: PERKS,

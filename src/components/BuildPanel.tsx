@@ -9,7 +9,8 @@ import {
   type SkillOrderAgg,
 } from "../services/aggregateRepo";
 import type { ChampionDb, Role } from "../types/champion";
-import { applyRunes } from "../services/lcuService";
+import { applyRunesResult } from "../services/lcuService";
+import { runePageName } from "../services/runePages";
 import { OpggBuildSection } from "./build/OpggBuildSection";
 import { ItemIcon, PerkIcon } from "./build/icons";
 import { usePrefsStore } from "../state/prefsStore";
@@ -335,13 +336,17 @@ function BuildPanelInner({ db, championKey, role, enemyKeys = [] }: Props) {
               className="text-xs font-medium px-2 py-0.5 bg-accent text-black rounded hover:bg-accent-deep transition"
               onClick={async () => {
                 setImportStatus(t("build.applying"));
-                const ok = await applyRunes({
-                  name: `${champ.name} ${role}`,
+                const res = await applyRunesResult({
+                  name: runePageName(`${champ.name} ${role}`),
                   primaryStyleId: runes.primaryStyle,
                   subStyleId: runes.subStyle,
-                  selectedPerkIds: runes.perks,
+                  selectedPerkIds: [...runes.perks, ...runes.shards],
                 });
-                setImportStatus(ok ? t("build.applied") : t("build.applyError"));
+                const ok = res.ok;
+                const limit = !res.ok && res.reason === "page-limit";
+                setImportStatus(
+                  ok ? t("build.applied") : limit ? t("build.applyPageLimit") : t("build.applyError")
+                );
                 // Toast confirmation in addition to the inline status —
                 // ensures the user gets a clear signal even if the button
                 // is off-screen due to scroll.
@@ -350,7 +355,9 @@ function BuildPanelInner({ db, championKey, role, enemyKeys = [] }: Props) {
                   title: ok ? t("build.toastAppliedTitle") : t("build.toastApplyErrorTitle"),
                   detail: ok
                     ? t("build.toastAppliedDetail")
-                    : t("build.toastApplyErrorDetail"),
+                    : limit
+                      ? t("build.toastPageLimitDetail")
+                      : t("build.toastApplyErrorDetail"),
                   durationMs: 3000,
                 });
               }}

@@ -8,13 +8,18 @@ const applyRunes = vi.fn((..._a: unknown[]) => Promise.resolve(true));
 const applySummonerSpells = vi.fn((..._a: unknown[]) => Promise.resolve(true));
 const pushItemSet = vi.fn((..._a: unknown[]) => Promise.resolve(true));
 vi.mock("../services/lcuService", () => ({
-  applyRunes: (...a: unknown[]) => applyRunes(...a),
+  applyRunesResult: (...a: unknown[]) => applyRunes(...a).then(() => ({ ok: true })),
   applySummonerSpells: (...a: unknown[]) => applySummonerSpells(...a),
   pushItemSet: (...a: unknown[]) => pushItemSet(...a),
 }));
 vi.mock("../services/aggregateRepo", () => ({
   loadAggregatedRunes: () =>
-    Promise.resolve({ primaryStyle: 8000, subStyle: 8100, perks: [1, 2, 3] }),
+    Promise.resolve({
+      primaryStyle: 8000,
+      subStyle: 8100,
+      perks: [8010, 9111, 9104, 8014, 8126, 8135],
+      shards: [5008, 5008, 5001],
+    }),
 }));
 vi.mock("../services/opggBuilds", () => ({
   fetchOpggBuild: () =>
@@ -28,7 +33,9 @@ vi.mock("../services/opggBuilds", () => ({
       sixthItems: [],
     }),
   pickBestBuild: () => null,
+  pickMostPopular: () => null,
 }));
+vi.mock("../services/lolvvvBuilds", () => ({ fetchLolvvvBuild: () => Promise.resolve(null) }));
 vi.mock("../services/spellCoherence", () => ({
   pickCoherentSpells: () => ({ ids: [4, 12], reason: "", overrode: false }),
 }));
