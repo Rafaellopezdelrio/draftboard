@@ -844,6 +844,7 @@
     "downloadingPro": "Downloading pro matches (LCK/LEC/LCS/LPL)...",
     "proMetaDone": "Pro meta synced ✓ {{games}} pro matches · {{rows}} champ/role entries. Reload.",
     "errorProMeta": "Pro meta error: {{error}}",
+    "proMetaNoGames": "Leaguepedia returned no matches; previous data kept. Retry in 1-2 min.",
     "detectingAccount": "Detecting client account...",
     "clientNotOpen": "Client not open. Open LoL first.",
     "detected": "Detected: {{name}}#{{tag}}",

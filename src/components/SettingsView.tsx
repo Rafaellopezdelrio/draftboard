@@ -154,7 +154,9 @@ export function SettingsView({ onClose }: Props) {
         setStatus(`${p.phase}: ${p.done}/${p.total}`)
       );
       setStatus(
-        t("settings.proMetaDone", { games: result.games, rows: result.rows })
+        result.games === 0
+          ? t("settings.errorProMeta", { error: t("settings.proMetaNoGames") })
+          : t("settings.proMetaDone", { games: result.games, rows: result.rows })
       );
     } catch (e) {
       setStatus(t("settings.errorProMeta", { error: String(e) }));

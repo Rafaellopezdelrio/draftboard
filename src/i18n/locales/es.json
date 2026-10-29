@@ -844,6 +844,7 @@
     "downloadingPro": "Descargando partidas pro (LCK/LEC/LCS/LPL)...",
     "proMetaDone": "Pro meta sincronizado ✓ {{games}} partidas pro · {{rows}} entradas champ/rol. Recarga.",
     "errorProMeta": "Error pro meta: {{error}}",
+    "proMetaNoGames": "Leaguepedia no devolvió partidas; se mantienen los datos anteriores. Reintenta en 1-2 min.",
     "detectingAccount": "Detectando cuenta del cliente...",
     "clientNotOpen": "Cliente no abierto. Abre LoL primero.",
     "detected": "Detectado: {{name}}#{{tag}}",

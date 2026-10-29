@@ -420,6 +420,14 @@ describe("SettingsView — meta syncs", () => {
     ).toHaveClass("text-good");
   });
 
+  it("pro meta with nothing downloaded is reported as a failure, not as done", async () => {
+    vi.mocked(aggregateFromProPlay).mockResolvedValue({ games: 0, rows: 0 });
+    await renderView();
+    await click(btn("🏆 Sync meta PRO"));
+    expect(screen.queryByText(/Pro meta sincronizado/)).toBeNull();
+    expect(screen.getByText("Error pro meta: Leaguepedia no devolvió partidas; se mantienen los datos anteriores. Reintenta en 1-2 min.")).toHaveClass("text-bad");
+  });
+
   it("pro meta errors are reported", async () => {
     vi.mocked(fetchLatestPatch).mockRejectedValue(new Error("ddragon down"));
     await renderView();
