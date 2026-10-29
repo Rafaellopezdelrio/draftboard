@@ -455,4 +455,45 @@ describe("BuildPanel — champion switch", () => {
     await act(async () => oldBuilds.resolve(BUILDS));
     expect(screen.getByText(/WR ·/)).toHaveTextContent("60% WR · 100 games");
   });
+
+  it("clears the previous champion's aggregates while the new ones load", async () => {
+    vi.mocked(agg.loadAggregatedBuilds).mockResolvedValueOnce(BUILDS);
+    vi.mocked(agg.loadAggregatedSkillOrder).mockResolvedValueOnce(SKILLS);
+    vi.mocked(agg.loadAggregatedRunes).mockResolvedValueOnce(RUNES);
+    const { rerender } = renderPanel();
+    expect(await screen.findByText("Items finales")).toBeInTheDocument();
+
+    const pending = deferred<BuildAgg[]>();
+    vi.mocked(agg.loadAggregatedBuilds).mockReturnValueOnce(pending.promise);
+    rerender(
+      <ToastProvider>
+        <BuildPanel db={DB} championKey="99" role="UTILITY" />
+      </ToastProvider>
+    );
+    expect(screen.queryByText("Items finales")).toBeNull();
+    expect(screen.queryByText("Habilidades")).toBeNull();
+    expect(screen.queryByText("Runas recomendadas")).toBeNull();
+    await act(async () => pending.resolve([]));
+  });
+
+  it("ignores a late Retry response once the champion has changed", async () => {
+    const { rerender } = renderPanel();
+    await screen.findByText("No se pudo cargar la build recomendada de op.gg.");
+
+    const retry = deferred<OpggBuild | null>();
+    vi.mocked(opgg.fetchOpggBuild)
+      .mockReturnValueOnce(retry.promise)
+      .mockResolvedValueOnce({ tag: "opgg-lux" } as unknown as OpggBuild);
+    fireEvent.click(screen.getByRole("button", { name: "Reintentar" }));
+    rerender(
+      <ToastProvider>
+        <BuildPanel db={DB} championKey="99" role="UTILITY" />
+      </ToastProvider>
+    );
+    expect(await screen.findByTestId("opgg-section")).toHaveAttribute("data-build", "opgg-lux");
+
+    // Jinx's retried fetch lands after the switch to Lux.
+    await act(async () => retry.resolve(OPGG_RETRY));
+    expect(screen.getByTestId("opgg-section")).toHaveAttribute("data-build", "opgg-lux");
+  });
 });

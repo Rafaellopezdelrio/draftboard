@@ -49,6 +49,8 @@ function BuildPanelInner({ db, championKey, role, enemyKeys = [] }: Props) {
   const [skills, setSkills] = useState<SkillOrderAgg | null>(null);
   const [opggBuild, setOpggBuild] = useState<OpggBuild | null>(null);
   const [opggLoading, setOpggLoading] = useState(false);
+  // Bumped by Retry to re-run the op.gg effect (and its cancellation guard).
+  const [opggRetry, setOpggRetry] = useState(0);
   const [importStatus, setImportStatus] = useState<string>("");
   const showRuneButton = usePrefsStore((s) => s.prefs.showRuneImportButton);
   const { push: pushToast } = useToast();
@@ -58,6 +60,10 @@ function BuildPanelInner({ db, championKey, role, enemyKeys = [] }: Props) {
   useEffect(() => {
     const champId = Number(championKey);
     let cancelled = false;
+    // Drop the previous champion/role's rows so they never show for the new one.
+    setBuilds([]);
+    setRunes(null);
+    setSkills(null);
     Promise.all([
       loadAggregatedBuilds(db.patch, champId, role),
       loadAggregatedRunes(db.patch, champId, role),
@@ -89,7 +95,7 @@ function BuildPanelInner({ db, championKey, role, enemyKeys = [] }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [champ, role]);
+  }, [champ, role, opggRetry]);
 
   // Adaptations recompute the enemy-comp profile every call (~5 SET ops +
   // map). Memoising means only re-running when the actual inputs change,
@@ -176,24 +182,7 @@ function BuildPanelInner({ db, championKey, role, enemyKeys = [] }: Props) {
           </p>
           <button
             type="button"
-            onClick={() => {
-              // Re-trigger the opgg fetch by clearing local state and
-              // forcing the effect to re-run. Using a no-op state setter
-              // would be cleaner but our effect depends on champ+role
-              // identity which doesn't change, so we cheat: temporarily
-              // toggle opggLoading via setOpggLoading(true) to gate the
-              // user and let the next champ+role tick re-fetch. In
-              // practice the user clicking Retry happens because the
-              // first fetch failed → cache was never populated → next
-              // mount of this panel will retry automatically. Forcing
-              // a fresh fetch is more reliable.
-              setOpggBuild(null);
-              setOpggLoading(true);
-              fetchOpggBuild(champ.id, role).then((b) => {
-                setOpggBuild(b);
-                setOpggLoading(false);
-              });
-            }}
+            onClick={() => setOpggRetry((n) => n + 1)}
             className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider px-2 py-1 rounded ring-1 ring-accent/40 bg-accent/10 text-accent hover:bg-accent/20 transition"
           >
             {t("build.retry")}
