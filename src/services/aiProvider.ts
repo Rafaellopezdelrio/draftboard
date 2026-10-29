@@ -23,8 +23,13 @@ const ENDPOINTS: Record<AiProvider, string> = {
     "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
 };
 
+// Groq retires models without notice: llama-3.3-70b-versatile vanished in
+// 2026-10 and the AI coach silently stopped answering. Tried in order; a
+// "model not found / decommissioned" answer moves on to the next one.
+export const GROQ_MODELS = ["openai/gpt-oss-120b", "qwen/qwen3.8-27b", "openai/gpt-oss-20b"];
+
 const MODELS: Record<AiProvider, string> = {
-  groq: "llama-3.3-70b-versatile",
+  groq: GROQ_MODELS[0],
   anthropic: "claude-sonnet-4-6",
   gemini: "gemini-2.0-flash",
 };
@@ -65,25 +70,56 @@ export async function callAi(p: AiCallParams): Promise<string> {
   }
 }
 
-async function callGroqViaProxy(p: AiCallParams, proxyUrl: string): Promise<string> {
+/**
+ * POST a chat completion to a Groq-compatible endpoint, falling through
+ * GROQ_MODELS while the answer says the model is gone. Returns the last
+ * response plus its error body when it was already read.
+ */
+async function postGroq(
+  url: string,
+  headers: Record<string, string>,
+  p: AiCallParams
+): Promise<{ res: Response; errText?: string }> {
   const messages = [
     { role: "system", content: p.systemPrompt },
     ...(p.history ?? []),
     { role: "user", content: p.userPrompt },
   ];
-  const res = await httpFetch(`${proxyUrl}/groq/openai/v1/chat/completions`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: MODELS.groq,
-      max_tokens: p.maxTokens ?? 700,
-      messages,
-    }),
-  });
+  let last!: { res: Response; errText?: string };
+  for (const model of GROQ_MODELS) {
+    const res = await httpFetch(url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        model,
+        max_tokens: p.maxTokens ?? 700,
+        messages,
+        // Reasoning models: keep the thinking short so the answer fits
+        // max_tokens and arrives fast (draft decisions are time-boxed).
+        ...(model.startsWith("openai/gpt-oss") ? { reasoning_effort: "low" } : {}),
+        ...(model.startsWith("qwen/") ? { reasoning_effort: "none" } : {}),
+      }),
+    });
+    if (res.status !== 400 && res.status !== 404) return { res };
+    const errText = await res.text();
+    last = { res, errText };
+    if (!/model_not_found|model_decommissioned|does not exist|decommissioned/i.test(errText)) {
+      return last;
+    }
+  }
+  return last;
+}
+
+async function callGroqViaProxy(p: AiCallParams, proxyUrl: string): Promise<string> {
+  const { res, errText } = await postGroq(
+    `${proxyUrl}/groq/openai/v1/chat/completions`,
+    { "Content-Type": "application/json" },
+    p
+  );
   if (res.status === 429) throw new Error(i18n.t("serviceErrors.proxyRateLimit"));
   if (!res.ok)
     throw new Error(
-      `AI Coach (${res.status}): ${(await res.text()).slice(0, 200)}`
+      `AI Coach (${res.status}): ${(errText ?? (await res.text())).slice(0, 200)}`
     );
   const json = (await res.json()) as {
     choices: Array<{ message: { content: string } }>;
@@ -92,26 +128,14 @@ async function callGroqViaProxy(p: AiCallParams, proxyUrl: string): Promise<stri
 }
 
 async function callOpenAiCompatible(p: AiCallParams): Promise<string> {
-  const messages = [
-    { role: "system", content: p.systemPrompt },
-    ...(p.history ?? []),
-    { role: "user", content: p.userPrompt },
-  ];
-  const res = await httpFetch(ENDPOINTS.groq, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${p.apiKey.trim()}`,
-    },
-    body: JSON.stringify({
-      model: MODELS.groq,
-      max_tokens: p.maxTokens ?? 700,
-      messages,
-    }),
-  });
+  const { res, errText } = await postGroq(
+    ENDPOINTS.groq,
+    { "Content-Type": "application/json", Authorization: `Bearer ${p.apiKey.trim()}` },
+    p
+  );
   if (res.status === 401) throw new Error(i18n.t("serviceErrors.groqInvalid"));
   if (res.status === 429) throw new Error(i18n.t("serviceErrors.groqRateLimit"));
-  if (!res.ok) throw new Error(`Groq ${res.status}: ${(await res.text()).slice(0, 200)}`);
+  if (!res.ok) throw new Error(`Groq ${res.status}: ${(errText ?? (await res.text())).slice(0, 200)}`);
   const json = (await res.json()) as {
     choices: Array<{ message: { content: string } }>;
   };

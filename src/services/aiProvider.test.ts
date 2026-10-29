@@ -104,3 +104,34 @@ describe("callAi — provider dispatch + parsing + error mapping", () => {
     expect(url).toBe("https://proxy.example/groq/openai/v1/chat/completions");
   });
 });
+
+// Live 2026-10-29: Groq retired llama-3.3-70b-versatile and the AI coach went
+// silent ("The model ... does not exist"). The model list now falls through.
+describe("callAi — Groq model fallback", () => {
+  beforeEach(() => {
+    proxyUrl = "https://proxy.test";
+    httpFetchMock.mockReset();
+  });
+
+  const modelOf = (call: unknown[]) => JSON.parse((call[1] as { body: string }).body).model;
+
+  it("moves to the next model when one is retired", async () => {
+    httpFetchMock
+      .mockResolvedValueOnce(res(404, { error: { code: "model_not_found", message: "The model `openai/gpt-oss-120b` does not exist" } }))
+      .mockResolvedValueOnce(res(200, { choices: [{ message: { content: "qwen answers" } }] }));
+    await expect(callAi({ ...base, provider: "groq" })).resolves.toBe("qwen answers");
+    expect(httpFetchMock.mock.calls.map(modelOf)).toEqual(["openai/gpt-oss-120b", "qwen/qwen3.8-27b"]);
+  });
+
+  it("asks reasoning models for short thinking", async () => {
+    httpFetchMock.mockResolvedValue(res(200, { choices: [{ message: { content: "ok" } }] }));
+    await callAi({ ...base, provider: "groq" });
+    expect(JSON.parse(httpFetchMock.mock.calls[0][1].body).reasoning_effort).toBe("low");
+  });
+
+  it("does not fall through on other 400s and surfaces the error", async () => {
+    httpFetchMock.mockResolvedValue(res(400, { error: { code: "context_length_exceeded" } }));
+    await expect(callAi({ ...base, provider: "groq" })).rejects.toThrow(/AI Coach \(400\).*context_length_exceeded/);
+    expect(httpFetchMock).toHaveBeenCalledTimes(1);
+  });
+});

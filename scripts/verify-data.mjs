@@ -125,9 +125,12 @@ async function checkRiotKey() {
 async function checkGroqKey() {
   try {
     const j = await getJson("/groq/openai/v1/models");
-    const n = (j.data ?? []).length;
-    if (n > 0) pass("groq key", `${n} models`);
-    else fail("groq key", "no models listed");
+    const ids = (j.data ?? []).map((m) => m.id);
+    if (ids.length === 0) fail("groq key", "no models listed");
+    // Must match GROQ_MODELS[0] in src/services/aiProvider.ts — Groq retires
+    // models without notice (llama-3.3-70b-versatile, 2026-10).
+    else if (!ids.includes("openai/gpt-oss-120b")) fail("groq key", "primary model openai/gpt-oss-120b retired");
+    else pass("groq key", `${ids.length} models, primary model available`);
   } catch (e) {
     fail("groq key", e.message);
   }
