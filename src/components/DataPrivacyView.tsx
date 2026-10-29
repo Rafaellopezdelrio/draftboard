@@ -244,7 +244,15 @@ export function DataPrivacyView({ onClose }: Props) {
   // reset() wipes whichever backend is live (SQLite rows in the desktop
   // app, the localStorage blob in browser mode); reload only after it lands.
   async function doClearPrefs() {
-    await usePrefsStore.getState().reset();
+    try {
+      await usePrefsStore.getState().reset();
+    } catch (e) {
+      // Persisted prefs may still be on disk; reloading would bring them
+      // back, so surface the failure instead.
+      toast({ type: "error", title: t("dataPrivacy.toast.error"), detail: String(e).slice(0, 200) });
+      setConfirmClearPrefs(false);
+      return;
+    }
     location.reload();
   }
 

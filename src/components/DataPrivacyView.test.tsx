@@ -566,6 +566,33 @@ describe("DataPrivacyView — destructive actions", () => {
     }
   });
 
+  it("reports a failed prefs reset, closes the dialog and does not reload", async () => {
+    const db = await Database.load("sqlite:lol-draft-advisor.db");
+    const execute = vi.mocked(db.execute);
+    execute.mockImplementationOnce(async () => {
+      throw new Error("db locked");
+    });
+    const reload = vi.fn();
+    vi.stubGlobal("location", { reload });
+    const onUnhandled = vi.fn();
+    process.on("unhandledRejection", onUnhandled);
+    try {
+      await renderView();
+      fireEvent.click(btn(/Restablecer todas las preferencias/));
+      await act(async () => {
+        fireEvent.click(btn("Restablecer"));
+      });
+      await waitFor(() => expect(lastToast()).toMatchObject({ type: "error", title: "Error" }));
+      expect(lastToast().detail).toContain("db locked");
+      expect(screen.queryByRole("alertdialog")).toBeNull();
+      expect(reload).not.toHaveBeenCalled();
+      await new Promise((r) => setTimeout(r, 0));
+      expect(onUnhandled).not.toHaveBeenCalled();
+    } finally {
+      process.off("unhandledRejection", onUnhandled);
+    }
+  });
+
   it("cancelling the prefs reset leaves storage alone", async () => {
     const removeItem = vi.fn();
     vi.stubGlobal("localStorage", { removeItem });
