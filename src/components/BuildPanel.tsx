@@ -12,6 +12,7 @@ import type { ChampionDb, Role } from "../types/champion";
 import { applyRunesResult } from "../services/lcuService";
 import { runePageName } from "../services/runePages";
 import { OpggBuildSection } from "./build/OpggBuildSection";
+import { LolvvvProBuild } from "./build/LolvvvProBuild";
 import { ItemIcon, PerkIcon } from "./build/icons";
 import { usePrefsStore } from "../state/prefsStore";
 import {
@@ -213,6 +214,15 @@ function BuildPanelInner({ db, championKey, role, enemyKeys = [] }: Props) {
           </p>
         </div>
       )}
+
+      {/* Pro build (lolvvv) first: the preferred source, and independent of
+        * op.gg so it still shows when op.gg is down. Hidden off-role. */}
+      <LolvvvProBuild
+        championId={champ.id}
+        championName={champ.name}
+        role={role}
+        patch={db.patch}
+      />
 
       {opggLoading && (
         <div className="space-y-2" aria-live="polite">

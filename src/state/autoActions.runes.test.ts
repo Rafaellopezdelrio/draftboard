@@ -38,27 +38,29 @@ describe("pickAutoRunePage", () => {
   beforeEach(() => {
     vi.mocked(opgg.fetchOpggBuild).mockReset();
     vi.mocked(lolvvv.fetchLolvvvBuild).mockReset();
+    vi.mocked(lolvvv.fetchLolvvvBuild).mockResolvedValue(null);
     vi.mocked(agg.loadAggregatedRunes).mockReset();
   });
 
-  it("uses op.gg's most popular page first", async () => {
+  it("falls back to op.gg's most popular page when lolvvv has nothing for the role", async () => {
     vi.mocked(opgg.fetchOpggBuild).mockResolvedValue({
       runes: [opggRunes(0.2, "Electrocute"), opggRunes(0.6, "Dark Harvest")],
     } as unknown as opgg.OpggBuild);
     const page = await pickAutoRunePage(db, "141", "JUNGLE");
     expect(page?.name).toBe("Draftboard · Kayn JUNGLE");
     expect(page?.selectedPerkIds[0]).toBe(8128); // Dark Harvest, the 60% page
-    expect(lolvvv.fetchLolvvvBuild).not.toHaveBeenCalled();
+    expect(lolvvv.fetchLolvvvBuild).toHaveBeenCalled(); // asked first
   });
 
-  it("falls back to the lolvvv pro page for the same role", async () => {
+  it("uses the lolvvv pro page first for the same role (owner preference)", async () => {
     vi.mocked(opgg.fetchOpggBuild).mockResolvedValue(null);
     vi.mocked(lolvvv.fetchLolvvvBuild).mockResolvedValue({
       role: "JUNGLE",
-      runePage: { primaryStyleId: 8000, subStyleId: 8400, selectedPerkIds: [8010, 9111, 9104, 8017, 8347, 8304, 5005, 5008, 5001], pickRate: 0.9 },
+      runePage: { primaryStyleId: 8000, subStyleId: 8300, selectedPerkIds: [8010, 9111, 9104, 8017, 8347, 8304, 5005, 5008, 5001], pickRate: 0.9 },
     } as unknown as lolvvv.LolvvvBuild);
     const page = await pickAutoRunePage(db, "141", "JUNGLE");
     expect(page).toMatchObject({ name: "Draftboard · Kayn JUNGLE", primaryStyleId: 8000 });
+    expect(opgg.fetchOpggBuild).not.toHaveBeenCalled();
   });
 
   it("ignores a lolvvv page scraped for another role, then uses the local aggregate", async () => {
@@ -84,6 +86,7 @@ describe("queueRuneApply", () => {
     vi.mocked(lcu.applyRunesResult).mockClear();
     vi.mocked(opgg.fetchOpggBuild).mockReset();
     vi.mocked(lolvvv.fetchLolvvvBuild).mockReset();
+    vi.mocked(lolvvv.fetchLolvvvBuild).mockResolvedValue(null);
     vi.mocked(agg.loadAggregatedRunes).mockReset();
   });
 

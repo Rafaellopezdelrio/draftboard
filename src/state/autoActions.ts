@@ -10,7 +10,12 @@ import {
 import { emitFetchFailure } from "../services/fetchNotify";
 import { i18n } from "../i18n";
 import { loadAggregatedRunes } from "../services/aggregateRepo";
-import { fetchOpggBuild, pickBestBuild, pickMostPopular } from "../services/opggBuilds";
+import {
+  fetchOpggBuild,
+  pickBestBuild,
+  pickMostPopular,
+  type OpggBuildPath,
+} from "../services/opggBuilds";
 import { fetchLolvvvBuild } from "../services/lolvvvBuilds";
 import { isLegalRunePage, opggRunesToPage, runePageName } from "../services/runePages";
 import { pickCoherentSpells } from "../services/spellCoherence";
@@ -126,15 +131,12 @@ export function buildItemSetTitle(championName: string): string {
 
 async function applySpells(champion: Champion, role: Role) {
   try {
-    const build = await fetchOpggBuild(champion.id, role);
-    // Pass op.gg's dominant pair (may be undefined) through the coherence
-    // layer so jungle gets Smite, supports get Exhaust where appropriate,
-    // etc. — same logic as the visible Build Panel uses.
-    const coherent = pickCoherentSpells(
-      champion,
-      role,
-      build?.summonerSpells?.[0]?.ids
-    );
+    // lolvvv's pro pair first, op.gg's dominant pair as fallback. Either goes
+    // through the coherence layer so jungle gets Smite, supports get Exhaust
+    // where appropriate, etc. — same logic as the visible Build Panel uses.
+    const pro = await proBuildFor(champion, role);
+    const ids = pro?.spells?.ids ?? (await fetchOpggBuild(champion.id, role))?.summonerSpells?.[0]?.ids;
+    const coherent = pickCoherentSpells(champion, role, ids);
     await applySummonerSpells(coherent.ids[0], coherent.ids[1]);
   } catch {
     // silent — auto-apply must never throw or interrupt UX
@@ -143,20 +145,29 @@ async function applySpells(champion: Champion, role: Role) {
 
 /**
  * Build and push a 3-block item set (Starter / Core / Final) to the LCU
- * so it appears in the in-game shop. Items come from the same op.gg
- * build the visible BuildPanel renders — we just structure them into
- * the LCU's expected blocks shape.
+ * so it appears in the in-game shop. Starter, boots and the first three
+ * items come from lolvvv's pro build when it covers this role (the owner's
+ * preferred source), else from op.gg; the late "Finales" options always
+ * come from op.gg, which is the only source that has them.
  */
 async function applyItemSet(champion: Champion, role: Role) {
   try {
-    const build = await fetchOpggBuild(champion.id, role);
-    if (!build) return;
-    const starter = pickBestBuild(build.starterItems);
-    const boots = pickBestBuild(build.boots);
-    const core = pickBestBuild(build.coreItems);
-    const fourth = pickBestBuild(build.fourthItems);
-    const fifth = pickBestBuild(build.fifthItems);
-    const sixth = pickBestBuild(build.sixthItems);
+    const [pro, build] = await Promise.all([
+      proBuildFor(champion, role),
+      fetchOpggBuild(champion.id, role).catch(() => null),
+    ]);
+    if (!pro && !build) return;
+    const starter = pro?.starter ?? (build ? pickBestBuild(build.starterItems) : null);
+    const boots = pro?.boots ? { ids: [pro.boots.id] } : build ? pickBestBuild(build.boots) : null;
+    const core = pro && pro.items.length > 0 ? { ids: pro.items.map((i) => i.id) } : build ? pickBestBuild(build.coreItems) : null;
+    const taken = new Set([...(core?.ids ?? []), ...(boots?.ids ?? [])]);
+    const late = (paths: OpggBuildPath[] | undefined) => {
+      const best = paths ? pickBestBuild(paths) : null;
+      return best ? { ids: best.ids.filter((id) => !taken.has(id)) } : null;
+    };
+    const fourth = late(build?.fourthItems);
+    const fifth = late(build?.fifthItems);
+    const sixth = late(build?.sixthItems);
     // Block names — kept SHORT (max 8 chars) because LoL's in-game
     // item shop sidebar has a narrow column that truncates anything
     // longer. Previously used "Starter/Boots/Core/Situational" — the
@@ -208,11 +219,20 @@ async function applyItemSet(champion: Champion, role: Role) {
 }
 
 /**
- * Pick the rune page to auto-apply: op.gg's most popular page first (the
- * same source the build panel and the spells/item-set auto-actions use),
- * then lolvvv's pro page, then the locally synced aggregate. The aggregate
- * used to be the ONLY source and is empty unless the user synced matches,
- * so auto-runes silently did nothing for almost everyone.
+ * lolvvv's pro build for this champion, or null when lolvvv has none or it
+ * was scraped for another role (lolvvv only serves the primary role).
+ */
+async function proBuildFor(champion: Champion, role: Role) {
+  const pro = await fetchLolvvvBuild(champion.id).catch(() => null);
+  return pro?.role === role ? pro : null;
+}
+
+/**
+ * Pick the rune page to auto-apply: lolvvv's pro page first (the owner's
+ * preferred source), then op.gg's most popular page, then the locally
+ * synced aggregate. The aggregate used to be the ONLY source and is empty
+ * unless the user synced matches, so auto-runes silently did nothing for
+ * almost everyone.
  */
 export async function pickAutoRunePage(
   db: ChampionDb,
@@ -222,16 +242,18 @@ export async function pickAutoRunePage(
   const champ = db.champions[championKey];
   const label = `${champ?.name ?? championKey} ${role}`;
   if (champ) {
+    const pro = await proBuildFor(champ, role);
+    if (pro?.runePage) {
+      const { primaryStyleId, subStyleId, selectedPerkIds } = pro.runePage;
+      if (isLegalRunePage(primaryStyleId, subStyleId, selectedPerkIds)) {
+        return { name: runePageName(label), primaryStyleId, subStyleId, selectedPerkIds };
+      }
+    }
+
     const build = await fetchOpggBuild(champ.id, role).catch(() => null);
     const top = build ? pickMostPopular(build.runes) : null;
     const fromOpgg = top ? opggRunesToPage(top, label) : null;
     if (fromOpgg) return fromOpgg;
-
-    const pro = await fetchLolvvvBuild(champ.id).catch(() => null);
-    if (pro?.role === role && pro.runePage) {
-      const { primaryStyleId, subStyleId, selectedPerkIds } = pro.runePage;
-      return { name: runePageName(label), primaryStyleId, subStyleId, selectedPerkIds };
-    }
   }
   const agg = await loadAggregatedRunes(db.patch, Number(championKey), role).catch(() => null);
   // The aggregate stores the 6 rune selections and the 3 shards apart; the
