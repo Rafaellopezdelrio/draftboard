@@ -13,7 +13,6 @@ import {
   getRecentMatchIds,
   getSummonerByPuuid,
   getSummonerByPuuidPlatform,
-  getLeagueEntriesBySummoner,
   getLeagueEntriesByPuuid,
   getCurrentGameByPuuid,
   getMasterLeague,
@@ -173,11 +172,6 @@ describe("riotApi — client", () => {
         "getSummonerByPuuidPlatform",
         () => getSummonerByPuuidPlatform(baseCfg, "P2"),
         "https://euw1.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/P2",
-      ],
-      [
-        "getLeagueEntriesBySummoner",
-        () => getLeagueEntriesBySummoner(baseCfg, "S1"),
-        "https://euw1.api.riotgames.com/lol/league/v4/entries/by-summoner/S1",
       ],
       [
         "getLeagueEntriesByPuuid",

@@ -66,6 +66,12 @@ focus, auto runes, champ-select capture) — see docs/handoff.md.
   archetypes; Fiddlesticks shows in dpm.lol meta.
 
 ### Security
+- The proxy no longer relays arbitrary Riot API calls: it only forwards the
+  reads Draftboard makes (typed ids, sanitized query, 120 req/min per IP), as
+  Riot's API terms forbid lending key access to third parties.
+- Matchup data no longer comes from scraping op.gg's website (forbidden by
+  their terms); it now uses op.gg's public MCP server. Matchups with fewer
+  than 50 games are dropped. Needs a worker deploy to take effect.
 - Rust dependencies past 10 RustSec advisories (rustls stack, h2,
   quinn-proto, zip via the updater 2.14 bump); `cargo audit` is green.
 

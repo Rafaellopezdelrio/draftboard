@@ -1,10 +1,10 @@
 // Full matchup grid for a champion+role — every opponent with real play
-// counts and WR. Scraped via our Cloudflare Worker from op.gg's counter
-// page, which inlines a Next.js stream that contains the complete data.
+// counts and WR. Served by our Cloudflare Worker from op.gg's public MCP
+// server (lol_get_lane_matchup_guide → data.counters, ~60 opponents); the
+// old scrape of op.gg's counters web page was dropped (their Terms forbid it).
 //
-// Why this exists: op.gg's MCP only returns top 3 strong + top 3 weak
-// counters. For features like "live WR vs the actual enemy laner in your
-// draft" we need the FULL grid. This service is the entry point.
+// Why this exists: features like "live WR vs the actual enemy laner in your
+// draft" need the FULL grid, not just top-3 counters. This is the entry point.
 import { getRiotProxyUrl } from "./riotApi";
 import type { Role } from "../types/champion";
 import { fetchProxyJson } from "./proxyFetch";
@@ -17,6 +17,7 @@ export interface OpggMatchup {
   winRate: number;          // 0-100, as op.gg gives it
   championKey: string;      // op.gg internal slug, e.g. "leesin"
   championName: string;     // display name, e.g. "Lee Sin"
+  championId?: number;      // Riot numeric id (MCP source)
   imageUrl?: string;
 }
 
@@ -101,17 +102,17 @@ export async function fetchOpggMatchups(
     `&role=${ROLE_TO_OPGG[role]}` +
     `&tier=${encodeURIComponent(tier)}`;
   try {
-    // Worker scrapes op.gg's counter page (Next.js streaming chunk).
+    // Worker asks op.gg's MCP (no elo bracket there: `tier` is ignored).
     // Cold-start 5xx happens; 4xx (bad champ slug) doesn't retry.
     const data = await fetchProxyJson<OpggMatchupResponse>(url);
     const matchups = data.matchups ?? [];
     if (matchups.length === 0) {
-      // HTTP 200 but zero matchups = op.gg changed their page structure and
-      // our anchor/parse missed (a "soft" scraper break, not a network
-      // error). Breadcrumb it so telemetry shows the breakage, and DON'T
+      // HTTP 200 but zero matchups = op.gg's MCP answered without counters
+      // (a "soft" break, not a network error). Breadcrumb it so telemetry
+      // shows the breakage, and DON'T
       // cache the empty result — otherwise a transient miss serves dead data
       // for the full 30min TTL. Next call retries.
-      trackFetch(url, "fail", "scraper 200 but 0 matchups (op.gg layout change?)");
+      trackFetch(url, "fail", "200 but 0 matchups (op.gg MCP returned no counters?)");
       return [];
     }
     cache.set(cacheKey, { ts: Date.now(), data: matchups });

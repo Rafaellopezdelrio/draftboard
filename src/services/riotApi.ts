@@ -225,16 +225,6 @@ export interface LeagueEntryDto {
   freshBlood: boolean;
 }
 
-export async function getLeagueEntriesBySummoner(
-  cfg: RiotConfig,
-  summonerId: string
-): Promise<LeagueEntryDto[]> {
-  return api(
-    `https://${cfg.region}.api.riotgames.com/lol/league/v4/entries/by-summoner/${summonerId}`,
-    cfg.apiKey
-  );
-}
-
 /**
  * Newer endpoint (Riot pushed by-puuid in 2024). More reliable than
  * by-summoner because the summonerId field is being phased out for some
