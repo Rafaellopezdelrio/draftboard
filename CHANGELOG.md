@@ -25,6 +25,11 @@ focus, auto runes, champ-select capture) — see docs/handoff.md.
   server provides both.
 
 ### Fixed
+- The overlay no longer leaks its live-game event listener when it closes
+  before the subscription finishes connecting.
+- Command palette: Enter now runs the highlighted command when commands from
+  different groups are interleaved (keyboard index followed raw order, not the
+  grouped order on screen).
 - The app no longer refuses to open a database whose migrations were recorded
   by a build with different line endings ("migration N was previously applied
   but has been modified"); the checksum is repaired at startup.

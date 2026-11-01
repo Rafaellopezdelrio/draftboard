@@ -48,23 +48,6 @@ export function CommandPalette({ commands, onClose }: Props) {
   useEscape(onClose);
   const listRef = useRef<HTMLDivElement | null>(null);
 
-  // When user types: filter by substring. When empty: show recent first
-  // (in user-order), then the rest grouped by their `group` tag. Lets
-  // power users one-key + Enter to their most-used action.
-  const filtered = useMemo(() => {
-    if (q) {
-      return commands.filter((c) => c.label.toLowerCase().includes(q.toLowerCase()));
-    }
-    // Empty query → recent first, then unused.
-    const recentMap = new Map(commands.map((c) => [c.id, c]));
-    const recentCmds = recent
-      .map((id) => recentMap.get(id))
-      .filter((c): c is Command => Boolean(c));
-    const usedIds = new Set(recent);
-    const rest = commands.filter((c) => !usedIds.has(c.id));
-    return [...recentCmds, ...rest];
-  }, [q, commands, recent]);
-
   // Group commands when no query active. Group headers render between
   // sections so the user scans by category.
   const sections = useMemo(() => {
@@ -83,6 +66,16 @@ export function CommandPalette({ commands, onClose }: Props) {
     }
     return { recent: recentCmds, groups: Array.from(byGroup.entries()) };
   }, [q, commands, recent, t]);
+
+  // When user types: filter by substring. When empty: recent first (in
+  // user-order), then the grouped rest — flattened from `sections` so the
+  // keyboard index matches the rendered order even when groups interleave.
+  const filtered = useMemo(() => {
+    if (!sections) {
+      return commands.filter((c) => c.label.toLowerCase().includes(q.toLowerCase()));
+    }
+    return [...sections.recent, ...sections.groups.flatMap(([, list]) => list)];
+  }, [q, commands, sections]);
 
   // Reset active index when the filtered list changes (query typed) —
   // keeps the highlight at the first match instead of overflowing.

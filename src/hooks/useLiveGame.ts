@@ -196,7 +196,10 @@ export function useLiveGame(enabled: boolean = true): LiveGameState {
         if (cancelled) return;
         setState(e.payload);
       });
-      unlisten = unsub;
+      // Unmounted while listen() was pending: cleanup already ran with
+      // unlisten === null, so release the listener here or it leaks.
+      if (cancelled) unsub();
+      else unlisten = unsub;
     })();
 
     return () => {
