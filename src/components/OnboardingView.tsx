@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { usePrefsStore } from "../state/prefsStore";
 import { syncPersonalData, type SyncProgress } from "../services/personalDataSync";
@@ -16,19 +16,26 @@ export function OnboardingView({ onClose }: Props) {
   const [step, setStep] = useState<Step>("welcome");
   const [progress, setProgress] = useState<SyncProgress | null>(null);
   const [summary, setSummary] = useState<string>("");
+  // Bumped on every start/skip so a stale sync can't overwrite the screen.
+  const runRef = useRef(0);
 
   async function handleStart() {
+    const run = ++runRef.current;
     setStep("syncing");
     // Hard cap: 12s. If LCU is unreachable, don't block the user forever.
-    const timeout = new Promise<{ timeout: true }>((resolve) =>
-      setTimeout(() => resolve({ timeout: true }), 12_000)
-    );
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const timeout = new Promise<{ timeout: true }>((resolve) => {
+      timer = setTimeout(() => resolve({ timeout: true }), 12_000);
+    });
     const work = (async () => {
       const summoner = await getCurrentSummoner();
       const result = await syncPersonalData(setProgress);
       return { summoner, result };
     })();
     const race = await Promise.race([work, timeout]);
+    clearTimeout(timer);
+    // User skipped (or restarted) while this run was pending: drop it.
+    if (run !== runRef.current) return;
 
     if ("timeout" in race) {
       setSummary(t("onboarding.timeoutSummary"));
@@ -54,6 +61,7 @@ export function OnboardingView({ onClose }: Props) {
   }
 
   function skipToManual() {
+    runRef.current++;
     setSummary(t("onboarding.manualSummary"));
     setStep("done");
   }
