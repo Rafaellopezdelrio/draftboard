@@ -161,6 +161,21 @@ describe("draftStore", () => {
       expect(useDraftStore.getState().enemySummonerIds).toEqual([1, 2, 4]);
     });
 
+    it("setEnemyScoutTargets with same contents is a no-op", () => {
+      useDraftStore.getState().setEnemyScoutTargets([{ puuid: "a", championId: null }]);
+      const before = useDraftStore.getState().enemyScoutTargets;
+      useDraftStore.getState().setEnemyScoutTargets([{ puuid: "a", championId: null }]);
+      expect(useDraftStore.getState().enemyScoutTargets).toBe(before);
+    });
+
+    it("setEnemyScoutTargets updates when a championId or puuid changes", () => {
+      useDraftStore.getState().setEnemyScoutTargets([{ puuid: "a", championId: null }]);
+      useDraftStore.getState().setEnemyScoutTargets([{ puuid: "a", championId: 103 }]);
+      expect(useDraftStore.getState().enemyScoutTargets).toEqual([{ puuid: "a", championId: 103 }]);
+      useDraftStore.getState().setEnemyScoutTargets([{ puuid: "b", championId: 103 }]);
+      expect(useDraftStore.getState().enemyScoutTargets).toEqual([{ puuid: "b", championId: 103 }]);
+    });
+
     it("setPhase with same phase + timer is a no-op", () => {
       useDraftStore.getState().setPhase("BAN_PICK", 30);
       const before = useDraftStore.getState();
