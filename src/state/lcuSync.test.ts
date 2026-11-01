@@ -401,6 +401,51 @@ describe("lcuSync.applySession — defensive parsing", () => {
     now.mockRestore();
   });
 
+  // 29/10 live logs: every dump was the normal pre-hover state (my pick
+  // action pending with champ 0), never a parse gap. Only dump real gaps.
+  it.each([
+    ["pending (not my turn yet)", { completed: false, isInProgress: false }, false],
+    ["in progress, not hovered yet", { completed: false, isInProgress: true }, false],
+    ["completed with no champion", { completed: true, isInProgress: false }, true],
+  ])("[lcu-shape] dump decision when my pick action is %s", (_n, flags, expected) => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const now = vi.spyOn(Date, "now").mockReturnValue(Date.now() + 2e9 + (expected ? 1e6 : 0));
+    applySession({
+      localPlayerCellId: 9,
+      myTeam: [player(5, 0), player(6, 0), player(7, 0), player(8, 0), player(9, 0)],
+      theirTeam: [],
+      actions: [
+        [
+          { type: "pick", actorCellId: 0, championId: 39, completed: true, isAllyAction: false, isInProgress: false, id: 10 },
+          { type: "pick", actorCellId: 9, championId: 0, isAllyAction: true, id: 19, ...flags },
+        ],
+      ],
+      bans: { myTeamBans: [], theirTeamBans: [] },
+      timer: { phase: "BAN_PICK", adjustedTimeLeftInPhase: 30000 },
+    } as unknown as Parameters<typeof applySession>[0]);
+    const dumped = warn.mock.calls.some((c) => String(c[0]).startsWith("[lcu-shape]"));
+    expect(dumped).toBe(expected);
+    warn.mockRestore();
+    now.mockRestore();
+  });
+
+  it("logs whether leaving champ select kept or reset the board", () => {
+    const info = vi.spyOn(console, "info").mockImplementation(() => {});
+    applySession({
+      localPlayerCellId: 0,
+      myTeam: [player(0, 72)],
+      theirTeam: [],
+      actions: [],
+      bans: { myTeamBans: [], theirTeamBans: [] },
+      timer: { phase: "FINALIZATION", adjustedTimeLeftInPhase: 5000 },
+    } as unknown as Parameters<typeof applySession>[0]);
+    applySession(null);
+    expect(info).toHaveBeenCalledWith(
+      "[lcuSync] left champ select — last phase FINALIZATION → board kept"
+    );
+    info.mockRestore();
+  });
+
   it("BLIND PICK: locked over hover when both present for same cell", () => {
     const blind = {
       localPlayerCellId: 0,

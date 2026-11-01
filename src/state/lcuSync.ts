@@ -220,6 +220,12 @@ function leaveChampSelect() {
   // arrive without `s.timer`, so they never overwrite `lastChampSelectPhase`
   // — leaving it set would make a dodge that immediately follows a finalized
   // game inherit the previous "FINALIZATION" and wrongly preserve a dead draft.
+  // Logged: 29/10 games all hit the gameflow refill at GameStart, i.e. the
+  // board was empty there — this line tells which phase the exit saw.
+  // eslint-disable-next-line no-console
+  console.info(
+    `[lcuSync] left champ select — last phase ${lastChampSelectPhase ?? "none"} → ${gameStarting ? "board kept" : "board reset"}`
+  );
   lastChampSelectPhase = null;
   if (gameStarting) return;
 
@@ -386,18 +392,25 @@ function applySession(s: LcuChampSelectSession | null | undefined) {
     if (locked !== null) lastBlindWarnedCell = null;
 
     // Shape capture for the anonymized-champ-select investigation (2026-06):
-    // whenever the local champ stays unresolved, dump the raw actions +
-    // myPlayer to the disk log (console.warn is file-mirrored) so ANY real
-    // champ select the user plays records where Riot now puts the pick —
-    // no instrumented build needed. Throttled to one dump / 10s; goes quiet
-    // forever once resolution works again. Grep the log for [lcu-shape].
-    if (locked === null && intent === null && Date.now() - lastShapeDumpMs > 10000) {
+    // dump the raw actions + myPlayer to the disk log (console.warn is
+    // file-mirrored) when the local champ is unresolved in a way that means a
+    // parse gap. Throttled to one dump / 10s. Grep the log for [lcu-shape].
+    // Only suspicious frames: before the local player hovers, "unresolved" is
+    // the normal state (29/10 logs: every dump was pre-hover noise and
+    // resolution kicked in on the player's turn). Suspicious = my pick action
+    // is completed yet carries no champion, or picks exist but none is mine.
+    const allActs = (Array.isArray(s.actions) ? s.actions : []).flat();
+    const myPickActs = allActs.filter((a) => a?.type === "pick" && a.actorCellId === myCell);
+    const suspicious =
+      myPickActs.length === 0
+        ? allActs.some((a) => a?.type === "pick")
+        : myPickActs.some((a) => a.completed);
+    if (locked === null && intent === null && suspicious && Date.now() - lastShapeDumpMs > 10000) {
       lastShapeDumpMs = Date.now();
       // One token per action, "id:type:actorCell:champ" + flags (+ completed,
       // * in progress, A ally). Raw JSON hit the slice inside the 10 bans and
       // never reached the pick actions — the part the investigation needs.
-      const compactActions = (Array.isArray(s.actions) ? s.actions : [])
-        .flat()
+      const compactActions = allActs
         .map(
           (a) =>
             `${a.id}:${a.type}:${a.actorCellId}:${a.championId}` +

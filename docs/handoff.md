@@ -127,7 +127,7 @@ the old version.
   Not bypassing the challenge — if dpm stays gated, the op.gg fallback is the
   real source. `tier=all` was already `422 Invalid tier` before; its new value
   is still unknown (the browser pane's policy check failed this session).
-- **Champ-select pick detection under Riot's anonymized champ select.** The LCU
+- **Champ-select pick detection under Riot's anonymized champ select** (mostly resolved — see 2026-10-29 below). The LCU
   session carries `obfuscatedPuuid` / `playerAlias`, and `myTeam[].championId` +
   `session.actions[].championId` read 0 where the app looks, so the local
   champion never resolves *during champ select*.
@@ -146,6 +146,17 @@ the old version.
     (second action group starts `id 100, actorCellId -1`), so it showed
     nothing more. Now compacted to `id:type:actorCell:champ+flags` tokens —
     the next real champ select logs the whole draft.
+  - 2026-10-29 compact dumps (8 drafts) read on 2026-11-01: picks DO live in
+    `actions[].championId` (e.g. `10:pick:0:39+`, `11:pick:5:21+A`), every
+    dump was the normal pre-hover state (my pick action pending, champ 0), and
+    dumps stopped on the local player's turn — i.e. resolution works. The
+    dump now fires only on real gaps (my pick completed with champ 0, or picks
+    exist but none is mine). Also seen: the local cellId can change mid-draft
+    (7 → 9, pick-order swap); applySession re-resolves it every frame.
+  - Open: all 8 games hit the gameflow refill at GameStart, so the board was
+    empty there — leaveChampSelect reset it (last phase not FINALIZATION /
+    GAME_STARTING?). It now logs `[lcuSync] left champ select — last phase X
+    → board kept|reset`; read it after the next real game.
   - Log lives at `%LOCALAPPDATA%\com.draftboard.app\logs\draftboard.log`
     (timestamps UTC).
 - **Live-game surfaces are not verifiable headless**: overlay topmost /
