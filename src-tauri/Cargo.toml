@@ -65,6 +65,8 @@ sysinfo = { version = "0.32", default-features = false, features = ["system"] }
 # corrupt DB by renaming it (no file-lock conflict). ~500KB binary
 # overhead, worth it for boot reliability.
 rusqlite = { version = "0.32", features = ["bundled"] }
+# Migration checksums (SHA-384, same as sqlx) for the pre-boot repair.
+sha2 = "0.10"
 
 # Win32 access for overlay topmost re-assertion + LoL window detection.
 # Mirrors what Mobalytics/Itero do via Overwolf SDK — we call SetWindowPos

@@ -11,6 +11,47 @@ use tauri::Manager as _;
 
 use crate::db::{epoch_secs_to_ymd, ymd_to_epoch_secs};
 
+/// sqlx (inside tauri-plugin-sql) refuses to open a DB whose recorded
+/// migration checksum differs from the embedded SQL: "migration N was
+/// previously applied but has been modified". Builds made from a CRLF
+/// checkout embedded CRLF SQL and later ones LF, so the same migration can be
+/// recorded with either checksum (SHA-384 of the SQL text). When the recorded
+/// checksum is exactly the line-ending twin of the embedded SQL, rewrite it to
+/// the embedded one. Any real content change is left alone for sqlx to report.
+pub fn repair_migration_line_endings<'a>(
+    conn: &rusqlite::Connection,
+    migrations: impl IntoIterator<Item = (i64, &'a str)>,
+) -> rusqlite::Result<usize> {
+    use sha2::{Digest, Sha384};
+    let has_table: i64 = conn.query_row(
+        "SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name = '_sqlx_migrations'",
+        [],
+        |row| row.get(0),
+    )?;
+    if has_table == 0 {
+        return Ok(0);
+    }
+    let mut fixed = 0;
+    for (version, sql) in migrations {
+        let lf = sql.replace("\r\n", "\n");
+        let twin = if sql.contains("\r\n") {
+            lf
+        } else {
+            lf.replace('\n', "\r\n")
+        };
+        if twin == sql {
+            continue; // no line breaks: nothing a line-ending change could explain
+        }
+        let embedded = Sha384::digest(sql.as_bytes()).to_vec();
+        let twin = Sha384::digest(twin.as_bytes()).to_vec();
+        fixed += conn.execute(
+            "UPDATE _sqlx_migrations SET checksum = ?1 WHERE version = ?2 AND checksum = ?3",
+            rusqlite::params![embedded, version, twin],
+        )?;
+    }
+    Ok(fixed)
+}
+
 /// True for a rolling auto-backup filename (`auto-YYYY-MM-DD.db`).
 fn is_auto_backup_name(name: &str) -> bool {
     name.starts_with("auto-") && name.ends_with(".db")
@@ -168,7 +209,10 @@ pub async fn db_list_auto_backups(app: tauri::AppHandle) -> Result<Vec<serde_jso
 /// Side effects: writes a `recovery-marker.json` next to the DB if a
 /// quarantine happened. The frontend reads + consumes this on boot to
 /// show the user a toast explaining their data was reset.
-pub fn preboot_db_integrity_check_and_quarantine(app: &tauri::AppHandle) -> Result<(), String> {
+pub fn preboot_db_integrity_check_and_quarantine(
+    app: &tauri::AppHandle,
+    migrations: &[(i64, &str)],
+) -> Result<(), String> {
     use std::fs;
     let app_data = app
         .path()
@@ -208,6 +252,14 @@ pub fn preboot_db_integrity_check_and_quarantine(app: &tauri::AppHandle) -> Resu
         // works in rollback journal mode, just slower.
         let _ = conn.pragma_update(None, "journal_mode", "WAL");
         let _ = conn.pragma_update(None, "synchronous", "NORMAL");
+        // Non-fatal: if this fails, sqlx reports the mismatch as before.
+        match repair_migration_line_endings(&conn, migrations.iter().copied()) {
+            Ok(0) => {}
+            Ok(n) => {
+                eprintln!("[db-integrity] repaired {n} line-ending-only migration checksum(s)")
+            }
+            Err(e) => eprintln!("[db-integrity] migration checksum repair failed: {e}"),
+        }
         Ok(())
     })();
 
@@ -392,6 +444,86 @@ pub async fn db_restore_from(app: tauri::AppHandle, source_path: String) -> Resu
 #[allow(clippy::expect_used)] // tests may panic on failure — that IS the assertion
 mod tests {
     use super::*;
+
+    fn migrations_table(rows: &[(i64, &str)]) -> rusqlite::Connection {
+        use sha2::{Digest, Sha384};
+        let conn = rusqlite::Connection::open_in_memory().expect("open");
+        conn.execute_batch(
+            "CREATE TABLE _sqlx_migrations (version BIGINT PRIMARY KEY, description TEXT, \
+             installed_on TIMESTAMP, success BOOLEAN, checksum BLOB, execution_time BIGINT);",
+        )
+        .expect("create");
+        for (v, recorded_sql) in rows {
+            conn.execute(
+                "INSERT INTO _sqlx_migrations (version, description, success, checksum, execution_time) \
+                 VALUES (?1, 'm', 1, ?2, 0)",
+                rusqlite::params![v, Sha384::digest(recorded_sql.as_bytes()).to_vec()],
+            )
+            .expect("insert");
+        }
+        conn
+    }
+
+    fn checksum_of(conn: &rusqlite::Connection, v: i64) -> Vec<u8> {
+        conn.query_row(
+            "SELECT checksum FROM _sqlx_migrations WHERE version = ?1",
+            [v],
+            |r| r.get(0),
+        )
+        .expect("checksum")
+    }
+
+    #[test]
+    fn migration_repair_rewrites_only_line_ending_twins() {
+        use sha2::{Digest, Sha384};
+        // Live DB 2026-11-01: migrations 1-6 recorded from a CRLF checkout,
+        // 7+ from LF; an LF build refused to open it.
+        let crlf = "CREATE TABLE a (x INT);\r\nCREATE INDEX i ON a(x);\r\n";
+        let lf = "CREATE TABLE a (x INT);\nCREATE INDEX i ON a(x);\n";
+        let edited = "CREATE TABLE a (x INT, y INT);\n";
+        let conn = migrations_table(&[(1, crlf), (2, lf), (3, edited)]);
+        let fixed =
+            repair_migration_line_endings(&conn, [(1, lf), (2, lf), (3, lf)]).expect("repair");
+        assert_eq!(fixed, 1);
+        assert_eq!(
+            checksum_of(&conn, 1),
+            Sha384::digest(lf.as_bytes()).to_vec()
+        );
+        // Already matching: untouched. Real content change: left for sqlx.
+        assert_eq!(
+            checksum_of(&conn, 2),
+            Sha384::digest(lf.as_bytes()).to_vec()
+        );
+        assert_eq!(
+            checksum_of(&conn, 3),
+            Sha384::digest(edited.as_bytes()).to_vec()
+        );
+    }
+
+    #[test]
+    fn migration_repair_works_towards_crlf_builds_too() {
+        use sha2::{Digest, Sha384};
+        let crlf = "SELECT 1;\r\nSELECT 2;\r\n";
+        let lf = "SELECT 1;\nSELECT 2;\n";
+        let conn = migrations_table(&[(1, lf)]);
+        assert_eq!(
+            repair_migration_line_endings(&conn, [(1, crlf)]).expect("repair"),
+            1
+        );
+        assert_eq!(
+            checksum_of(&conn, 1),
+            Sha384::digest(crlf.as_bytes()).to_vec()
+        );
+    }
+
+    #[test]
+    fn migration_repair_is_a_no_op_on_a_fresh_db() {
+        let conn = rusqlite::Connection::open_in_memory().expect("open");
+        assert_eq!(
+            repair_migration_line_endings(&conn, [(1, "SELECT 1;\n")]).expect("repair"),
+            0
+        );
+    }
 
     #[test]
     fn validate_db_path_accepts_absolute_local_paths() {

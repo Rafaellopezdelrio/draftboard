@@ -47,6 +47,10 @@ use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent}
 use tauri::Manager as _;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
+/// (version, embedded SQL) of every migration, for the pre-boot repair.
+static MIGRATION_SOURCES: std::sync::OnceLock<Vec<(i64, &'static str)>> =
+    std::sync::OnceLock::new();
+
 pub fn run() {
     install_panic_logger();
     let _ = rustls::crypto::aws_lc_rs::default_provider().install_default();
@@ -123,6 +127,9 @@ pub fn run() {
             kind: MigrationKind::Up,
         },
     ];
+    // The pre-boot check repairs line-ending-only checksum drift against
+    // exactly these embedded sources (see db_admin::repair_migration_line_endings).
+    let _ = MIGRATION_SOURCES.set(migrations.iter().map(|m| (m.version, m.sql)).collect());
 
     tauri::Builder::default()
         .plugin(tauri_plugin_window_state::Builder::default().build())
@@ -190,7 +197,8 @@ pub fn run() {
             // (no file-lock conflict with the plugin). Previous
             // TS-side recovery couldn't rename because the plugin
             // already held the handle by the time it ran.
-            if let Err(e) = preboot_db_integrity_check_and_quarantine(app.handle()) {
+            let sources = MIGRATION_SOURCES.get().map(Vec::as_slice).unwrap_or(&[]);
+            if let Err(e) = preboot_db_integrity_check_and_quarantine(app.handle(), sources) {
                 eprintln!("[db-integrity] pre-boot check error (non-fatal): {e}");
             }
 

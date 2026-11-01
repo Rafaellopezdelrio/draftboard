@@ -25,6 +25,9 @@ focus, auto runes, champ-select capture) — see docs/handoff.md.
   server provides both.
 
 ### Fixed
+- The app no longer refuses to open a database whose migrations were recorded
+  by a build with different line endings ("migration N was previously applied
+  but has been modified"); the checksum is repaired at startup.
 - Player search accepts a full `Name#TAG` typed in the name box; clearer
   not-found message; op.gg link opens the right region.
 - "Reset all preferences" actually resets them in the desktop app, and no
