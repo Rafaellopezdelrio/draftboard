@@ -97,6 +97,12 @@ export async function setUiLocale(locale: UiLocale): Promise<void> {
   if (i18n.language !== locale) await i18n.changeLanguage(locale);
 }
 
+/** Load a locale bundle without switching the UI to it. For callers that
+ * resolve keys with an explicit `lng` (e.g. the AI coach language). */
+export function ensureLocaleLoaded(locale: UiLocale): Promise<void> {
+  return loadLocale(locale);
+}
+
 /** Current active locale. Useful for non-component code (e.g. when
  * formatting a server-side message that needs language context). */
 export function getUiLocale(): UiLocale {

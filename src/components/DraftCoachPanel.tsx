@@ -6,7 +6,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Sparkles, Loader2 } from "lucide-react";
 import { usePrefsStore } from "../state/prefsStore";
-import { i18n } from "../i18n";
+import { ensureLocaleLoaded, i18n } from "../i18n";
 import { explainDraft } from "../services/draftCoach";
 import { useEnemyMains } from "../hooks/useEnemyMains";
 import { detectMissingArchetypes } from "../engine/suggestionEngine";
@@ -80,6 +80,10 @@ export function DraftCoachPanel({
     setLoading(true);
     setAdvice(null);
     try {
+      // Bundles load lazily for the UI locale only; without this an English
+      // coach on a Spanish UI gets Spanish reasons via the "es" fallback.
+      const reasonLng = lang === "en" ? "en" : "es";
+      await ensureLocaleLoaded(reasonLng);
       const out = await explainDraft(provider, apiKey ?? "", {
         myChampion: me.name,
         role: safeRole,
@@ -91,7 +95,7 @@ export function DraftCoachPanel({
           name: s.champion.name,
           // Reasons are i18n keys — resolve to the coach's language for the
           // prompt (WR-style literals pass through unchanged).
-          reasons: s.reasons.map((r) => i18n.t(r, { lng: lang === "en" ? "en" : "es" })),
+          reasons: s.reasons.map((r) => i18n.t(r, { lng: reasonLng })),
         })),
         enemyMains: enemyMains.map((m) => ({
           championName: db.champions[String(m.championId)]?.name ?? `#${m.championId}`,

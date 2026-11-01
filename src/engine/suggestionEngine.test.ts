@@ -268,7 +268,7 @@ describe("suggestionEngine", () => {
   it("liveCounters feed the counter dimension (broad op.gg data, not flat 0.5)", () => {
     // Without any counter data the counter dimension is a flat 0.5. A live
     // op.gg counter saying Orianna beats the enemy Zed should lift Orianna's
-    // counter score and surface the "countra a enemigos" reason.
+    // counter score and surface the "contrarresta a enemigos" reason.
     const db = mkDb([meta(ORIANNA_KEY, "MIDDLE")]);
     const result = suggest({
       db,
