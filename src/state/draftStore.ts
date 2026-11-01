@@ -10,12 +10,20 @@ export interface DraftSlot {
   role: Role | null;
 }
 
+/** An enemy identified once the game exists (loading screen onward). */
+export interface EnemyScoutTarget {
+  puuid: string;
+  championId: number | null;
+}
+
 export interface DraftState {
   ally: DraftSlot[];
   enemy: DraftSlot[];
   bans: { ally: string[]; enemy: string[] };
   myRole: Role | null;
   enemySummonerIds: number[];
+  /** Enemy PUUIDs from spectator-v5 — champ select hides them. */
+  enemyScoutTargets: EnemyScoutTarget[];
   myCellId: number | null;
   myChampionIntent: string | null;
   myChampionLocked: string | null;
@@ -26,6 +34,7 @@ export interface DraftState {
   setMyRole: (role: Role | null) => void;
   setBan: (side: Side, index: number, championKey: string | null) => void;
   setEnemySummonerIds: (ids: number[]) => void;
+  setEnemyScoutTargets: (targets: EnemyScoutTarget[]) => void;
   setLocalSelection: (
     cellId: number | null,
     intent: string | null,
@@ -49,6 +58,7 @@ export const useDraftStore = create<DraftState>((set, get) => ({
   bans: { ally: [], enemy: [] },
   myRole: null,
   enemySummonerIds: [],
+  enemyScoutTargets: [],
   myCellId: null,
   myChampionIntent: null,
   myChampionLocked: null,
@@ -64,6 +74,15 @@ export const useDraftStore = create<DraftState>((set, get) => ({
     const cur = get().enemySummonerIds;
     if (cur.length === ids.length && cur.every((v, i) => v === ids[i])) return;
     set({ enemySummonerIds: ids });
+  },
+  setEnemyScoutTargets: (targets) => {
+    const cur = get().enemyScoutTargets;
+    if (
+      cur.length === targets.length &&
+      cur.every((t, i) => t.puuid === targets[i].puuid && t.championId === targets[i].championId)
+    )
+      return;
+    set({ enemyScoutTargets: targets });
   },
   setLocalSelection: (cellId, intent, locked) => {
     const s = get();

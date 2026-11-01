@@ -6,6 +6,7 @@ import {
   applyGameflowRoster,
   type GameflowGameData,
 } from "./gameflowRoster";
+import { refreshEnemyScoutTargets, resetEnemyScoutTargets } from "./enemyScoutTargets";
 
 export type GamePhase =
   | "None"
@@ -23,7 +24,7 @@ interface GameflowSession {
   phase: GamePhase;
   gameData?: {
     gameId?: number;
-    queue?: { id: number; description: string };
+    queue?: { id: number; description: string; gameMode?: string };
     isCustomGame?: boolean;
   } & GameflowGameData;
 }
@@ -109,6 +110,11 @@ export function useGamePhase(): { phase: GamePhase | null; gameId?: number } {
             console.info("[useGamePhase] board filled from gameflow roster (anonymized-select bridge)");
           }
         }
+        // Enemy identities are public once the game exists — feed the scout.
+        void refreshEnemyScoutTargets(next.gameId, session.gameData.queue?.gameMode);
+      } else if (next.phase === "ChampSelect") {
+        // New draft: drop the previous game's enemies.
+        resetEnemyScoutTargets();
       }
 
       timer = setTimeout(tick, consecutiveNulls >= 12 ? 30000 : 5000);

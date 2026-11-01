@@ -125,7 +125,7 @@ describe("EnemyScoutPanel", () => {
     expect(m.loadSettings).not.toHaveBeenCalled();
   });
 
-  it("starts collapsed with the filled-slot count and expands on click", async () => {
+  it("starts collapsed with the team verdict in the header and expands on click", async () => {
     localStorage.removeItem("panel-open:enemyScout");
     const user = userEvent.setup();
     render(
@@ -134,7 +134,8 @@ describe("EnemyScoutPanel", () => {
     await flush();
     const header = screen.getByRole("button", { name: /Scout enemigos/ });
     expect(header).toHaveAttribute("aria-expanded", "false");
-    expect(within(header).getByText("2/5")).toBeInTheDocument();
+    // Once scouted, the collapsed header carries the team verdict.
+    expect(within(header).getByText("Sin amenazas claras — ejecuta tu plan.")).toBeInTheDocument();
     expect(screen.queryByText("Slot 2 vacío")).toBeNull();
 
     await user.click(header);
@@ -345,6 +346,30 @@ describe("EnemyScoutPanel", () => {
     expect(m.scoutPlayer).toHaveBeenLastCalledWith(CFG, "puuid-11", 103);
   });
 
+  // Regression: a forced run aborted by a same-slots re-run (pref flip) must
+  // leave the snapshot behind so the replacement run forces too; otherwise
+  // enemy 2 keeps its champion-less scout.
+  it("a forced re-scout cut short by a pref flip still re-scouts the enemy whose champion changed", async () => {
+    const { rerender } = render(
+      <EnemyScoutPanel db={db} enemySummonerIds={[11, 22]} enemyChampionIds={[null, null]} />
+    );
+    await flush();
+    expect(m.scoutPlayer).toHaveBeenCalledTimes(2);
+
+    // Enemy 2 locks Ahri; the forced run starts on enemy 1 and is still pending there.
+    m.scoutPlayer.mockImplementationOnce(() => new Promise<ScoutResult>(() => {}));
+    rerender(
+      <EnemyScoutPanel db={db} enemySummonerIds={[11, 22]} enemyChampionIds={[null, 103]} />
+    );
+    await flush();
+    expect(m.scoutPlayer).toHaveBeenLastCalledWith(CFG, "puuid-11", undefined);
+
+    // A pref flips mid-run: the effect re-runs and the forced run goes stale.
+    act(() => setPrefs({ liveScoutRefresh: false, notifyOnEnemyHotStreak: false }));
+    await flush();
+    expect(m.scoutPlayer).toHaveBeenCalledWith(CFG, "puuid-22", 103);
+  });
+
   it("live refresh picks up a Riot config saved mid champ-select, and stops on unmount", async () => {
     vi.useFakeTimers();
     setPrefs({ liveScoutRefresh: true, notifyOnEnemyHotStreak: false });
@@ -406,5 +431,428 @@ describe("EnemyScoutPanel", () => {
       await vi.advanceTimersByTimeAsync(180_000);
     });
     expect(m.loadSettings).toHaveBeenCalledTimes(1);
+  });
+});
+
+// Anonymized ranked champ select leaves every enemy summonerId at 0; from the
+// loading screen on, enemies arrive as PUUID targets (spectator-v5).
+describe("EnemyScoutPanel - loading-screen targets (anonymized select)", () => {
+  const ZERO = [0, 0, 0, 0, 0];
+  const NO_CHAMPS = [null, null, null, null, null];
+
+  beforeEach(() => {
+    stubLocalStorage();
+    localStorage.setItem("panel-open:enemyScout", "1");
+    setPrefs({ liveScoutRefresh: false, notifyOnEnemyHotStreak: true });
+    useToastStore.setState({ toasts: [] });
+    speak.mockClear();
+    m.loadSettings.mockReset().mockResolvedValue(CFG);
+    m.getSummonerById.mockReset().mockImplementation(async (sid: number) => ({
+      puuid: `puuid-${sid}`,
+    }));
+    m.scoutPlayer.mockReset().mockResolvedValue(mkScout());
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  it("renders nothing when ids are all 0 and the target list is empty", async () => {
+    const { container } = render(
+      <EnemyScoutPanel db={db} enemySummonerIds={ZERO} enemyChampionIds={NO_CHAMPS} enemyScoutTargets={[]} />
+    );
+    await flush();
+    expect(container).toBeEmptyDOMElement();
+    expect(m.loadSettings).not.toHaveBeenCalled();
+  });
+
+  it("scouts each target by puuid with its own championId, never via the LCU, and renders cards + verdict", async () => {
+    m.scoutPlayer.mockImplementation(async (_cfg: unknown, puuid: string) =>
+      puuid === "pu-a"
+        ? mkScout({
+            recentWins: 7,
+            recentLosses: 3,
+            mainChampionId: 266,
+            pickedChampionMastery: { championId: 266, level: 7, points: 150_000 },
+          })
+        : mkScout({ rank: null, lp: null, recentWins: 2, recentLosses: 3 })
+    );
+    render(
+      <EnemyScoutPanel
+        db={db}
+        enemySummonerIds={ZERO}
+        // Champ-select champion ids are ignored in target mode: the target's
+        // own championId (from the game) is what gets scouted.
+        enemyChampionIds={[103, 103, null, null, null]}
+        enemyScoutTargets={[
+          { puuid: "pu-a", championId: 266 },
+          { puuid: "pu-b", championId: null },
+        ]}
+      />
+    );
+
+    expect(await screen.findByText("70%")).toBeInTheDocument();
+    await screen.findByText("40%");
+
+    expect(m.getSummonerById).not.toHaveBeenCalled();
+    expect(m.scoutPlayer).toHaveBeenCalledTimes(2);
+    expect(m.scoutPlayer).toHaveBeenCalledWith(CFG, "pu-a", 266);
+    expect(m.scoutPlayer).toHaveBeenCalledWith(CFG, "pu-b", undefined);
+
+    // One slot per target; the five zero ids don't render "empty" rows.
+    expect(screen.queryByText(/vacío/)).toBeNull();
+    expect(screen.getByText("Juega su main (Aatrox). Respeta sus picks de poder.")).toBeInTheDocument();
+    expect(screen.getByText("Oponente estándar. Ejecuta tu plan de carril.")).toBeInTheDocument();
+    // Panel open: verdict in the body only (header summary is collapsed-only).
+    expect(screen.getAllByText("1 amenaza: juega seguro y coordina vs ellos.")).toHaveLength(1);
+    expect(speak).toHaveBeenCalledWith(
+      "Amenaza: Juega su main (Aatrox). Respeta sus picks de poder.",
+      "threat-pu-a"
+    );
+  });
+
+  it("shows the verdict in the collapsed header in target mode", async () => {
+    localStorage.removeItem("panel-open:enemyScout");
+    render(
+      <EnemyScoutPanel
+        db={db}
+        enemySummonerIds={ZERO}
+        enemyChampionIds={NO_CHAMPS}
+        enemyScoutTargets={[{ puuid: "pu-a", championId: null }]}
+      />
+    );
+    await flush();
+    const header = screen.getByRole("button", { name: /Scout enemigos/ });
+    expect(header).toHaveAttribute("aria-expanded", "false");
+    expect(within(header).getByText("Sin amenazas claras — ejecuta tu plan.")).toBeInTheDocument();
+  });
+
+  it("shows the filled count in the header while target scouts are still pending", async () => {
+    localStorage.removeItem("panel-open:enemyScout");
+    m.loadSettings.mockResolvedValue(null); // no Riot config -> nothing loads
+    render(
+      <EnemyScoutPanel
+        db={db}
+        enemySummonerIds={ZERO}
+        enemyChampionIds={NO_CHAMPS}
+        enemyScoutTargets={[
+          { puuid: "pu-a", championId: null },
+          { puuid: "pu-b", championId: null },
+          { puuid: "pu-c", championId: null },
+        ]}
+      />
+    );
+    await flush();
+    const header = screen.getByRole("button", { name: /Scout enemigos/ });
+    expect(within(header).getByText("3/5")).toBeInTheDocument();
+    expect(m.scoutPlayer).not.toHaveBeenCalled();
+  });
+
+  it("marks a target slot as error when its scout throws, keeping the others", async () => {
+    m.scoutPlayer.mockImplementation(async (_cfg: unknown, puuid: string) => {
+      if (puuid === "pu-a") throw new Error("429");
+      return mkScout();
+    });
+    render(
+      <EnemyScoutPanel
+        db={db}
+        enemySummonerIds={ZERO}
+        enemyChampionIds={NO_CHAMPS}
+        enemyScoutTargets={[
+          { puuid: "pu-a", championId: null },
+          { puuid: "pu-b", championId: null },
+        ]}
+      />
+    );
+    expect(await screen.findByText("Slot 1: sin datos")).toBeInTheDocument();
+    expect(await screen.findByText("50%")).toBeInTheDocument();
+    expect(m.getSummonerById).not.toHaveBeenCalled();
+  });
+
+  it("gives precedence to real summonerIds over targets", async () => {
+    render(
+      <EnemyScoutPanel
+        db={db}
+        enemySummonerIds={[11, 0, 0, 0, 0]}
+        enemyChampionIds={[103, null, null, null, null]}
+        enemyScoutTargets={[{ puuid: "pu-a", championId: 266 }]}
+      />
+    );
+    expect(await screen.findByText("50%")).toBeInTheDocument();
+    expect(m.getSummonerById).toHaveBeenCalledTimes(1);
+    expect(m.getSummonerById).toHaveBeenCalledWith(11);
+    expect(m.scoutPlayer).toHaveBeenCalledTimes(1);
+    expect(m.scoutPlayer).toHaveBeenCalledWith(CFG, "puuid-11", 103);
+    // Summoner-id mode keeps the five positional rows.
+    expect(screen.getByText("Slot 2 vacío")).toBeInTheDocument();
+    expect(screen.getByText("Slot 5 vacío")).toBeInTheDocument();
+  });
+
+  it("re-scouts when the target list changes, not on an identical new array", async () => {
+    const { rerender } = render(
+      <EnemyScoutPanel
+        db={db}
+        enemySummonerIds={ZERO}
+        enemyChampionIds={NO_CHAMPS}
+        enemyScoutTargets={[{ puuid: "pu-a", championId: null }]}
+      />
+    );
+    await screen.findByText("50%");
+    expect(m.scoutPlayer).toHaveBeenCalledTimes(1);
+
+    // Same content, new identities (parent re-render with a fresh array).
+    rerender(
+      <EnemyScoutPanel
+        db={db}
+        enemySummonerIds={[...ZERO]}
+        enemyChampionIds={[...NO_CHAMPS]}
+        enemyScoutTargets={[{ puuid: "pu-a", championId: null }]}
+      />
+    );
+    await flush();
+    expect(m.scoutPlayer).toHaveBeenCalledTimes(1);
+
+    // New target list: champion now known + a second enemy appears.
+    rerender(
+      <EnemyScoutPanel
+        db={db}
+        enemySummonerIds={ZERO}
+        enemyChampionIds={NO_CHAMPS}
+        enemyScoutTargets={[
+          { puuid: "pu-a", championId: 103 },
+          { puuid: "pu-b", championId: 266 },
+        ]}
+      />
+    );
+    await flush();
+    expect(m.scoutPlayer).toHaveBeenCalledTimes(3);
+    expect(m.scoutPlayer).toHaveBeenCalledWith(CFG, "pu-a", 103);
+    expect(m.scoutPlayer).toHaveBeenCalledWith(CFG, "pu-b", 266);
+    expect(screen.getAllByText("50%")).toHaveLength(2);
+    expect(m.getSummonerById).not.toHaveBeenCalled();
+  });
+
+  it("re-scouts a target when only its championId becomes known", async () => {
+    const { rerender } = render(
+      <EnemyScoutPanel
+        db={db}
+        enemySummonerIds={ZERO}
+        enemyChampionIds={NO_CHAMPS}
+        enemyScoutTargets={[{ puuid: "pu-a", championId: null }]}
+      />
+    );
+    await screen.findByText("50%");
+    expect(m.scoutPlayer).toHaveBeenCalledTimes(1);
+
+    rerender(
+      <EnemyScoutPanel
+        db={db}
+        enemySummonerIds={ZERO}
+        enemyChampionIds={NO_CHAMPS}
+        enemyScoutTargets={[{ puuid: "pu-a", championId: 103 }]}
+      />
+    );
+    await flush();
+    expect(m.scoutPlayer).toHaveBeenCalledTimes(2);
+    expect(m.scoutPlayer).toHaveBeenLastCalledWith(CFG, "pu-a", 103);
+  });
+
+  it("switches from summonerId slots to targets when the ids drop to 0", async () => {
+    const { rerender } = render(
+      <EnemyScoutPanel
+        db={db}
+        enemySummonerIds={[11]}
+        enemyChampionIds={[null]}
+        enemyScoutTargets={[{ puuid: "pu-a", championId: 266 }]}
+      />
+    );
+    await screen.findByText("50%");
+    expect(m.scoutPlayer).toHaveBeenCalledWith(CFG, "puuid-11", undefined);
+
+    rerender(
+      <EnemyScoutPanel
+        db={db}
+        enemySummonerIds={[0]}
+        enemyChampionIds={[null]}
+        enemyScoutTargets={[{ puuid: "pu-a", championId: 266 }]}
+      />
+    );
+    await flush();
+    expect(m.scoutPlayer).toHaveBeenCalledTimes(2);
+    expect(m.scoutPlayer).toHaveBeenLastCalledWith(CFG, "pu-a", 266);
+  });
+
+  it("keeps voice dedupe keys distinct per enemy and toasts once per hot enemy", async () => {
+    m.scoutPlayer.mockResolvedValue(
+      mkScout({ recentWins: 8, recentLosses: 2, hotStreak: true, pickedChampionMastery: null })
+    );
+    render(
+      <EnemyScoutPanel
+        db={db}
+        enemySummonerIds={ZERO}
+        enemyChampionIds={NO_CHAMPS}
+        enemyScoutTargets={[
+          { puuid: "pu-a", championId: 103 },
+          { puuid: "pu-b", championId: 266 },
+        ]}
+      />
+    );
+    await screen.findAllByText("80%");
+    await flush();
+
+    const keys = speak.mock.calls.map((c) => c[1] as string);
+    expect(keys.filter((k) => k.startsWith("hot-"))).toEqual(["hot-pu-a", "hot-pu-b"]);
+    expect(new Set(keys).size).toBe(keys.length);
+    expect(speak).toHaveBeenCalledWith("Cuidado, enemigo en racha con Ahri", "hot-pu-a");
+    expect(speak).toHaveBeenCalledWith("Cuidado, enemigo en racha con Aatrox", "hot-pu-b");
+    expect(useToastStore.getState().toasts.map((t) => t.message)).toEqual([
+      "🔥 Enemigo en racha (GOLD II) con Ahri",
+      "🔥 Enemigo en racha (GOLD II) con Aatrox",
+    ]);
+  });
+
+  // Regression: a scout run superseded by new slots (a target's champion
+  // becomes known, the next game's targets land, a pref flips) must not write.
+  // Before the stale guard, the older, champion-less result resolving late
+  // overwrote scouts["ppu-a"] (card flipped 70% -> 20%, picked-champ mastery
+  // and threat read lost) and fired its own toast/voice.
+  it("keeps the latest scout when an older in-flight scout for the same enemy resolves late", async () => {
+    let resolveOld!: (r: ScoutResult) => void;
+    m.scoutPlayer
+      .mockImplementationOnce(() => new Promise<ScoutResult>((r) => (resolveOld = r)))
+      .mockResolvedValueOnce(
+        mkScout({
+          recentWins: 7,
+          recentLosses: 3,
+          pickedChampionMastery: { championId: 103, level: 7, points: 150_000 },
+        })
+      );
+    const { rerender } = render(
+      <EnemyScoutPanel
+        db={db}
+        enemySummonerIds={ZERO}
+        enemyChampionIds={NO_CHAMPS}
+        enemyScoutTargets={[{ puuid: "pu-a", championId: null }]}
+      />
+    );
+    await flush();
+    rerender(
+      <EnemyScoutPanel
+        db={db}
+        enemySummonerIds={ZERO}
+        enemyChampionIds={NO_CHAMPS}
+        enemyScoutTargets={[{ puuid: "pu-a", championId: 103 }]}
+      />
+    );
+    expect(await screen.findByText("70%")).toBeInTheDocument();
+    expect(m.scoutPlayer).toHaveBeenLastCalledWith(CFG, "pu-a", 103);
+    const toastsBefore = useToastStore.getState().toasts.length;
+    const speaksBefore = speak.mock.calls.length;
+
+    // The stale result is a hot streak: it would toast + speak if it wrote.
+    await act(async () => resolveOld(mkScout({ recentWins: 1, recentLosses: 4, hotStreak: true })));
+    expect(screen.getByText("70%")).toBeInTheDocument();
+    expect(screen.queryByText("20%")).toBeNull();
+    expect(useToastStore.getState().toasts).toHaveLength(toastsBefore);
+    expect(speak).toHaveBeenCalledTimes(speaksBefore);
+  });
+
+  it("fires no toast or voice when unmounted while a scout is in flight", async () => {
+    let resolveScout!: (r: ScoutResult) => void;
+    m.scoutPlayer.mockImplementation(() => new Promise<ScoutResult>((r) => (resolveScout = r)));
+    const { unmount } = render(
+      <EnemyScoutPanel
+        db={db}
+        enemySummonerIds={ZERO}
+        enemyChampionIds={NO_CHAMPS}
+        enemyScoutTargets={[
+          { puuid: "pu-a", championId: 103 },
+          { puuid: "pu-b", championId: 266 },
+        ]}
+      />
+    );
+    await flush();
+    expect(m.scoutPlayer).toHaveBeenCalledTimes(1);
+    unmount();
+
+    // Hot-streak one-trick on the picked champ: toast + streak voice + danger voice if written.
+    await act(async () =>
+      resolveScout(
+        mkScout({
+          recentWins: 8,
+          recentLosses: 2,
+          hotStreak: true,
+          mainChampionId: 103,
+          pickedChampionMastery: { championId: 103, level: 7, points: 250_000 },
+        })
+      )
+    );
+    await flush();
+    expect(useToastStore.getState().toasts).toEqual([]);
+    expect(speak).not.toHaveBeenCalled();
+    // The loop stopped: the second enemy was never scouted.
+    expect(m.scoutPlayer).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the latest scout when an older in-flight scout for the same enemy fails late", async () => {
+    let rejectOld!: (e: Error) => void;
+    m.scoutPlayer
+      .mockImplementationOnce(() => new Promise<ScoutResult>((_r, rej) => (rejectOld = rej)))
+      .mockResolvedValueOnce(mkScout({ recentWins: 7, recentLosses: 3 }));
+    const { rerender } = render(
+      <EnemyScoutPanel
+        db={db}
+        enemySummonerIds={ZERO}
+        enemyChampionIds={NO_CHAMPS}
+        enemyScoutTargets={[{ puuid: "pu-a", championId: null }]}
+      />
+    );
+    await flush();
+    rerender(
+      <EnemyScoutPanel
+        db={db}
+        enemySummonerIds={ZERO}
+        enemyChampionIds={NO_CHAMPS}
+        enemyScoutTargets={[{ puuid: "pu-a", championId: 103 }]}
+      />
+    );
+    expect(await screen.findByText("70%")).toBeInTheDocument();
+
+    await act(async () => rejectOld(new Error("429")));
+    expect(screen.getByText("70%")).toBeInTheDocument();
+    expect(screen.queryByText("Slot 1: sin datos")).toBeNull();
+  });
+
+  it("makes no scout call when unmounted before the settings load resolves", async () => {
+    let resolveCfg!: (c: typeof CFG) => void;
+    m.loadSettings.mockImplementationOnce(() => new Promise((r) => (resolveCfg = r)));
+    const { unmount } = render(
+      <EnemyScoutPanel
+        db={db}
+        enemySummonerIds={ZERO}
+        enemyChampionIds={NO_CHAMPS}
+        enemyScoutTargets={[{ puuid: "pu-a", championId: 103 }]}
+      />
+    );
+    await flush();
+    unmount();
+    await act(async () => resolveCfg(CFG));
+    await flush();
+    expect(m.scoutPlayer).not.toHaveBeenCalled();
+  });
+
+  it("makes no scout call when unmounted while the LCU summoner lookup is pending", async () => {
+    let resolveSummoner!: (s: { puuid: string }) => void;
+    m.getSummonerById.mockImplementationOnce(() => new Promise((r) => (resolveSummoner = r)));
+    const { unmount } = render(
+      <EnemyScoutPanel db={db} enemySummonerIds={[11]} enemyChampionIds={[103]} />
+    );
+    await flush();
+    expect(m.getSummonerById).toHaveBeenCalledWith(11);
+    unmount();
+    await act(async () => resolveSummoner({ puuid: "puuid-11" }));
+    await flush();
+    expect(m.scoutPlayer).not.toHaveBeenCalled();
   });
 });

@@ -258,6 +258,8 @@ export interface CurrentGameParticipant {
   teamId: number;
   summonerId?: string;
   riotId?: string;
+  /** Bot participants carry an empty puuid. */
+  bot?: boolean;
   spell1Id: number;
   spell2Id: number;
   perks?: { perkIds: number[]; perkStyle: number; perkSubStyle: number };

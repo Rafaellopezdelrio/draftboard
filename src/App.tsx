@@ -200,6 +200,7 @@ function App() {
     myRole,
     setMyRole,
     enemySummonerIds,
+    enemyScoutTargets,
     myChampionIntent,
     myChampionLocked,
     reset,
@@ -211,6 +212,7 @@ function App() {
       myRole: s.myRole,
       setMyRole: s.setMyRole,
       enemySummonerIds: s.enemySummonerIds,
+      enemyScoutTargets: s.enemyScoutTargets,
       myChampionIntent: s.myChampionIntent,
       myChampionLocked: s.myChampionLocked,
       reset: s.reset,
@@ -916,6 +918,7 @@ function App() {
                   db={db}
                   enemySummonerIds={enemySummonerIds}
                   enemyChampionIds={enemyChampionIds}
+                  enemyScoutTargets={enemyScoutTargets}
                 />
               </PanelBoundary>
             )}

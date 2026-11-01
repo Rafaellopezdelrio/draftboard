@@ -2,6 +2,7 @@ import { memo, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { i18n } from "../i18n";
 import type { ChampionDb } from "../types/champion";
+import type { EnemyScoutTarget } from "../state/draftStore";
 import { getSummonerById } from "../services/lcuService";
 import { scoutPlayer, type ScoutResult } from "../services/enemyScout";
 import { loadSettings } from "../services/settingsRepo";
@@ -36,19 +37,59 @@ interface Props {
   db: ChampionDb;
   enemySummonerIds: number[];
   enemyChampionIds: (number | null)[];
+  /** Enemies identified from the loading screen on (spectator-v5).
+   *  Used when anonymized champ select leaves every summonerId at 0. */
+  enemyScoutTargets?: EnemyScoutTarget[];
 }
+
+/** One enemy to scout: by LCU summonerId (champ select) or PUUID (in game). */
+interface Slot {
+  key: string;
+  summonerId: number;
+  puuid: string | null;
+  championId: number | null;
+}
+
+function buildSlots(
+  summonerIds: number[],
+  championIds: (number | null)[],
+  targets: EnemyScoutTarget[]
+): Slot[] {
+  if (summonerIds.some((s) => s > 0)) {
+    return summonerIds.map((sid, i) => ({
+      key: `s${sid}`,
+      summonerId: sid,
+      puuid: null,
+      championId: championIds[i] ?? null,
+    }));
+  }
+  return targets.map((tg) => ({
+    key: `p${tg.puuid}`,
+    summonerId: 0,
+    puuid: tg.puuid,
+    championId: tg.championId,
+  }));
+}
+
+const EMPTY_TARGETS: EnemyScoutTarget[] = [];
 
 function EnemyScoutPanelInner({
   db,
   enemySummonerIds,
   enemyChampionIds,
+  enemyScoutTargets = EMPTY_TARGETS,
 }: Props) {
   const { t } = useTranslation();
   const liveRefresh = usePrefsStore((s) => s.prefs.liveScoutRefresh);
   const notifyHot = usePrefsStore((s) => s.prefs.notifyOnEnemyHotStreak);
   const [scouts, setScouts] = useState<
-    Record<number, ScoutResult | "loading" | "error">
+    Record<string, ScoutResult | "loading" | "error">
   >({});
+  const slots = buildSlots(enemySummonerIds, enemyChampionIds, enemyScoutTargets);
+  // Stable identity for the effect: re-scout only when who/what changes.
+  const slotsSig = slots.map((s) => `${s.key}:${s.championId ?? ""}`).join(",");
+  const slotsRef = useRef(slots);
+  slotsRef.current = slots;
   const lastChampSnapshot = useRef<string>("");
   // Mirror `scouts` into a ref so the scout loop can read the LATEST map
   // (to skip already-scouted summoners) WITHOUT listing `scouts` as an effect
@@ -58,35 +99,45 @@ function EnemyScoutPanelInner({
   scoutsRef.current = scouts;
 
   useEffect(() => {
-    if (enemySummonerIds.every((s) => s <= 0)) return;
-    const snapshot = enemyChampionIds.join(",") + "|" + enemySummonerIds.join(",");
-    const champsChanged = snapshot !== lastChampSnapshot.current;
-    lastChampSnapshot.current = snapshot;
+    const current = slotsRef.current;
+    if (!current.some((s) => s.summonerId > 0 || s.puuid)) return;
+    // Advanced only when a forced run finishes (end of runScout): a forced
+    // run cut short by a re-run with the same slots must force again.
+    const champsChanged = slotsSig !== lastChampSnapshot.current;
+    const sig = slotsSig;
 
+    // Superseded runs (slots changed / unmount) must not write: a late,
+    // champion-less result would overwrite the fresh one.
+    let stale = false;
     runScout(champsChanged);
 
-    if (!liveRefresh) return;
-    const id = setInterval(() => runScout(false), 60_000);
-    return () => clearInterval(id);
+    const id = liveRefresh ? setInterval(() => runScout(false), 60_000) : null;
+    return () => {
+      stale = true;
+      if (id) clearInterval(id);
+    };
 
     async function runScout(force: boolean) {
       const cfg = await loadSettings();
-      if (!cfg) return;
-      for (let i = 0; i < enemySummonerIds.length; i++) {
-        const sid = enemySummonerIds[i];
-        const champId = enemyChampionIds[i] ?? undefined;
-        if (sid <= 0) continue;
+      if (!cfg || stale) return;
+      for (const slot of current) {
+        if (stale) return;
+        const sid = slot.key;
+        const champId = slot.championId ?? undefined;
+        if (slot.summonerId <= 0 && !slot.puuid) continue;
         // Skip only loaded slots; "error" ones are retried on the next tick.
         const prev = scoutsRef.current[sid];
         if (!force && prev && prev !== "loading" && prev !== "error") continue;
         setScouts((s) => ({ ...s, [sid]: "loading" }));
-        const lcuSum = await getSummonerById(sid);
-        if (!lcuSum?.puuid) {
+        const puuid = slot.puuid ?? (await getSummonerById(slot.summonerId))?.puuid;
+        if (stale) return;
+        if (!puuid) {
           setScouts((s) => ({ ...s, [sid]: "error" }));
           continue;
         }
         try {
-          const r = await scoutPlayer(cfg, lcuSum.puuid, champId);
+          const r = await scoutPlayer(cfg, puuid, champId);
+          if (stale) return;
           setScouts((s) => ({ ...s, [sid]: r }));
           if (notifyHot && r.hotStreak) {
             const champName = champId
@@ -98,7 +149,7 @@ function EnemyScoutPanelInner({
             );
             voiceCoach.speak(
               `Cuidado, enemigo en racha${champName ? ` con ${champName}` : ""}`,
-              `hot-${sid}`
+              `hot-${slot.summonerId || slot.puuid}`
             );
           }
           if (
@@ -129,30 +180,33 @@ function EnemyScoutPanelInner({
               // re-run the whole scout fetch on every language change).
               voiceCoach.speak(
                 `${i18n.t("scout.threatPrefix")} ${i18n.t(threat.noteKey, threat.noteParams)}`,
-                `threat-${sid}`
+                `threat-${slot.summonerId || slot.puuid}`
               );
             }
           }
         } catch {
+          if (stale) return;
           setScouts((s) => ({ ...s, [sid]: "error" }));
         }
       }
+      if (force && !stale) lastChampSnapshot.current = sig;
     }
-  }, [enemySummonerIds, enemyChampionIds, liveRefresh, notifyHot, db.champions]);
+  }, [slotsSig, liveRefresh, notifyHot, db.champions]);
 
-  if (enemySummonerIds.every((s) => s <= 0)) return null;
+  const isFilled = (s: Slot) => s.summonerId > 0 || !!s.puuid;
+  if (!slots.some(isFilled)) return null;
 
-  const filledCount = enemySummonerIds.filter((s) => s > 0).length;
+  const filledCount = slots.filter(isFilled).length;
 
   // Synthesize a threat read per loaded enemy (+ a team verdict). Reuses the
   // data we already fetched — no extra API calls.
-  const threatBySid: Record<number, PlayerThreat> = {};
+  const threatBySid: Record<string, PlayerThreat> = {};
   const threatList: PlayerThreat[] = [];
-  for (let i = 0; i < enemySummonerIds.length; i++) {
-    const sid = enemySummonerIds[i];
+  for (const slot of slots) {
+    const sid = slot.key;
     const r = scouts[sid];
-    if (sid <= 0 || !r || r === "loading" || r === "error") continue;
-    const cid = enemyChampionIds[i] ?? null;
+    if (!isFilled(slot) || !r || r === "loading" || r === "error") continue;
+    const cid = slot.championId;
     const t = assessThreat({
       scout: r,
       pickedChampionId: cid,
@@ -171,7 +225,9 @@ function EnemyScoutPanelInner({
       storageKey="enemyScout"
       icon={<Eye className="w-3 h-3" />}
       title={t("scout.title")}
-      summary={`${filledCount}/5`}
+      // Collapsed by default: surface the verdict in the header so the threat
+      // read is visible without opening the panel.
+      summary={summary ? t(summary.textKey, summary.textParams) : `${filledCount}/5`}
     >
       {summary && (
         <div
@@ -185,8 +241,9 @@ function EnemyScoutPanelInner({
         </div>
       )}
       <div className="space-y-1.5">
-        {enemySummonerIds.map((sid, i) => {
-          if (sid <= 0)
+        {slots.map((slot, i) => {
+          const sid = slot.key;
+          if (!isFilled(slot))
             return (
               <p key={i} className="text-[11px] text-white/25 italic px-1">
                 {t("scout.slotEmpty", { n: i + 1 })}

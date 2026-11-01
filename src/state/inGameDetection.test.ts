@@ -23,6 +23,12 @@ vi.mock("./gameflowRoster", async (importOriginal) => ({
   applyGameflowRoster,
 }));
 
+const scoutTargets = vi.hoisted(() => ({
+  refreshEnemyScoutTargets: vi.fn(),
+  resetEnemyScoutTargets: vi.fn(),
+}));
+vi.mock("./enemyScoutTargets", () => scoutTargets);
+
 import { useGamePhase } from "./inGameDetection";
 
 const SESSION_PATH = { path: "/lol-gameflow/v1/session" };
@@ -77,6 +83,8 @@ describe("useGamePhase", () => {
     mockInvoke.mockReset();
     getCurrentSummoner.mockReset().mockResolvedValue({ puuid: "me-puuid" });
     applyGameflowRoster.mockReset().mockReturnValue(false);
+    scoutTargets.refreshEnemyScoutTargets.mockReset().mockResolvedValue(undefined);
+    scoutTargets.resetEnemyScoutTargets.mockReset();
     setTauri(true);
     log = vi.spyOn(console, "log").mockImplementation(() => {});
     info = vi.spyOn(console, "info").mockImplementation(() => {});
@@ -243,6 +251,99 @@ describe("useGamePhase", () => {
     await act(async () => resolveMe({ puuid: "me-puuid" }));
     await advance(60_000);
     expect(applyGameflowRoster).not.toHaveBeenCalled();
+    expect(scoutTargets.refreshEnemyScoutTargets).not.toHaveBeenCalled();
     expect(mockInvoke).toHaveBeenCalledTimes(1);
+  });
+
+  describe("enemy scout targets", () => {
+    it("feeds refreshEnemyScoutTargets(gameId, gameMode) on every InProgress tick", async () => {
+      const gameData = { gameId: 7, queue: { id: 420, description: "Ranked", gameMode: "CLASSIC" }, ...teams };
+      sessions({ phase: "InProgress", gameData });
+      renderHook(() => useGamePhase());
+
+      await advance(0);
+      expect(scoutTargets.refreshEnemyScoutTargets).toHaveBeenCalledTimes(1);
+      expect(scoutTargets.refreshEnemyScoutTargets).toHaveBeenCalledWith(7, "CLASSIC");
+      expect(scoutTargets.resetEnemyScoutTargets).not.toHaveBeenCalled();
+
+      // The refresher owns the per-game retry budget; the hook calls it each tick.
+      await advance(5000);
+      expect(scoutTargets.refreshEnemyScoutTargets).toHaveBeenCalledTimes(2);
+    });
+
+    it("feeds the refresher on GameStart too, even when the board was not written", async () => {
+      const gameData = { gameId: 8, queue: { id: 1700, description: "Arena", gameMode: "CHERRY" }, ...teams };
+      sessions({ phase: "GameStart", gameData });
+      renderHook(() => useGamePhase());
+      await advance(0);
+      expect(applyGameflowRoster).toHaveReturnedWith(false);
+      expect(scoutTargets.refreshEnemyScoutTargets).toHaveBeenCalledWith(8, "CHERRY");
+    });
+
+    it("passes undefined gameId / gameMode through when gameData lacks them", async () => {
+      sessions(
+        { phase: "InProgress", gameData: { ...teams } },
+        { phase: "InProgress", gameData: { gameId: 3, queue: { id: 0, description: "Custom" }, ...teams } }
+      );
+      renderHook(() => useGamePhase());
+      await advance(0);
+      expect(scoutTargets.refreshEnemyScoutTargets).toHaveBeenLastCalledWith(undefined, undefined);
+      await advance(5000);
+      expect(scoutTargets.refreshEnemyScoutTargets).toHaveBeenLastCalledWith(3, undefined);
+    });
+
+    it("does not refresh without gameData", async () => {
+      sessions({ phase: "InProgress" }, { phase: "GameStart" });
+      renderHook(() => useGamePhase());
+      await advance(0);
+      await advance(5000);
+      expect(scoutTargets.refreshEnemyScoutTargets).not.toHaveBeenCalled();
+    });
+
+    it("refreshes even when the LCU identity is unknown", async () => {
+      // The scout uses the encrypted PUUID from settings, not the LCU one.
+      getCurrentSummoner.mockResolvedValue(null);
+      sessions({ phase: "InProgress", gameData: { gameId: 9, ...teams } });
+      renderHook(() => useGamePhase());
+
+      await advance(0);
+      expect(getCurrentSummoner).toHaveBeenCalledTimes(1);
+      expect(applyGameflowRoster).not.toHaveBeenCalled();
+      expect(scoutTargets.refreshEnemyScoutTargets).toHaveBeenCalledTimes(1);
+      expect(scoutTargets.refreshEnemyScoutTargets).toHaveBeenCalledWith(9, undefined);
+
+      await advance(5000);
+      expect(scoutTargets.refreshEnemyScoutTargets).toHaveBeenCalledTimes(2);
+    });
+
+    it("resets the targets at ChampSelect and never refreshes there", async () => {
+      sessions(
+        { phase: "InProgress", gameData: { gameId: 5, ...teams } },
+        { phase: "EndOfGame", gameData: { gameId: 5, ...teams } },
+        { phase: "ChampSelect", gameData: { gameId: 6, ...teams } }
+      );
+      renderHook(() => useGamePhase());
+
+      await advance(0);
+      expect(scoutTargets.refreshEnemyScoutTargets).toHaveBeenCalledTimes(1);
+
+      await advance(5000); // EndOfGame: neither refresh nor reset
+      expect(scoutTargets.refreshEnemyScoutTargets).toHaveBeenCalledTimes(1);
+      expect(scoutTargets.resetEnemyScoutTargets).not.toHaveBeenCalled();
+
+      await advance(5000); // next champ select
+      expect(scoutTargets.resetEnemyScoutTargets).toHaveBeenCalledTimes(1);
+      expect(scoutTargets.refreshEnemyScoutTargets).toHaveBeenCalledTimes(1);
+    });
+
+    it("does not reset outside ChampSelect", async () => {
+      sessions({ phase: "Lobby" }, null, { phase: "Matchmaking" });
+      renderHook(() => useGamePhase());
+      await advance(0);
+      await advance(5000);
+      await advance(5000);
+      expect(scoutTargets.resetEnemyScoutTargets).not.toHaveBeenCalled();
+      expect(scoutTargets.refreshEnemyScoutTargets).not.toHaveBeenCalled();
+    });
   });
 });

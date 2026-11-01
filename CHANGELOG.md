@@ -11,6 +11,11 @@ ships everything below them too. Before tagging: play one real game (overlay
 focus, auto runes, champ-select capture) — see docs/handoff.md.
 
 ### Added
+- Enemy scout now works in ranked: Riot hides the enemy team during champ
+  select, so from the loading screen on Draftboard looks the enemies up via
+  spectator-v5 (official Riot API) and shows each one's threat level, a
+  one-line read and the team verdict (also in the collapsed panel header).
+  Skips Practice Tool/TFT, ignores bots and non-5v5 modes like Arena.
 - **Pro build panel (lolvvv.com)**: runes, skill order, first three items,
   boots and spells from pro accounts' soloQ + esports games over ~5 patches,
   with one-click rune import. Shown for the champion's main role.
