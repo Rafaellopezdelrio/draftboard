@@ -25,6 +25,11 @@ focus, auto runes, champ-select capture) — see docs/handoff.md.
   server provides both.
 
 ### Fixed
+- Onboarding: skipping to manual mode while the account sync is still
+  running no longer gets overwritten a few seconds later by the sync result.
+- AI draft coach in English on a Spanish UI now gets the suggestion reasons
+  in English instead of falling back to Spanish.
+- Spanish copy: "countra a enemigos" -> "contrarresta a enemigos".
 - The overlay no longer leaks its live-game event listener when it closes
   before the subscription finishes connecting.
 - Command palette: Enter now runs the highlighted command when commands from
