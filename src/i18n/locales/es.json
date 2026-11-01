@@ -273,6 +273,28 @@
       "safe": "Sin amenazas claras — ejecuta tu plan.",
       "threats_one": "{{count}} amenaza: juega seguro y coordina vs ellos.",
       "threats_other": "{{count}} amenazas: juega seguro y coordina vs ellos."
+    },
+    "jungleNote": {
+      "smurf": "Posible smurf (lvl {{level}}). No vayas a por él sin ventaja clara; juega para otras líneas.",
+      "smurfWr": "Posible smurf (lvl {{level}}, {{wr}}% WR). No vayas a por él sin ventaja clara; juega para otras líneas.",
+      "oneTrick": "OTP de {{champ}} ({{pts}}k). Domina su línea: no vayas a por él pronto sin ayuda; cubre a tu compañero.",
+      "hotStreak": "En racha ({{wr}}%). Se confía y se adelanta: buen objetivo cuando se pase de línea.",
+      "offPool": "Fuera de su pool. Ve a por él pronto, antes de que se acomode.",
+      "coldStreak": "Bajo de forma. Buen objetivo: si muere pronto, puede tiltear.",
+      "coldStreakWr": "Bajo de forma ({{wr}}%). Buen objetivo: si muere pronto, puede tiltear.",
+      "main": "Juega su main ({{champ}}). Fuerte en línea: ve a por él solo con ventaja.",
+      "standard": "Rival normal. Ve a por él según cómo vaya su línea."
+    },
+    "junglerNote": {
+      "smurf": "Jungla rival: posible smurf (lvl {{level}}). Espera invasiones; no pelees en su jungla.",
+      "smurfWr": "Jungla rival: posible smurf (lvl {{level}}, {{wr}}% WR). Espera invasiones; no pelees en su jungla.",
+      "oneTrick": "Jungla rival: OTP de {{champ}} ({{pts}}k). Sigue su ruta y protege tu jungla.",
+      "hotStreak": "Jungla rival en racha ({{wr}}%). Pon guardias en tu jungla: vendrá a invadir.",
+      "offPool": "Jungla rival fuera de su pool. Puedes invadirle pronto.",
+      "coldStreak": "Jungla rival bajo de forma. Disputa sus campamentos y objetivos.",
+      "coldStreakWr": "Jungla rival bajo de forma ({{wr}}%). Disputa sus campamentos y objetivos.",
+      "main": "Jungla rival con su main ({{champ}}). Respeta sus momentos fuertes y sigue su ruta.",
+      "standard": "Jungla rival normal. Sigue su ruta y juega en el lado contrario del mapa."
     }
   },
   "matchupTips": {

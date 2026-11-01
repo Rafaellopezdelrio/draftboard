@@ -33,8 +33,15 @@ export function enemyTargetsFromSpectator(
   if (new Set(parts.map((p) => p.teamId)).size !== 2) return [];
   return parts
     .filter((p) => p.teamId !== me.teamId && !p.bot && PUUID_RE.test(p.puuid ?? ""))
-    .map((p) => ({ puuid: p.puuid, championId: champ(p.championId) }));
+    .map((p) => ({
+      puuid: p.puuid,
+      championId: champ(p.championId),
+      hasSmite: p.spell1Id === SMITE || p.spell2Id === SMITE,
+    }));
 }
+
+// Summoner spell id for Smite.
+const SMITE = 11;
 
 // Modes with nobody to scout (spectator 404s or has no human enemies).
 const SKIP_MODES = new Set(["PRACTICETOOL", "TFT"]);

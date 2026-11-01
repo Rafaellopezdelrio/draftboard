@@ -1,7 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { rankValue, assessThreat, summarizeEnemies } from "./scoutInsights";
+import { rankValue, assessThreat, scoutViewpoint, summarizeEnemies } from "./scoutInsights";
 import type { ScoutResult } from "../services/enemyScout";
 import es from "../i18n/locales/es.json";
+import en from "../i18n/locales/en.json";
 
 function sr(over: Partial<ScoutResult>): ScoutResult {
   return {
@@ -98,6 +99,48 @@ describe("assessThreat", () => {
       const tr = assessThreat({ scout, pickedChampionId: 99, championName: "X" });
       const leaf = tr.noteKey.replace("scout.note.", "");
       expect(leaf in notes).toBe(true);
+    }
+  });
+
+  // User report (01/11): as a jungler the notes said "snowball your lane" /
+  // "ask for jungle" for every enemy. Jungle viewpoints phrase the same
+  // signal as gank advice (laners) or invade advice (enemy jungler).
+  it.each([
+    ["JUNGLE", false, "jungler-vs-laner"],
+    ["JUNGLE", true, "jungler-vs-jungler"],
+    ["MIDDLE", true, "laner"],
+    [null, false, "laner"],
+  ] as const)("scoutViewpoint(%s, smite=%s) → %s", (role, smite, expected) => {
+    expect(scoutViewpoint(role, smite)).toBe(expected);
+  });
+
+  it("phrases the same signal for the jungler's viewpoint", () => {
+    const scout = sr({ coldStreak: true, recentWins: 2, recentLosses: 8 });
+    expect(assessThreat({ scout }).noteKey).toBe("scout.note.coldStreakWr");
+    expect(assessThreat({ scout, viewpoint: "jungler-vs-laner" }).noteKey).toBe(
+      "scout.jungleNote.coldStreakWr"
+    );
+    const vsJg = assessThreat({ scout, viewpoint: "jungler-vs-jungler" });
+    expect(vsJg.noteKey).toBe("scout.junglerNote.coldStreakWr");
+    // Viewpoint only changes the wording, never the threat read.
+    expect(vsJg.level).toBe(assessThreat({ scout }).level);
+    expect(vsJg.noteParams).toEqual(assessThreat({ scout }).noteParams);
+  });
+
+  it("every jungle-viewpoint note exists in es and en, with the laner's params", () => {
+    type Notes = Record<string, string>;
+    const scoutEs = (es as unknown as { scout: Record<string, Notes> }).scout;
+    const scoutEn = (en as unknown as { scout: Record<string, Notes> }).scout;
+    const params = (s: string) => (s.match(/\{\{\w+\}\}/g) ?? []).sort();
+    for (const group of ["jungleNote", "junglerNote"]) {
+      for (const lang of [scoutEs, scoutEn]) {
+        expect(Object.keys(lang[group]).sort()).toEqual(Object.keys(lang.note).sort());
+        for (const k of Object.keys(lang.note)) {
+          expect(params(lang[group][k])).toEqual(params(lang.note[k]));
+          // The whole point: no "your lane" advice in jungle notes.
+          expect(lang[group][k]).not.toMatch(/tu carril|pide jungla|your lane\b|ask for jungle/i);
+        }
+      }
     }
   });
 });

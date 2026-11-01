@@ -14,6 +14,8 @@ export interface DraftSlot {
 export interface EnemyScoutTarget {
   puuid: string;
   championId: number | null;
+  /** Runs Smite → the enemy jungler (drives jungle-perspective notes). */
+  hasSmite?: boolean;
 }
 
 export interface DraftState {
@@ -79,7 +81,9 @@ export const useDraftStore = create<DraftState>((set, get) => ({
     const cur = get().enemyScoutTargets;
     if (
       cur.length === targets.length &&
-      cur.every((t, i) => t.puuid === targets[i].puuid && t.championId === targets[i].championId)
+      cur.every((t, i) => t.puuid === targets[i].puuid &&
+          t.championId === targets[i].championId &&
+          t.hasSmite === targets[i].hasSmite)
     )
       return;
     set({ enemyScoutTargets: targets });

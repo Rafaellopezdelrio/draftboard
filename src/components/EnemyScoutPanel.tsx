@@ -2,7 +2,7 @@ import { memo, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { i18n } from "../i18n";
 import type { ChampionDb } from "../types/champion";
-import type { EnemyScoutTarget } from "../state/draftStore";
+import { useDraftStore, type EnemyScoutTarget } from "../state/draftStore";
 import { getSummonerById } from "../services/lcuService";
 import { scoutPlayer, type ScoutResult } from "../services/enemyScout";
 import { loadSettings } from "../services/settingsRepo";
@@ -13,6 +13,7 @@ import { Panel } from "./ui/Panel";
 import { RankBadge } from "./ui/RankBadge";
 import {
   assessThreat,
+  scoutViewpoint,
   summarizeEnemies,
   type PlayerThreat,
   type ThreatLevel,
@@ -48,6 +49,7 @@ interface Slot {
   summonerId: number;
   puuid: string | null;
   championId: number | null;
+  hasSmite: boolean;
 }
 
 function buildSlots(
@@ -61,6 +63,7 @@ function buildSlots(
       summonerId: sid,
       puuid: null,
       championId: championIds[i] ?? null,
+      hasSmite: false,
     }));
   }
   return targets.map((tg) => ({
@@ -68,6 +71,7 @@ function buildSlots(
     summonerId: 0,
     puuid: tg.puuid,
     championId: tg.championId,
+    hasSmite: !!tg.hasSmite,
   }));
 }
 
@@ -82,6 +86,8 @@ function EnemyScoutPanelInner({
   const { t } = useTranslation();
   const liveRefresh = usePrefsStore((s) => s.prefs.liveScoutRefresh);
   const notifyHot = usePrefsStore((s) => s.prefs.notifyOnEnemyHotStreak);
+  // Notes are phrased for my role (jungler gets gank/invade advice).
+  const myRole = useDraftStore((s) => s.myRole);
   const [scouts, setScouts] = useState<
     Record<string, ScoutResult | "loading" | "error">
   >({});
@@ -170,6 +176,8 @@ function EnemyScoutPanelInner({
               ? db.champions[String(champId)]?.name ?? null
               : null;
             const threat = assessThreat({
+              // Read at call time: role changes must not re-run the scout fetch.
+              viewpoint: scoutViewpoint(useDraftStore.getState().myRole, slot.hasSmite),
               scout: r,
               pickedChampionId: champId ?? null,
               championName: champName,
@@ -208,6 +216,7 @@ function EnemyScoutPanelInner({
     if (!isFilled(slot) || !r || r === "loading" || r === "error") continue;
     const cid = slot.championId;
     const t = assessThreat({
+      viewpoint: scoutViewpoint(myRole, slot.hasSmite),
       scout: r,
       pickedChampionId: cid,
       championName: cid ? db.champions[String(cid)]?.name ?? null : null,

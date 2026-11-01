@@ -30,6 +30,9 @@ focus, auto runes, champ-select capture) — see docs/handoff.md.
   server provides both.
 
 ### Fixed
+- Enemy scout notes now fit your role: as a jungler you get gank advice for
+  enemy laners and invade/tracking advice for the enemy jungler (detected by
+  Smite), instead of lane tips like "snowball your lane" for every enemy.
 - Onboarding: skipping to manual mode while the account sync is still
   running no longer gets overwritten a few seconds later by the sync result.
 - AI draft coach in English on a Spanish UI now gets the suggestion reasons

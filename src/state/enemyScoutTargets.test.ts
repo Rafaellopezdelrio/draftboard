@@ -68,7 +68,7 @@ describe("enemyTargetsFromSpectator", () => {
       participant(pu("opp1"), 200, 122),
       participant(pu("opp2"), 200, 103),
     ]);
-    expect(enemyTargetsFromSpectator(g, ME)).toEqual([
+    expect(enemyTargetsFromSpectator(g, ME)).toMatchObject([
       { puuid: pu("opp1"), championId: 122 },
       { puuid: pu("opp2"), championId: 103 },
     ]);
@@ -80,20 +80,20 @@ describe("enemyTargetsFromSpectator", () => {
       participant(ME, 200, 222),
       participant(pu("ally"), 200, 64),
     ]);
-    expect(enemyTargetsFromSpectator(g, ME)).toEqual([{ puuid: pu("opp1"), championId: 122 }]);
+    expect(enemyTargetsFromSpectator(g, ME)).toMatchObject([{ puuid: pu("opp1"), championId: 122 }]);
   });
 
   it("returns [] when I am not in the game", () => {
     const g = game([participant(pu("a"), 100, 1), participant(pu("b"), 200, 2)]);
-    expect(enemyTargetsFromSpectator(g, ME)).toEqual([]);
+    expect(enemyTargetsFromSpectator(g, ME)).toMatchObject([]);
   });
 
   it("returns [] for null/undefined game or missing participants", () => {
-    expect(enemyTargetsFromSpectator(null, ME)).toEqual([]);
-    expect(enemyTargetsFromSpectator(undefined, ME)).toEqual([]);
+    expect(enemyTargetsFromSpectator(null, ME)).toMatchObject([]);
+    expect(enemyTargetsFromSpectator(undefined, ME)).toMatchObject([]);
     expect(
       enemyTargetsFromSpectator({ ...game([]), participants: undefined } as unknown as CurrentGameInfo, ME)
-    ).toEqual([]);
+    ).toMatchObject([]);
   });
 
   it("returns [] for Arena-style games with more than two teams", () => {
@@ -105,12 +105,12 @@ describe("enemyTargetsFromSpectator", () => {
       participant(pu("t3a"), 300, 1),
       participant(pu("t3b"), 300, 2),
     ]);
-    expect(enemyTargetsFromSpectator(g, ME)).toEqual([]);
+    expect(enemyTargetsFromSpectator(g, ME)).toMatchObject([]);
   });
 
   it("returns [] when everyone is on my team (single teamId)", () => {
     const g = game([participant(ME, 100, 222), participant(pu("a"), 100, 1)]);
-    expect(enemyTargetsFromSpectator(g, ME)).toEqual([]);
+    expect(enemyTargetsFromSpectator(g, ME)).toMatchObject([]);
   });
 
   it("drops bot participants even when their puuid looks valid", () => {
@@ -120,7 +120,7 @@ describe("enemyTargetsFromSpectator", () => {
       participant("", 200, 2, true),
       participant(pu("human"), 200, 3),
     ]);
-    expect(enemyTargetsFromSpectator(g, ME)).toEqual([{ puuid: pu("human"), championId: 3 }]);
+    expect(enemyTargetsFromSpectator(g, ME)).toMatchObject([{ puuid: pu("human"), championId: 3 }]);
   });
 
   it("drops enemies with empty, short, client-format or non-url-safe PUUIDs", () => {
@@ -132,7 +132,7 @@ describe("enemyTargetsFromSpectator", () => {
       participant("0f5c2a9e-1111-2222-3333-444455556666", 200, 5),
       participant(pu("ok"), 200, 4),
     ]);
-    expect(enemyTargetsFromSpectator(g, ME)).toEqual([{ puuid: pu("ok"), championId: 4 }]);
+    expect(enemyTargetsFromSpectator(g, ME)).toMatchObject([{ puuid: pu("ok"), championId: 4 }]);
   });
 
   it("maps championId <= 0 to null", () => {
@@ -141,9 +141,23 @@ describe("enemyTargetsFromSpectator", () => {
       participant(pu("zero"), 200, 0),
       participant(pu("neg"), 200, -1),
     ]);
-    expect(enemyTargetsFromSpectator(g, ME)).toEqual([
+    expect(enemyTargetsFromSpectator(g, ME)).toMatchObject([
       { puuid: pu("zero"), championId: null },
       { puuid: pu("neg"), championId: null },
+    ]);
+  });
+
+  it("flags the enemy running Smite (in either spell slot) as the jungler", () => {
+    const g = game([
+      participant(ME, 100, 222),
+      { ...participant(pu("jg"), 200, 64), spell1Id: 11, spell2Id: 4 },
+      { ...participant(pu("jg2"), 200, 120), spell1Id: 4, spell2Id: 11 },
+      participant(pu("top"), 200, 122),
+    ]);
+    expect(enemyTargetsFromSpectator(g, ME).map((t) => [t.championId, t.hasSmite])).toEqual([
+      [64, true],
+      [120, true],
+      [122, false],
     ]);
   });
 });
@@ -155,8 +169,8 @@ describe("refreshEnemyScoutTargets", () => {
     participant(pu("sp2"), 200, 103),
   ]);
   const spectatorTargets = [
-    { puuid: pu("sp1"), championId: 122 },
-    { puuid: pu("sp2"), championId: 103 },
+    { puuid: pu("sp1"), championId: 122, hasSmite: false },
+    { puuid: pu("sp2"), championId: 103, hasSmite: false },
   ];
 
   beforeEach(() => {
@@ -184,7 +198,7 @@ describe("refreshEnemyScoutTargets", () => {
       ])
     );
     await refreshEnemyScoutTargets(1);
-    expect(targets()).toEqual([
+    expect(targets()).toMatchObject([
       { puuid: pu("blue1"), championId: 10 },
       { puuid: pu("blue2"), championId: 11 },
     ]);
@@ -193,7 +207,7 @@ describe("refreshEnemyScoutTargets", () => {
   it("settles after a success: no further loadSettings / spectator calls for that game", async () => {
     getCurrentGameByPuuid.mockResolvedValueOnce(null).mockResolvedValue(spectatorGame);
     await refreshEnemyScoutTargets(1);
-    expect(targets()).toEqual([]);
+    expect(targets()).toMatchObject([]);
 
     await refreshEnemyScoutTargets(1);
     expect(targets()).toEqual(spectatorTargets);
@@ -214,7 +228,7 @@ describe("refreshEnemyScoutTargets", () => {
       ])
     );
     await refreshEnemyScoutTargets(1, "CLASSIC");
-    expect(targets()).toEqual([]);
+    expect(targets()).toMatchObject([]);
     for (let i = 0; i < 5; i++) await refreshEnemyScoutTargets(1, "CLASSIC");
     expect(getCurrentGameByPuuid).toHaveBeenCalledTimes(1);
     expect(loadSettings).toHaveBeenCalledTimes(1);
@@ -230,7 +244,7 @@ describe("refreshEnemyScoutTargets", () => {
     );
     await refreshEnemyScoutTargets(1, "CHERRY");
     await refreshEnemyScoutTargets(1, "CHERRY");
-    expect(targets()).toEqual([]);
+    expect(targets()).toMatchObject([]);
     expect(getCurrentGameByPuuid).toHaveBeenCalledTimes(1);
   });
 
@@ -244,7 +258,7 @@ describe("refreshEnemyScoutTargets", () => {
       await refreshEnemyScoutTargets(1);
       expect(loadSettings).not.toHaveBeenCalled();
       expect(getCurrentGameByPuuid).not.toHaveBeenCalled();
-      expect(targets()).toEqual([]);
+      expect(targets()).toMatchObject([]);
     }
   );
 
@@ -254,7 +268,7 @@ describe("refreshEnemyScoutTargets", () => {
     await refreshEnemyScoutTargets(1);
     expect(loadSettings).toHaveBeenCalledTimes(2);
     expect(getCurrentGameByPuuid).not.toHaveBeenCalled();
-    expect(targets()).toEqual([]);
+    expect(targets()).toMatchObject([]);
     // User saves their Riot ID in Settings during the game.
     loadSettings.mockResolvedValue(CFG);
     getCurrentGameByPuuid.mockResolvedValue(spectatorGame);
@@ -275,13 +289,13 @@ describe("refreshEnemyScoutTargets", () => {
     await refreshEnemyScoutTargets(1);
     await refreshEnemyScoutTargets(1);
     expect(getCurrentGameByPuuid).toHaveBeenCalledTimes(2);
-    expect(targets()).toEqual([]);
+    expect(targets()).toMatchObject([]);
   });
 
   it("spectator throwing never rejects and is retried next tick", async () => {
     getCurrentGameByPuuid.mockRejectedValueOnce(new Error("429")).mockResolvedValue(spectatorGame);
     await expect(refreshEnemyScoutTargets(1)).resolves.toBeUndefined();
-    expect(targets()).toEqual([]);
+    expect(targets()).toMatchObject([]);
     await refreshEnemyScoutTargets(1);
     expect(getCurrentGameByPuuid).toHaveBeenCalledTimes(2);
     expect(targets()).toEqual(spectatorTargets);
@@ -303,7 +317,7 @@ describe("refreshEnemyScoutTargets", () => {
     await refreshEnemyScoutTargets(1);
     await refreshEnemyScoutTargets(1);
     expect(getCurrentGameByPuuid).toHaveBeenCalledTimes(2);
-    expect(targets()).toEqual([]);
+    expect(targets()).toMatchObject([]);
   });
 
   it("ignores a spectator game whose gameId does not match, then accepts the right one", async () => {
@@ -311,7 +325,7 @@ describe("refreshEnemyScoutTargets", () => {
       .mockResolvedValueOnce({ ...spectatorGame, gameId: 99 })
       .mockResolvedValue(spectatorGame);
     await refreshEnemyScoutTargets(1);
-    expect(targets()).toEqual([]);
+    expect(targets()).toMatchObject([]);
     await refreshEnemyScoutTargets(1);
     expect(getCurrentGameByPuuid).toHaveBeenCalledTimes(2);
     expect(targets()).toEqual(spectatorTargets);
@@ -359,7 +373,7 @@ describe("refreshEnemyScoutTargets", () => {
     resetEnemyScoutTargets();
     d.resolve(spectatorGame);
     await pending;
-    expect(targets()).toEqual([]);
+    expect(targets()).toMatchObject([]);
 
     // Not marked resolved: the next tick asks spectator again.
     await refreshEnemyScoutTargets(1);
@@ -381,12 +395,12 @@ describe("refreshEnemyScoutTargets", () => {
 
     d.resolve(spectatorGame);
     await pending;
-    expect(targets()).toEqual([]);
+    expect(targets()).toMatchObject([]);
 
     // Game 2 is not resolved by game 1's answer: the next tick asks again.
     await refreshEnemyScoutTargets(2);
     expect(getCurrentGameByPuuid).toHaveBeenCalledTimes(2);
-    expect(targets()).toEqual([{ puuid: pu("g2"), championId: 55 }]);
+    expect(targets()).toMatchObject([{ puuid: pu("g2"), championId: 55 }]);
   });
 
   // resetEnemyScoutTargets() is documented as also covering an account switch.
@@ -402,7 +416,7 @@ describe("refreshEnemyScoutTargets", () => {
     await refreshEnemyScoutTargets(1); // deduped, but re-arms lastGameId = 1
     d.resolve(spectatorGame);
     await pending;
-    expect(targets()).toEqual([]);
+    expect(targets()).toMatchObject([]);
   });
 
   it("stops calling spectator after 12 tries for the same gameId", async () => {
@@ -410,7 +424,7 @@ describe("refreshEnemyScoutTargets", () => {
     for (let i = 0; i < 15; i++) await refreshEnemyScoutTargets(1);
     expect(getCurrentGameByPuuid).toHaveBeenCalledTimes(12);
     expect(loadSettings).toHaveBeenCalledTimes(12);
-    expect(targets()).toEqual([]);
+    expect(targets()).toMatchObject([]);
   });
 
   it("errors count toward the 12-try cap too", async () => {
@@ -436,7 +450,7 @@ describe("refreshEnemyScoutTargets", () => {
     // Spectator has nothing yet for game 2: last game's enemies must not stay.
     await refreshEnemyScoutTargets(2);
     expect(getCurrentGameByPuuid).toHaveBeenCalledTimes(2);
-    expect(targets()).toEqual([]);
+    expect(targets()).toMatchObject([]);
   });
 
   it("a new gameId in a skip mode also clears the previous targets", async () => {
@@ -446,7 +460,7 @@ describe("refreshEnemyScoutTargets", () => {
 
     await refreshEnemyScoutTargets(2, "TFT");
     expect(getCurrentGameByPuuid).toHaveBeenCalledTimes(1);
-    expect(targets()).toEqual([]);
+    expect(targets()).toMatchObject([]);
   });
 
   it("an undefined gameId keeps the current game's memo and targets", async () => {
@@ -476,7 +490,7 @@ describe("resetEnemyScoutTargets", () => {
   it("clears the store", () => {
     useDraftStore.getState().setEnemyScoutTargets([{ puuid: pu("a"), championId: 1 }]);
     resetEnemyScoutTargets();
-    expect(targets()).toEqual([]);
+    expect(targets()).toMatchObject([]);
   });
 
   it("clears the per-game memo so the same gameId is resolved again", async () => {
@@ -488,10 +502,10 @@ describe("resetEnemyScoutTargets", () => {
     expect(getCurrentGameByPuuid).toHaveBeenCalledTimes(1);
 
     resetEnemyScoutTargets();
-    expect(targets()).toEqual([]);
+    expect(targets()).toMatchObject([]);
     await refreshEnemyScoutTargets(5);
     expect(getCurrentGameByPuuid).toHaveBeenCalledTimes(2);
-    expect(targets()).toEqual([{ puuid: pu("sp1"), championId: 122 }]);
+    expect(targets()).toMatchObject([{ puuid: pu("sp1"), championId: 122 }]);
   });
 
   it("clears the try counter", async () => {

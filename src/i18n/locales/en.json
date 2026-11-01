@@ -273,6 +273,28 @@
       "safe": "No clear threats — execute your plan.",
       "threats_one": "{{count}} threat: play safe and coordinate against them.",
       "threats_other": "{{count}} threats: play safe and coordinate against them."
+    },
+    "jungleNote": {
+      "smurf": "Possible smurf (lvl {{level}}). Don't gank them without a clear lead; play for other lanes.",
+      "smurfWr": "Possible smurf (lvl {{level}}, {{wr}}% WR). Don't gank them without a clear lead; play for other lanes.",
+      "oneTrick": "{{champ}} OTP ({{pts}}k). Strong in lane: don't gank early without help; cover your laner.",
+      "hotStreak": "On a hot streak ({{wr}}%). Overconfident: gank when they overextend.",
+      "offPool": "Off their champ pool. Gank early before they settle in.",
+      "coldStreak": "Out of form. Good gank target: an early death may tilt them.",
+      "coldStreakWr": "Out of form ({{wr}}%). Good gank target: an early death may tilt them.",
+      "main": "Playing their main ({{champ}}). Strong in lane: gank only with an advantage.",
+      "standard": "Standard opponent. Gank based on how their lane is going."
+    },
+    "junglerNote": {
+      "smurf": "Enemy jungler: possible smurf (lvl {{level}}). Expect invades; don't fight in their jungle.",
+      "smurfWr": "Enemy jungler: possible smurf (lvl {{level}}, {{wr}}% WR). Expect invades; don't fight in their jungle.",
+      "oneTrick": "Enemy jungler: {{champ}} OTP ({{pts}}k). Track their path and protect your jungle.",
+      "hotStreak": "Enemy jungler on a hot streak ({{wr}}%). Ward your jungle: expect invades.",
+      "offPool": "Enemy jungler off their champ pool. You can invade them early.",
+      "coldStreak": "Enemy jungler out of form. Contest their camps and objectives.",
+      "coldStreakWr": "Enemy jungler out of form ({{wr}}%). Contest their camps and objectives.",
+      "main": "Enemy jungler on their main ({{champ}}). Respect their power spikes and track them.",
+      "standard": "Standard enemy jungler. Track their path and play the opposite side."
     }
   },
   "matchupTips": {

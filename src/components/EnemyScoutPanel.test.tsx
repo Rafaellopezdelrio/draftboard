@@ -26,6 +26,7 @@ vi.mock("../services/settingsRepo", () => ({ loadSettings: m.loadSettings }));
 
 import { EnemyScoutPanel } from "./EnemyScoutPanel";
 import { usePrefsStore, DEFAULT_PREFS } from "../state/prefsStore";
+import { useDraftStore } from "../state/draftStore";
 import { useToastStore } from "./Toaster";
 import { voiceCoach } from "../services/voiceCoach";
 
@@ -510,6 +511,48 @@ describe("EnemyScoutPanel - loading-screen targets (anonymized select)", () => {
       "Amenaza: Juega su main (Aatrox). Respeta sus picks de poder.",
       "threat-pu-a"
     );
+  });
+
+  // User report (01/11): as a jungler the notes and the spoken alert gave
+  // lane advice ("Ejecuta tu plan de carril") for every enemy.
+  it("as a jungler: gank advice for laners, invade advice for the Smite user, spoken too", async () => {
+    useDraftStore.setState({ myRole: "JUNGLE" });
+    try {
+      m.scoutPlayer.mockImplementation(async (_cfg: unknown, puuid: string) =>
+        puuid === "pu-jg"
+          ? mkScout({
+              recentWins: 7,
+              recentLosses: 3,
+              mainChampionId: 266,
+              pickedChampionMastery: { championId: 266, level: 7, points: 150_000 },
+            })
+          : mkScout({ rank: null, lp: null, recentWins: 2, recentLosses: 3 })
+      );
+      render(
+        <EnemyScoutPanel
+          db={db}
+          enemySummonerIds={ZERO}
+          enemyChampionIds={NO_CHAMPS}
+          enemyScoutTargets={[
+            { puuid: "pu-jg", championId: 266, hasSmite: true },
+            { puuid: "pu-top", championId: null, hasSmite: false },
+          ]}
+        />
+      );
+      await screen.findByText("70%");
+      await screen.findByText("40%");
+      expect(
+        screen.getByText("Jungla rival con su main (Aatrox). Respeta sus momentos fuertes y sigue su ruta.")
+      ).toBeInTheDocument();
+      expect(screen.getByText("Rival normal. Ve a por él según cómo vaya su línea.")).toBeInTheDocument();
+      expect(screen.queryByText(/tu carril|pide jungla/)).toBeNull();
+      expect(speak).toHaveBeenCalledWith(
+        "Amenaza: Jungla rival con su main (Aatrox). Respeta sus momentos fuertes y sigue su ruta.",
+        "threat-pu-jg"
+      );
+    } finally {
+      useDraftStore.setState({ myRole: null });
+    }
   });
 
   it("shows the verdict in the collapsed header in target mode", async () => {

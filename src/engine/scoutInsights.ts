@@ -53,8 +53,30 @@ const SMURF_LEVEL = 40;
 const ONE_TRICK_PTS = 200_000;
 const COMFORT_CAP_PTS = 300_000;
 
+/** Whose eyes the note is written for. Laner notes talk about "your lane";
+ *  a jungler needs gank advice for laners and invade advice vs the enemy
+ *  jungler. */
+export type ScoutViewpoint = "laner" | "jungler-vs-laner" | "jungler-vs-jungler";
+
+const NOTE_PREFIX: Record<ScoutViewpoint, string> = {
+  laner: "scout.note.",
+  "jungler-vs-laner": "scout.jungleNote.",
+  "jungler-vs-jungler": "scout.junglerNote.",
+};
+
+/** Pick the viewpoint from my role and whether the enemy runs Smite. */
+export function scoutViewpoint(
+  myRole: string | null | undefined,
+  enemyHasSmite: boolean | undefined
+): ScoutViewpoint {
+  if (myRole !== "JUNGLE") return "laner";
+  return enemyHasSmite ? "jungler-vs-jungler" : "jungler-vs-laner";
+}
+
 export interface AssessArgs {
   scout: ScoutResult;
+  /** Defaults to "laner" (the original lane-focused notes). */
+  viewpoint?: ScoutViewpoint;
   /** Champion the enemy locked (for off-pool detection + nicer notes). */
   pickedChampionId?: number | null;
   /** Display name of the picked champion, when known. */
@@ -66,6 +88,7 @@ export function assessThreat({
   scout,
   pickedChampionId,
   championName,
+  viewpoint = "laner",
 }: AssessArgs): PlayerThreat {
   const total = scout.recentWins + scout.recentLosses;
   const wr = total > 0 ? scout.recentWins / total : null;
@@ -150,6 +173,9 @@ export function assessThreat({
   } else {
     noteKey = "scout.note.standard";
   }
+
+  // Same signal, phrased for the reader's role (keys mirror scout.note.*).
+  noteKey = NOTE_PREFIX[viewpoint] + noteKey.slice("scout.note.".length);
 
   return { level, score, tags, noteKey, noteParams };
 }
