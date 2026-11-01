@@ -120,6 +120,22 @@ the old version.
 
 ## Open
 
+- **Compliance audit (2026-11-01/02).** No cheating/bannable behavior found.
+  Confirmed violations: (1) public app on a *personal* Riot key — needs a
+  Production key (user applies in the portal; describe the real features,
+  incl. enemy scout, overlay, live coach, LCU writes); (2) open proxy relay —
+  fixed in worker 5149610 (app-only allow-list, typed ids, 120/min);
+  (3) op.gg web scrape — replaced by op.gg's public MCP. **Worker not
+  deployed yet** (needs the user's explicit "despliega"). User decision: gray
+  areas (in-game voice coach, in-game scout, auto-runes, lolvvv/u.gg, TermsGate
+  wording) are kept and should be improved to real-coach quality.
+- **Roadmap order set by the user (2026-11-02):** 1) polish the existing base,
+  2) gray-area features as a real coach, 3) contextual builds. For (3): op.gg
+  MCP `lol_get_lane_matchup_guide` (my_champion vs opponent, UPPER_SNAKE
+  names, e.g. LEE_SIN / NUNU_WILLUMP) returns a matchup-specific build (core
+  items, boots, starters, runes, skills), `opponent_champion_tip` and lane
+  advantage — the natural source.
+
 - **dpm.lol gates the worker too** (2026-10-27): uncached buckets (`all`,
   `gold_plus`, `platinum_plus`, `diamond_plus`, `master`) get a Cloudflare
   challenge (403) from the deployed worker; edge-cached ones still answer.
