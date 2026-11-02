@@ -1,137 +1,140 @@
-# Solicitar una Personal / Production API Key a Riot
+# Pedir la Production API Key a Riot
 
-Las dev keys caducan cada 24h. Para producción necesitas una **Personal API Key**
-(revisión 1-2 semanas, sin caducidad) o una **Production API Key** (apps con
-tráfico alto, revisión más estricta).
+Revisado 2026-11-02 contra https://developer.riotgames.com/policies/general
+(actualizada 29/05/2025) y https://developer.riotgames.com/docs/portal.
 
-Esta guía cubre la **Personal API Key** — suficiente para Draftboard hasta tener
-miles de usuarios.
+## Qué clave hace falta
 
-## Antes de empezar
+- **Development key**: caduca cada 24 h. Riot: no se puede mantener una app
+  pública con ella.
+- **Personal key**: solo para el desarrollador o "a small private community".
+  Riot: no se puede usar "for public consumption", y eso incluye betas
+  abiertas. **No vale para Draftboard**, que se descarga de GitHub.
+- **Production key**: la que toca. Riot pide un prototipo que funcione, enseñar
+  cómo se usa la app y un enlace a una web, prototipo o capturas. Avisa de que
+  si la web no está completa es poco probable que la aprueben.
 
-Tu app debe cumplir el [Riot Developer Portal Policies](https://developer.riotgames.com/policies/general):
-- Solo usar APIs oficiales (✅ Draftboard usa LCU + Riot API + Data Dragon + Leaguepedia)
-- No automatizar acciones del juego (✅ Draftboard solo lee + sugiere)
-- No mostrar datos de jugadores sin consentimiento (✅ datos locales)
-- No vender/monetizar abusivamente (✅ Draftboard es free/open)
-- No reemplazar funcionalidad oficial de Riot
+El formulario está en https://developer.riotgames.com/app-type (hay que entrar
+con la cuenta de Riot): **Register Product → Production**.
 
-## Pasos
+## Lo que ya cumplimos
 
-### 1. Login en developer.riotgames.com
+- Aviso legal de Riot visible: pantalla de términos al abrir (TermsGate) y pie
+  de página ("Not endorsed by Riot Games…").
+- La clave no va dentro del programa: la guarda el worker de Cloudflare como
+  secreto y la app nunca la ve.
+- El worker ya no es un relé abierto: solo reenvía las lecturas que hace la app
+  (ids con formato fijo, parámetros limpios, 120 peticiones/min por IP).
+- Gratis, código abierto (MIT), sin anuncios ni pagos.
+- No se identifica a rivales ocultos en la selección de campeones: el
+  explorador de rivales espera a la pantalla de carga, donde los nombres ya son
+  visibles, y los busca con Spectator-V5.
+- No hay calculadora de MMR/ELO, ni cronómetros de habilidades rivales.
 
-Usa tu cuenta Riot (la misma que el juego).
+## Puntos que Riot puede preguntar (responder con calma y sin esconder nada)
 
-### 2. Apply for Personal API Key
+1. **Escritura en el cliente (LCU)**: al fijar campeón la app crea su página de
+   runas, pone hechizos de invocador y un set de objetos. Viene activado y se
+   puede apagar (o "modo seguro"). Lo mismo que hacen Blitz, Porofessor o
+   Mobalytics.
+2. **Coach en partida y overlay**: usa la Live Client Data API (la oficial del
+   juego en `localhost:2999`) y da consejos de voz. Solo usa datos que el
+   jugador ya ve en su pantalla.
+3. **IA**: el resumen de la partida (datos del propio jugador) se manda a Groq
+   para que redacte el consejo. Nada se vende ni se pasa a terceros para otro
+   uso. Las políticas leídas no dicen nada de IA.
+4. **Web**: ahora solo hay GitHub. Si la rechazan por eso, hacer una página
+   sencilla (GitHub Pages) con capturas y botón de descarga y volver a pedirla.
 
-Ve a → https://developer.riotgames.com/app-type → **"Personal API Key"**.
+## Respuestas para el formulario (en inglés, Riot revisa en inglés)
 
-### 3. Rellena el formulario
-
-Riot pide:
-
-#### Product Name
+### Product name
 ```
 Draftboard
 ```
 
-#### Product URL
-URL pública del proyecto (GitHub repo, landing page, o el sitio de descarga).
+### Product URL
 ```
-https://github.com/<tu-usuario>/draftboard
+https://github.com/Rafaellopezdelrio/draftboard
 ```
+(Downloads: https://github.com/Rafaellopezdelrio/draftboard/releases)
 
-#### Product Description
+### Product description
 ```
-Draftboard es una aplicación de escritorio (Tauri/Rust + React) que ayuda a
-jugadores de League of Legends a tomar mejores decisiones durante el champ
-select y a mejorar entre partidas mediante coaching post-game con IA.
+Draftboard is a free, open-source (MIT) Windows desktop app for League of
+Legends players, built with Tauri (Rust) + React. It helps players draft
+better and learn from their own games. No ads, no paid tier.
 
-Funcionalidades principales:
-- Sugerencias de pick/ban basadas en composición, counters, sinergia,
-  meta global y maestría del jugador.
-- Análisis post-game con LLM (Groq/Anthropic/Gemini) que genera planes
-  de mejora personalizados.
-- Tier list pro (LCK/LEC/LCS/LPL) y tier list SoloQ Master+.
-- Vista de partida en directo (Spectator V5) para revisar al equipo
-  y enemigos antes de la partida.
-- Lookup de jugadores por Riot ID.
-- 100% datos locales (SQLite). Privacy-first.
+Features:
+- Champion select advisor: reads the player's own champ-select session from
+  the League Client API and suggests picks/bans from their champion pool,
+  champion mastery, matchups and team composition (engage, frontline, damage
+  split).
+- Teammate scout: rank, mastery and recent form of the player's own
+  teammates (who are visible in champ select).
+- Enemy scout: starts at the loading screen, when enemy players are already
+  visible to everyone, using Spectator-V5. It never identifies players hidden
+  by anonymized champ select.
+- Optional client actions (can be turned off): after the player locks a
+  champion, Draftboard creates a rune page, sets summoner spells and adds an
+  item set through the League Client API, like other community tools.
+- In-game coach: an optional overlay and voice tips built only on the official
+  Live Client Data API (information already on the player's screen). No enemy
+  cooldown or ultimate tracking, no memory reading, no automation of gameplay.
+- Post-game review: laning and game summary from the player's own matches
+  (Match-V5 + timeline), with an AI-written improvement plan.
+- Tier lists and matchup win rates from public community sources.
 
-La app es gratuita, open source, y respeta el ToS de Riot:
-- Solo usa APIs oficiales (Match-V5, Summoner-V4, League-V4, Spectator-V5,
-  Champion-Mastery-V4, LCU local).
-- No automatiza acciones del juego.
-- No lee memoria del proceso del cliente.
-- No muestra info que dé ventaja in-game prohibida.
-- Solo procesa datos del propio usuario o jugadores explícitamente buscados.
-```
-
-#### How will you use the API?
-```
-- Match-V5 (matches y timeline) para análisis post-game e historial.
-- Summoner-V4 + Account-V1 para resolver Riot IDs.
-- League-V4 para mostrar rank del usuario y agregar tier list de Master+.
-- Champion-Mastery-V4 para ponderar sugerencias por maestría real.
-- Spectator-V5 para vista de partida en directo.
-
-Todas las llamadas pasan por un Cloudflare Worker proxy que cachea respuestas
-en edge (reduce carga en Riot ~80% gracias a caché compartido).
-
-Volumen estimado:
-- ~50-200 requests por sesión activa de usuario.
-- Caché edge sirve ~80% sin pegar a Riot.
-- Hasta 1000 usuarios concurrentes con personal key (95 req / 2 min).
+Riot's legal boilerplate is shown on first launch and in the app footer.
 ```
 
-#### Where will the data be stored?
+### APIs used and how
 ```
-- Localmente en cada cliente: SQLite embebido en la app.
-- Cloudflare Worker: caché temporal en memoria edge (TTL ≤ 24h, sin persistencia).
-- No hay backend con base de datos. Datos del usuario nunca salen de su máquina.
+All calls go through our Cloudflare Worker, which holds the key as a secret
+(never shipped in the app binary). The worker only forwards the specific reads
+the app makes (fixed path shapes, typed ids, sanitized query) and rate-limits
+each IP to 120 requests/min. Responses are edge-cached (30 s for live data up
+to 24 h for finished matches) to keep load on Riot low.
+
+- Account-V1 by-riot-id: resolve the player's Riot ID.
+- Summoner-V4: summoner profile.
+- League-V4: rank of the player and teammates; Master+ ladder for benchmarks.
+- Champion-Mastery-V4 (top): weight suggestions by real mastery.
+- Match-V5 ids, match and timeline: post-game review and history.
+- Spectator-V5 active-games by-summoner: own live game, from loading screen on.
 ```
 
-#### Will end users be required to authenticate?
+### Data storage
 ```
-No. Los usuarios usan la app con su Riot ID público. Para datos privados
-(historial, masteries) la app usa el LCU API local del cliente de LoL — solo
-funciona para el usuario logueado en ese cliente.
+Player data is stored locally on the user's PC (SQLite). The worker only keeps
+a short edge cache (max 24 h) and stores nothing else. For the AI review, a
+summary of the user's own match is sent to Groq to write the advice; it is not
+sold or shared for any other purpose.
 ```
 
-### 4. Acepta los policies y submit
+### Monetization
+```
+None. Free and open source.
+```
 
-### 5. Espera
+### User flow (Riot pide ver cómo se usa)
+```
+1. Install from GitHub Releases and accept the terms screen (includes Riot's
+   boilerplate).
+2. Open the League Client: Draftboard links to the logged-in account through
+   the local League Client API.
+3. Queue up. In champ select the advisor shows suggestions and the teammate
+   scout; on lock-in the optional rune/spell/item-set import runs.
+4. Loading screen / in game: enemy scout and optional overlay coach.
+5. After the game: post-game review and improvement plan.
+```
+Adjuntar capturas de `docs/screenshots/`.
 
-Riot responde por email en 1-2 semanas (a veces antes). A veces piden
-clarificaciones — responde rápido y profesional.
+## Después de obtenerla
 
-## Después de obtener la key
-
-1. Pégala en tu Cloudflare Worker como secret:
+1. Subirla al worker como secreto (nunca al repo):
    ```bash
-   wrangler secret put RIOT_API_KEY
+   npx wrangler secret put RIOT_API_KEY
    ```
-2. La key NO caduca. Si rota o se compromete, regenera y vuelve a subir el secret.
-3. Actualiza el endpoint del proxy en la app si cambia la URL.
-
-## Si te rechazan
-
-Riot suele rechazar por:
-- App no resuelta (dominio no público, app no descargable)
-- Funciones que viola ToS (auto-aim, scripts, enemy intel in-game)
-- Descripción demasiado vaga
-- Caso de uso ya cubierto por op.gg/blitz/mobalytics y nada nuevo aporta
-
-Re-aplica con:
-- URL de descarga real del binario
-- Capturas de pantalla de la app
-- Enfatiza el diferencial: AI coaching local, lesson plans, multi-region pro meta
-
-## Production API Key (cuando crezca)
-
-Si Draftboard supera ~1000 usuarios concurrentes o necesita rate limits altos:
-
-→ https://developer.riotgames.com/app-type → **Production API Key**
-
-Riot pide más detalle (modelo de negocio, métricas, equipo) y revisa más a
-fondo. Puede tardar 4-8 semanas.
+2. Subir el límite por IP del worker si hace falta (ahora 120/min).
+3. Si la clave se filtra: regenerarla en el portal y volver a subirla.

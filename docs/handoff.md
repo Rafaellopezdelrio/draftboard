@@ -122,7 +122,7 @@ the old version.
 
 - **Compliance audit (2026-11-01/02).** No cheating/bannable behavior found.
   Confirmed violations: (1) public app on a *personal* Riot key — needs a
-  Production key (user applies in the portal; describe the real features,
+  Production key (form answers ready in docs/RIOT_KEY_APPLICATION.md; user applies in the portal; describe the real features,
   incl. enemy scout, overlay, live coach, LCU writes); (2) open proxy relay —
   fixed in worker 5149610 (app-only allow-list, typed ids, 120/min);
   (3) op.gg web scrape — replaced by op.gg's public MCP. **Worker not
