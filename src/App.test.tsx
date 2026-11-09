@@ -533,6 +533,32 @@ describe("App — in-game wiring", () => {
     expect(h.props.CompAnalysis.enemyKeys).toEqual(["Zed"]);
   });
 
+  it("ARAM in-game (champ-select gameMode already cleared, no role): Build tab still shows BuildPanel with the primary role, no ban panel", async () => {
+    h.boot.db = {
+      ...DB,
+      champions: { Jarvan: { key: "Jarvan", id: "JarvanIV", name: "Jarvan IV" } },
+    };
+    const me = { championName: "JarvanIV", position: "" };
+    h.findMyPlayer.mockReturnValue(me);
+    h.liveChampionKey.mockReturnValue("Jarvan");
+    h.live = {
+      inGame: true,
+      snapshot: {
+        activePlayer: { summonerName: "me" },
+        allPlayers: [me],
+        gameData: { gameMode: "ARAM", mapNumber: 12 },
+      },
+      reason: "in-game",
+    };
+    await renderApp();
+    expect(useDraftStore.getState().gameMode).toBeNull();
+    expect(screen.queryByTestId("BanSuggestionsPanel")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Build" }));
+    expect(h.props.BuildPanel.championKey).toBe("Jarvan");
+    expect(h.props.BuildPanel.role).toBe("JUNGLE");
+    expect(screen.queryByTestId("DraftCoachPanel")).not.toBeInTheDocument();
+  });
+
   it("ignores the live snapshot when the local player can't be found", async () => {
     h.findMyPlayer.mockReturnValue(null);
     h.live = { inGame: true, snapshot: { activePlayer: {}, allPlayers: [] }, reason: "in-game" };

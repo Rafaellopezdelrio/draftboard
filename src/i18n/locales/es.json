@@ -61,7 +61,8 @@
   "trade": {
     "title": "Sugerencia de trade",
     "switchTo": "Cambia a",
-    "better": "mejor"
+    "better": "mejor",
+    "reasonDefault": "Mejor puntuación combinada contra el draft actual"
   },
   "trends": {
     "title": "Tendencias",
@@ -295,6 +296,17 @@
       "coldStreakWr": "Jungla rival bajo de forma ({{wr}}%). Disputa sus campamentos y objetivos.",
       "main": "Jungla rival con su main ({{champ}}). Respeta sus momentos fuertes y sigue su ruta.",
       "standard": "Jungla rival normal. Sigue su ruta y juega en el lado contrario del mapa."
+    },
+    "laneJunglerNote": {
+      "smurf": "Jungla rival posible smurf (lvl {{level}}). Wardea pronto y no te pases de la raya sin saber dónde está.",
+      "smurfWr": "Jungla rival posible smurf (lvl {{level}}, {{wr}}% WR). Wardea pronto y no te pases de la raya sin saber dónde está.",
+      "oneTrick": "Jungla rival OTP de {{champ}} ({{pts}}k). Wardea pronto y no te pases de la raya antes de saber dónde está.",
+      "hotStreak": "Jungla rival en racha ({{wr}}%). Espera ganks agresivos: juega con visión.",
+      "offPool": "Jungla rival fuera de su pool. Sus primeros ganks serán flojos: castiga sus errores.",
+      "coldStreak": "Jungla rival bajo de forma. Juega agresivo, pero sigue vigilando el mapa.",
+      "coldStreakWr": "Jungla rival bajo de forma ({{wr}}%). Juega agresivo, pero sigue vigilando el mapa.",
+      "main": "Jungla rival con su main ({{champ}}). Respeta sus ganks y su control de objetivos.",
+      "standard": "Jungla rival normal. Wardea su ruta y avisa cuando desaparezca."
     }
   },
   "matchupTips": {
@@ -348,7 +360,8 @@
         "critical": "Perdiste tu carril claro. Respeta el matchup, farmea bajo torre y pide ganks en vez de forzar trades perdedores.",
         "needsWork": "Empata o gana tu carril. Mejora wave management y castiga los CDs del rival para sacar ventaja temprana."
       }
-    }
+    },
+    "riftOnly": "Análisis solo disponible para partidas de la Grieta del Invocador."
   },
   "lobby": {
     "title": "Lobby scout",
@@ -365,7 +378,8 @@
     "dodgeTiers": "enemigo ~+{{tiers}} tiers",
     "dodgeThreat": "amenaza fuerte",
     "dodgeLiability": "aliado flojo",
-    "dodgeText": "Partida cuesta arriba ({{bits}}). Valora dodgear: a veces -LP sale más barato que una derrota probable."
+    "dodgeText": "Partida cuesta arriba ({{bits}}). Valora dodgear: a veces -LP sale más barato que una derrota probable.",
+    "liabilityFewGames": "{{stat}} — pocas rankeds esta temporada, sin demostrar."
   },
   "comp": {
     "title": "Composición",
@@ -1598,5 +1612,23 @@
     "noPage": "No encontré runas para {{label}}.",
     "pageLimit": "Todas tus páginas de runas están ocupadas: borra o renombra una en el cliente. Draftboard nunca borra las tuyas.",
     "error": "El cliente de LoL no aceptó la página de runas."
+  },
+  "inGameAdapt": {
+    "gwAd": "{{healers}} enemigos curándose — Heridas Graves AD",
+    "gwAp": "{{healers}} enemigos curándose — Heridas Graves AP",
+    "gwTank": "{{healers}} enemigos curándose — anti-curación barata",
+    "armpenCrit": "Enemigos con {{armor}} de armadura total — % penetración crítica",
+    "armpenBruiser": "Tanqueo enemigo alto — penetración + ralentización",
+    "magpen": "Enemigos con {{mr}} de RM total — % pen mágica",
+    "sorcs": "Botas con pen mágica plana — base anti-RM",
+    "antiCrit": "{{crits}} carries de crítico enemigos — reduce el daño crítico",
+    "antiShield": "{{shielders}} enemigos con escudos/conversión — atraviesa el burst"
+  },
+  "voice": {
+    "locked": "Campeón bloqueado",
+    "banTurn": "Tu turno de banear",
+    "pickTurn": "Tu turno de pickear",
+    "gameStarted": "Partida empezada",
+    "postGameReady": "Análisis post-partida listo"
   }
 }

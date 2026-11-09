@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import {
   lcuPositionToRole,
   subscribeChampSelect,
@@ -11,6 +12,7 @@ import {
 import { useDraftStore } from "./draftStore";
 import { trackEvent } from "../services/breadcrumbs";
 import { voiceCoach } from "../services/voiceCoach";
+import { i18n } from "../i18n";
 import { nativeNotify } from "../services/nativeNotify";
 
 // Safety re-sync interval. Events (Rust WS → Tauri bus) are the primary,
@@ -199,6 +201,8 @@ function diagnosticLog(s: LcuChampSelectSession) {
 function leaveChampSelect() {
   // Always reset the per-session dedup state so the NEXT champ select starts
   // clean (TTS turns, blind-pick warn, frame signature, voice).
+  gameModeSession++;
+  gameModeRequested = false;
   lastSpokenMyBanTurnId = null;
   lastSpokenMyPickTurnId = null;
   lastSpokenEnemyBanIds = new Set();
@@ -234,6 +238,32 @@ function leaveChampSelect() {
   store.setLocalSelection(null, null, null);
   store.setEnemySummonerIds([]);
   store.setPhase(null, null);
+  store.setGameMode(null);
+}
+
+// Champ-select payloads carry no queue info, so the game mode (ARAM/Arena
+// have no lanes or bans) is read once per champ select from the gameflow
+// session. The session counter drops a reply that lands after we left.
+let gameModeRequested = false;
+let gameModeSession = 0;
+
+function refreshGameMode() {
+  if (gameModeRequested) return;
+  if (typeof window === "undefined" || !("__TAURI_INTERNALS__" in window)) return;
+  gameModeRequested = true;
+  const session = gameModeSession;
+  void invoke<{ gameData?: { queue?: { gameMode?: string } } } | null>(
+    "lcu_get_json",
+    { path: "/lol-gameflow/v1/session" }
+  )
+    .then((gf) => {
+      if (session !== gameModeSession) return;
+      useDraftStore.getState().setGameMode(gf?.gameData?.queue?.gameMode ?? null);
+    })
+    .catch(() => {
+      // Retry on the next frame.
+      if (session === gameModeSession) gameModeRequested = false;
+    });
 }
 
 /**
@@ -280,6 +310,7 @@ function applySession(s: LcuChampSelectSession | null | undefined) {
     leaveChampSelect();
     return;
   }
+  refreshGameMode();
 
   // ARAM diagnostic: when both teams come in fully populated but champion
   // IDs are still 0, log once per shape change so we can see what field
@@ -437,7 +468,7 @@ function applySession(s: LcuChampSelectSession | null | undefined) {
       );
       // Audible confirmation. Dedup by champKey so reopen of champ select
       // with same hover doesn't repeat. session reset clears via resetSession.
-      voiceCoach.speak("Campeón bloqueado", `lock-${locked}`);
+      voiceCoach.speak(i18n.t("voice.locked"), `lock-${locked}`);
     }
     if (!locked) lastLockedChamp = null;
   }
@@ -553,7 +584,7 @@ function applySession(s: LcuChampSelectSession | null | undefined) {
   // even when Draftboard is alt-tabbed under LoL fullscreen.
   if (myTurnActiveBan !== null && myTurnActiveBan !== lastSpokenMyBanTurnId) {
     lastSpokenMyBanTurnId = myTurnActiveBan;
-    voiceCoach.speak("Tu turno de banear");
+    voiceCoach.speak(i18n.t("voice.banTurn"));
     nativeNotify({
       title: "Tu turno de banear",
       body: "Abre Draftboard para ver sugerencias.",
@@ -563,7 +594,7 @@ function applySession(s: LcuChampSelectSession | null | undefined) {
   }
   if (myTurnActivePick !== null && myTurnActivePick !== lastSpokenMyPickTurnId) {
     lastSpokenMyPickTurnId = myTurnActivePick;
-    voiceCoach.speak("Tu turno de pickear");
+    voiceCoach.speak(i18n.t("voice.pickTurn"));
     nativeNotify({
       title: "Tu turno de pickear",
       body: "Abre Draftboard para ver el pick óptimo.",

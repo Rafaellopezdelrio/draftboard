@@ -17,6 +17,7 @@ const scoutTeam = vi.hoisted(() => vi.fn());
 vi.mock("../services/lobbyScout", () => ({ scoutTeam }));
 
 import { LobbyScoutPanel } from "./LobbyScoutPanel";
+import { useDraftStore } from "../state/draftStore";
 
 function champ(key: string, name: string) {
   return {
@@ -275,11 +276,6 @@ describe("LobbyScoutPanel", () => {
       })
     ).toBeInTheDocument();
     expect(
-      screen.getByText("GOLD IV, 40% · 5g — muestra pequeña / posible autofill, no dependas de él.", {
-        exact: false,
-      })
-    ).toBeInTheDocument();
-    expect(
       screen.getByText("PLATINUM I, 55% · 40g — mayor amenaza enemiga, respeta su carril.", {
         exact: false,
       })
@@ -298,6 +294,25 @@ describe("LobbyScoutPanel", () => {
     expect(screen.getByRole("img", { name: "Ahri" })).toBeInTheDocument();
     // Not lopsided -> no dodge warning.
     expect(screen.queryByText(/Valora dodgear/)).toBeNull();
+  });
+
+  // Ranked anonymizes allies, so the best scouted ally is often me.
+  it("never names the local player (PUUID-resolved cell first) as the carry", async () => {
+    const ace = player({ summonerId: 1, summonerName: "Ace", soloRank: "DIAMOND II", soloWinRate: 0.6, soloGames: 100 });
+    const mate = player({ summonerId: 2, summonerName: "Mate", soloRank: "GOLD IV" });
+    // Session says cell 2, but the PUUID-resolved store cell (1) wins.
+    useDraftStore.setState({ myCellId: 1 });
+    try {
+      scoutReturns([ace, mate], []);
+      render(
+        <LobbyScoutPanel session={{ ...session([lcu(1), lcu(2)]), localPlayerCellId: 2 }} db={db} />
+      );
+      await screen.findAllByText("Ace");
+      expect(screen.getAllByText("Ace")).toHaveLength(1);
+      expect(screen.queryByText(/tu win condition/)).toBeNull();
+    } finally {
+      useDraftStore.setState({ myCellId: null });
+    }
   });
 
   it("warns about a lopsided lobby with a dodge hint", async () => {

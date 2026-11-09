@@ -120,9 +120,12 @@ export function buildProAnalytics(
 
   const myPid = me.participantId;
   const enemy = match.participants.find(
-    (p) => p.teamId !== me.teamId && p.position === me.position
+    (p) => p.teamId !== me.teamId && p.position === me.position && me.position !== ""
   );
   const enemyPid = enemy?.participantId ?? null;
+  // No lane opponent (role swap, ARAM): report 0, not my own absolute totals
+  // dressed up as a lane lead.
+  const vsLane = (d: number) => (enemyPid ? d : 0);
 
   const minutes = match.durationSec / 60;
 
@@ -179,7 +182,7 @@ export function buildProAnalytics(
     if (!f) return { csDelta: 0, goldDelta: 0 };
     const myF = f.participantFrames[String(myPid)];
     const enemyF = enemyPid ? f.participantFrames[String(enemyPid)] : null;
-    if (!myF) return { csDelta: 0, goldDelta: 0 };
+    if (!myF || !enemyF) return { csDelta: 0, goldDelta: 0 };
     const myCs = myF.minionsKilled + myF.jungleMinionsKilled;
     const enemyCs = enemyF
       ? enemyF.minionsKilled + enemyF.jungleMinionsKilled
@@ -305,13 +308,13 @@ export function buildProAnalytics(
     level14: me14?.level ?? 0,
     level20: me20?.level ?? 0,
 
-    csDiffAt10: cs(me10) - cs(enemy10 || undefined),
-    csDiffAt14: cs(me14) - cs(enemy14 || undefined),
-    csDiffAt20: cs(me20) - cs(enemy20 || undefined),
-    goldDiffAt10: (me10?.totalGold ?? 0) - (enemy10 ? enemy10.totalGold : 0),
-    goldDiffAt15: (me15?.totalGold ?? 0) - (enemy15 ? enemy15.totalGold : 0),
-    goldDiffAt20: (me20?.totalGold ?? 0) - (enemy20 ? enemy20.totalGold : 0),
-    xpDiffAt10: (me10?.xp ?? 0) - (enemy10 ? enemy10.xp : 0),
+    csDiffAt10: vsLane(cs(me10) - cs(enemy10 || undefined)),
+    csDiffAt14: vsLane(cs(me14) - cs(enemy14 || undefined)),
+    csDiffAt20: vsLane(cs(me20) - cs(enemy20 || undefined)),
+    goldDiffAt10: vsLane((me10?.totalGold ?? 0) - (enemy10 ? enemy10.totalGold : 0)),
+    goldDiffAt15: vsLane((me15?.totalGold ?? 0) - (enemy15 ? enemy15.totalGold : 0)),
+    goldDiffAt20: vsLane((me20?.totalGold ?? 0) - (enemy20 ? enemy20.totalGold : 0)),
+    xpDiffAt10: vsLane((me10?.xp ?? 0) - (enemy10 ? enemy10.xp : 0)),
 
     deathsBy10,
     deathsAt5,
@@ -319,8 +322,8 @@ export function buildProAnalytics(
     deathsInLane: deathLocations.filter((l) => l === LANE_LOCATION[me.position]).length,
     deathLocations,
 
-    goldLeadAt15: (me15?.totalGold ?? 0) - ((enemy15 ? enemy15.totalGold : 0) || 0),
-    csLeadAt14: cs(me14) - cs(enemy14 || undefined),
+    goldLeadAt15: vsLane((me15?.totalGold ?? 0) - ((enemy15 ? enemy15.totalGold : 0) || 0)),
+    csLeadAt14: vsLane(cs(me14) - cs(enemy14 || undefined)),
     killsBy10,
 
     drakesByMyTeam: drakesByMy,

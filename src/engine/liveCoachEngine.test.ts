@@ -203,6 +203,30 @@ describe("coachLiveGame", () => {
     );
   });
 
+  it("drops soul-deny / soul-take once the other team already has Soul", () => {
+    const iHaveSoul = coachLiveGame({
+      ...base,
+      me: p({ position: "JUNGLE" }),
+      myTeam: "ORDER",
+      dragonsByTeam: { ORDER: 4, CHAOS: 3 },
+    });
+    expect(iHaveSoul.some((i) => i.key === "soul-deny")).toBe(false);
+    const theyHaveSoul = coachLiveGame({
+      ...base,
+      me: p({ position: "JUNGLE" }),
+      myTeam: "ORDER",
+      dragonsByTeam: { ORDER: 3, CHAOS: 4 },
+    });
+    expect(theyHaveSoul.some((i) => i.key === "soul-take")).toBe(false);
+  });
+
+  it("skips the recall tip off Summoner's Rift, keeps it when unspecified", () => {
+    const args = { ...base, me: p({ position: "JUNGLE" }), gameTime: 900, currentGold: 2500 };
+    expect(coachLiveGame({ ...args, isRift: false }).some((i) => i.key === "recall")).toBe(false);
+    expect(coachLiveGame({ ...args, isRift: true }).some((i) => i.key === "recall")).toBe(true);
+    expect(coachLiveGame(args).some((i) => i.key === "recall")).toBe(true);
+  });
+
   it("warns while the enemy Baron buff is active, then stops once it expires", () => {
     const active = coachLiveGame({
       ...base,

@@ -1,6 +1,8 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import type { ChampionDb, Role } from "../types/champion";
+import type { ChampionDb, CounterEntry, Role } from "../types/champion";
+import type { ChampionMasteryDto } from "../services/riotApi";
+import type { ChampionPersonalStat } from "../services/matchRepo";
 import { suggestTrade } from "../engine/tradeEngine";
 import { ArrowLeftRight, ChevronRight } from "lucide-react";
 
@@ -11,6 +13,10 @@ interface Props {
   allyKeys: string[];
   enemyKeys: string[];
   bannedKeys: string[];
+  personalStats?: ChampionPersonalStat[];
+  masteries?: ChampionMasteryDto[];
+  rankTier?: string | null;
+  liveCounters?: CounterEntry[];
 }
 
 export function TradeSuggestionPanel({
@@ -20,6 +26,10 @@ export function TradeSuggestionPanel({
   allyKeys,
   enemyKeys,
   bannedKeys,
+  personalStats,
+  masteries,
+  rankTier,
+  liveCounters,
 }: Props) {
   const { t } = useTranslation();
   const trade = useMemo(
@@ -31,8 +41,12 @@ export function TradeSuggestionPanel({
         allyKeys,
         enemyKeys,
         bannedKeys,
+        personalStats,
+        masteries,
+        rankTier,
+        liveCounters,
       }),
-    [db, myCurrentPick, myRole, allyKeys, enemyKeys, bannedKeys]
+    [db, myCurrentPick, myRole, allyKeys, enemyKeys, bannedKeys, personalStats, masteries, rankTier, liveCounters]
   );
 
   if (!trade) return null;
@@ -65,7 +79,7 @@ export function TradeSuggestionPanel({
             <span className="gold-text font-bold">{trade.proposedName}</span>
           </p>
           <p className="text-[11px] text-white/70 truncate">
-            +{(trade.scoreDelta * 100).toFixed(0)}% {t("trade.better")} · {trade.reason}
+            +{(trade.scoreDelta * 100).toFixed(0)}% {t("trade.better")} · {t(trade.reason)}
           </p>
         </div>
       </div>

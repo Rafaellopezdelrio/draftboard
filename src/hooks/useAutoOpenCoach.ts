@@ -9,6 +9,7 @@
 import { useEffect, useRef } from "react";
 import type { GamePhase } from "../state/inGameDetection";
 import { voiceCoach } from "../services/voiceCoach";
+import { i18n } from "../i18n";
 import { syncPersonalData } from "../services/personalDataSync";
 
 const POST_GAME_DELAY_MS = 6000; // wait for Riot stats ingestion
@@ -58,7 +59,7 @@ export function useAutoOpenCoach({
       wasInMatch.current = true;
       if (phase === "InProgress" && !announcedGameStart.current) {
         announcedGameStart.current = true;
-        voiceCoach.speak("Partida empezada");
+        voiceCoach.speak(i18n.t("voice.gameStarted"));
       }
       return;
     }
@@ -77,7 +78,7 @@ export function useAutoOpenCoach({
         // Failure is non-fatal — the coach still opens (degrades to old data).
         await syncPersonalData().catch(() => {});
         setShowCoach(true);
-        voiceCoach.speak("Análisis post-partida listo");
+        voiceCoach.speak(i18n.t("voice.postGameReady"));
       }, POST_GAME_DELAY_MS);
       wasInMatch.current = false;
       return () => clearTimeout(t);

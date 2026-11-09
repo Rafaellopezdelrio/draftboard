@@ -20,6 +20,7 @@ vi.mock("../services/settingsRepo", () => ({ loadSettings }));
 
 import {
   enemyTargetsFromSpectator,
+  isRandomPickScout,
   refreshEnemyScoutTargets,
   resetEnemyScoutTargets,
 } from "./enemyScoutTargets";
@@ -186,6 +187,21 @@ describe("refreshEnemyScoutTargets", () => {
     expect(getCurrentGameByPuuid).toHaveBeenCalledTimes(1);
     expect(getCurrentGameByPuuid).toHaveBeenCalledWith(CFG, ME);
     expect(targets()).toEqual(spectatorTargets);
+  });
+
+  it("flags ARAM targets as random-pick, and a reset clears the flag", async () => {
+    getCurrentGameByPuuid.mockResolvedValue({ ...spectatorGame, gameMode: "ARAM" });
+    await refreshEnemyScoutTargets(1, "ARAM");
+    expect(targets()).toEqual(spectatorTargets);
+    expect(isRandomPickScout()).toBe(true);
+    resetEnemyScoutTargets();
+    expect(isRandomPickScout()).toBe(false);
+  });
+
+  it("does not flag Summoner's Rift targets as random-pick", async () => {
+    getCurrentGameByPuuid.mockResolvedValue(spectatorGame);
+    await refreshEnemyScoutTargets(1, "CLASSIC");
+    expect(isRandomPickScout()).toBe(false);
   });
 
   it("detects my side from cfg.puuid (me on red -> blue team is the enemy)", async () => {

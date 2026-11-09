@@ -37,6 +37,18 @@ describe("aramAdvice", () => {
     expect(tips).toContain("aram.universalSustain");
   });
 
+  it("gives enchanters the support line, not the poke line", () => {
+    const tips = aramAdvice(ch("Soraka", ["Support", "Mage"]));
+    expect(tips).toContain("aram.support");
+    expect(tips).not.toContain("aram.poke");
+  });
+
+  it("keeps the poke line for poke champs tagged Support (Lux)", () => {
+    const tips = aramAdvice(ch("Lux", ["Mage", "Support"]));
+    expect(tips).toContain("aram.poke");
+    expect(tips).not.toContain("aram.support");
+  });
+
   it("caps at 4 bullets", () => {
     const tips = aramAdvice(ch("Kayn", ["Fighter", "Tank", "Assassin", "Mage"]));
     expect(tips.length).toBeLessThanOrEqual(4);

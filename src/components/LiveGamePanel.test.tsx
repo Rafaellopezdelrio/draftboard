@@ -292,7 +292,7 @@ describe("LiveGamePanel", () => {
     expect(screen.getByText("Counters según items enemigos")).toBeInTheDocument();
     const item = screen.getByText("Mortal Reminder");
     const card = item.closest("[title]") as HTMLElement;
-    expect(card).toHaveAttribute("title", "2 enemigos curándose — Grievous Wounds AD");
+    expect(card).toHaveAttribute("title", "2 enemigos curándose — Heridas Graves AD");
     expect(card).toHaveClass("bg-bad/10");
     const img = card.querySelector("img") as HTMLImageElement;
     expect(img).toHaveAttribute(

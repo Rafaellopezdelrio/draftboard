@@ -30,7 +30,17 @@ export interface TopInsight {
  */
 export function deriveTopInsight(gpi: GpiScore | null): TopInsight | null {
   if (!gpi) return null;
-  const entries = Object.entries(gpi.categories) as Array<[GpiCategory, number]>;
+  // Axes whose tips would be wrong advice: "versatility" is one game's KDA
+  // (its tip talks about champion pool), and "laning" tips are lane-only
+  // (a jungler has no lane or tower to farm under). For supports, farming and
+  // laning are fixed 50 placeholders that would always read as "needs work".
+  const entries = (Object.entries(gpi.categories) as Array<[GpiCategory, number]>).filter(
+    ([cat]) =>
+      cat !== "versatility" &&
+      !(cat === "laning" && gpi.role === "JUNGLE") &&
+      !((cat === "laning" || cat === "farming") && gpi.role === "UTILITY")
+  );
+  if (entries.length === 0) return null;
   // Sort ascending — lowest first.
   entries.sort((a, b) => a[1] - b[1]);
   const [worstCat, worstScore] = entries[0];
@@ -40,7 +50,10 @@ export function deriveTopInsight(gpi: GpiScore | null): TopInsight | null {
 
   const severity: TopInsight["severity"] =
     worstScore < 35 ? "critical" : worstScore < 55 ? "needs-work" : "okay";
-  const tipKey = `coach.tip.${worstCat}.${severity === "critical" ? "critical" : "needsWork"}`;
+  // The critical objectives tip is about Smite; only junglers get it.
+  const useCriticalTip =
+    severity === "critical" && !(worstCat === "objectives" && gpi.role !== "JUNGLE");
+  const tipKey = `coach.tip.${worstCat}.${useCriticalTip ? "critical" : "needsWork"}`;
 
   // Secondary tip if a second axis is also weak.
   let secondaryAreaKey: string | undefined;

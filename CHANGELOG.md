@@ -30,6 +30,26 @@ focus, auto runes, champ-select capture) — see docs/handoff.md.
   server provides both.
 
 ### Fixed
+- Advice review (32 issues): role, mode and data fixes across the coach.
+  - In game: Soul calls stop once a team has Soul; Elder timer is 6 min;
+    first Baron gets a countdown from 17:00; no dragon/recall calls in ARAM
+    or Arena; Serylda's Grudge uses its real item; counter items fit tank
+    supports, enchanters, AD supports and assassins; counter reasons and
+    champ-select voice lines follow the UI language.
+  - Champ select: AI and curated matchup tips know each enemy's role (your
+    lane opponent first, gank/skirmish advice for the rest); win conditions
+    stop giving laner orders to junglers and supports; no SR role/ban advice
+    in ARAM/Arena; ban reason shows the loss rate correctly; trade panel no
+    longer asks a one-trick to swap off their main; ARAM enchanters get the
+    support tip; build adaptations tell AD assassins from AP.
+  - Post-game: GPI laning/objectives/versatility/aggression fit junglers and
+    supports; ARAM/Arena games stay out of the rift coach; trends and
+    playstyle use role-aware CS bars; "diff vs lane" only with a lane
+    opponent.
+  - Scout: laners get gank-awareness notes for the enemy jungler; lobby read
+    leaves you out of the carry/liability list; smurf and "few games" flags
+    need real signals; off-pool uses mastery points, not top-7; Smite and
+    spectator targets survive champ select; ARAM gets no lane notes.
 - Enemy scout notes now fit your role: as a jungler you get gank advice for
   enemy laners and invade/tracking advice for the enemy jungler (detected by
   Smite), instead of lane tips like "snowball your lane" for every enemy.

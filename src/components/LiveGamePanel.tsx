@@ -20,7 +20,12 @@ import {
   attributeObjectives,
   liveChampionKey,
 } from "../services/liveClient";
-import { deriveTimers, formatTime, type DerivedTimers } from "../services/liveTimers";
+import {
+  deriveTimers,
+  formatTime,
+  SUMMONERS_RIFT_MAP,
+  type DerivedTimers,
+} from "../services/liveTimers";
 import { displayGameMode } from "../data/gameModeNames";
 import { setOverlayVisible } from "../services/overlay";
 import { usePrefsStore } from "../state/prefsStore";
@@ -84,11 +89,6 @@ export function LiveGamePanel({ db }: LiveGamePanelProps = {}) {
   const showOverlay = usePrefsStore((s) => s.prefs.showInGameOverlay);
 
   // Hooks must run unconditionally — useMemo before the early return.
-  const timers = useMemo<DerivedTimers | null>(() => {
-    if (!snapshot) return null;
-    return deriveTimers(snapshot.events, snapshot.gameData.gameTime);
-  }, [snapshot]);
-
   // Team-attributed objective control (dragon soul + baron) — joins event
   // killer names to player teams since the event log carries no team itself.
   const control = useMemo(
@@ -98,6 +98,14 @@ export function LiveGamePanel({ db }: LiveGamePanelProps = {}) {
         : null,
     [snapshot]
   );
+
+  const timers = useMemo<DerivedTimers | null>(() => {
+    if (!snapshot) return null;
+    return deriveTimers(snapshot.events, snapshot.gameData.gameTime, {
+      mapNumber: snapshot.gameData.mapNumber,
+      dragonsByTeam: control?.dragonsByTeam ?? null,
+    });
+  }, [snapshot, control]);
 
   // Overlay v2 — opt-in via `showInGameOverlay` (default OFF, so this changes
   // nothing for users who don't enable it). When enabled, the transparent
@@ -177,6 +185,7 @@ export function LiveGamePanel({ db }: LiveGamePanelProps = {}) {
         ? me.championStats.currentHealth / me.championStats.maxHealth
         : null,
     spikeProfile: myChamp ? getPowerSpikes(myChamp.id) : null,
+    isRift: snapshot.gameData.mapNumber === SUMMONERS_RIFT_MAP,
   });
 
   return (

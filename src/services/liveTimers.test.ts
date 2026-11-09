@@ -5,6 +5,8 @@ import {
   DRAGON_RESPAWN_SEC,
   BARON_RESPAWN_SEC,
   FIRST_DRAGON_SPAWN_SEC,
+  FIRST_BARON_SPAWN_SEC,
+  ELDER_RESPAWN_SEC,
 } from "./liveTimers";
 import type { LiveGameEvent } from "./liveClient";
 
@@ -16,7 +18,8 @@ describe("deriveTimers", () => {
   it("projects the first dragon before it has spawned", () => {
     const r = deriveTimers([], 120);
     expect(r.nextDragonAt).toBe(FIRST_DRAGON_SPAWN_SEC);
-    expect(r.nextBaronAt).toBeNull();
+    expect(r.nextBaronAt).toBeNull(); // first Baron shows only from 17:00
+    expect(deriveTimers([], 17 * 60).nextBaronAt).toBe(FIRST_BARON_SPAWN_SEC);
   });
 
   it("returns null dragon once past first spawn with no kill yet", () => {
@@ -48,6 +51,49 @@ describe("deriveTimers", () => {
     const r = deriveTimers([bad], 120);
     // Falls through to the first-spawn projection, not NaN.
     expect(r.nextDragonAt).toBe(FIRST_DRAGON_SPAWN_SEC);
+  });
+
+  it("projects the first Baron spawn at 20:00 until it is up", () => {
+    expect(deriveTimers([], 19 * 60 + 15).nextBaronAt).toBe(FIRST_BARON_SPAWN_SEC);
+    expect(FIRST_BARON_SPAWN_SEC).toBe(20 * 60);
+    expect(deriveTimers([], FIRST_BARON_SPAWN_SEC + 30).nextBaronAt).toBeNull();
+  });
+
+  it("returns no timers off Summoner's Rift (ARAM / Arena)", () => {
+    expect(deriveTimers([], 270, { mapNumber: 12 })).toEqual({
+      nextDragonAt: null,
+      nextBaronAt: null,
+    });
+    expect(deriveTimers([], 270, { mapNumber: 30 }).nextDragonAt).toBeNull();
+    expect(deriveTimers([], 270, { mapNumber: 11 }).nextDragonAt).toBe(
+      FIRST_DRAGON_SPAWN_SEC
+    );
+  });
+
+  it("uses the 6min Elder respawn after an Elder kill", () => {
+    const elder = { ...ev("DragonKill", 1800), DragonType: "Elder" };
+    expect(deriveTimers([elder], 1810).nextDragonAt).toBe(1800 + ELDER_RESPAWN_SEC);
+    expect(ELDER_RESPAWN_SEC).toBe(6 * 60);
+  });
+
+  it("uses the 6min Elder spawn once a team takes Soul", () => {
+    const kills = [600, 900, 1100, 1320].map((t) => ev("DragonKill", t));
+    const soul = deriveTimers(kills, 1330, { dragonsByTeam: { ORDER: 4, CHAOS: 0 } });
+    expect(soul.nextDragonAt).toBe(1320 + ELDER_RESPAWN_SEC);
+    // 2-2: no Soul yet, normal 5min respawn.
+    const split = deriveTimers(kills, 1330, { dragonsByTeam: { ORDER: 2, CHAOS: 2 } });
+    expect(split.nextDragonAt).toBe(1320 + DRAGON_RESPAWN_SEC);
+  });
+
+  it("never assumes Soul from team counts the event log can't back", () => {
+    // Bogus attributed count with only 3 drakes dead -> still 5min.
+    const three = [600, 900, 1100].map((t) => ev("DragonKill", t));
+    expect(
+      deriveTimers(three, 1110, { dragonsByTeam: { ORDER: 4, CHAOS: 0 } }).nextDragonAt
+    ).toBe(1100 + DRAGON_RESPAWN_SEC);
+    // 7 drakes dead guarantees Soul even if attribution failed.
+    const seven = [1, 2, 3, 4, 5, 6, 7].map((i) => ev("DragonKill", i * 300));
+    expect(deriveTimers(seven, 2110).nextDragonAt).toBe(2100 + ELDER_RESPAWN_SEC);
   });
 });
 

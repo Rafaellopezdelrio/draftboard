@@ -121,7 +121,11 @@ export interface WeakestArea {
 export function detectWeakestArea(matches: MatchRow[]): WeakestArea | null {
   if (matches.length < 5) return null;
   const dps = matches.filter((m) => m.position !== "UTILITY");
-  if (dps.length >= 5 && avgCspm(dps) < 5.5) {
+  // Junglers farm camps, not waves: their baseline sits about 1 CS/min lower.
+  const cspmTarget =
+    dps.reduce((a, m) => a + (m.position === "JUNGLE" ? 4.5 : 5.5), 0) /
+    Math.max(1, dps.length);
+  if (dps.length >= 5 && avgCspm(dps) < cspmTarget) {
     return {
       category: "Farming",
       detail: `Tu CS/min medio es ${avgCspm(dps).toFixed(1)} — el principal limitador.`,

@@ -17,6 +17,7 @@ import { GpiRadar } from "./GpiRadar";
 import { usePrefsStore } from "../state/prefsStore";
 import { aiCoachAnalysis } from "../services/aiCoach";
 import { queueLabel } from "../data/queueNames";
+import { isRiftQueue } from "../engine/rankBenchmarks";
 import { lcuRank } from "../services/lcuPersonalData";
 import { useEscape } from "../hooks/useKeyboardShortcuts";
 import { useFocusTrap } from "../hooks/useFocusTrap";
@@ -124,7 +125,7 @@ export function CoachView({ db, onClose }: Props) {
     const me = matchFull.participants.find((p) => p.puuid === cfg.puuid);
     if (!me) return;
     const opp = matchFull.participants.find(
-      (p) => p.teamId !== me.teamId && p.position === me.position
+      (p) => p.teamId !== me.teamId && p.position === me.position && me.position !== ""
     );
     setAiLoading(true);
     setAiErr(null);
@@ -320,7 +321,10 @@ export function CoachView({ db, onClose }: Props) {
                 )}
               </div>
             )}
-            {insights.length === 0 ? (
+            {!isRiftQueue(matchFull.queueId) ? (
+              // ARAM / Arena / URF: the engines skip these games on purpose.
+              <p className="text-white/50 text-center py-4">{t("coach.riftOnly")}</p>
+            ) : insights.length === 0 ? (
               <p className="text-white/50 text-center py-4">
                 {t("coach.cleanGame")}
               </p>

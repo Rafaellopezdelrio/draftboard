@@ -92,4 +92,30 @@ describe("TradeSuggestionPanel", () => {
     expect(screen.getByText("Ahri").closest("p")).toHaveTextContent("Cambia a Ahri");
     expect(screen.getByText("+13% mejor · mejor vs su comp")).toBeInTheDocument();
   });
+
+  it("translates an i18n-key reason instead of printing the raw key", () => {
+    vi.mocked(suggestTrade).mockReturnValue({ ...TRADE, reason: "suggestions.reason.strongMeta" });
+    renderPanel();
+    expect(screen.queryByText(/suggestions.reason.strongMeta/)).toBeNull();
+  });
+
+  it("forwards personal data to the trade engine", () => {
+    vi.mocked(suggestTrade).mockReturnValue(null);
+    const masteries = [{ championId: 266, championLevel: 10, championPoints: 300_000, lastPlayTime: 0 }];
+    render(
+      <TradeSuggestionPanel
+        db={db}
+        myRole="MIDDLE"
+        myCurrentPick="266"
+        allyKeys={[]}
+        enemyKeys={[]}
+        bannedKeys={[]}
+        masteries={masteries}
+        rankTier="GOLD"
+      />
+    );
+    expect(suggestTrade).toHaveBeenCalledWith(
+      expect.objectContaining({ masteries, rankTier: "GOLD" })
+    );
+  });
 });

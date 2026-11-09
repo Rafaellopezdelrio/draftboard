@@ -125,27 +125,87 @@ describe("suggestBuildAdaptations", () => {
     expect(out).toEqual([]);
   });
 
-  it("heavy AP comp -> Force of Nature core + Zhonya's situational for squishy", () => {
+  it("heavy AP comp -> Zhonya's/Banshee's for a squishy mage, no Force of Nature", () => {
     const db = mkDb([meSquishyMage, ahri, lux, ekko, morgana]);
     const out = suggestBuildAdaptations({
       db,
       champion: meSquishyMage,
       enemyKeys: ["103", "99", "245", "25"],
     });
-    const fon = out.find((a) => a.itemName === "Force of Nature");
-    expect(fon).toBeDefined();
-    expect(fon?.priority).toBe("core");
+    expect(out.find((a) => a.itemName === "Force of Nature")).toBeUndefined();
     expect(out.some((a) => a.itemName === "Zhonya's Hourglass")).toBe(true);
+    expect(out.some((a) => a.itemName === "Banshee's Veil")).toBe(true);
   });
 
-  it("heavy AD comp -> Randuin's core + Plated Steelcaps for AD scaling", () => {
+  it("heavy AP comp -> Force of Nature core only for a tank/fighter", () => {
+    const db = mkDb([meTank, ahri, lux, ekko, morgana]);
+    const out = suggestBuildAdaptations({ db, champion: meTank, enemyKeys: ["103", "99", "245", "25"] });
+    expect(out.find((a) => a.itemName === "Force of Nature")?.priority).toBe("core");
+  });
+
+  it("AD assassin (Kha'Zix) vs AP + healers gets no AP items", () => {
+    const soraka = mkChamp({ id: "Soraka", key: "16", tags: ["Support", "Mage"] });
+    const vlad = mkChamp({ id: "Vladimir", key: "8", tags: ["Mage"] });
+    const db = mkDb([kha, ahri, lux, morgana, soraka, vlad]);
+    const out = suggestBuildAdaptations({ db, champion: kha, enemyKeys: ["103", "99", "25", "16", "8"] });
+    const names = out.map((a) => a.itemName);
+    expect(names).not.toContain("Abyssal Mask");
+    expect(names).not.toContain("Zhonya's Hourglass");
+    expect(names).not.toContain("Morellonomicon");
+    expect(names).toContain("Mortal Reminder");
+  });
+
+  it("Leblanc (DDragon id casing) is treated as an AP assassin", () => {
+    const leblanc = mkChamp({ id: "Leblanc", key: "7", tags: ["Assassin"] });
+    const soraka = mkChamp({ id: "Soraka", key: "16", tags: ["Support", "Mage"] });
+    const vlad = mkChamp({ id: "Vladimir", key: "8", tags: ["Mage"] });
+    const db = mkDb([leblanc, soraka, vlad]);
+    const names = suggestBuildAdaptations({ db, champion: leblanc, enemyKeys: ["16", "8"] }).map((a) => a.itemName);
+    expect(names).toContain("Morellonomicon");
+    expect(names).not.toContain("Mortal Reminder");
+  });
+
+  it("enchanter without Mage tag (Janna) gets Thornmail vs healers", () => {
+    const janna = mkChamp({ id: "Janna", key: "40", tags: ["Support"] });
+    const soraka = mkChamp({ id: "Soraka", key: "16", tags: ["Support", "Mage"] });
+    const vlad = mkChamp({ id: "Vladimir", key: "8", tags: ["Mage"] });
+    const db = mkDb([janna, soraka, vlad]);
+    const names = suggestBuildAdaptations({ db, champion: janna, enemyKeys: ["16", "8"] }).map((a) => a.itemName);
+    expect(names).toContain("Thornmail");
+    expect(names).not.toContain("Morellonomicon");
+  });
+
+  it("real DDragon enchanter tags (Soraka: Support, Mage) get Thornmail, Lux (Mage, Support) keeps Morellonomicon", () => {
+    const meSoraka = mkChamp({ id: "Soraka", key: "16", tags: ["Support", "Mage"] });
+    const meLux = mkChamp({ id: "Lux", key: "99", tags: ["Mage", "Support"] });
+    const vlad = mkChamp({ id: "Vladimir", key: "8", tags: ["Mage"] });
+    const db = mkDb([meSoraka, meLux, vlad, aatrox]);
+    const sorakaNames = suggestBuildAdaptations({ db, champion: meSoraka, enemyKeys: ["8", "266"] }).map((a) => a.itemName);
+    expect(sorakaNames).toContain("Thornmail");
+    expect(sorakaNames).not.toContain("Morellonomicon");
+    const luxNames = suggestBuildAdaptations({ db, champion: meLux, enemyKeys: ["8", "266"] }).map((a) => a.itemName);
+    expect(luxNames).toContain("Morellonomicon");
+  });
+
+  it("Mage+Assassin (Ahri) stays AP: no Maw vs AP, Morellonomicon vs healers", () => {
+    const soraka = mkChamp({ id: "Soraka", key: "16", tags: ["Support", "Mage"] });
+    const vlad = mkChamp({ id: "Vladimir", key: "8", tags: ["Mage"] });
+    const db = mkDb([ahri, soraka, vlad]);
+    const names = suggestBuildAdaptations({ db, champion: ahri, enemyKeys: ["16", "8"] }).map((a) => a.itemName);
+    expect(names).not.toContain("Maw of Malmortius");
+    expect(names).not.toContain("Mortal Reminder");
+    expect(names).toContain("Morellonomicon");
+  });
+
+  it("heavy AD comp -> Guardian Angel (not Randuin's) + Plated Steelcaps for an ADC", () => {
     const db = mkDb([meAdc, aatrox, ezreal, mkChamp({ id: "Renekton", key: "58", tags: ["Fighter"] })]);
     const out = suggestBuildAdaptations({
       db,
       champion: meAdc,
       enemyKeys: ["266", "81", "58"],
     });
-    expect(out.some((a) => a.itemName === "Randuin's Omen" && a.priority === "core")).toBe(true);
+    expect(out.find((a) => a.itemName === "Randuin's Omen")).toBeUndefined();
+    expect(out.some((a) => a.itemName === "Guardian Angel")).toBe(true);
     expect(out.some((a) => a.itemName === "Plated Steelcaps")).toBe(true);
   });
 

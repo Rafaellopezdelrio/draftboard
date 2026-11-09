@@ -20,6 +20,7 @@
 import { useEffect } from "react";
 import type { ChampionDb, Role } from "../types/champion";
 import { CHAMPION_ROLES } from "../data/championRoles";
+import { isNoLaneMode } from "../state/draftStore";
 
 interface Args {
   db: ChampionDb | null;
@@ -27,7 +28,11 @@ interface Args {
   myChampionIntent: string | null;
   myRole: Role | null;
   setMyRole: (role: Role | null) => void;
+  /** Champ-select queue mode (e.g. "ARAM", "CHERRY"). Modes without SR
+   *  lanes must keep myRole null, or every panel gets lane/jungle advice. */
+  gameMode?: string | null;
 }
+
 
 export function useRoleDerivation({
   db,
@@ -35,9 +40,15 @@ export function useRoleDerivation({
   myChampionIntent,
   myRole,
   setMyRole,
+  gameMode,
 }: Args): void {
   useEffect(() => {
     if (!db) return;
+    if (isNoLaneMode(gameMode)) {
+      // Drop a role kept from a previous SR game too.
+      if (myRole) setMyRole(null);
+      return;
+    }
     const championKey = myChampionLocked ?? myChampionIntent;
     if (!championKey) return;
     const champ = db.champions[championKey];
@@ -53,5 +64,5 @@ export function useRoleDerivation({
       // Hard role mismatch — switch to the champion's primary role.
       setMyRole(allowedRoles[0]);
     }
-  }, [myRole, myChampionLocked, myChampionIntent, db, setMyRole]);
+  }, [myRole, myChampionLocked, myChampionIntent, db, setMyRole, gameMode]);
 }

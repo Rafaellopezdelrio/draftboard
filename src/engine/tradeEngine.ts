@@ -1,6 +1,8 @@
 // Suggests champion swaps in champ select that would improve win probability.
 
-import type { ChampionDb, Role } from "../types/champion";
+import type { ChampionDb, CounterEntry, Role } from "../types/champion";
+import type { ChampionMasteryDto } from "../services/riotApi";
+import type { ChampionPersonalStat } from "../services/matchRepo";
 import { suggest } from "./suggestionEngine";
 
 export interface TradeSuggestion {
@@ -9,7 +11,7 @@ export interface TradeSuggestion {
   proposedName: string;
   proposedIcon: string;
   scoreDelta: number; // positive = proposed is better
-  reason: string;
+  reason: string; // i18n key (or a literal like "WR 65%"), rendered via t()
 }
 
 interface ArgsT {
@@ -19,11 +21,23 @@ interface ArgsT {
   allyKeys: string[];
   enemyKeys: string[];
   bannedKeys: string[];
+  // Same personal inputs the main suggestion list uses; without them a main
+  // scores like an unplayed champion and the trade contradicts that list.
+  personalStats?: ChampionPersonalStat[];
+  masteries?: ChampionMasteryDto[];
+  rankTier?: string | null;
+  liveCounters?: CounterEntry[];
 }
 
 export function suggestTrade(args: ArgsT): TradeSuggestion | null {
   const { db, currentPickKey, myRole } = args;
   if (!currentPickKey || !myRole) return null;
+  const personal = {
+    personalStats: args.personalStats,
+    masteries: args.masteries,
+    rankTier: args.rankTier,
+    liveCounters: args.liveCounters,
+  };
 
   // Get top suggestion for this draft state (excluding current pick from candidates)
   const top = suggest({
@@ -32,6 +46,7 @@ export function suggestTrade(args: ArgsT): TradeSuggestion | null {
     allyKeys: args.allyKeys.filter((k) => k !== currentPickKey),
     enemyKeys: args.enemyKeys,
     bannedKeys: args.bannedKeys,
+    ...personal,
     limit: 3,
   });
   if (top.length === 0) return null;
@@ -45,6 +60,7 @@ export function suggestTrade(args: ArgsT): TradeSuggestion | null {
     allyKeys: args.allyKeys.filter((k) => k !== currentPickKey),
     enemyKeys: args.enemyKeys,
     bannedKeys: args.bannedKeys.filter((k) => k !== currentPickKey),
+    ...personal,
     limit: 200,
   }).find((s) => s.champion.key === currentPickKey);
 
@@ -58,7 +74,6 @@ export function suggestTrade(args: ArgsT): TradeSuggestion | null {
     proposedName: best.champion.name,
     proposedIcon: best.champion.iconUrl,
     scoreDelta: delta,
-    reason:
-      best.reasons[0] ?? "Mejor score combinado vs el draft actual",
+    reason: best.reasons[0] ?? "trade.reasonDefault",
   };
 }

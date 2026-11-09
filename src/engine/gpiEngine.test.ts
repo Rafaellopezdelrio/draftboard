@@ -191,10 +191,10 @@ describe("computeGpi", () => {
   });
 
   it("scores objectives by share of team objective damage", () => {
-    // me 4000 of (4000+16000) = 0.2 share -> 50; me 16000 -> 0.8 -> clamp 100.
+    // TOP expected share 0.2: me 4000 of (4000+16000) = 0.2 -> 50; 0.8 -> clamp 100.
     const lowShare = computeGpi(
       mkMatch([
-        mkParticipant({ puuid: "me", damageDealtToObjectives: 4000 }),
+        mkParticipant({ puuid: "me", position: "TOP", damageDealtToObjectives: 4000 }),
         mkParticipant({ puuid: "ally", damageDealtToObjectives: 16000 }),
       ]),
       "me"
@@ -301,5 +301,52 @@ describe("laning — measured at ~14:00 via timeline, not end-of-game totals", (
     } as typeof timeline;
     const s = computeGpi(mkMatch([me, darius], 2400), "me", null, tl)!;
     expect(s.categories.laning).toBeGreaterThan(60);
+  });
+});
+
+describe("role- and queue-aware scoring", () => {
+  it("returns null for non-Rift queues (ARAM / Arena)", () => {
+    const parts = [mkParticipant({ puuid: "me", position: "" })];
+    expect(computeGpi({ ...mkMatch(parts), queueId: 450 }, "me")).toBeNull();
+    expect(computeGpi({ ...mkMatch(parts), queueId: 1700 }, "me")).toBeNull();
+  });
+
+  it("exposes the player's role on the score", () => {
+    const s = computeGpi(mkMatch([mkParticipant({ puuid: "me", position: "JUNGLE" })]), "me")!;
+    expect(s.role).toBe("JUNGLE");
+  });
+
+  it("supports get a neutral laning score even when behind the enemy support", () => {
+    const s = computeGpi(
+      mkMatch([
+        mkParticipant({ puuid: "me", position: "UTILITY", cs: 20, goldEarned: 7000 }),
+        mkParticipant({ puuid: "opp", teamId: 200, position: "UTILITY", cs: 60, goldEarned: 10_000 }),
+      ]),
+      "me"
+    )!;
+    expect(s.categories.laning).toBe(50);
+  });
+
+  it("scores objectives against the role's expected share (support at 6% = 50)", () => {
+    const s = computeGpi(
+      mkMatch([
+        mkParticipant({ puuid: "me", position: "UTILITY", damageDealtToObjectives: 600 }),
+        mkParticipant({ puuid: "ally", position: "JUNGLE", damageDealtToObjectives: 9400 }),
+      ]),
+      "me"
+    )!;
+    expect(s.categories.objectives).toBe(50);
+  });
+
+  it("70% KP on a support at the role's damage share reads healthy (>= 65)", () => {
+    // Team kills 10; me 2+5 = 70% KP. Damage 10% of team = support target.
+    const s = computeGpi(
+      mkMatch([
+        mkParticipant({ puuid: "me", position: "UTILITY", kills: 2, assists: 5, totalDamageDealtToChampions: 10_000 }),
+        mkParticipant({ puuid: "ally", position: "BOTTOM", kills: 8, totalDamageDealtToChampions: 90_000 }),
+      ]),
+      "me"
+    )!;
+    expect(s.categories.aggression).toBeGreaterThanOrEqual(65);
   });
 });

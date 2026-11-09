@@ -103,6 +103,49 @@ describe("deriveWinConditions", () => {
     expect(out.some((c) => c.key.includes(".rules.role"))).toBe(false);
   });
 
+  describe("laner macro advice vs role", () => {
+    function roleDb(): ChampionDb {
+      const base = mockDb();
+      const extra = {
+        "10": { id: "Hecarim", key: "10", name: "Hecarim", tags: ["Fighter"] },
+        "11": { id: "JarvanIV", key: "11", name: "Jarvan IV", tags: ["Fighter"] },
+        "12": { id: "Camille", key: "12", name: "Camille", tags: ["Fighter"] },
+        "13": { id: "KogMaw", key: "13", name: "Kog'Maw", tags: ["Marksman"] },
+      };
+      return {
+        ...base,
+        champions: { ...base.champions, ...extra } as unknown as ChampionDb["champions"],
+      } as ChampionDb;
+    }
+    const keysFor = (role: Role | null) =>
+      deriveWinConditions({
+        db: roleDb(),
+        myChampionKey: null,
+        myRole: role,
+        allyKeys: ["6", "13"], // Vayne + Kog'Maw = scaling-late
+        enemyKeys: ["10", "11", "12"], // Hecarim + J4 + Camille = early-skirmish
+      }).map((c) => c.key);
+
+    it("jungler gets neither 'play the first wave safe' nor 'stack CS'", () => {
+      const keys = keysFor("JUNGLE");
+      expect(keys).not.toContain("winConditions.rules.enemyEarlySkirmish");
+      expect(keys).not.toContain("winConditions.rules.allyScalingLate");
+      expect(keys).toContain("winConditions.rules.roleJungleScaling");
+    });
+
+    it("support is not told to stack CS", () => {
+      const keys = keysFor("UTILITY");
+      expect(keys).not.toContain("winConditions.rules.allyScalingLate");
+      expect(keys).toContain("winConditions.rules.enemyEarlySkirmish");
+    });
+
+    it.each(["TOP", "MIDDLE", "BOTTOM", null] as const)("%s keeps the laner advice", (role) => {
+      const keys = keysFor(role);
+      expect(keys).toContain("winConditions.rules.enemyEarlySkirmish");
+      expect(keys).toContain("winConditions.rules.allyScalingLate");
+    });
+  });
+
   it("every emitted key resolves to a real translation (no orphan keys)", () => {
     // Sweep many comp/role permutations, collect every key the engine can
     // emit, and assert each one exists in es.json. Guards against an engine

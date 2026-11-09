@@ -102,9 +102,9 @@ describe("BanSuggestionsPanel", () => {
     const c = card("Aatrox");
     expect(c).toHaveAttribute(
       "title",
-      "Personal: Pierdes 20% vs él en TOP (5g). Banearlo elimina tu peor matchup directo."
+      "Personal: Pierdes 80% vs él en TOP (5g). Banearlo elimina tu peor matchup directo."
     );
-    expect(within(c).getByText("Pierdes 20% vs él en TOP (5g)")).toBeInTheDocument();
+    expect(within(c).getByText("Pierdes 80% vs él en TOP (5g)")).toBeInTheDocument();
     expect(within(c).getByTitle("Severidad: high")).toHaveTextContent("S+");
     expect(within(c).getByText("tú")).toBeInTheDocument();
     expect(within(c).getByRole("img", { name: "Aatrox" })).toHaveAttribute(

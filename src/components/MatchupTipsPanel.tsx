@@ -1,7 +1,7 @@
 import { memo, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { ChampionDb, Role } from "../types/champion";
-import { getMatchupTips } from "../data/matchupTips";
+import { getMatchupTips, inferEnemyRoles } from "../data/matchupTips";
 import { usePrefsStore } from "../state/prefsStore";
 import { Panel } from "./ui/Panel";
 import { Lightbulb, Bot, Sparkles } from "lucide-react";
@@ -33,7 +33,16 @@ function MatchupTipsPanelInner({
     for (const c of Object.values(db.champions)) m.set(c.key, c.id);
     return m;
   }, [db]);
-  const tips = getMatchupTips(undefined, enemyKeys, idToName, panelLang);
+  // Champ select hides enemy positions; guess them so tips can tell your
+  // lane opponent apart from the rest of the enemy team.
+  const enemyRoles = useMemo(
+    () => inferEnemyRoles(enemyKeys.map((k) => db.champions[k]?.id)),
+    [db, enemyKeys]
+  );
+  const tips = getMatchupTips(undefined, enemyKeys, idToName, panelLang, {
+    myRole,
+    enemyRoles,
+  });
 
   // `versus` is the DDragon id ("MissFortune"), not the display name.
   const byId = (id: string) => Object.values(db.champions).find((c) => c.id === id);
@@ -75,6 +84,7 @@ function MatchupTipsPanelInner({
               myChampionKey={myChampionKey}
               enemyKey={enemyKey}
               role={myRole}
+              enemyRole={enemyRoles[enemyKeys.indexOf(enemyKey)] ?? null}
             />
           ))}
       </div>
@@ -87,11 +97,14 @@ function AiMatchupRow({
   myChampionKey,
   enemyKey,
   role,
+  enemyRole,
 }: {
   db: ChampionDb;
   myChampionKey: string;
   enemyKey: string;
   role: Role;
+  /** Inferred enemy role; null = unknown (not your lane opponent). */
+  enemyRole: Role | null;
 }) {
   const { t } = useTranslation();
   const me = db.champions[myChampionKey];
@@ -116,11 +129,12 @@ function AiMatchupRow({
       Number(me.key),
       Number(en.key),
       role,
-      db.patch
+      db.patch,
+      enemyRole
     ).then((c) => {
       if (c) setText(c.tipsText);
     });
-  }, [myChampionKey, enemyKey, role, db.patch, me, en]);
+  }, [myChampionKey, enemyKey, role, enemyRole, db.patch, me, en]);
 
   if (!me || !en) return null;
 
@@ -140,6 +154,7 @@ function AiMatchupRow({
         championB: Number(en.key),
         championBName: en.name,
         position: role,
+        enemyPosition: enemyRole,
         patch: db.patch,
         language: lang,
       });

@@ -4,6 +4,7 @@ import { i18n } from "../i18n";
 import type { ChampionDb } from "../types/champion";
 import { useDraftStore, type EnemyScoutTarget } from "../state/draftStore";
 import { getSummonerById } from "../services/lcuService";
+import { isRandomPickScout } from "../state/enemyScoutTargets";
 import { scoutPlayer, type ScoutResult } from "../services/enemyScout";
 import { loadSettings } from "../services/settingsRepo";
 import { usePrefsStore } from "../state/prefsStore";
@@ -57,21 +58,24 @@ function buildSlots(
   championIds: (number | null)[],
   targets: EnemyScoutTarget[]
 ): Slot[] {
-  if (summonerIds.some((s) => s > 0)) {
-    return summonerIds.map((sid, i) => ({
-      key: `s${sid}`,
-      summonerId: sid,
-      puuid: null,
-      championId: championIds[i] ?? null,
-      hasSmite: false,
+  // In-game targets win: they carry real Smite data, and champ-select ids
+  // can linger into the game (lcuSync keeps them at GameStart).
+  if (targets.length > 0) {
+    return targets.map((tg) => ({
+      key: `p${tg.puuid}`,
+      summonerId: 0,
+      puuid: tg.puuid,
+      championId: tg.championId,
+      hasSmite: !!tg.hasSmite,
     }));
   }
-  return targets.map((tg) => ({
-    key: `p${tg.puuid}`,
-    summonerId: 0,
-    puuid: tg.puuid,
-    championId: tg.championId,
-    hasSmite: !!tg.hasSmite,
+  if (!summonerIds.some((s) => s > 0)) return [];
+  return summonerIds.map((sid, i) => ({
+    key: `s${sid}`,
+    summonerId: sid,
+    puuid: null,
+    championId: championIds[i] ?? null,
+    hasSmite: false,
   }));
 }
 
@@ -175,9 +179,14 @@ function EnemyScoutPanelInner({
             const champName = champId
               ? db.champions[String(champId)]?.name ?? null
               : null;
+            const randomPick = !!slot.puuid && isRandomPickScout();
             const threat = assessThreat({
               // Read at call time: role changes must not re-run the scout fetch.
-              viewpoint: scoutViewpoint(useDraftStore.getState().myRole, slot.hasSmite),
+              viewpoint: scoutViewpoint(
+                randomPick ? null : useDraftStore.getState().myRole,
+                slot.hasSmite
+              ),
+              randomPick,
               scout: r,
               pickedChampionId: champId ?? null,
               championName: champName,
@@ -210,13 +219,16 @@ function EnemyScoutPanelInner({
   // data we already fetched — no extra API calls.
   const threatBySid: Record<string, PlayerThreat> = {};
   const threatList: PlayerThreat[] = [];
+  // ARAM: no lanes/jungle and random champions — no role or off-pool advice.
+  const randomPick = enemyScoutTargets.length > 0 && isRandomPickScout();
   for (const slot of slots) {
     const sid = slot.key;
     const r = scouts[sid];
     if (!isFilled(slot) || !r || r === "loading" || r === "error") continue;
     const cid = slot.championId;
     const t = assessThreat({
-      viewpoint: scoutViewpoint(myRole, slot.hasSmite),
+      viewpoint: scoutViewpoint(randomPick ? null : myRole, slot.hasSmite),
+      randomPick,
       scout: r,
       pickedChampionId: cid,
       championName: cid ? db.champions[String(cid)]?.name ?? null : null,
@@ -304,8 +316,9 @@ function ScoutCard({
     ? db.champions[String(r.mostPlayedRecent.championId)]
     : null;
   const total = r.recentWins + r.recentLosses;
-  const wr = total > 0 ? (r.recentWins / total) * 100 : 0;
-  const wrColor = wr >= 60 ? "text-bad" : wr >= 50 ? "text-meh" : "text-good";
+  const wr = total > 0 ? (r.recentWins / total) * 100 : null;
+  const wrColor =
+    wr === null ? "text-white/40" : wr >= 60 ? "text-bad" : wr >= 50 ? "text-meh" : "text-good";
 
   // Mastery on the champion they just picked
   const pm = r.pickedChampionMastery;
@@ -341,7 +354,7 @@ function ScoutCard({
         </div>
         <div className="text-right">
           <p className={`text-sm font-bold tabular-nums ${wrColor}`}>
-            {wr.toFixed(0)}%
+            {wr === null ? "—" : `${wr.toFixed(0)}%`}
           </p>
           <p className="text-[10px] text-white/40 tabular-nums">
             {r.recentWins}W·{r.recentLosses}L

@@ -78,7 +78,8 @@ export function suggestBans({
     if (taken.has(key)) continue;
     const champ = db.champions[key];
     if (!champ) continue;
-    const wrPct = (m.winRate * 100).toFixed(0);
+    // engine.banPersonal reads "you lose {{wr}}%", so pass the LOSS rate.
+    const wrPct = ((1 - m.winRate) * 100).toFixed(0);
     suggestions.push({
       championKey: key,
       championName: champ.name,

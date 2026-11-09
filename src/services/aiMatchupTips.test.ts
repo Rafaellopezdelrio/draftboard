@@ -133,3 +133,34 @@ describe("generateMatchupTips", () => {
     expect(executeMock).not.toHaveBeenCalled();
   });
 });
+
+describe("generateMatchupTips — enemy role", () => {
+  it("off-lane enemy gets a non-laning prompt and its own cache key", async () => {
+    await generateMatchupTips(
+      input({ apiKey: "k", championAName: "Kha'Zix", position: "JUNGLE", championBName: "Jinx", enemyPosition: "BOTTOM" })
+    );
+    // Old wrong rows were cached under bare "JUNGLE"; they must not be hit.
+    expect(selectMock.mock.calls[0][1]).toEqual([103, 157, "JUNGLE|vs:BOTTOM", "14.20"]);
+    const p = callAi.mock.calls[0][0];
+    expect(p.userPrompt).not.toContain("Jinx JUNGLE");
+    expect(p.userPrompt).not.toContain("Cómo tradear");
+    expect(p.userPrompt).toContain("Jinx es del equipo enemigo y juega BOTTOM");
+    expect(executeMock.mock.calls[0][1][2]).toBe("JUNGLE|vs:BOTTOM");
+  });
+
+  it("bot-lane pair keeps the laning prompt with the enemy's real role", async () => {
+    await generateMatchupTips(
+      input({ position: "UTILITY", championBName: "Jinx", enemyPosition: "BOTTOM" })
+    );
+    const p = callAi.mock.calls[0][0];
+    expect(p.userPrompt).toContain("enemigo es Jinx BOTTOM");
+    expect(p.userPrompt).toContain("Cómo tradear");
+    expect(selectMock.mock.calls[0][1][2]).toBe("UTILITY|vs:BOTTOM");
+  });
+
+  it("same-role enemy keeps the bare role key", async () => {
+    await generateMatchupTips(input({ enemyPosition: "MIDDLE" }));
+    expect(selectMock.mock.calls[0][1]).toEqual([103, 157, "MIDDLE", "14.20"]);
+    expect(callAi.mock.calls[0][0].userPrompt).toContain("Cómo tradear");
+  });
+});

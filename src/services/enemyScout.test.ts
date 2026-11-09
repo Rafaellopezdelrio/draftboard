@@ -104,6 +104,7 @@ describe("scoutPlayer", () => {
       mainChampionId: 103,
       mostPlayedRecent: { championId: 103, games: 2, wins: 2 },
       pickedChampionMastery: { championId: 157, level: 5, points: 40_000 },
+      pickedChampionRecentGames: 1,
     });
   });
 

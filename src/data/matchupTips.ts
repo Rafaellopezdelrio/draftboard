@@ -1,10 +1,13 @@
-// Curated matchup-specific tips. Triggers when an enemy in your role is on
-// this list. Each champion has parallel `es` / `en` arrays so the user
+// Curated matchup-specific tips. Triggers for every enemy on this list (most
+// tips are team-wide); your lane opponent's tips come first. Each champion has parallel `es` / `en` arrays so the user
 // gets tips in the language they picked for the AI Coach (prefs.aiCoachLanguage).
 //
 // New tips: add the same number of entries to both arrays. If you only
 // have one language, paste the original into the other so callers never
 // receive an empty list while we wait for a translation.
+
+import type { Role } from "../types/champion";
+import { CHAMPION_ROLES } from "./championRoles";
 
 export type TipLang = "es" | "en";
 
@@ -463,15 +466,70 @@ const TIPS: Record<string, BilingualTips> = {
   },
 };
 
+/** True when an enemy in `enemyRole` is who you actually lane against
+ *  (same role, or the bot-lane pair for BOTTOM/UTILITY). */
+export function isLaneOpponent(
+  myRole: Role | null | undefined,
+  enemyRole: Role | null | undefined
+): boolean {
+  if (!myRole || !enemyRole) return false;
+  if (myRole === enemyRole) return true;
+  const bot = (r: Role) => r === "BOTTOM" || r === "UTILITY";
+  return bot(myRole) && bot(enemyRole);
+}
+
+/**
+ * Best-guess role per enemy slot (champ select hides enemy positions).
+ * Each role is used at most once; maximises how many enemies get a role,
+ * then prefers each champion's primary role (CHAMPION_ROLES order). null for
+ * unknown champions or when no free role fits. Input: DDragon ids.
+ */
+export function inferEnemyRoles(enemyIds: (string | null | undefined)[]): (Role | null)[] {
+  const options = enemyIds.map((id) => (id ? (CHAMPION_ROLES[id] ?? []) : []));
+  const best: { roles: (Role | null)[]; assigned: number; cost: number } = {
+    roles: enemyIds.map(() => null),
+    assigned: -1,
+    cost: Infinity,
+  };
+  const cur: (Role | null)[] = [];
+  const used = new Set<Role>();
+  const walk = (i: number, assigned: number, cost: number) => {
+    if (i === options.length) {
+      if (assigned > best.assigned || (assigned === best.assigned && cost < best.cost)) {
+        best.roles = [...cur];
+        best.assigned = assigned;
+        best.cost = cost;
+      }
+      return;
+    }
+    options[i].forEach((role, pref) => {
+      if (used.has(role)) return;
+      used.add(role);
+      cur[i] = role;
+      walk(i + 1, assigned + 1, cost + pref);
+      used.delete(role);
+    });
+    cur[i] = null;
+    walk(i + 1, assigned, cost);
+  };
+  walk(0, 0, 0);
+  return best.roles;
+}
+
 export function getMatchupTips(
   _pickedChampionId: string | undefined,
   enemyChampionIds: (string | null | undefined)[],
   championIdToName: Map<string, string>,
-  lang: TipLang = "es"
+  lang: TipLang = "es",
+  /** When given, tips vs your lane opponent(s) come first. `enemyRoles` is
+   *  parallel to `enemyChampionIds`. */
+  opts?: { myRole?: Role | null; enemyRoles?: (Role | null)[] }
 ): MatchupTip[] {
-  const out: MatchupTip[] = [];
-  for (const enemyKey of enemyChampionIds) {
+  const lane: MatchupTip[] = [];
+  const rest: MatchupTip[] = [];
+  for (const [slot, enemyKey] of enemyChampionIds.entries()) {
     if (!enemyKey) continue;
+    const out = isLaneOpponent(opts?.myRole, opts?.enemyRoles?.[slot]) ? lane : rest;
     const enemyName = championIdToName.get(enemyKey);
     if (!enemyName) continue;
     const entry = TIPS[enemyName];
@@ -484,5 +542,5 @@ export function getMatchupTips(
       out.push({ versus: enemyName, tip });
     }
   }
-  return out;
+  return [...lane, ...rest];
 }

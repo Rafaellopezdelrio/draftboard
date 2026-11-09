@@ -52,14 +52,29 @@ export function rankValue(rank: string | null | undefined, lp = 0): number | nul
 const SMURF_LEVEL = 40;
 const ONE_TRICK_PTS = 200_000;
 const COMFORT_CAP_PTS = 300_000;
+// scoutPlayer only fetches the top masteries; a champion outside them is only
+// truly "off pool" when that list is the whole pool (fewer entries than
+// fetched) or its tail is already low-mastery.
+const TOP_MASTERIES_FETCHED = 7;
+const OFF_POOL_FLOOR_PTS = 50_000;
+
+function seesWholePool(top: ScoutResult["topMasteries"]): boolean {
+  if (top.length < TOP_MASTERIES_FETCHED) return true;
+  return Math.min(...top.map((m) => m.points)) < OFF_POOL_FLOOR_PTS;
+}
 
 /** Whose eyes the note is written for. Laner notes talk about "your lane";
  *  a jungler needs gank advice for laners and invade advice vs the enemy
- *  jungler. */
-export type ScoutViewpoint = "laner" | "jungler-vs-laner" | "jungler-vs-jungler";
+ *  jungler; a laner needs map-awareness advice vs the enemy jungler. */
+export type ScoutViewpoint =
+  | "laner"
+  | "laner-vs-jungler"
+  | "jungler-vs-laner"
+  | "jungler-vs-jungler";
 
 const NOTE_PREFIX: Record<ScoutViewpoint, string> = {
   laner: "scout.note.",
+  "laner-vs-jungler": "scout.laneJunglerNote.",
   "jungler-vs-laner": "scout.jungleNote.",
   "jungler-vs-jungler": "scout.junglerNote.",
 };
@@ -69,7 +84,7 @@ export function scoutViewpoint(
   myRole: string | null | undefined,
   enemyHasSmite: boolean | undefined
 ): ScoutViewpoint {
-  if (myRole !== "JUNGLE") return "laner";
+  if (myRole !== "JUNGLE") return enemyHasSmite ? "laner-vs-jungler" : "laner";
   return enemyHasSmite ? "jungler-vs-jungler" : "jungler-vs-laner";
 }
 
@@ -81,6 +96,8 @@ export interface AssessArgs {
   pickedChampionId?: number | null;
   /** Display name of the picked champion, when known. */
   championName?: string | null;
+  /** Champions are assigned at random (ARAM): an off-pool pick means nothing. */
+  randomPick?: boolean;
 }
 
 /** Composite threat read for one enemy. */
@@ -89,6 +106,7 @@ export function assessThreat({
   pickedChampionId,
   championName,
   viewpoint = "laner",
+  randomPick = false,
 }: AssessArgs): PlayerThreat {
   const total = scout.recentWins + scout.recentLosses;
   const wr = total > 0 ? scout.recentWins / total : null;
@@ -109,7 +127,13 @@ export function assessThreat({
     score += Math.min(pm.points / COMFORT_CAP_PTS, 1) * 0.2;
     if (isMain) tags.push("main");
     if (oneTrick) tags.push("one-trick");
-  } else if (pickedChampionId != null && scout.topMasteries.length > 0) {
+  } else if (
+    !randomPick &&
+    pickedChampionId != null &&
+    scout.topMasteries.length > 0 &&
+    !scout.pickedChampionRecentGames &&
+    seesWholePool(scout.topMasteries)
+  ) {
     // Locked something outside their mastery pool — likely uncomfortable.
     score -= 0.15;
     tags.push("fuera de pool");

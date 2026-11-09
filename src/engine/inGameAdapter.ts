@@ -8,11 +8,16 @@
 
 import type { Champion } from "../types/champion";
 import { aggregateEnemyItems } from "../data/itemTags";
+import { i18n } from "../i18n";
 
 export interface InGameSuggestion {
   itemId: number;
   itemName: string;
+  /** `reasonKey` resolved with the active UI language at compute time. */
   reason: string;
+  /** i18n key (inGameAdapt.*) + params, for callers that re-resolve via t(). */
+  reasonKey?: string;
+  reasonParams?: Record<string, number>;
   priority: "core" | "situational";
   /** Stable key for dedup in UI (e.g. across two polls returning same suggestion). */
   key: string;
@@ -47,6 +52,13 @@ function buildOwned(myItems?: Array<{ itemID: number }>): Set<number> {
   return s;
 }
 
+function reason(
+  reasonKey: string,
+  reasonParams?: Record<string, number>
+): Pick<InGameSuggestion, "reason" | "reasonKey" | "reasonParams"> {
+  return { reason: i18n.t(reasonKey, reasonParams), reasonKey, reasonParams };
+}
+
 export function suggestInGameAdaptations({
   champion,
   enemyPlayers,
@@ -60,17 +72,27 @@ export function suggestInGameAdaptations({
   const owned = buildOwned(myItems);
   const out: InGameSuggestion[] = [];
 
-  const isAdScaling = champion.tags.some((t) => ["Marksman", "Fighter"].includes(t));
-  const isApScaling = champion.tags.some((t) => ["Mage", "Support"].includes(t));
-  const isSquishy = !champion.tags.includes("Tank") && !champion.tags.includes("Fighter");
+  const tags = champion.tags;
+  const isMarksman = tags.includes("Marksman");
+  const isTank = tags.includes("Tank");
+  // AD: physical classes not tagged Mage (Zed/Talon are Assassin-only).
+  // AP: mages and enchanters, never tanks (Leona/Braum are Tank+Support).
+  const isAdScaling =
+    tags.some((t) => ["Marksman", "Fighter", "Assassin"].includes(t)) &&
+    !tags.includes("Mage");
+  // (AD supports like Senna/Pyke are not AP either.)
+  const isApScaling =
+    tags.some((t) => ["Mage", "Support"].includes(t)) && !isTank && !isAdScaling;
+  const isSupportMain = tags[0] === "Support";
 
   // --- Grievous Wounds vs healing ---
   if (agg.healers >= HEAL_THRESHOLD) {
     if (isAdScaling && !owned.has(3033) && !owned.has(6609)) {
+      // Mortal Reminder for marksmen; Chempunk Chainsword for melee AD.
       out.push({
-        itemId: 3033,
-        itemName: "Mortal Reminder",
-        reason: `${agg.healers} enemigos curándose — Grievous Wounds AD`,
+        itemId: isMarksman ? 3033 : 6609,
+        itemName: isMarksman ? "Mortal Reminder" : "Chempunk Chainsword",
+        ...reason("inGameAdapt.gwAd", { healers: agg.healers }),
         priority: "core",
         key: "gw-ad",
       });
@@ -78,7 +100,7 @@ export function suggestInGameAdaptations({
       out.push({
         itemId: 3165,
         itemName: "Morellonomicon",
-        reason: `${agg.healers} enemigos curándose — Grievous Wounds AP`,
+        ...reason("inGameAdapt.gwAp", { healers: agg.healers }),
         priority: "core",
         key: "gw-ap",
       });
@@ -86,7 +108,7 @@ export function suggestInGameAdaptations({
       out.push({
         itemId: 3076,
         itemName: "Bramble Vest",
-        reason: `${agg.healers} enemigos curándose — anti-heal barato`,
+        ...reason("inGameAdapt.gwTank", { healers: agg.healers }),
         priority: "situational",
         key: "gw-tank",
       });
@@ -95,20 +117,20 @@ export function suggestInGameAdaptations({
 
   // --- Armor pen vs heavy armor stack ---
   if (agg.totalArmor >= ARMOR_HEAVY && isAdScaling) {
-    if (!owned.has(3036) && !owned.has(6701)) {
+    if (!owned.has(3036) && !owned.has(6694)) {
       out.push({
         itemId: 3036,
         itemName: "Lord Dominik's Regards",
-        reason: `Enemigos con ${agg.totalArmor} armadura total — % penetración crítica`,
+        ...reason("inGameAdapt.armpenCrit", { armor: agg.totalArmor }),
         priority: "core",
         key: "armpen-crit",
       });
     }
-    if (!owned.has(6701)) {
+    if (!owned.has(6694)) {
       out.push({
-        itemId: 6701,
+        itemId: 6694,
         itemName: "Serylda's Grudge",
-        reason: `Tanqueo enemigo alto — penetración + ralentización`,
+        ...reason("inGameAdapt.armpenBruiser"),
         priority: "situational",
         key: "armpen-bruiser",
       });
@@ -116,12 +138,13 @@ export function suggestInGameAdaptations({
   }
 
   // --- Magic pen vs heavy MR stack ---
-  if (agg.totalMr >= MR_HEAVY && isApScaling) {
+  // Enchanters (Support as main class) don't build magic pen.
+  if (agg.totalMr >= MR_HEAVY && isApScaling && !isSupportMain) {
     if (!owned.has(3135) && !owned.has(3020)) {
       out.push({
         itemId: 3135,
         itemName: "Void Staff",
-        reason: `Enemigos con ${agg.totalMr} MR total — % pen mágica`,
+        ...reason("inGameAdapt.magpen", { mr: agg.totalMr }),
         priority: "core",
         key: "magpen",
       });
@@ -130,7 +153,7 @@ export function suggestInGameAdaptations({
       out.push({
         itemId: 3020,
         itemName: "Sorcerer's Shoes",
-        reason: `Botas con pen mágica plana — base anti-MR`,
+        ...reason("inGameAdapt.sorcs"),
         priority: "situational",
         key: "sorcs",
       });
@@ -139,11 +162,12 @@ export function suggestInGameAdaptations({
 
   // --- Anti-crit vs crit AD carry threat ---
   if (agg.crits >= CRIT_THRESHOLD) {
-    if (!owned.has(3143) && !champion.tags.includes("Marksman")) {
+    // Randuin's is a tank/bruiser item; squishies can't use it.
+    if (!owned.has(3143) && (isTank || tags.includes("Fighter"))) {
       out.push({
         itemId: 3143,
         itemName: "Randuin's Omen",
-        reason: `${agg.crits} crit carries enemigos — reduce daño de críticos`,
+        ...reason("inGameAdapt.antiCrit", { crits: agg.crits }),
         priority: "core",
         key: "anti-crit",
       });
@@ -154,11 +178,18 @@ export function suggestInGameAdaptations({
   //     but the dominant signal is "they have a damage-conversion shield".
   //     We only flag it as a hint, not a hard rec, since you can't
   //     directly "counter" a shield with one item. ---
-  if (agg.shielders >= SHIELD_THRESHOLD && isSquishy && !owned.has(3814)) {
+  //     Edge of Night is a lethality item: AD assassins only.
+  if (
+    agg.shielders >= SHIELD_THRESHOLD &&
+    isAdScaling &&
+    tags.includes("Assassin") &&
+    !isMarksman &&
+    !owned.has(3814)
+  ) {
     out.push({
       itemId: 3814,
       itemName: "Edge of Night",
-      reason: `${agg.shielders} enemigos con shields/conversión — burst-through`,
+      ...reason("inGameAdapt.antiShield", { shielders: agg.shielders }),
       priority: "situational",
       key: "anti-shield",
     });

@@ -123,7 +123,7 @@ function deferred<T>() {
 }
 
 function renderPanel(
-  props: { championKey?: string; role?: Role; enemyKeys?: string[] } = {}
+  props: { championKey?: string; role?: Role; enemyKeys?: string[]; gameMode?: string } = {}
 ) {
   return render(
     <ToastProvider>
@@ -132,6 +132,7 @@ function renderPanel(
         championKey={props.championKey ?? "222"}
         role={props.role ?? "BOTTOM"}
         enemyKeys={props.enemyKeys}
+        gameMode={props.gameMode}
       />
     </ToastProvider>
   );
@@ -342,17 +343,17 @@ describe("BuildPanel — rune import", () => {
 describe("BuildPanel — enemy comp & live game", () => {
   it("lists draft adaptations with priority styling and forwards them to the op.gg section", async () => {
     vi.mocked(opgg.fetchOpggBuild).mockResolvedValue(OPGG);
-    // Real adaptation engine: squishy Jinx vs an all-AP enemy (Lux) → MR core
-    // + Zhonya situational. Proves the champion + enemy keys are wired in.
+    // Real adaptation engine: squishy AD Jinx vs an all-AP enemy (Lux) →
+    // Maw situational (no tank Force of Nature, no AP Zhonya's). Proves the
+    // champion + enemy keys are wired in.
     renderPanel({ enemyKeys: ["99"] });
 
-    expect(await screen.findByTestId("opgg-section")).toHaveAttribute("data-adaptations", "2");
+    expect(await screen.findByTestId("opgg-section")).toHaveAttribute("data-adaptations", "1");
     expect(screen.getByText("Adaptaciones vs comp enemiga")).toBeInTheDocument();
-    const fon = screen.getByText("Force of Nature").closest("div.rounded") as HTMLElement;
-    expect(fon).toHaveTextContent("Equipo enemigo 100% AP — necesitas MR");
-    expect(fon.className).toContain("bg-bad/10");
-    const zhonya = screen.getByText("Zhonya's Hourglass").closest("div.rounded") as HTMLElement;
-    expect(zhonya.className).toContain("bg-meh/10");
+    expect(screen.queryByText("Force of Nature")).toBeNull();
+    const maw = screen.getByText("Maw of Malmortius").closest("div.rounded") as HTMLElement;
+    expect(maw).toHaveTextContent("Squishy AD contra AP — escudo mágico + MR");
+    expect(maw.className).toContain("bg-meh/10");
   });
 
   it("adds rune tips for an AP-heavy poke comp and none without enemies", async () => {
@@ -386,6 +387,13 @@ describe("BuildPanel — enemy comp & live game", () => {
     expect(
       screen.getByText("Los items de abajo son de SoloQ — adapta hacia sustain/poke.")
     ).toBeInTheDocument();
+  });
+
+  it("shows the ARAM banner from the champ-select game mode before the game loads", async () => {
+    setLive({});
+    renderPanel({ gameMode: "ARAM" });
+    await act(async () => {});
+    expect(screen.getByText("Consejo ARAM · Jinx")).toBeInTheDocument();
   });
 
   it("shows no ARAM banner on Summoner's Rift", async () => {

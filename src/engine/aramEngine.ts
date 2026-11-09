@@ -29,8 +29,18 @@ const POKE_NAMES = new Set([
 export function aramAdvice(champion: Champion): string[] {
   const tags = new Set(champion.tags);
   const tips: string[] = [];
+  // Enchanters are tagged ["Support","Mage"] in DDragon; the Mage tag must not
+  // turn a healer/shielder into an artillery mage.
+  const enchanter =
+    tags.has("Support") &&
+    !tags.has("Tank") &&
+    !tags.has("Fighter") &&
+    !POKE_NAMES.has(champion.name);
 
-  if (POKE_NAMES.has(champion.name) || tags.has("Mage")) {
+  if (enchanter) {
+    tips.push("aram.support");
+  }
+  if (POKE_NAMES.has(champion.name) || (tags.has("Mage") && !enchanter)) {
     tips.push("aram.poke");
   }
   if (tags.has("Marksman")) {

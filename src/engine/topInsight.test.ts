@@ -51,3 +51,39 @@ describe("deriveTopInsight", () => {
     expect(out?.secondaryAreaKey).toBe("coach.category.vision");
   });
 });
+
+describe("deriveTopInsight — role-aware tips", () => {
+  it("never picks versatility (one-game KDA) since its tip talks about champion pool", () => {
+    const out = deriveTopInsight(baseGpi({ versatility: 10, vision: 50 }));
+    expect(out?.category).toBe("vision");
+    expect(out?.secondaryAreaKey).toBeUndefined();
+  });
+
+  it("returns null when only versatility is low", () => {
+    expect(deriveTopInsight(baseGpi({ versatility: 10 }))).toBeNull();
+  });
+
+  it("skips the lane tip for junglers but keeps it for laners", () => {
+    const jungle = deriveTopInsight({ ...baseGpi({ laning: 20, farming: 50 }), role: "JUNGLE" });
+    expect(jungle?.category).toBe("farming");
+    const top = deriveTopInsight({ ...baseGpi({ laning: 20, farming: 50 }), role: "TOP" });
+    expect(top?.category).toBe("laning");
+    expect(top?.tipKey).toBe("coach.tip.laning.critical");
+  });
+
+  it("only junglers get the Smite-based critical objectives tip", () => {
+    const sup = deriveTopInsight({ ...baseGpi({ objectives: 15 }), role: "UTILITY" });
+    expect(sup?.severity).toBe("critical");
+    expect(sup?.tipKey).toBe("coach.tip.objectives.needsWork");
+    const jg = deriveTopInsight({ ...baseGpi({ objectives: 15 }), role: "JUNGLE" });
+    expect(jg?.tipKey).toBe("coach.tip.objectives.critical");
+  });
+
+  it("ignores the fixed farming/laning placeholders for supports", () => {
+    const sup: GpiScore = { ...baseGpi({ farming: 50, laning: 50 }), role: "UTILITY" };
+    expect(deriveTopInsight(sup)).toBeNull();
+    const weakVision = deriveTopInsight({ ...sup, categories: { ...sup.categories, vision: 40 } });
+    expect(weakVision?.category).toBe("vision");
+    expect(weakVision?.secondaryAreaKey).toBeUndefined();
+  });
+});

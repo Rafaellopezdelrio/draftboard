@@ -4,7 +4,12 @@ import type {
   MatchTimeline,
 } from "../services/riotApi";
 import type { Role } from "../types/champion";
-import { bracketForTier, baselineFor } from "./rankBenchmarks";
+import {
+  bracketForTier,
+  baselineFor,
+  DAMAGE_SHARE_TARGET,
+  isRiftQueue,
+} from "./rankBenchmarks";
 
 const ROLES = new Set<Role>(["TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY"]);
 function asRole(p: string): Role {
@@ -24,6 +29,8 @@ export interface GpiScore {
   total: number; // 0-100
   categories: Record<GpiCategory, number>; // each 0-100
   matchId: string;
+  /** Player's Riot teamPosition ("" if unknown) so the top insight can pick role-fit tips. */
+  role?: string;
 }
 
 export function computeGpi(
@@ -32,6 +39,8 @@ export function computeGpi(
   rankTier?: string | null,
   timeline?: MatchTimeline | null
 ): GpiScore | null {
+  // ARAM / Arena / URF: Summoner's Rift role baselines would be meaningless.
+  if (!isRiftQueue(match.queueId)) return null;
   const me = match.participants.find((p) => p.puuid === myPuuid);
   if (!me) return null;
   const team = match.participants.filter((p) => p.teamId === me.teamId);
@@ -61,6 +70,7 @@ export function computeGpi(
   return {
     total: clamp(Math.round(total)),
     matchId: match.matchId,
+    role: me.position,
     categories: {
       farming: clamp(Math.round(farming)),
       vision: clamp(Math.round(vision)),
@@ -115,6 +125,8 @@ function scoreLaning(
   all: MatchParticipant[],
   timeline?: MatchTimeline | null
 ): number {
+  // Supports don't farm a lane; gold vs the enemy support is not lane control.
+  if (me.position === "UTILITY") return 50;
   const opp = all.find(
     (p) => p.teamId !== me.teamId && p.position === me.position && me.position !== ""
   );
@@ -156,8 +168,10 @@ function scoreAggression(me: MatchParticipant, team: MatchParticipant[]): number
   const teamDmg = team.reduce((a, p) => a + p.totalDamageDealtToChampions, 0);
   const kp = teamKills > 0 ? (me.kills + me.assists) / teamKills : 0;
   const dmgShare = teamDmg > 0 ? me.totalDamageDealtToChampions / teamDmg : 0;
-  // expected role-relative
-  return kp * 100 * 0.6 + dmgShare * 100 * 1.5 * 0.4;
+  // Both parts normalised to their expected value (55% KP, role damage share)
+  // so baseline play lands at 75, like farming and vision.
+  const target = DAMAGE_SHARE_TARGET[me.position] ?? 0.2;
+  return clamp((kp / 0.55) * 75 * 0.6 + (dmgShare / target) * 75 * 0.4);
 }
 
 function scoreSurvivability(me: MatchParticipant, minutes: number): number {
@@ -173,10 +187,19 @@ function scoreObjectives(me: MatchParticipant, team: MatchParticipant[]): number
   const teamObj = team.reduce((a, p) => a + (p.damageDealtToObjectives ?? 0), 0);
   if (teamObj === 0) return 50;
   const share = (me.damageDealtToObjectives ?? 0) / teamObj;
-  // Even split across 5 players = 0.2. Reward above-average focus:
-  // 0.2 share -> 50, 0.4 -> 100.
-  return clamp(share * 250);
+  // Junglers take most epic-monster damage via Smite; supports very little.
+  // The role's expected share scores 50, twice that scores 100.
+  const expected = OBJECTIVE_SHARE_TARGET[me.position] ?? 0.2;
+  return clamp((share / expected) * 50);
 }
+
+const OBJECTIVE_SHARE_TARGET: Record<string, number> = {
+  JUNGLE: 0.35,
+  TOP: 0.2,
+  MIDDLE: 0.15,
+  BOTTOM: 0.22,
+  UTILITY: 0.06,
+};
 
 function scoreVersatility(me: MatchParticipant): number {
   // Reward balanced KDA over feast/famine

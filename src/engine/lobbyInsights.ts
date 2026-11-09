@@ -57,6 +57,8 @@ const SMURF_WR = 0.58;
 export function isSmurf(p: ScoutedPlayer): boolean {
   if (!p.loaded || p.level <= 0 || p.level >= SMURF_LEVEL) return false;
   if (!p.soloRank || p.soloRank === "IRON IV") return false;
+  // A losing record is a real new player, not a smurf climbing.
+  if (p.soloWinRate < 0.5) return false;
   return p.soloGames < SMURF_GAMES || p.soloWinRate >= SMURF_WR;
 }
 
@@ -82,14 +84,17 @@ function maxBy<T>(arr: T[], f: (x: T) => number): T | null {
 
 export function readLobby(
   myTeam: ScoutedPlayer[],
-  theirTeam: ScoutedPlayer[]
+  theirTeam: ScoutedPlayer[],
+  /** My own cell: never named as my carry or liability (still averaged). */
+  localCellId?: number | null
 ): LobbyRead {
   const allies = myTeam.filter((p) => p.loaded);
   const enemies = theirTeam.filter((p) => p.loaded);
+  const others = allies.filter((p) => localCellId == null || p.cellId !== localCellId);
 
   // Carry: best ally that genuinely stands out (high rank OR strong proven WR).
   let carry: LobbyCallout | null = null;
-  const bestAlly = maxBy(allies, reliability);
+  const bestAlly = maxBy(others, reliability);
   if (bestAlly) {
     const rv = rankValue(bestAlly.soloRank, bestAlly.soloLp);
     const standout =
@@ -104,18 +109,20 @@ export function readLobby(
     }
   }
 
-  // Liability: ally we can't lean on (tiny sample / proven low WR).
+  // Liability: ally we can't lean on (few ranked games / proven low WR).
+  // Unranked players are skipped: a missing solo rank (season start, normals
+  // player) says nothing about how they play.
   let liability: LobbyCallout | null = null;
-  const worstAlly = allies.length >= 2 ? minByReliability(allies) : null;
+  const rankedOthers = others.filter((p) => p.soloRank != null);
+  const worstAlly = others.length >= 2 ? minByReliability(rankedOthers) : null;
   if (worstAlly && worstAlly.summonerName !== carry?.name) {
+    const small = worstAlly.soloGames < 10;
     const weak =
-      worstAlly.soloGames < 10 ||
-      (worstAlly.soloGames >= MIN_SAMPLE && worstAlly.soloWinRate < 0.45);
+      small || (worstAlly.soloGames >= MIN_SAMPLE && worstAlly.soloWinRate < 0.45);
     if (weak) {
       liability = {
         name: worstAlly.summonerName,
-        reasonKey:
-          worstAlly.soloGames < 10 ? "lobby.liabilitySmall" : "lobby.liabilityForm",
+        reasonKey: small ? "lobby.liabilityFewGames" : "lobby.liabilityForm",
         reasonParams: { stat: fmt(worstAlly) },
       };
     }

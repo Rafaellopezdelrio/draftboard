@@ -45,6 +45,16 @@ const SMITE = 11;
 
 // Modes with nobody to scout (spectator 404s or has no human enemies).
 const SKIP_MODES = new Set(["PRACTICETOOL", "TFT"]);
+// Modes where champions are assigned at random and there are no lanes/jungle:
+// role and off-pool advice don't apply to the current targets.
+const RANDOM_PICK_MODES = new Set(["ARAM", "ARURF"]);
+let randomPickGame = false;
+
+/** True when the current targets come from a random-pick mode (ARAM). Set
+ *  together with the targets, so a re-render on new targets sees it. */
+export function isRandomPickScout(): boolean {
+  return randomPickGame;
+}
 // Spectator may 404 for the first seconds of the loading screen; retry on the
 // 5s gameflow tick, but stop after this many tries per game.
 const MAX_SPECTATOR_TRIES = 12;
@@ -62,6 +72,7 @@ export function resetEnemyScoutTargets(): void {
   lastGameId = null;
   spectatorTries = 0;
   resolved = false;
+  randomPickGame = false;
   useDraftStore.getState().setEnemyScoutTargets([]);
 }
 
@@ -98,6 +109,7 @@ export async function refreshEnemyScoutTargets(
     if (startedGen !== generation) return;
     if (!game || (gameId !== undefined && game.gameId !== gameId)) return;
     if (!(game.participants ?? []).some((p) => p.puuid === cfg.puuid)) return;
+    randomPickGame = RANDOM_PICK_MODES.has((game.gameMode || gameMode || "").toUpperCase());
     useDraftStore.getState().setEnemyScoutTargets(enemyTargetsFromSpectator(game, cfg.puuid));
     resolved = true;
   } catch {

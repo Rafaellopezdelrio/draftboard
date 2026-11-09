@@ -80,4 +80,34 @@ describe("suggestTrade", () => {
     });
     expect(result).toBeNull();
   });
+
+  it("does NOT tell a one-trick to swap off their main (masteries are forwarded)", () => {
+    const args = {
+      db, currentPickKey: "2", myRole: "MIDDLE" as Role,
+      allyKeys: [], enemyKeys: [], bannedKeys: [],
+    };
+    // Without personal data the D-tier pick loses to the S-tier one...
+    expect(suggestTrade(args)).not.toBeNull();
+    // ...but an M10 300k main must not be told to swap.
+    const result = suggestTrade({
+      ...args,
+      masteries: [
+        { championId: 2, championLevel: 10, championPoints: 300_000, lastPlayTime: 0 },
+      ],
+      rankTier: null,
+    });
+    expect(result).toBeNull();
+  });
+
+  it("falls back to an i18n key reason when the best pick has no reasons", () => {
+    // "1" has no meta row (neutral, no reason); "2" is D-tier. Ranked weights
+    // make the gap >= 5% without giving the best pick any reason.
+    const noReasonDb: ChampionDb = { ...db, meta: [meta("2", "MIDDLE", "D", 0.46)] };
+    const result = suggestTrade({
+      db: noReasonDb, currentPickKey: "2", myRole: "MIDDLE",
+      allyKeys: [], enemyKeys: [], bannedKeys: [], rankTier: "GOLD",
+    });
+    expect(result?.proposedChampionKey).toBe("1");
+    expect(result?.reason).toBe("trade.reasonDefault");
+  });
 });

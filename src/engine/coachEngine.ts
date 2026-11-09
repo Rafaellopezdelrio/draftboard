@@ -3,6 +3,7 @@ import type {
   MatchParticipant,
   MatchTimeline,
 } from "../services/riotApi";
+import { DAMAGE_SHARE_TARGET, isRiftQueue } from "./rankBenchmarks";
 
 export type Severity = "info" | "warn" | "bad" | "good";
 export type Category =
@@ -65,14 +66,6 @@ const VISION_SCORE_PER_MIN_TARGET: Record<string, number> = {
   UTILITY: 1.6,
 };
 
-const DAMAGE_SHARE_TARGET: Record<string, number> = {
-  TOP: 0.22,
-  JUNGLE: 0.18,
-  MIDDLE: 0.27,
-  BOTTOM: 0.28,
-  UTILITY: 0.1,
-};
-
 export function analyzeMatch({
   match,
   timeline,
@@ -80,6 +73,8 @@ export function analyzeMatch({
 }: AnalyzeArgs): Insight[] {
   const me = match.participants.find((p) => p.puuid === myPuuid);
   if (!me) return [];
+  // ARAM / Arena / URF: Summoner's Rift lane, vision and death rules don't apply.
+  if (!isRiftQueue(match.queueId)) return [];
 
   const myParticipantId = me.participantId;
   const myTeamId = me.teamId;
@@ -97,7 +92,7 @@ export function analyzeMatch({
 
   out.push(...checkFarming(me, role, minutes));
   out.push(...checkVision(me, role, minutes));
-  out.push(...checkDeaths(me, myParticipantId, timeline, minutes));
+  out.push(...checkDeaths(me, myParticipantId, timeline, minutes, role));
   out.push(...checkKillParticipation(me, team));
   out.push(...checkDamageShare(me, team, role));
   out.push(...checkObjectives(me, myTeamId, timeline));
@@ -187,7 +182,8 @@ function checkDeaths(
   me: MatchParticipant,
   myParticipantId: number,
   timeline: MatchTimeline,
-  minutes: number
+  minutes: number,
+  role: string
 ): Insight[] {
   let earlyDeaths = 0;
   let soloDeaths = 0;
@@ -210,14 +206,20 @@ function checkDeaths(
       severity: "bad",
       title: `${earlyDeaths} muertes en early`,
       detail: "Moriste demasiado antes del minuto 8.",
-      action: "Juega más pasivo hasta nivel 6. Pushea solo cuando tengas visión del jungla.",
+      action:
+        role === "JUNGLE"
+          ? "Wardea las entradas de tu jungla y no invadas sin prioridad en las líneas cercanas."
+          : "Juega más pasivo hasta nivel 6. Pushea solo cuando tengas visión del jungla.",
     });
   } else if (earlyDeaths >= 2) {
     out.push({
       category: "deaths",
       severity: "warn",
       title: `${earlyDeaths} muertes tempranas`,
-      detail: "Cuida más el early — los ganks son letales sin items.",
+      detail:
+        role === "JUNGLE"
+          ? "Cuida más el early — trackea al jungla rival y no entres al río sin prioridad."
+          : "Cuida más el early — los ganks son letales sin items.",
     });
   }
 

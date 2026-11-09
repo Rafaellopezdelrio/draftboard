@@ -11,8 +11,18 @@ import type { LiveGameEvent } from "./liveClient";
 // Riot's respawn timers (seconds after kill). Values match the in-game minimap
 // timers, sourced from Riot's published patch notes. Tune if a patch changes.
 export const DRAGON_RESPAWN_SEC = 5 * 60; // 5min
-export const BARON_RESPAWN_SEC = 6 * 60; // 6min (after first spawn at 25min)
+export const BARON_RESPAWN_SEC = 6 * 60; // 6min (after first spawn at 20min)
 export const FIRST_DRAGON_SPAWN_SEC = 5 * 60; // 5min from game start
+export const FIRST_BARON_SPAWN_SEC = 20 * 60; // 20min from game start
+// The first Baron countdown only shows in the last 3 minutes: a 17-minute
+// timer from the start is noise on the panel and overlay.
+export const FIRST_BARON_SHOW_SEC = FIRST_BARON_SPAWN_SEC - 3 * 60;
+// Elder replaces the elemental drakes once a team has Soul (4 drakes): it
+// spawns 6min after the Soul drake and respawns 6min after each Elder kill.
+export const ELDER_RESPAWN_SEC = 6 * 60;
+/** Live Client gameData.mapNumber for Summoner's Rift. Other maps (Howling
+ *  Abyss, Arena, ...) have no dragon/baron. */
+export const SUMMONERS_RIFT_MAP = 11;
 // Herald respawn (4min, until 20min when Baron spawns) intentionally left out —
 // needs separate event tracking we'll add later.
 
@@ -38,9 +48,21 @@ export function formatTime(seconds: number): string {
  */
 export function deriveTimers(
   events: LiveGameEvent[],
-  gameTime: number
+  gameTime: number,
+  opts: {
+    /** gameData.mapNumber; when given and not the Rift, there are no timers. */
+    mapNumber?: number;
+    /** Team-attributed dragon counts (liveClient.attributeObjectives), used to
+     *  detect Soul -> Elder (6min) timing. */
+    dragonsByTeam?: { ORDER: number; CHAOS: number } | null;
+  } = {}
 ): DerivedTimers {
+  if (opts.mapNumber !== undefined && opts.mapNumber !== SUMMONERS_RIFT_MAP) {
+    return { nextDragonAt: null, nextBaronAt: null };
+  }
   let lastDragonKill: number | null = null;
+  let lastDragonElder = false;
+  let elementalKills = 0;
   let lastBaronKill: number | null = null;
 
   // Team attribution of objective kills lives in liveClient.attributeObjectives
@@ -49,19 +71,34 @@ export function deriveTimers(
   for (const ev of events) {
     if (ev.EventName === "DragonKill" && typeof ev.EventTime === "number") {
       lastDragonKill = ev.EventTime;
+      lastDragonElder = ev.DragonType === "Elder";
+      if (!lastDragonElder) elementalKills++;
     } else if (ev.EventName === "BaronKill" && typeof ev.EventTime === "number") {
       lastBaronKill = ev.EventTime;
     }
   }
 
+  // Soul = a team on 4 drakes. Attributed counts can miss kills, so the raw
+  // elemental total only rules Soul out (<4) or forces it (>=7, since 3+3 is
+  // the most possible without Soul).
+  const byTeam = opts.dragonsByTeam;
+  const soulClaimed =
+    elementalKills >= 7 ||
+    (elementalKills >= 4 && !!byTeam && (byTeam.ORDER >= 4 || byTeam.CHAOS >= 4));
+  const dragonRespawn =
+    lastDragonElder || soulClaimed ? ELDER_RESPAWN_SEC : DRAGON_RESPAWN_SEC;
   const nextDragonAt =
     lastDragonKill !== null
-      ? lastDragonKill + DRAGON_RESPAWN_SEC
+      ? lastDragonKill + dragonRespawn
       : gameTime < FIRST_DRAGON_SPAWN_SEC
         ? FIRST_DRAGON_SPAWN_SEC
         : null;
   const nextBaronAt =
-    lastBaronKill !== null ? lastBaronKill + BARON_RESPAWN_SEC : null;
+    lastBaronKill !== null
+      ? lastBaronKill + BARON_RESPAWN_SEC
+      : gameTime >= FIRST_BARON_SHOW_SEC && gameTime < FIRST_BARON_SPAWN_SEC
+        ? FIRST_BARON_SPAWN_SEC
+        : null;
 
   return { nextDragonAt, nextBaronAt };
 }

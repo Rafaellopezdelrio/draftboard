@@ -71,6 +71,57 @@ describe("assessThreat", () => {
     expect(t.noteKey).toBe("scout.note.offPool");
   });
 
+  // Only the top 7 masteries are fetched: a champion just outside a deep pool
+  // is not "uncomfortable".
+  it("does not call off-pool when the 7 fetched masteries are all high", () => {
+    const top = Array.from({ length: 7 }, (_, i) => ({
+      championId: i + 1,
+      level: 7,
+      points: 150_000,
+    }));
+    const t = assessThreat({ scout: sr({ topMasteries: top }), pickedChampionId: 99 });
+    expect(t.tags).not.toContain("fuera de pool");
+    expect(t.noteKey).toBe("scout.note.standard");
+  });
+
+  it("still calls off-pool when the fetched list's tail is low-mastery", () => {
+    const top = Array.from({ length: 7 }, (_, i) => ({
+      championId: i + 1,
+      level: 5,
+      points: i === 6 ? 20_000 : 150_000,
+    }));
+    const t = assessThreat({ scout: sr({ topMasteries: top }), pickedChampionId: 99 });
+    expect(t.tags).toContain("fuera de pool");
+  });
+
+  it("does not call off-pool when they played the pick in recent games", () => {
+    const t = assessThreat({
+      scout: sr({
+        topMasteries: [{ championId: 1, level: 7, points: 100_000 }],
+        pickedChampionRecentGames: 2,
+      }),
+      pickedChampionId: 99,
+    });
+    expect(t.tags).not.toContain("fuera de pool");
+  });
+
+  it("never calls off-pool on random-pick modes (ARAM)", () => {
+    const t = assessThreat({
+      scout: sr({ topMasteries: [{ championId: 1, level: 7, points: 100_000 }] }),
+      pickedChampionId: 99,
+      randomPick: true,
+    });
+    expect(t.tags).not.toContain("fuera de pool");
+    expect(t.noteKey).not.toMatch(/offPool$/);
+  });
+
+  it("phrases notes about the enemy jungler for a laner (laneJunglerNote)", () => {
+    const scout = sr({ coldStreak: true, recentWins: 2, recentLosses: 8 });
+    const t = assessThreat({ scout, viewpoint: "laner-vs-jungler" });
+    expect(t.noteKey).toBe("scout.laneJunglerNote.coldStreakWr");
+    expect(t.noteParams).toEqual(assessThreat({ scout }).noteParams);
+  });
+
   it("reads a cold streak / poor form as low threat", () => {
     const t = assessThreat({
       scout: sr({ coldStreak: true, recentWins: 2, recentLosses: 8 }),
@@ -108,7 +159,9 @@ describe("assessThreat", () => {
   it.each([
     ["JUNGLE", false, "jungler-vs-laner"],
     ["JUNGLE", true, "jungler-vs-jungler"],
-    ["MIDDLE", true, "laner"],
+    ["MIDDLE", true, "laner-vs-jungler"],
+    ["MIDDLE", false, "laner"],
+    [null, true, "laner-vs-jungler"],
     [null, false, "laner"],
   ] as const)("scoutViewpoint(%s, smite=%s) → %s", (role, smite, expected) => {
     expect(scoutViewpoint(role, smite)).toBe(expected);

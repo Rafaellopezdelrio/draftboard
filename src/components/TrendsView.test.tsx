@@ -287,11 +287,26 @@ describe("TrendsView — real engines on 6 games", () => {
     // A minority lane comes first so "first lane seen" would pick TOP.
     const ms = [
       mk({ position: "TOP" }),
-      ...Array.from({ length: 4 }, () => mk({ position: "JUNGLE", championId: 64 })),
+      ...Array.from({ length: 5 }, () => mk({ position: "JUNGLE", championId: 64 })),
       mk({ position: "" }),
     ];
     await renderWith(ms);
     expect(screen.getByText(/vs tu rango · Gold–Plat · JUNGLE/)).toBeInTheDocument();
+  });
+
+  it("benchmarks only count games in the benchmarked role, without remakes", async () => {
+    // ARAM (no vision), an off-role game and a 3-min remake must not drag
+    // the TOP averages: vision stays 1.00/min.
+    const ms = [
+      ...sixTop(),
+      mk({ position: "", queueId: 450, visionScore: 0, deaths: 20 }),
+      mk({ position: "UTILITY", visionScore: 0 }),
+      mk({ durationSec: 180, visionScore: 0, cs: 0 }),
+    ];
+    await renderWith(ms);
+    const box = screen.getByText(/vs tu rango · Gold–Plat · TOP/).parentElement!;
+    expect(within(box).getByText("Visión/min").parentElement).toHaveTextContent("1.00vs 0.60↑");
+    expect(within(box).getByText("CS/min").parentElement).toHaveTextContent("6.5vs 6.5≈");
   });
 
   it("no benchmarks without any lane position (e.g. ARAM)", async () => {

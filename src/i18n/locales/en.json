@@ -61,7 +61,8 @@
   "trade": {
     "title": "Trade suggestion",
     "switchTo": "Switch to",
-    "better": "better"
+    "better": "better",
+    "reasonDefault": "Better combined score against the current draft"
   },
   "trends": {
     "title": "Trends",
@@ -295,6 +296,17 @@
       "coldStreakWr": "Enemy jungler out of form ({{wr}}%). Contest their camps and objectives.",
       "main": "Enemy jungler on their main ({{champ}}). Respect their power spikes and track them.",
       "standard": "Standard enemy jungler. Track their path and play the opposite side."
+    },
+    "laneJunglerNote": {
+      "smurf": "Enemy jungler possible smurf (lvl {{level}}). Ward early and don't overextend until you know where they are.",
+      "smurfWr": "Enemy jungler possible smurf (lvl {{level}}, {{wr}}% WR). Ward early and don't overextend until you know where they are.",
+      "oneTrick": "Enemy jungler {{champ}} OTP ({{pts}}k). Ward early and don't overextend before you know where they are.",
+      "hotStreak": "Enemy jungler on a hot streak ({{wr}}%). Expect aggressive ganks: play with vision.",
+      "offPool": "Enemy jungler off their champ pool. Early ganks will be weaker: punish their mistakes.",
+      "coldStreak": "Enemy jungler out of form. Play aggressive, but keep an eye on the map.",
+      "coldStreakWr": "Enemy jungler out of form ({{wr}}%). Play aggressive, but keep an eye on the map.",
+      "main": "Enemy jungler on their main ({{champ}}). Respect their ganks and objective control.",
+      "standard": "Standard enemy jungler. Ward their path and call it when they go missing."
     }
   },
   "matchupTips": {
@@ -348,7 +360,8 @@
         "critical": "You clearly lost lane. Respect the matchup, farm under tower and ask for ganks instead of forcing losing trades.",
         "needsWork": "Draw or win your lane. Improve wave management and punish the enemy's CDs for an early edge."
       }
-    }
+    },
+    "riftOnly": "Analysis is only available for Summoner's Rift games."
   },
   "lobby": {
     "title": "Lobby scout",
@@ -365,7 +378,8 @@
     "dodgeTiers": "enemy ~+{{tiers}} tiers",
     "dodgeThreat": "strong threat",
     "dodgeLiability": "weak ally",
-    "dodgeText": "Uphill game ({{bits}}). Consider dodging: sometimes -LP is cheaper than a likely loss."
+    "dodgeText": "Uphill game ({{bits}}). Consider dodging: sometimes -LP is cheaper than a likely loss.",
+    "liabilityFewGames": "{{stat}} — few ranked games this season, unproven."
   },
   "comp": {
     "title": "Composition",
@@ -1598,5 +1612,23 @@
     "noPage": "No rune page found for {{label}}.",
     "pageLimit": "All your rune page slots are in use: delete or rename one in the client. Draftboard never deletes yours.",
     "error": "The League client rejected the rune page."
+  },
+  "inGameAdapt": {
+    "gwAd": "{{healers}} enemies healing — AD Grievous Wounds",
+    "gwAp": "{{healers}} enemies healing — AP Grievous Wounds",
+    "gwTank": "{{healers}} enemies healing — cheap anti-heal",
+    "armpenCrit": "Enemies have {{armor}} total armor — crit % penetration",
+    "armpenBruiser": "Heavy enemy tankiness — penetration + slow",
+    "magpen": "Enemies have {{mr}} total MR — % magic pen",
+    "sorcs": "Boots with flat magic pen — anti-MR baseline",
+    "antiCrit": "{{crits}} enemy crit carries — reduces crit damage",
+    "antiShield": "{{shielders}} enemies with shields/conversion — burst through"
+  },
+  "voice": {
+    "locked": "Champion locked",
+    "banTurn": "Your turn to ban",
+    "pickTurn": "Your turn to pick",
+    "gameStarted": "Game started",
+    "postGameReady": "Post-game analysis ready"
   }
 }

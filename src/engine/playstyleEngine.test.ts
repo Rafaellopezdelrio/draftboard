@@ -77,6 +77,19 @@ describe("buildPlaystyleProfile", () => {
     expect(p?.traits).not.toContain("Farm bajo");
   });
 
+  it("support main whose newest game is mid is not flagged 'Farm bajo'", () => {
+    const matches = [
+      m({ cs: 165, position: "MIDDLE" }), // 5.5 CS/min
+      ...Array(4).fill(0).map(() => m({ cs: 36, position: "UTILITY" })),
+    ];
+    expect(buildPlaystyleProfile(matches)?.traits).not.toContain("Farm bajo");
+  });
+
+  it("jungler at 4.8 CS/min is not flagged 'Farm bajo'", () => {
+    const matches = Array(5).fill(0).map(() => m({ cs: 144, position: "JUNGLE" }));
+    expect(buildPlaystyleProfile(matches)?.traits).not.toContain("Farm bajo");
+  });
+
   it("metrics include aggression + scaling + objective scores in [0,1]", () => {
     const matches = Array(5).fill(0).map(() => m());
     const p = buildPlaystyleProfile(matches);

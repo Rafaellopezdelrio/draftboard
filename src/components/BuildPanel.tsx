@@ -40,11 +40,13 @@ interface Props {
   championKey: string;
   role: Role;
   enemyKeys?: string[];
+  /** Champ-select queue mode; "ARAM" shows the ARAM tips before the game loads. */
+  gameMode?: string | null;
 }
 
 const SKILL_LABEL = ["", "Q", "W", "E"];
 
-function BuildPanelInner({ db, championKey, role, enemyKeys = [] }: Props) {
+function BuildPanelInner({ db, championKey, role, enemyKeys = [], gameMode }: Props) {
   const { t } = useTranslation();
   const [builds, setBuilds] = useState<BuildAgg[]>([]);
   const [runes, setRunes] = useState<RuneAgg | null>(null);
@@ -135,6 +137,7 @@ function BuildPanelInner({ db, championKey, role, enemyKeys = [] }: Props) {
   // recs with a grain of salt. Full ARAM-aware engine is a separate
   // milestone; this is the minimal "honesty" UX.
   const isAram =
+    gameMode?.toUpperCase() === "ARAM" ||
     liveGame.snapshot?.gameData?.gameMode === "ARAM" ||
     liveGame.snapshot?.gameData?.mapNumber === 12;
   const inGameSuggestions: InGameSuggestion[] = useMemo(() => {

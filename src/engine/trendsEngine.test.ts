@@ -116,4 +116,16 @@ describe("detectWeakestArea", () => {
     );
     expect(detectWeakestArea(matches)).toBeNull();
   });
+
+  it("uses a lower CS/min bar for junglers (5.2 is fine, 4 is not)", () => {
+    // 156 cs / 30 min = 5.2 cs/min — a normal Gold jungler.
+    const ok = Array(5).fill(0).map(() =>
+      match({ cs: 156, kills: 8, deaths: 3, assists: 7, position: "JUNGLE" })
+    );
+    expect(detectWeakestArea(ok)).toBeNull();
+    const low = Array(5).fill(0).map(() =>
+      match({ cs: 120, kills: 8, deaths: 3, assists: 7, position: "JUNGLE" })
+    );
+    expect(detectWeakestArea(low)?.category).toBe("Farming");
+  });
 });

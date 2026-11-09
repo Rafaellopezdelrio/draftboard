@@ -92,6 +92,27 @@ export function baselineFor(
   return BASELINES[bracket][role];
 }
 
+/** Expected share of the team's champion damage per role. Shared by the
+ *  post-game coach (damage-share insight) and the GPI aggression axis. */
+export const DAMAGE_SHARE_TARGET: Record<string, number> = {
+  TOP: 0.22,
+  JUNGLE: 0.18,
+  MIDDLE: 0.27,
+  BOTTOM: 0.28,
+  UTILITY: 0.1,
+};
+
+// Queues not played on Summoner's Rift, or SR modes where lane/vision/death
+// rules make no sense: ARAM, Arena, URF, Nexus Blitz, Brawl, Swarm...
+const NON_RIFT_QUEUES = new Set<number>([
+  100, 450, 720, 900, 1010, 1300, 1700, 1710, 1810, 1820, 1830, 1840, 1900, 2300, 2400,
+]);
+
+/** True when a queue's games can be judged with Summoner's Rift lane rules. */
+export function isRiftQueue(queueId: number): boolean {
+  return !NON_RIFT_QUEUES.has(queueId);
+}
+
 export type BenchmarkKey = "cspm" | "vspm" | "dpm" | "kda";
 export type BenchmarkVerdict = "above" | "at" | "below";
 

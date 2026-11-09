@@ -339,7 +339,7 @@ describe("buildProAnalytics — frame snapshots", () => {
     });
   });
 
-  it("without a lane opponent, diffs fall back to my own absolute values", () => {
+  it("without a lane opponent, diffs are 0 (not my own absolute values)", () => {
     // Opponent plays TOP, so nobody on red matches my MIDDLE.
     const r = buildProAnalytics(
       laneMatch({}, { position: "TOP" }),
@@ -347,11 +347,25 @@ describe("buildProAnalytics — frame snapshots", () => {
       "me",
       champNames
     )!;
-    expect(r.csDiffAt10).toBe(80);
-    expect(r.goldDiffAt15).toBe(6500);
-    expect(r.xpDiffAt10).toBe(3000);
-    expect(r.goldLeadAt15).toBe(6500);
-    expect(r.objectiveTrades[0]).toMatchObject({ myCsDeltaAtTime: 80, myGoldDeltaAtTime: 4500 });
+    expect(r.cs10).toBe(80);
+    expect(r.csDiffAt10).toBe(0);
+    expect(r.goldDiffAt15).toBe(0);
+    expect(r.xpDiffAt10).toBe(0);
+    expect(r.goldLeadAt15).toBe(0);
+    expect(r.csLeadAt14).toBe(0);
+    expect(r.objectiveTrades[0]).toMatchObject({ myCsDeltaAtTime: 0, myGoldDeltaAtTime: 0 });
+  });
+
+  it("ARAM (empty positions) does not pick an arbitrary enemy as lane opponent", () => {
+    const r = buildProAnalytics(
+      laneMatch({ position: "" }, { position: "" }),
+      laneTimeline(),
+      "me",
+      champNames
+    )!;
+    expect(r.laneOpponentChampionId).toBeNull();
+    expect(r.csDiffAt10).toBe(0);
+    expect(r.goldDiffAt10).toBe(0);
   });
 
   it("a game that ends before 14:00 leaves later snapshots at 0", () => {

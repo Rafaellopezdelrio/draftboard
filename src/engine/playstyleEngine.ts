@@ -69,7 +69,13 @@ export function buildPlaystyleProfile(
   if (avgDeathsPerMin > 0.3) traits.push("Mueres mucho — riesgo alto");
   if (avgDeathsPerMin < 0.15) traits.push("Muy seguro, casi no mueres");
   if (avgCspm > 7) traits.push("Excelente farm");
-  if (avgCspm < 5 && matches[0].position !== "UTILITY") traits.push("Farm bajo");
+  // Supports never farm, junglers farm less than laners: judge only non-support
+  // games, with a lower bar when most of them are jungle.
+  const farmers = matches.filter((m) => m.position !== "UTILITY");
+  const farmMin = sum(farmers.map((m) => m.durationSec)) / 60;
+  const jungleShare = farmers.filter((m) => m.position === "JUNGLE").length / Math.max(1, farmers.length);
+  const farmCspm = farmMin > 0 ? sum(farmers.map((m) => m.cs)) / farmMin : null;
+  if (farmCspm !== null && farmCspm < (jungleShare > 0.5 ? 4.5 : 5)) traits.push("Farm bajo");
   if (avgKda > 3) traits.push("KDA alto consistente");
   if (avgDur > 35) traits.push("Tendencia a partidas largas");
   if (avgDur < 25) traits.push("Cierra rápido");

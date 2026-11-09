@@ -1,6 +1,6 @@
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
 import "./App.css";
-import { useDraftStore } from "./state/draftStore";
+import { useDraftStore, isNoLaneMode } from "./state/draftStore";
 import { useShallow } from "zustand/react/shallow";
 import type { Role } from "./types/champion";
 import { DraftBoard } from "./components/DraftBoard";
@@ -178,6 +178,7 @@ import { useChampionGuideEvent } from "./hooks/useChampionGuideEvent";
 import { useSystemToasts } from "./hooks/useSystemToasts";
 import { useChampionDbBoot } from "./hooks/useChampionDbBoot";
 import { useRoleDerivation } from "./hooks/useRoleDerivation";
+import { CHAMPION_ROLES } from "./data/championRoles";
 import { useDraftDerivations } from "./hooks/useDraftDerivations";
 import { useSuggestions } from "./hooks/useSuggestions";
 import { useEnemyCounters } from "./hooks/useEnemyCounters";
@@ -203,6 +204,7 @@ function App() {
     enemyScoutTargets,
     myChampionIntent,
     myChampionLocked,
+    gameMode,
     reset,
   } = useDraftStore(
     useShallow((s) => ({
@@ -215,6 +217,7 @@ function App() {
       enemyScoutTargets: s.enemyScoutTargets,
       myChampionIntent: s.myChampionIntent,
       myChampionLocked: s.myChampionLocked,
+      gameMode: s.gameMode,
       reset: s.reset,
     }))
   );
@@ -445,6 +448,7 @@ function App() {
     myChampionIntent,
     myRole,
     setMyRole,
+    gameMode,
   });
 
   // Auto-jump to the Build tab the moment the user locks a champion — that's
@@ -555,6 +559,16 @@ function App() {
   // resolved they render nothing and the SuggestionPanel carries the recs.
   const buildChampionKey =
     liveDerived.key ?? myChampionLocked ?? myChampionIntent ?? null;
+  // ARAM/Arena champ select: no lanes or bans, so lane/ban panels stay off and
+  // myRole stays null. BuildPanel still needs a role for its item data.
+  // gameMode is cleared when champ select ends, so in-game read the Live
+  // Client's mode instead (myRole was kept null through an ARAM champ select).
+  const noLaneMode = isNoLaneMode(
+    gameMode ?? (liveGame.inGame ? liveGame.snapshot?.gameData?.gameMode : null)
+  );
+  const buildChampId = buildChampionKey ? db?.champions[buildChampionKey]?.id : undefined;
+  const buildRole: Role | null =
+    myRole ?? (noLaneMode && buildChampId ? CHAMPION_ROLES[buildChampId]?.[0] ?? null : null);
 
   // Auto-hide the draft board when there's nothing to draft AND we're connected
   // to the LCU: Riot's anonymized champ select hides every championId, so the
@@ -827,6 +841,10 @@ function App() {
                   allyKeys={allyKeys}
                   enemyKeys={enemyKeys}
                   bannedKeys={bannedKeys}
+                  personalStats={prefs.usePersonalStats ? personalStats : undefined}
+                  masteries={prefs.useMastery ? masteries : undefined}
+                  rankTier={rankTier}
+                  liveCounters={liveCounters}
                 />
                 {prefs.showSuggestions && (
                   <SuggestionPanel
@@ -835,21 +853,23 @@ function App() {
                     hasDraft={allyKeys.length > 0 || enemyKeys.length > 0}
                   />
                 )}
-                <PanelBoundary name="BanSuggestionsPanel">
-                  <BanSuggestionsPanel
-                    db={db}
-                    role={myRole}
-                    bannedKeys={bans.ally.concat(bans.enemy)}
-                    pickedKeys={[...allyKeys, ...enemyKeys]}
-                    enemySummonerIds={enemySummonerIds}
-                  />
-                </PanelBoundary>
+                {!noLaneMode && (
+                  <PanelBoundary name="BanSuggestionsPanel">
+                    <BanSuggestionsPanel
+                      db={db}
+                      role={myRole}
+                      bannedKeys={bans.ally.concat(bans.enemy)}
+                      pickedKeys={[...allyKeys, ...enemyKeys]}
+                      enemySummonerIds={enemySummonerIds}
+                    />
+                  </PanelBoundary>
+                )}
               </div>
             )}
 
             {centerTab === "build" && (
               <div className={prefs.compactMode ? "space-y-2" : "space-y-4"}>
-                {prefs.showSuggestions && buildChampionKey && myRole && (
+                {prefs.showSuggestions && buildChampionKey && myRole && !noLaneMode && (
                   <PanelBoundary name="DraftCoachPanel">
                     <DraftCoachPanel
                       db={db}
@@ -865,17 +885,18 @@ function App() {
                     />
                   </PanelBoundary>
                 )}
-                {prefs.showBuildPanel && buildChampionKey && myRole && (
+                {prefs.showBuildPanel && buildChampionKey && buildRole && (
                   <PanelBoundary name="BuildPanel">
                     <BuildPanel
                       db={db}
                       championKey={buildChampionKey}
-                      role={myRole}
+                      role={buildRole}
                       enemyKeys={enemyKeys}
+                      gameMode={gameMode}
                     />
                   </PanelBoundary>
                 )}
-                {!(buildChampionKey && myRole) && (
+                {!(buildChampionKey && buildRole) && (
                   <div className="text-center text-white/40 text-xs py-10 px-4 border border-dashed border-border-subtle rounded-lg">
                     {t("tabs.buildEmpty")}
                   </div>
@@ -925,15 +946,17 @@ function App() {
             {/* Win Conditions — game plan derived from comp matchup.
               * Renders top of side rail so the user sees the tactical
               * objective first, before the deeper context panels. */}
-            <PanelBoundary name="WinConditionsPanel">
-              <WinConditionsPanel
-                db={db}
-                myChampionKey={buildChampionKey}
-                myRole={myRole}
-                allyKeys={allyKeys}
-                enemyKeys={enemyKeys}
-              />
-            </PanelBoundary>
+            {!noLaneMode && (
+              <PanelBoundary name="WinConditionsPanel">
+                <WinConditionsPanel
+                  db={db}
+                  myChampionKey={buildChampionKey}
+                  myRole={myRole}
+                  allyKeys={allyKeys}
+                  enemyKeys={enemyKeys}
+                />
+              </PanelBoundary>
+            )}
             {/* Pre-game tip carousel — rotating champion/role-specific
               * one-liner advice. Replaces dead space with actionable
               * tactical reminders. Auto-hides when no role/champ. */}

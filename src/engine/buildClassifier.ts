@@ -48,8 +48,9 @@ export interface BuildStats {
 
 const LETHALITY_IDS = new Set([
   3142, // Youmuu's
-  6701, // Serylda's
-  6694, // Serpent's Fang
+  6701, // Opportunity
+  6694, // Serylda's
+  6695, // Serpent's Fang
   6692, // Eclipse
   3814, // Edge of Night
   3147, // Duskblade (legacy patches)

@@ -155,6 +155,10 @@ export function TrendsView({ db, onClose, rankTier }: Props) {
     if (filtered.length < 5) return null;
     const benchRole: Role | null = role !== "ALL" ? role : dominantRole(filtered);
     if (!benchRole) return null;
+    // Only games in the benchmarked role (drops ARAM/Arena, whose position is
+    // "") and no remakes, so they don't skew the per-minute averages.
+    const sample = filtered.filter((m) => m.position === benchRole && m.durationSec >= 300);
+    if (sample.length < 5) return null;
     let sumMin = 0,
       sumCS = 0,
       sumD = 0,
@@ -162,7 +166,7 @@ export function TrendsView({ db, onClose, rankTier }: Props) {
       sumA = 0,
       sumVis = 0,
       visMin = 0;
-    for (const m of filtered) {
+    for (const m of sample) {
       const min = m.durationSec / 60;
       sumMin += min;
       sumCS += m.cs;

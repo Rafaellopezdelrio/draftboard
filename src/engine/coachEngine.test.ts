@@ -689,3 +689,27 @@ describe("coachEngine — lane phase (CS@14)", () => {
     ]);
   });
 });
+
+describe("coachEngine — role & queue awareness", () => {
+  beforeEach(() => setCoachEloBucket("DIAMOND"));
+
+  it("returns no Summoner's Rift insights for ARAM / Arena games", () => {
+    const me = mkParticipant({ position: "", cs: 20, visionScore: 2, deaths: 9 });
+    const aram = { ...mkMatch(me), queueId: 450 };
+    expect(analyzeMatch({ match: aram, timeline: mkTimeline(), myPuuid: "me" })).toEqual([]);
+    const arena = { ...mkMatch(me), queueId: 1700 };
+    expect(analyzeMatch({ match: arena, timeline: mkTimeline(), myPuuid: "me" })).toEqual([]);
+  });
+
+  it("early-death advice for a jungler does not talk about pushing a lane", () => {
+    const early = [kill(2, 6, 1, [7]), kill(4, 7, 1, [8]), kill(6, 8, 1, [9])];
+    const jg = titled(run(mkParticipant({ position: "JUNGLE" }), { events: early }), "3 muertes en early");
+    expect(jg!.action).not.toMatch(/Pushea/);
+    const mid = titled(run(mkParticipant({ position: "MIDDLE" }), { events: early }), "3 muertes en early");
+    expect(mid!.action).toMatch(/Pushea/);
+
+    const two = [kill(2, 6, 1, [7]), kill(4, 7, 1, [8])];
+    const jgWarn = titled(run(mkParticipant({ position: "JUNGLE" }), { events: two }), "2 muertes tempranas");
+    expect(jgWarn!.detail).not.toMatch(/ganks/);
+  });
+});

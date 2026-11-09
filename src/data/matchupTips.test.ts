@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { getMatchupTips } from "./matchupTips";
+import { getMatchupTips, inferEnemyRoles, isLaneOpponent } from "./matchupTips";
 
 describe("matchupTips — bilingual support", () => {
   const idToName = new Map<string, string>([
@@ -43,5 +43,54 @@ describe("matchupTips — bilingual support", () => {
   it("skips null and undefined entries in the enemy list", () => {
     const tips = getMatchupTips(undefined, [null, undefined, "157"], idToName);
     expect(tips.every((t) => t.versus === "Yasuo")).toBe(true);
+  });
+});
+
+describe("matchupTips — role awareness", () => {
+  const idToName = new Map<string, string>([
+    ["157", "Yasuo"],
+    ["64", "LeeSin"],
+    ["238", "Zed"],
+    ["222", "Jinx"],
+    ["412", "Thresh"],
+    ["131", "Diana"],
+    ["777", "Yone"],
+  ]);
+
+  it("infers one role per enemy, preferring primary roles", () => {
+    expect(inferEnemyRoles(["Yasuo", "LeeSin", "Zed", "Jinx", "Thresh"])).toEqual([
+      "TOP",
+      "JUNGLE",
+      "MIDDLE",
+      "BOTTOM",
+      "UTILITY",
+    ]);
+    expect(inferEnemyRoles([null, "Unknown"])).toEqual([null, null]);
+  });
+
+  it("lane opponent covers same role and the bot-lane pair", () => {
+    expect(isLaneOpponent("JUNGLE", "JUNGLE")).toBe(true);
+    expect(isLaneOpponent("BOTTOM", "UTILITY")).toBe(true);
+    expect(isLaneOpponent("JUNGLE", "BOTTOM")).toBe(false);
+    expect(isLaneOpponent(null, "TOP")).toBe(false);
+  });
+
+  it("puts the enemy jungler's tips first for a jungler", () => {
+    // Yasuo top (3 tips) sits before Diana jungle in slot order.
+    const tips = getMatchupTips(undefined, ["157", "131", "777"], idToName, "es", {
+      myRole: "JUNGLE",
+      enemyRoles: ["TOP", "JUNGLE", "MIDDLE"],
+    });
+    expect(tips[0].versus).toBe("Diana");
+    // Every enemy is still listed.
+    expect(new Set(tips.map((t) => t.versus))).toEqual(new Set(["Diana", "Yasuo", "Yone"]));
+  });
+
+  it("puts both bot laners first for a support", () => {
+    const tips = getMatchupTips(undefined, ["157", "412"], idToName, "es", {
+      myRole: "UTILITY",
+      enemyRoles: ["TOP", "UTILITY"],
+    });
+    expect(tips[0].versus).toBe("Thresh");
   });
 });

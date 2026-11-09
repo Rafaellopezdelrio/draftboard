@@ -11,6 +11,7 @@ import { scoutTeam, type ScoutedPlayer } from "../services/lobbyScout";
 import { readLobby, dodgeHint, isSmurf } from "../engine/lobbyInsights";
 import type { LcuChampSelectSession, LcuPlayer } from "../services/lcuService";
 import type { ChampionDb } from "../types/champion";
+import { useDraftStore } from "../state/draftStore";
 
 interface Props {
   session: LcuChampSelectSession | null;
@@ -22,6 +23,7 @@ function LobbyScoutPanelInner({ session, db }: Props) {
   const [myTeam, setMyTeam] = useState<Array<ScoutedPlayer | null>>([]);
   const [theirTeam, setTheirTeam] = useState<Array<ScoutedPlayer | null>>([]);
   const [loading, setLoading] = useState(false);
+  const myCellId = useDraftStore((s) => s.myCellId);
 
   // Re-scout whenever the set of summonerIds changes. Champion changes
   // (hover/lock) don't trigger a re-scan — only roster changes (player
@@ -73,7 +75,10 @@ function LobbyScoutPanelInner({ session, db }: Props) {
 
   const read = readLobby(
     myTeam.filter((p): p is ScoutedPlayer => Boolean(p)),
-    theirTeam.filter((p): p is ScoutedPlayer => Boolean(p))
+    theirTeam.filter((p): p is ScoutedPlayer => Boolean(p)),
+    // lcuSync resolves my cell by PUUID first (localPlayerCellId is
+    // transiently wrong early in PLANNING); fall back to the session's.
+    myCellId ?? session.localPlayerCellId
   );
   const hasRead =
     read.carry || read.liability || read.topThreat || read.balance;

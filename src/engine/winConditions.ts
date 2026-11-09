@@ -167,13 +167,19 @@ export function deriveWinConditions({
   } else if (enemies.archetype === "scaling-late") {
     conditions.push({ key: "winConditions.rules.enemyScalingLate", phase: "early", priority: 1 });
   } else if (enemies.archetype === "early-skirmish") {
-    conditions.push({ key: "winConditions.rules.enemyEarlySkirmish", phase: "early", priority: 1 });
+    // Laner advice ("play the first wave safe"); a jungler gets
+    // roleJungleEarly instead, which says the opposite.
+    if (myRole !== "JUNGLE") {
+      conditions.push({ key: "winConditions.rules.enemyEarlySkirmish", phase: "early", priority: 1 });
+    }
   } else if (enemies.archetype === "split-1-4") {
     conditions.push({ key: "winConditions.rules.enemySplit14", phase: "mid", priority: 2 });
   }
 
   // ---- Ally-side game plan ----
-  if (allies.archetype === "scaling-late") {
+  // "Stack farm + CS" is laner advice: junglers get roleJungleScaling and
+  // supports don't CS.
+  if (allies.archetype === "scaling-late" && myRole !== "JUNGLE" && myRole !== "UTILITY") {
     conditions.push({ key: "winConditions.rules.allyScalingLate", phase: "early", priority: 1 });
   }
   if (allies.archetype === "engage-front-back" && allies.engageScore >= 2) {

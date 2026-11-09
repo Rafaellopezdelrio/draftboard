@@ -48,6 +48,9 @@ export interface LiveCoachArgs {
   myHpPct?: number | null;
   /** Champion power-spike profile (from powerSpikes data) for spike timing. */
   spikeProfile?: PowerSpikeProfile | null;
+  /** false off Summoner's Rift (ARAM, Arena...) to drop Rift-only advice like
+   *  recalling. Omit to keep the Rift behaviour. */
+  isRift?: boolean;
 }
 
 /** Champion strength (0-10) at the current game window, keyed off level. */
@@ -95,6 +98,7 @@ export function coachLiveGame(args: LiveCoachArgs): LiveCoachInsight[] {
     lastBaronAt,
     myHpPct,
     spikeProfile,
+    isRift,
   } = args;
   if (!me || gameTime < MIN_GAME_TIME) return [];
 
@@ -206,13 +210,15 @@ export function coachLiveGame(args: LiveCoachArgs): LiveCoachInsight[] {
   if (myTeam && other && dragonsByTeam) {
     const mine = dragonsByTeam[myTeam];
     const theirs = dragonsByTeam[other];
-    if (theirs >= SOUL_POINT && theirs < 4) {
+    // Once either team has Soul (4) the race is over: next drake is Elder.
+    const soulClaimed = mine >= 4 || theirs >= 4;
+    if (!soulClaimed && theirs >= SOUL_POINT) {
       out.push({
         key: "soul-deny",
         severity: "critical",
         textKey: "liveCoach.soulDeny",
       });
-    } else if (mine >= SOUL_POINT && mine < 4) {
+    } else if (!soulClaimed && mine >= SOUL_POINT) {
       out.push({
         key: "soul-take",
         severity: "good",
@@ -262,7 +268,8 @@ export function coachLiveGame(args: LiveCoachArgs): LiveCoachInsight[] {
   }
 
   // --- Reset value ------------------------------------------------------
-  if (!me.isDead && currentGold >= RECALL_GOLD) {
+  // No recall off the Rift (ARAM / Arena shop only on death or between rounds).
+  if (isRift !== false && !me.isDead && currentGold >= RECALL_GOLD) {
     out.push({
       key: "recall",
       severity: "info",

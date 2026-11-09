@@ -1,5 +1,6 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { suggestBans } from "./banEngine";
+import { i18n } from "../i18n";
 import type { ChampionDb, Champion, MetaTier, Role } from "../types/champion";
 import type { PersonalMatchupStat } from "../services/matchRepo";
 
@@ -189,5 +190,21 @@ describe("suggestBans", () => {
     expect(a?.severity).toBe("high");
     expect(b?.severity).toBe("medium");
     expect(c?.severity).toBe("low");
+  });
+
+  it("personal reason passes the LOSS rate ('you lose X%'), not the win rate", () => {
+    const spy = vi.spyOn(i18n, "t");
+    suggestBans({
+      db,
+      role: "MIDDLE",
+      matchups: [matchup(1, 0.2, 5)], // 1W/4L
+      bannedKeys: [],
+      pickedKeys: [],
+    });
+    expect(spy).toHaveBeenCalledWith(
+      "engine.banPersonal",
+      expect.objectContaining({ wr: "80", games: 5 })
+    );
+    spy.mockRestore();
   });
 });

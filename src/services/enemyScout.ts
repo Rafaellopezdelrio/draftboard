@@ -21,6 +21,8 @@ export interface ScoutResult {
   mainChampionId: number | null;
   mostPlayedRecent: { championId: number; games: number; wins: number } | null;
   pickedChampionMastery: { championId: number; level: number; points: number } | null;
+  /** Games on the picked champion among the recent matches. */
+  pickedChampionRecentGames?: number;
 }
 
 const CACHE = new Map<string, { ts: number; result: ScoutResult }>();
@@ -120,6 +122,8 @@ export async function scoutPlayer(
     mainChampionId: masteries[0]?.championId ?? null,
     mostPlayedRecent,
     pickedChampionMastery,
+    pickedChampionRecentGames:
+      pickedChampionId !== undefined ? champCount.get(pickedChampionId)?.games ?? 0 : 0,
   };
   CACHE.set(cacheKey, { ts: Date.now(), result });
   if (CACHE.size > MAX_CACHE) {

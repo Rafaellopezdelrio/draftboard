@@ -18,6 +18,13 @@ export interface EnemyScoutTarget {
   hasSmite?: boolean;
 }
 
+const NO_LANE_MODES = new Set(["ARAM", "CHERRY"]);
+
+/** True for queue modes with no SR lanes/bans (ARAM, Arena). */
+export function isNoLaneMode(gameMode: string | null | undefined): boolean {
+  return !!gameMode && NO_LANE_MODES.has(gameMode.toUpperCase());
+}
+
 export interface DraftState {
   ally: DraftSlot[];
   enemy: DraftSlot[];
@@ -31,6 +38,9 @@ export interface DraftState {
   myChampionLocked: string | null;
   phase: string | null;
   timerSec: number | null;
+  /** Queue game mode of the current champ select ("CLASSIC", "ARAM",
+   *  "CHERRY"…) from the gameflow session; null when unknown. */
+  gameMode: string | null;
   setPick: (side: Side, index: number, championKey: string | null) => void;
   setRoleForSlot: (side: Side, index: number, role: Role | null) => void;
   setMyRole: (role: Role | null) => void;
@@ -43,6 +53,7 @@ export interface DraftState {
     locked: string | null
   ) => void;
   setPhase: (phase: string | null, timerSec: number | null) => void;
+  setGameMode: (mode: string | null) => void;
   reset: () => void;
 }
 
@@ -66,6 +77,7 @@ export const useDraftStore = create<DraftState>((set, get) => ({
   myChampionLocked: null,
   phase: null,
   timerSec: null,
+  gameMode: null,
   // Idempotency guards on every setter. LCU sync fires applySession()
   // on every WebSocket frame (~5-20Hz during champ select) and calls
   // setPick/setBan for 10 slots each time. Without guards, every frame
@@ -102,6 +114,10 @@ export const useDraftStore = create<DraftState>((set, get) => ({
     const s = get();
     if (s.phase === phase && s.timerSec === timerSec) return;
     set({ phase, timerSec });
+  },
+  setGameMode: (mode) => {
+    if (get().gameMode === mode) return;
+    set({ gameMode: mode });
   },
   setPick: (side, index, championKey) => {
     const slot = get()[side][index];

@@ -19,6 +19,8 @@ const db = {
   champions: {
     "21": { id: "MissFortune", key: "21", name: "Miss Fortune" },
     "22": { id: "Ashe", key: "22", name: "Ashe" },
+    "121": { id: "Khazix", key: "121", name: "Kha'Zix" },
+    "222": { id: "Jinx", key: "222", name: "Jinx" },
   },
 } as unknown as ChampionDb;
 
@@ -36,5 +38,13 @@ describe("MatchupTipsPanel", () => {
     expect(screen.queryByText("vs MissFortune")).toBeNull();
     // MF has curated tips, so no AI lookup is started for her.
     expect(ai.getCachedMatchupTips).not.toHaveBeenCalled();
+  });
+
+  it("asks the AI about the enemy's own role, not mine", () => {
+    // Jungler vs Jinx: she is the enemy ADC, not "Jinx JUNGLE".
+    render(<MatchupTipsPanel db={db} enemyKeys={["222"]} myChampionKey="121" myRole="JUNGLE" />);
+    fireEvent.click(screen.getByText("Tips de matchup"));
+
+    expect(ai.getCachedMatchupTips).toHaveBeenCalledWith(121, 222, "JUNGLE", "16.21.1", "BOTTOM");
   });
 });

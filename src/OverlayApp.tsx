@@ -30,7 +30,7 @@ import {
   attributeObjectives,
   type LiveGamePlayer,
 } from "./services/liveClient";
-import { deriveTimers, formatTime } from "./services/liveTimers";
+import { deriveTimers, formatTime, SUMMONERS_RIFT_MAP } from "./services/liveTimers";
 import {
   coachLiveGame,
   type LiveCoachSeverity,
@@ -124,7 +124,13 @@ export function OverlayApp() {
 
   const timers = useMemo(
     () =>
-      snapshot ? deriveTimers(snapshot.events, snapshot.gameData.gameTime) : null,
+      snapshot
+        ? deriveTimers(snapshot.events, snapshot.gameData.gameTime, {
+            mapNumber: snapshot.gameData.mapNumber,
+            dragonsByTeam: attributeObjectives(snapshot.events, snapshot.allPlayers)
+              .dragonsByTeam,
+          })
+        : null,
     [snapshot]
   );
 
@@ -208,6 +214,7 @@ export function OverlayApp() {
         ? me.championStats.currentHealth / me.championStats.maxHealth
         : null,
     spikeProfile: getPowerSpikes(myRecord?.rawChampionName?.split("_").pop()),
+    isRift: snapshot.gameData.mapNumber === SUMMONERS_RIFT_MAP,
   });
 
   const close = async () => {

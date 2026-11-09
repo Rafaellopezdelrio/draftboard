@@ -479,3 +479,38 @@ describe("CoachView — closing", () => {
     expect(onClose).toHaveBeenCalledTimes(2);
   });
 });
+
+describe("CoachView — non-Rift games", () => {
+  it("ARAM game: no insights list or clean-game note, queue label kept", async () => {
+    vi.mocked(getMatchFull).mockResolvedValue(
+      matchFull({
+        queueId: 450,
+        participants: [
+          participant({ puuid: "me", championId: 266, teamId: 100, position: "" }),
+          participant({ puuid: "opp", championId: 64, teamId: 200, position: "" }),
+        ],
+      } as Partial<MatchFull>)
+    );
+    await renderView();
+    expect(screen.queryByText("Sin observaciones — partida limpia.")).toBeNull();
+    expect(screen.queryByText("CS bajo")).toBeNull();
+    expect(screen.getByText(/30min ·\s*ARAM/)).toBeInTheDocument();
+  });
+
+  it("AI coach gets no lane opponent when positions are empty", async () => {
+    setPrefs({ aiCoachEnabled: true, groqApiKey: "gsk" });
+    vi.mocked(getMatchFull).mockResolvedValue(
+      matchFull({
+        participants: [
+          participant({ puuid: "me", championId: 266, teamId: 100, position: "" }),
+          participant({ puuid: "opp", championId: 64, teamId: 200, position: "" }),
+        ],
+      } as Partial<MatchFull>)
+    );
+    await renderView();
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /Analizar con AI|Analizando/ }));
+    });
+    expect(vi.mocked(aiCoachAnalysis).mock.calls[0][0].opponentChampionName).toBeNull();
+  });
+});

@@ -75,7 +75,7 @@ const AP_ASSASSINS = new Set([
   "Fizz",
   "Katarina",
   "Kassadin",
-  "LeBlanc",
+  "Leblanc", // DDragon id casing
 ]);
 const HARD_CC = new Set([
   "Leona",
@@ -139,30 +139,58 @@ export function suggestBuildAdaptations({
   const out: BuildAdaptation[] = [];
   if (enemyKeys.length === 0) return out;
   const comp = profileEnemyComp(db, enemyKeys);
-  const isMagicScaling = champion.tags.some((t) =>
-    ["Mage", "Support", "Assassin"].includes(t)
-  );
-  const isAdScaling = champion.tags.some((t) =>
-    ["Marksman", "Fighter"].includes(t)
-  );
-  const isSquishy =
-    !champion.tags.includes("Tank") && !champion.tags.includes("Fighter");
+  const tags = new Set(champion.tags);
+  // Damage type comes from the id for assassins: Kha'Zix/Zed/Talon are tagged
+  // only "Assassin" but build AD. "Support" alone says nothing about damage.
+  const isApAssassin = tags.has("Assassin") && AP_ASSASSINS.has(champion.id);
+  const isMagicScaling = tags.has("Mage") || isApAssassin;
+  const isAdScaling =
+    !isApAssassin &&
+    (tags.has("Marksman") ||
+      tags.has("Fighter") ||
+      // Ahri/Sylas/Nidalee are Mage+Assassin and build AP.
+      (tags.has("Assassin") && !tags.has("Mage")));
+  // Tank/Fighter frontliners are the only ones Force of Nature / Randuin's fit.
+  const isSquishy = !tags.has("Tank") && !tags.has("Fighter");
+  // DDragon lists the primary class first: Soraka/Janna/Lulu are
+  // ["Support","Mage"], Lux/Zyra are ["Mage","Support"]. Pyke (Assassin) and
+  // Senna (Marksman) are Support-tagged but deal AD.
+  const isEnchanter =
+    champion.tags[0] === "Support" &&
+    !tags.has("Assassin") &&
+    !tags.has("Marksman");
 
   // Magic resist vs heavy AP
   if (comp.apShare >= 0.55) {
-    out.push({
-      itemId: 4644, // Force of Nature (high MR + magic shield)
-      itemName: "Force of Nature",
-      reason: `Equipo enemigo ${(comp.apShare * 100).toFixed(0)}% AP — necesitas MR`,
-      priority: "core",
-    });
-    if (isSquishy)
+    if (!isSquishy)
       out.push({
-        itemId: 3157, // Zhonya's
-        itemName: "Zhonya's Hourglass",
-        reason: "Squishy contra AP — el stasis cancela burst",
+        itemId: 4644, // Force of Nature (high MR + magic shield)
+        itemName: "Force of Nature",
+        reason: `Equipo enemigo ${(comp.apShare * 100).toFixed(0)}% AP — necesitas MR`,
+        priority: "core",
+      });
+    else if (isAdScaling)
+      out.push({
+        itemId: 3156, // Maw of Malmortius
+        itemName: "Maw of Malmortius",
+        reason: "Squishy AD contra AP — escudo mágico + MR",
         priority: "situational",
       });
+    else if (isMagicScaling)
+      out.push(
+        {
+          itemId: 3157, // Zhonya's
+          itemName: "Zhonya's Hourglass",
+          reason: "Squishy contra AP — el stasis cancela burst",
+          priority: "situational",
+        },
+        {
+          itemId: 3102, // Banshee's Veil
+          itemName: "Banshee's Veil",
+          reason: "Squishy contra AP — el escudo bloquea el primer spell",
+          priority: "situational",
+        }
+      );
     if (isMagicScaling)
       out.push({
         itemId: 3001, // Abyssal Mask (penetración + MR)
@@ -174,17 +202,32 @@ export function suggestBuildAdaptations({
 
   // Armor vs heavy AD
   if (comp.adShare >= 0.55) {
-    out.push({
-      itemId: 3143, // Randuin's Omen
-      itemName: "Randuin's Omen",
-      reason: `Equipo enemigo ${(comp.adShare * 100).toFixed(0)}% AD — armadura crítica`,
-      priority: "core",
-    });
-    if (isSquishy)
+    if (!isSquishy)
+      out.push({
+        itemId: 3143, // Randuin's Omen
+        itemName: "Randuin's Omen",
+        reason: `Equipo enemigo ${(comp.adShare * 100).toFixed(0)}% AD — armadura crítica`,
+        priority: "core",
+      });
+    else if (tags.has("Marksman"))
+      out.push({
+        itemId: 3026, // Guardian Angel
+        itemName: "Guardian Angel",
+        reason: "AD pesado y eres squishy — Guardian Angel te da una segunda vida",
+        priority: "situational",
+      });
+    else if (isAdScaling)
       out.push({
         itemId: 6333, // Death's Dance
         itemName: "Death's Dance",
         reason: "AD pesado y eres squishy — Death's Dance reduce burst físico",
+        priority: "situational",
+      });
+    else if (isMagicScaling && !out.some((a) => a.itemId === 3157))
+      out.push({
+        itemId: 3157, // Zhonya's (armor + stasis)
+        itemName: "Zhonya's Hourglass",
+        reason: "Squishy contra AD — armadura + stasis cancela burst",
         priority: "situational",
       });
     if (isAdScaling)
@@ -239,9 +282,10 @@ export function suggestBuildAdaptations({
   if (comp.healers >= 1) {
     const core = comp.healers >= 2;
     const plural = comp.healers >= 2 ? `${comp.healers} fuentes de curación` : "curación fuerte";
-    const isTanky = champion.tags.includes("Tank");
-    if (isTanky) {
-      // Tanks/frontliners: Thornmail gives armor and applies Grievous on-hit.
+    const isTanky = tags.has("Tank");
+    if (isTanky || isEnchanter) {
+      // Tanks/frontliners and enchanters (no AD/AP scaling): Thornmail gives
+      // armor and applies Grievous on-hit.
       out.push({
         itemId: 3075, // Thornmail
         itemName: "Thornmail",

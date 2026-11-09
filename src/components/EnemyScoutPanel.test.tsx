@@ -19,10 +19,12 @@ const m = vi.hoisted(() => ({
   getSummonerById: vi.fn(),
   scoutPlayer: vi.fn(),
   loadSettings: vi.fn(),
+  isRandomPickScout: vi.fn(() => false),
 }));
 vi.mock("../services/lcuService", () => ({ getSummonerById: m.getSummonerById }));
 vi.mock("../services/enemyScout", () => ({ scoutPlayer: m.scoutPlayer }));
 vi.mock("../services/settingsRepo", () => ({ loadSettings: m.loadSettings }));
+vi.mock("../state/enemyScoutTargets", () => ({ isRandomPickScout: m.isRandomPickScout }));
 
 import { EnemyScoutPanel } from "./EnemyScoutPanel";
 import { usePrefsStore, DEFAULT_PREFS } from "../state/prefsStore";
@@ -613,13 +615,13 @@ describe("EnemyScoutPanel - loading-screen targets (anonymized select)", () => {
     expect(m.getSummonerById).not.toHaveBeenCalled();
   });
 
-  it("gives precedence to real summonerIds over targets", async () => {
+  it("uses summonerId slots (five positional rows) when there are no targets", async () => {
     render(
       <EnemyScoutPanel
         db={db}
         enemySummonerIds={[11, 0, 0, 0, 0]}
         enemyChampionIds={[103, null, null, null, null]}
-        enemyScoutTargets={[{ puuid: "pu-a", championId: 266 }]}
+        enemyScoutTargets={[]}
       />
     );
     expect(await screen.findByText("50%")).toBeInTheDocument();
@@ -627,9 +629,72 @@ describe("EnemyScoutPanel - loading-screen targets (anonymized select)", () => {
     expect(m.getSummonerById).toHaveBeenCalledWith(11);
     expect(m.scoutPlayer).toHaveBeenCalledTimes(1);
     expect(m.scoutPlayer).toHaveBeenCalledWith(CFG, "puuid-11", 103);
-    // Summoner-id mode keeps the five positional rows.
     expect(screen.getByText("Slot 2 vacío")).toBeInTheDocument();
     expect(screen.getByText("Slot 5 vacío")).toBeInTheDocument();
+  });
+
+  // Champ-select ids linger into the game (customs): the spectator targets,
+  // which know who runs Smite, must win so the jungler reads stay right.
+  it("gives precedence to in-game targets (with Smite) over lingering summonerIds", async () => {
+    useDraftStore.setState({ myRole: "JUNGLE" });
+    try {
+      render(
+        <EnemyScoutPanel
+          db={db}
+          enemySummonerIds={[11, 12, 0, 0, 0]}
+          enemyChampionIds={[103, null, null, null, null]}
+          enemyScoutTargets={[{ puuid: "pu-jg", championId: 266, hasSmite: true }]}
+        />
+      );
+      expect(await screen.findByText("50%")).toBeInTheDocument();
+      expect(m.getSummonerById).not.toHaveBeenCalled();
+      expect(m.scoutPlayer).toHaveBeenCalledTimes(1);
+      expect(m.scoutPlayer).toHaveBeenCalledWith(CFG, "pu-jg", 266);
+      expect(
+        screen.getByText("Jungla rival normal. Sigue su ruta y juega en el lado contrario del mapa.")
+      ).toBeInTheDocument();
+    } finally {
+      useDraftStore.setState({ myRole: null });
+    }
+  });
+
+  it("ARAM targets: no jungle or off-pool advice even with a stale JUNGLE role", async () => {
+    m.isRandomPickScout.mockReturnValue(true);
+    useDraftStore.setState({ myRole: "JUNGLE" });
+    try {
+      m.scoutPlayer.mockResolvedValue(
+        mkScout({ topMasteries: [{ championId: 1, level: 7, points: 100_000 }] })
+      );
+      render(
+        <EnemyScoutPanel
+          db={db}
+          enemySummonerIds={ZERO}
+          enemyChampionIds={NO_CHAMPS}
+          enemyScoutTargets={[{ puuid: "pu-a", championId: 266, hasSmite: false }]}
+        />
+      );
+      expect(await screen.findByText("50%")).toBeInTheDocument();
+      expect(screen.getByText("Oponente estándar. Ejecuta tu plan de carril.")).toBeInTheDocument();
+      expect(screen.queryByText(/Fuera de su pool|Ve a por él/)).toBeNull();
+    } finally {
+      m.isRandomPickScout.mockReturnValue(false);
+      useDraftStore.setState({ myRole: null });
+    }
+  });
+
+  it("shows a neutral dash, not a green 0%, when the enemy has no recent games", async () => {
+    m.scoutPlayer.mockResolvedValue(mkScout({ recentWins: 0, recentLosses: 0 }));
+    render(
+      <EnemyScoutPanel
+        db={db}
+        enemySummonerIds={ZERO}
+        enemyChampionIds={NO_CHAMPS}
+        enemyScoutTargets={[{ puuid: "pu-a", championId: null }]}
+      />
+    );
+    const dash = await screen.findByText("—");
+    expect(dash).toHaveClass("text-white/40");
+    expect(screen.queryByText("0%")).toBeNull();
   });
 
   it("re-scouts when the target list changes, not on an identical new array", async () => {
@@ -701,13 +766,13 @@ describe("EnemyScoutPanel - loading-screen targets (anonymized select)", () => {
     expect(m.scoutPlayer).toHaveBeenLastCalledWith(CFG, "pu-a", 103);
   });
 
-  it("switches from summonerId slots to targets when the ids drop to 0", async () => {
+  it("switches from summonerId slots to targets when the targets arrive (ids linger in game)", async () => {
     const { rerender } = render(
       <EnemyScoutPanel
         db={db}
         enemySummonerIds={[11]}
         enemyChampionIds={[null]}
-        enemyScoutTargets={[{ puuid: "pu-a", championId: 266 }]}
+        enemyScoutTargets={[]}
       />
     );
     await screen.findByText("50%");
@@ -716,7 +781,7 @@ describe("EnemyScoutPanel - loading-screen targets (anonymized select)", () => {
     rerender(
       <EnemyScoutPanel
         db={db}
-        enemySummonerIds={[0]}
+        enemySummonerIds={[11]}
         enemyChampionIds={[null]}
         enemyScoutTargets={[{ puuid: "pu-a", championId: 266 }]}
       />
