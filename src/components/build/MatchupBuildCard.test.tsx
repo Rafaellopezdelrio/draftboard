@@ -80,6 +80,14 @@ describe("MatchupBuildCard", () => {
     expect(await screen.findByText("Tienes ventaja en línea")).toBeInTheDocument();
   });
 
+  it("claims no edge when op.gg calls the lane even", async () => {
+    vi.mocked(fetchMatchupBuild).mockResolvedValue(resp(build({ laneAdvantage: "EVEN" })));
+    render(<MatchupBuildCard db={db} championDdId="Ahri" role="MIDDLE" enemyKeys={["238"]} />);
+    expect(await screen.findByText("Contra Zed")).toBeInTheDocument();
+    expect(screen.queryByText("Tienes ventaja en línea")).toBeNull();
+    expect(screen.queryByText(/tiene ventaja en línea/)).toBeNull();
+  });
+
   it("renders nothing without a lane opponent, without data, or on a tiny sample", async () => {
     const { container, rerender } = render(
       <MatchupBuildCard db={db} championDdId="Ahri" role="MIDDLE" enemyKeys={["64"]} />

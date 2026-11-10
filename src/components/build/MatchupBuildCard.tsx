@@ -63,12 +63,14 @@ export function MatchupBuildCard({ db, championDdId, role, enemyKeys }: Props) {
   const boots = build.boots[0];
   const starter = build.starterItems[0];
   const runes = build.runes[0];
+  // op.gg names the champion with the edge, or "EVEN".
+  const adv = build.laneAdvantage?.toLowerCase();
   const edge =
-    build.laneAdvantage === null
-      ? null
-      : build.laneAdvantage.toLowerCase() === opp.name.toLowerCase()
-        ? "theirs"
-        : "mine";
+    adv === opp.name.toLowerCase()
+      ? "theirs"
+      : adv !== undefined && adv === got?.data?.championName.toLowerCase()
+        ? "mine"
+        : null;
 
   return (
     <div className="rounded-lg bg-white/5 ring-1 ring-accent/25 p-2 space-y-1.5" data-testid="matchup-build">
