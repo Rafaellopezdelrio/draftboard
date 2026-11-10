@@ -20,9 +20,12 @@ vi.mock("./riotApi", () => ({
 
 const existingMatchIdsMock = vi.fn();
 const saveMatchMock = vi.fn();
+const dropLcuTwinsMock = vi.fn();
 vi.mock("./matchRepo", () => ({
   existingMatchIds: () => existingMatchIdsMock(),
   saveMatch: (...a: unknown[]) => saveMatchMock(...a),
+  dropLcuTwins: () => dropLcuTwinsMock(),
+  gameIdOf: (id: string) => id.slice(id.lastIndexOf("_") + 1),
 }));
 
 const linkDraftToMatchMock = vi.fn();
@@ -88,6 +91,7 @@ beforeEach(() => {
     getTopMasteriesMock,
     existingMatchIdsMock,
     saveMatchMock,
+    dropLcuTwinsMock,
     linkDraftToMatchMock,
     lcuRecentMatchesMock,
     lcuMasteriesMock,
@@ -98,6 +102,7 @@ beforeEach(() => {
   getRiotProxyUrlMock.mockReturnValue(null);
   existingMatchIdsMock.mockResolvedValue(new Set<string>());
   saveMatchMock.mockResolvedValue(undefined);
+  dropLcuTwinsMock.mockResolvedValue(undefined);
   linkDraftToMatchMock.mockResolvedValue(undefined);
   getTopMasteriesMock.mockResolvedValue([]);
   lcuRecentMatchesMock.mockResolvedValue([]);
@@ -133,6 +138,21 @@ describe("syncPersonalData — Riot API path", () => {
       "Descargando 2/2",
     ]);
     expect(lcuRecentMatchesMock).not.toHaveBeenCalled();
+  });
+
+  it("drops the LCU twins after a Riot sync, and a failure there does not fail the sync", async () => {
+    loadSettingsMock.mockResolvedValue(SETTINGS);
+    getRecentMatchIdsMock.mockResolvedValue(["EUW1_7"]);
+    // The same game is already stored from an earlier LCU fallback.
+    existingMatchIdsMock.mockResolvedValue(new Set(["LCU_7"]));
+    getMatchMock.mockResolvedValue(summary("EUW1_7"));
+    dropLcuTwinsMock.mockRejectedValue(new Error("db locked"));
+
+    const result = await syncPersonalData();
+
+    expect(result.source).toBe("Riot API");
+    expect(saveMatchMock).toHaveBeenCalledTimes(1);
+    expect(dropLcuTwinsMock).toHaveBeenCalledTimes(1);
   });
 
   it("uses the Riot proxy when no personal key is set and tolerates mastery failures", async () => {
@@ -211,6 +231,18 @@ describe("syncPersonalData — LCU path", () => {
       { source: "LCU", done: 2, total: 3, message: "Guardando 2/3" },
       { source: "LCU", done: 3, total: 3, message: "Guardando 3/3" },
     ]);
+  });
+
+  it("skips LCU games already stored under their Riot API id", async () => {
+    loadSettingsMock.mockResolvedValue(null);
+    lcuRecentMatchesMock.mockResolvedValue([summary("LCU_7412345678"), summary("LCU_9")]);
+    existingMatchIdsMock.mockResolvedValue(new Set(["EUW1_7412345678"]));
+
+    const result = await syncPersonalData();
+
+    expect(result.matches).toBe(1);
+    expect(saveMatchMock.mock.calls.map((c) => (c[0] as MatchSummary).matchId)).toEqual(["LCU_9"]);
+    expect(linkDraftToMatchMock).toHaveBeenCalledTimes(1);
   });
 
   it("treats individual LCU endpoint failures as empty data", async () => {

@@ -204,9 +204,6 @@ export async function aggregateFromProPlay(
   const proPatch = `proplay-${patch}`;
   await dbConn.execute("DELETE FROM meta_aggregate WHERE patch = $1", [proPatch]);
 
-  let totalGames = 0;
-  for (const v of counts.values()) totalGames += v.games;
-
   // Batch the per-(champion,position) rows into a few multi-row INSERTs instead
   // of one execute() round-trip each (counts can be 200+). Same buildBatchInserts
   // helper metaAggregator uses.
@@ -215,7 +212,8 @@ export async function aggregateFromProPlay(
   for (const [k, v] of counts) {
     const [champKey, pos] = k.split("|");
     const wr = v.games > 0 ? v.wins / v.games : 0;
-    const pickRate = totalGames > 0 ? v.games / totalGames : 0;
+    // Per game (same semantics as the SoloQ aggregator), not per player row.
+    const pickRate = games.size > 0 ? v.games / games.size : 0;
     rows.push([Number(champKey), pos, v.games, v.wins, wr, pickRate, 0, proPatch, now]);
   }
   const chunks = buildBatchInserts(

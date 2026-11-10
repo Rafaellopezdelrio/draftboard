@@ -83,7 +83,8 @@ describe("analyzeChampionPool", () => {
     expect(main).toBeDefined();
     expect(main!.severity).toBe("good");
     expect(main!.championId).toBe(266);
-    expect(main!.message).toContain("60%");
+    expect(main!.key).toBe("championPool.insight.main");
+    expect(main!.params).toEqual({ wr: "60", games: 10 });
   });
 
   it("does NOT flag main when WR is below 50% (don't praise a loss-pile)", () => {
@@ -218,5 +219,51 @@ describe("analyzeChampionPool", () => {
     const out = analyzeChampionPool({ matches, masteries: [], personalStats: [] });
     const types = out.map((i) => i.type);
     expect(new Set(types).size).toBe(types.length); // each type unique
+  });
+});
+
+// Regression: insights were finished Spanish strings, shown as-is to
+// English-UI users. The engine now returns an i18n key + values.
+describe("analyzeChampionPool — insights are i18n keys, not text", () => {
+  it("spam / tilt carry their numbers as params", () => {
+    const matches = Array(5)
+      .fill(0)
+      .map(() => mkMatch({ championId: 266, win: false }));
+    const out = analyzeChampionPool({ matches, masteries: [], personalStats: [] });
+    expect(out.find((i) => i.type === "spam")).toMatchObject({
+      key: "championPool.insight.spam",
+      params: { n: 5, total: 5 },
+    });
+    expect(out.find((i) => i.type === "tilt")).toMatchObject({
+      key: "championPool.insight.tilt",
+      params: { n: 5 },
+    });
+  });
+
+  it("rusty uses a day count, or a separate key when never played", () => {
+    const masteries = [mkMastery({ championId: 266, championLevel: 4 })];
+    const never = analyzeChampionPool({ matches: [], masteries, personalStats: [] });
+    expect(never.find((i) => i.type === "rusty")).toMatchObject({
+      key: "championPool.insight.rustyNever",
+    });
+
+    const old = [
+      mkMatch({ championId: 266, win: true, gameEndTimestampMs: Date.now() - 40.5 * DAY_MS }),
+    ];
+    const out = analyzeChampionPool({ matches: old, masteries, personalStats: [] });
+    expect(out.find((i) => i.type === "rusty")).toMatchObject({
+      key: "championPool.insight.rusty",
+      params: { days: 40 },
+    });
+  });
+
+  it("practice has its own key and no insight exposes a message string", () => {
+    const out = analyzeChampionPool({
+      matches: [],
+      masteries: [mkMastery({ championId: 266, championPoints: 10 })],
+      personalStats: [],
+    });
+    expect(out.find((i) => i.type === "practice")?.key).toBe("championPool.insight.practice");
+    for (const i of out) expect(i).not.toHaveProperty("message");
   });
 });

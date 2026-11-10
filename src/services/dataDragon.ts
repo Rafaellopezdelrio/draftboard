@@ -2,6 +2,7 @@ import type { Champion, Role } from "../types/champion";
 import { withRetry } from "./retry";
 import { trackFetch } from "./breadcrumbs";
 import { CHAMPION_ARCHETYPES } from "../data/championArchetypes";
+import { i18n } from "../i18n";
 
 const VERSIONS_URL = "https://ddragon.leagueoflegends.com/api/versions.json";
 
@@ -127,9 +128,10 @@ const DETAIL_CACHE = new Map<string, ChampionDetail>();
 export async function fetchChampionDetail(
   patch: string,
   championId: string,
-  locale = "es_ES"
+  // Defaults to the UI language so an English UI doesn't get Spanish lore/spells.
+  locale: string = i18n.language?.startsWith("en") ? "en_US" : "es_ES"
 ): Promise<ChampionDetail | null> {
-  const cacheKey = `${patch}:${championId}`;
+  const cacheKey = `${patch}:${locale}:${championId}`;
   const hit = DETAIL_CACHE.get(cacheKey);
   if (hit) return hit;
   const url = `https://ddragon.leagueoflegends.com/cdn/${patch}/data/${locale}/champion/${championId}.json`;

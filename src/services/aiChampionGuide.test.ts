@@ -1,5 +1,22 @@
-import { describe, it, expect } from "vitest";
-import { enrichGuideMarkdown } from "./aiChampionGuide";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+
+const getDbMock = vi.fn();
+let tauri = true;
+vi.mock("../db/client", () => ({
+  isTauri: () => tauri,
+  getDb: () => getDbMock(),
+}));
+const callAi = vi.fn();
+vi.mock("./aiProvider", () => ({
+  callAi: (...a: unknown[]) => callAi(...a),
+}));
+
+import {
+  enrichGuideMarkdown,
+  generateChampionGuide,
+  getCachedGuide,
+  guideCacheKey,
+} from "./aiChampionGuide";
 
 describe("enrichGuideMarkdown — ability names", () => {
   it("wraps ALL CAPS ability + (E) into bold Title Case", () => {
@@ -53,5 +70,62 @@ describe("enrichGuideMarkdown — section headers", () => {
   it("leaves inline numbering inside paragraphs alone", () => {
     const out = enrichGuideMarkdown("En el nivel 6 sube Q a max.");
     expect(out).not.toContain("##");
+  });
+});
+
+describe("guide cache — keyed by role and language", () => {
+  beforeEach(() => {
+    tauri = true;
+    callAi.mockReset();
+    // Tiny in-memory table keyed like the real one: (champion_id, patch).
+    const rows = new Map<string, { champion_id: number; patch: string; guide_text: string; generated_ts_ms: number }>();
+    getDbMock.mockReset().mockResolvedValue({
+      select: async (_sql: string, [id, patch]: [number, string]) => {
+        const r = rows.get(`${id}/${patch}`);
+        return r ? [r] : [];
+      },
+      execute: async (_sql: string, [id, patch, text, ts]: [number, string, string, number]) => {
+        rows.set(`${id}/${patch}`, { champion_id: id, patch, guide_text: text, generated_ts_ms: ts });
+      },
+    });
+  });
+
+  const base = {
+    provider: "groq" as const,
+    apiKey: "k",
+    championId: 555,
+    championName: "Pyke",
+    patch: "16.10.1",
+  };
+
+  it("guideCacheKey separates roles and languages, and stays the plain patch without a role", () => {
+    expect(guideCacheKey("16.10.1")).toBe("16.10.1");
+    const keys = [
+      guideCacheKey("16.10.1", "UTILITY", "es"),
+      guideCacheKey("16.10.1", "MIDDLE", "es"),
+      guideCacheKey("16.10.1", "UTILITY", "en"),
+    ];
+    expect(new Set(keys).size).toBe(3);
+    // No language given means Spanish, like the prompt.
+    expect(guideCacheKey("16.10.1", "UTILITY")).toBe(keys[0]);
+  });
+
+  it("a cached UTILITY guide is not served for MIDDLE nor for another language", async () => {
+    callAi.mockResolvedValueOnce("guia support");
+    expect(await generateChampionGuide({ ...base, role: "UTILITY", language: "es" })).toBe("guia support");
+
+    callAi.mockResolvedValueOnce("guia mid");
+    expect(await generateChampionGuide({ ...base, role: "MIDDLE", language: "es" })).toBe("guia mid");
+    callAi.mockResolvedValueOnce("support guide");
+    expect(await generateChampionGuide({ ...base, role: "UTILITY", language: "en" })).toBe("support guide");
+    expect(callAi).toHaveBeenCalledTimes(3);
+
+    // Each one is cached on its own: no further AI calls, nothing overwritten.
+    expect(await generateChampionGuide({ ...base, role: "UTILITY", language: "es" })).toBe("guia support");
+    expect(await generateChampionGuide({ ...base, role: "MIDDLE", language: "es" })).toBe("guia mid");
+    expect(callAi).toHaveBeenCalledTimes(3);
+    const cached = await getCachedGuide(555, "16.10.1", "UTILITY", "en");
+    expect(cached).toMatchObject({ patch: "16.10.1", guideText: "support guide" });
+    expect(await getCachedGuide(555, "16.10.1", "JUNGLE", "es")).toBeNull();
   });
 });

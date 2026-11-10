@@ -48,6 +48,19 @@ export const PROVIDER_SIGNUP_URLS: Record<AiProvider, string> = {
   gemini: "https://aistudio.google.com/app/apikey",
 };
 
+/**
+ * True when an AI call can go out: the user has a key, or the provider is
+ * Groq and a proxy is set (callAi's keyless path). Views pass the stored
+ * prefs.riotProxyUrl so React re-renders when it changes.
+ */
+export function aiReady(
+  provider: AiProvider,
+  apiKey: string | null | undefined,
+  proxyUrl: string | null | undefined = getRiotProxyUrl()
+): boolean {
+  return !!apiKey?.trim() || (provider === "groq" && !!proxyUrl?.trim());
+}
+
 export async function callAi(p: AiCallParams): Promise<string> {
   // Groq via proxy: works WITHOUT user-supplied key. Proxy injects the
   // shared production Groq key (CF secret). This is the "casual user" path.

@@ -11,6 +11,7 @@ import {
   type Region,
   type MatchFull,
   type MatchTimeline,
+  type LeagueListEntryDto,
 } from "./riotApi";
 
 // Regions to pull from when "multi-region" mode is enabled. Combines KR, EUW, NA
@@ -31,16 +32,46 @@ export interface AggregateProgress {
 const SAMPLE_SUMMONERS = 150;
 const MATCHES_PER_SUMMONER = 10;
 
+/** Running counts for one aggregation run (one or several regions). */
+interface AggregateCounts {
+  matches: number;
+  meta: Map<string, { games: number; wins: number }>;
+  counters: Map<string, { games: number; wins: number }>;
+  builds: Map<string, { games: number; wins: number }>;
+  runes: Map<
+    string,
+    { games: number; wins: number; perks: string; shards: string; primary: number; sub: number; champ: number; pos: string }
+  >;
+  skills: Map<
+    string,
+    { games: number; wins: number; first3: string; maxOrder: string; champ: number; pos: string }
+  >;
+}
+
+function newCounts(): AggregateCounts {
+  return {
+    matches: 0,
+    meta: new Map(),
+    counters: new Map(),
+    builds: new Map(),
+    runes: new Map(),
+    skills: new Map(),
+  };
+}
+
 /**
- * Multi-region aggregation: runs aggregateFromMaster across KR + EUW + NA
- * sequentially (rate-limit friendly) and merges results under a single patch
- * label "global-<patch>".
+ * Multi-region aggregation: pulls Master+ matches from KR + EUW + NA
+ * sequentially (rate-limit friendly), merges the counts in memory and writes
+ * them once under the bare `patch` — the label every reader queries.
  */
 export async function aggregateMultiRegion(
   baseCfg: RiotConfig,
   patch: string,
   onProgress: (p: AggregateProgress) => void
 ): Promise<void> {
+  if (!isTauri()) return;
+  const now = Date.now();
+  const counts = newCounts();
   for (let i = 0; i < MULTI_REGIONS.length; i++) {
     const region = MULTI_REGIONS[i];
     onProgress({
@@ -54,7 +85,7 @@ export async function aggregateMultiRegion(
     });
     try {
       const cfg: RiotConfig = { ...baseCfg, region };
-      await aggregateFromMaster(cfg, `${patch}-${region}`, (p) =>
+      await collectRegion(cfg, counts, (p) =>
         onProgress({
           phase: i18n.t("metaSync.regionPhase", {
             region: region.toUpperCase(),
@@ -76,6 +107,9 @@ export async function aggregateMultiRegion(
       });
     }
   }
+  // Nothing downloaded from any region: keep the stored data and last_run.
+  if (counts.matches === 0) throw new Error(i18n.t("metaSync.noMatches"));
+  await writeCounts(counts, patch, now, onProgress);
   onProgress({ phase: i18n.t("metaSync.multiDone"), done: 1, total: 1 });
 }
 
@@ -87,7 +121,7 @@ export async function aggregateMultiRegion(
  * - rune_aggregate (rune pages)
  * - skill_order_aggregate (first 3 + max order)
  *
- * Designed to be re-run every 12-24h. Uses ON CONFLICT to upsert.
+ * Designed to be re-run every 12-24h. Replaces the patch's rows on each run.
  */
 export async function aggregateFromMaster(
   cfg: RiotConfig,
@@ -95,9 +129,22 @@ export async function aggregateFromMaster(
   onProgress: (p: AggregateProgress) => void
 ): Promise<void> {
   if (!isTauri()) return;
-  const db = await getDb();
   const now = Date.now();
+  const counts = newCounts();
+  await collectRegion(cfg, counts, onProgress);
+  // Every lookup/download failed (or none was ranked solo): throw before any
+  // DELETE so the patch's stored data and last_run stay untouched.
+  if (counts.matches === 0) throw new Error(i18n.t("metaSync.noMatches"));
+  await writeCounts(counts, patch, now, onProgress);
+  onProgress({ phase: i18n.t("metaSync.done"), done: 1, total: 1 });
+}
 
+/** Fetches one region's Master+ sample and adds its matches to `counts`. No DB access. */
+async function collectRegion(
+  cfg: RiotConfig,
+  counts: AggregateCounts,
+  onProgress: (p: AggregateProgress) => void
+): Promise<void> {
   onProgress({ phase: i18n.t("metaSync.listingMaster"), done: 0, total: 1 });
   const league = await getMasterLeague(cfg);
   const sample = league.entries.slice(0, SAMPLE_SUMMONERS);
@@ -107,7 +154,9 @@ export async function aggregateFromMaster(
   const puuids: string[] = [];
   for (let i = 0; i < sample.length; i++) {
     try {
-      const puuid = await getPuuidBySummonerId(cfg, sample[i].summonerId);
+      // Newer league-v4 payloads carry the puuid (and may drop summonerId).
+      const entry = sample[i] as LeagueListEntryDto & { puuid?: string };
+      const puuid = entry.puuid || (await getPuuidBySummonerId(cfg, entry.summonerId));
       puuids.push(puuid);
     } catch {
       // skip
@@ -128,9 +177,10 @@ export async function aggregateFromMaster(
     onProgress({ phase: i18n.t("metaSync.listingMatches"), done: i + 1, total: puuids.length });
   }
 
-  // Fetch full match + timeline
+  // Fetch full match + timeline; each one is folded into `counts` right away
+  // so the timelines don't pile up in memory.
   const ids = Array.from(matchIds);
-  const matches: { full: MatchFull; tl: MatchTimeline }[] = [];
+  let added = 0;
   onProgress({ phase: i18n.t("metaSync.downloadingMatches"), done: 0, total: ids.length });
   for (let i = 0; i < ids.length; i++) {
     try {
@@ -139,132 +189,137 @@ export async function aggregateFromMaster(
         getMatchTimeline(cfg, ids[i]),
       ]);
       // Only ranked solo (queueId 420)
-      if (full.queueId === 420) matches.push({ full, tl });
+      if (full.queueId === 420) {
+        addMatch(counts, full, tl);
+        added++;
+      }
     } catch {
       // skip
     }
     onProgress({ phase: i18n.t("metaSync.downloadingMatches"), done: i + 1, total: ids.length });
   }
 
-  // Aggregate
-  onProgress({ phase: i18n.t("metaSync.aggregating"), done: 0, total: matches.length });
-  const meta = new Map<string, { games: number; wins: number }>();
-  const counters = new Map<string, { games: number; wins: number }>();
-  const builds = new Map<string, { games: number; wins: number }>();
-  const runes = new Map<
-    string,
-    { games: number; wins: number; perks: string; shards: string; primary: number; sub: number; champ: number; pos: string }
-  >();
-  const skills = new Map<
-    string,
-    { games: number; wins: number; first3: string; maxOrder: string; champ: number; pos: string }
-  >();
+  onProgress({ phase: i18n.t("metaSync.aggregating"), done: 0, total: added });
+}
 
-  for (const { full, tl } of matches) {
-    const team100 = full.participants.filter((p) => p.teamId === 100);
-    const team200 = full.participants.filter((p) => p.teamId === 200);
+function addMatch(counts: AggregateCounts, full: MatchFull, tl: MatchTimeline): void {
+  const { meta, counters, builds, runes, skills } = counts;
+  counts.matches++;
+  const team100 = full.participants.filter((p) => p.teamId === 100);
+  const team200 = full.participants.filter((p) => p.teamId === 200);
 
-    for (const p of full.participants) {
-      const key = `${p.championId}|${p.position}`;
-      const m = meta.get(key) ?? { games: 0, wins: 0 };
-      m.games++;
-      if (p.win) m.wins++;
-      meta.set(key, m);
+  for (const p of full.participants) {
+    const key = `${p.championId}|${p.position}`;
+    const m = meta.get(key) ?? { games: 0, wins: 0 };
+    m.games++;
+    if (p.win) m.wins++;
+    meta.set(key, m);
 
-      // Counters: same role on enemy team
-      const enemyTeam = p.teamId === 100 ? team200 : team100;
-      for (const e of enemyTeam) {
-        if (e.position !== p.position) continue;
-        const ck = `${p.championId}|${e.championId}|${p.position}`;
-        const c = counters.get(ck) ?? { games: 0, wins: 0 };
-        c.games++;
-        if (p.win) c.wins++;
-        counters.set(ck, c);
-      }
+    // Counters: same role on enemy team
+    const enemyTeam = p.teamId === 100 ? team200 : team100;
+    for (const e of enemyTeam) {
+      if (e.position !== p.position) continue;
+      const ck = `${p.championId}|${e.championId}|${p.position}`;
+      const c = counters.get(ck) ?? { games: 0, wins: 0 };
+      c.games++;
+      if (p.win) c.wins++;
+      counters.set(ck, c);
+    }
 
-      // Builds: full final items, sorted, joined
-      const items = [...p.items].filter((x) => x > 0).sort().join(",");
-      if (items.length > 0) {
-        const bk = `${p.championId}|${p.position}|${items}`;
-        const b = builds.get(bk) ?? { games: 0, wins: 0 };
-        b.games++;
-        if (p.win) b.wins++;
-        builds.set(bk, b);
-      }
+    // Builds: full final items, sorted, joined
+    const items = [...p.items].filter((x) => x > 0).sort().join(",");
+    if (items.length > 0) {
+      const bk = `${p.championId}|${p.position}|${items}`;
+      const b = builds.get(bk) ?? { games: 0, wins: 0 };
+      b.games++;
+      if (p.win) b.wins++;
+      builds.set(bk, b);
+    }
 
-      // Runes
-      const perksObj = p.perks as
-        | {
-            statPerks?: { offense: number; flex: number; defense: number };
-            styles?: Array<{
-              style: number;
-              description: string;
-              selections: Array<{ perk: number }>;
-            }>;
-          }
-        | undefined;
-      if (perksObj?.styles) {
-        const primary = perksObj.styles.find((s) => s.description === "primaryStyle");
-        const sub = perksObj.styles.find((s) => s.description === "subStyle");
-        if (primary && sub) {
-          const perks = [
-            ...primary.selections.map((s) => s.perk),
-            ...sub.selections.map((s) => s.perk),
-          ].join(",");
-          const shards = perksObj.statPerks
-            ? `${perksObj.statPerks.offense},${perksObj.statPerks.flex},${perksObj.statPerks.defense}`
-            : "";
-          const rk = `${p.championId}|${p.position}|${primary.style}|${sub.style}|${perks}`;
-          const r = runes.get(rk) ?? {
-            games: 0,
-            wins: 0,
-            perks,
-            shards,
-            primary: primary.style,
-            sub: sub.style,
-            champ: p.championId,
-            pos: p.position,
-          };
-          r.games++;
-          if (p.win) r.wins++;
-          runes.set(rk, r);
+    // Runes
+    const perksObj = p.perks as
+      | {
+          statPerks?: { offense: number; flex: number; defense: number };
+          styles?: Array<{
+            style: number;
+            description: string;
+            selections: Array<{ perk: number }>;
+          }>;
         }
+      | undefined;
+    if (perksObj?.styles) {
+      const primary = perksObj.styles.find((s) => s.description === "primaryStyle");
+      const sub = perksObj.styles.find((s) => s.description === "subStyle");
+      if (primary && sub) {
+        const perks = [
+          ...primary.selections.map((s) => s.perk),
+          ...sub.selections.map((s) => s.perk),
+        ].join(",");
+        const shards = perksObj.statPerks
+          ? `${perksObj.statPerks.offense},${perksObj.statPerks.flex},${perksObj.statPerks.defense}`
+          : "";
+        const rk = `${p.championId}|${p.position}|${primary.style}|${sub.style}|${perks}`;
+        const r = runes.get(rk) ?? {
+          games: 0,
+          wins: 0,
+          perks,
+          shards,
+          primary: primary.style,
+          sub: sub.style,
+          champ: p.championId,
+          pos: p.position,
+        };
+        r.games++;
+        if (p.win) r.wins++;
+        runes.set(rk, r);
       }
-    }
-
-    // Skill orders from timeline
-    const skillsByPid = new Map<number, number[]>();
-    for (const f of tl.frames) {
-      for (const ev of f.events) {
-        if (ev.type !== "SKILL_LEVEL_UP") continue;
-        const e = ev as Extract<typeof ev, { type: "SKILL_LEVEL_UP" }>;
-        const arr = skillsByPid.get(e.participantId) ?? [];
-        arr.push(e.skillSlot);
-        skillsByPid.set(e.participantId, arr);
-      }
-    }
-    for (const p of full.participants) {
-      const order = skillsByPid.get(p.participantId);
-      if (!order || order.length < 3) continue;
-      const first3 = order.slice(0, 3).join("");
-      const maxOrder = computeMaxOrder(order);
-      const sk = `${p.championId}|${p.position}|${first3}|${maxOrder}`;
-      const s = skills.get(sk) ?? {
-        games: 0,
-        wins: 0,
-        first3,
-        maxOrder,
-        champ: p.championId,
-        pos: p.position,
-      };
-      s.games++;
-      if (p.win) s.wins++;
-      skills.set(sk, s);
     }
   }
 
+  // Skill orders from timeline
+  const skillsByPid = new Map<number, number[]>();
+  for (const f of tl.frames) {
+    for (const ev of f.events) {
+      if (ev.type !== "SKILL_LEVEL_UP") continue;
+      const e = ev as Extract<typeof ev, { type: "SKILL_LEVEL_UP" }>;
+      // EVOLVE events (Kha'Zix, Kai'Sa, Viktor) are not skill ranks.
+      if (e.levelUpType != null && e.levelUpType !== "NORMAL") continue;
+      const arr = skillsByPid.get(e.participantId) ?? [];
+      arr.push(e.skillSlot);
+      skillsByPid.set(e.participantId, arr);
+    }
+  }
+  for (const p of full.participants) {
+    const order = skillsByPid.get(p.participantId);
+    if (!order || order.length < 3) continue;
+    const first3 = order.slice(0, 3).join("");
+    const maxOrder = computeMaxOrder(order);
+    const sk = `${p.championId}|${p.position}|${first3}|${maxOrder}`;
+    const s = skills.get(sk) ?? {
+      games: 0,
+      wins: 0,
+      first3,
+      maxOrder,
+      champ: p.championId,
+      pos: p.position,
+    };
+    s.games++;
+    if (p.win) s.wins++;
+    skills.set(sk, s);
+  }
+}
+
+async function writeCounts(
+  counts: AggregateCounts,
+  patch: string,
+  now: number,
+  onProgress: (p: AggregateProgress) => void
+): Promise<void> {
+  const db = await getDb();
+  const { meta, counters, builds, runes, skills } = counts;
+
   // Total games drives pick-rate (games for a champ ÷ total games sampled).
-  const totalGamesAll = matches.length;
+  const totalGamesAll = counts.matches;
 
   onProgress({ phase: i18n.t("metaSync.saving"), done: 0, total: 1 });
 
@@ -344,18 +399,22 @@ export async function aggregateFromMaster(
      ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
     [String(now)]
   );
-
-  onProgress({ phase: i18n.t("metaSync.done"), done: 1, total: 1 });
 }
 
-function computeMaxOrder(skillOrder: number[]): string {
-  // Count first level-up of each skill 1-4 in level-up sequence
+/** Max order of Q/W/E ("312" = E > Q > W) from the level-up sequence. */
+export function computeMaxOrder(skillOrder: number[]): string {
   const counts: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0 };
-  for (const s of skillOrder) counts[s] = (counts[s] ?? 0) + 1;
-  // Drop ult, sort by count desc
+  // Index of each skill's last level-up = when it reached its final rank.
+  const lastIdx: Record<number, number> = {};
+  skillOrder.forEach((s, i) => {
+    counts[s] = (counts[s] ?? 0) + 1;
+    lastIdx[s] = i;
+  });
+  // Drop ult, sort by count desc. Ties (5/5/x in long games) go to the skill
+  // that finished first, not to slot order.
   const ranked = [1, 2, 3]
-    .map((s) => ({ s, c: counts[s] ?? 0 }))
-    .sort((a, b) => b.c - a.c)
+    .map((s) => ({ s, c: counts[s] ?? 0, last: lastIdx[s] ?? Infinity }))
+    .sort((a, b) => b.c - a.c || a.last - b.last)
     .map((x) => x.s);
   return ranked.join("");
 }

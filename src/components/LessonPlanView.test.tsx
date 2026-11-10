@@ -15,6 +15,7 @@ import type { MatchRow } from "../services/matchRepo";
 import type { LessonPlan } from "../services/lessonPlanRepo";
 import type { PlaystyleProfile } from "../engine/playstyleEngine";
 import { usePrefsStore, DEFAULT_PREFS } from "../state/prefsStore";
+import i18n from "i18next";
 
 vi.mock("../services/lessonPlanRepo", () => ({
   recentLessonPlans: vi.fn(),
@@ -147,6 +148,24 @@ describe("LessonPlanView — intro & API key gating", () => {
     await setup();
     expect(generateBtn()).toBeEnabled();
   });
+
+  it("groq without a key is usable through the proxy, blocked without it", async () => {
+    setPrefs({ aiProvider: "groq", groqApiKey: "", riotProxyUrl: "https://proxy.test" });
+    vi.mocked(recentMatches).mockResolvedValue(Array.from({ length: 5 }, () => mk()));
+    vi.mocked(aiLessonPlan).mockResolvedValue("Plan vía proxy");
+    const first = await setup();
+    expect(generateBtn()).toBeEnabled();
+    expect(screen.queryByText(/Necesitas API key/)).not.toBeInTheDocument();
+    await act(async () => {
+      fireEvent.click(generateBtn());
+    });
+    expect(aiLessonPlan).toHaveBeenCalledWith(expect.objectContaining({ provider: "groq", apiKey: "" }));
+    first.unmount();
+
+    setPrefs({ aiProvider: "groq", groqApiKey: "", riotProxyUrl: "" });
+    await setup();
+    expect(generateBtn()).toBeDisabled();
+  });
 });
 
 describe("LessonPlanView — generation", () => {
@@ -206,10 +225,13 @@ describe("LessonPlanView — generation", () => {
       ai.resolve("Día 1: farmear");
     });
 
+    // Saved exactly once (aiLessonPlan must not save too), with the archetype
+    // id rather than its Spanish label.
+    expect(saveLessonPlan).toHaveBeenCalledTimes(1);
     expect(saveLessonPlan).toHaveBeenCalledWith({
       createdTsMs: expect.any(Number),
       weakestArea: "CS bajo",
-      archetype: "Agresivo",
+      archetype: "aggressive",
       planText: "Día 1: farmear",
       completed: false,
     });
@@ -245,7 +267,7 @@ describe("LessonPlanView — generation", () => {
       expect.objectContaining({ archetype: "Balanceado", weakestArea: null, provider: "groq", language: "es" })
     );
     expect(saveLessonPlan).toHaveBeenCalledWith(
-      expect.objectContaining({ archetype: "Balanceado", weakestArea: null })
+      expect.objectContaining({ archetype: "balanced", weakestArea: null })
     );
     expect(screen.getByText("Plan genérico")).toBeInTheDocument();
   });
@@ -336,6 +358,20 @@ describe("LessonPlanView — history", () => {
     expect(markLessonPlanCompleted).toHaveBeenCalledWith(3);
     expect(screen.queryByRole("button", { name: "marcar completado" })).not.toBeInTheDocument();
     expect(screen.getAllByText("completado")).toHaveLength(2);
+  });
+
+  it("translates a saved archetype id and keeps legacy label rows as they are", async () => {
+    vi.mocked(recentLessonPlans).mockResolvedValue([
+      { id: 5, createdTsMs: 0, weakestArea: null, archetype: "aggressive", planText: "Nuevo", completed: true },
+      { id: 4, createdTsMs: 0, weakestArea: null, archetype: "Agresivo", planText: "Viejo", completed: true },
+    ]);
+    const { container } = await setup();
+    fireEvent.click(historyTab());
+    const shown = Array.from(container.querySelectorAll("span.text-accent")).map((n) => n.textContent);
+    expect(shown).toEqual([
+      i18n.t("playstyle.archetypes.aggressive.label", { defaultValue: "aggressive" }),
+      "Agresivo",
+    ]);
   });
 
   it("ignores 'mark completed' on a plan without an id", async () => {

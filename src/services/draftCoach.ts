@@ -7,6 +7,41 @@
 // On-demand (a button), never auto: each call is one LLM request.
 
 import { callAi, type AiProvider } from "./aiProvider";
+import { CHAMPION_ROLES } from "../data/championRoles";
+import type { ChampionDb, CounterEntry, Role } from "../types/champion";
+
+/**
+ * My matchup entry vs the enemy that actually lanes against me. liveCounters
+ * holds one entry per enemy op.gg has data for IN MY ROLE (off-role enemies
+ * included, with small samples) in network-completion order, so "first match"
+ * is not the laner. Prefer the enemy whose primary role is mine, then one
+ * that plays it at all, then anyone; the largest sample wins within a group.
+ */
+export function pickLaneMatchup(
+  db: ChampionDb,
+  liveCounters: CounterEntry[],
+  myChampionKey: string,
+  role: Role
+): CounterEntry | null {
+  const fit = (c: CounterEntry) => {
+    const roles = CHAMPION_ROLES[db.champions[c.vsChampionKey]?.id ?? ""] ?? [];
+    return roles[0] === role ? 2 : roles.includes(role) ? 1 : 0;
+  };
+  let best: CounterEntry | null = null;
+  for (const c of liveCounters) {
+    if (c.championKey !== myChampionKey) continue;
+    if (
+      !best ||
+      fit(c) > fit(best) ||
+      (fit(c) === fit(best) &&
+        (c.sampleSize > best.sampleSize ||
+          (c.sampleSize === best.sampleSize && c.vsChampionKey < best.vsChampionKey)))
+    ) {
+      best = c;
+    }
+  }
+  return best;
+}
 
 export interface DraftCoachInput {
   myChampion: string; // display name

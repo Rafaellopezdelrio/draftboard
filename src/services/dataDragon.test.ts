@@ -6,6 +6,7 @@ vi.mock("./breadcrumbs", () => ({ trackFetch: vi.fn() }));
 
 import { fetchChampionDetail, fetchChampions, fetchLatestPatch } from "./dataDragon";
 import { trackFetch } from "./breadcrumbs";
+import { i18n } from "../i18n";
 
 const mTrack = vi.mocked(trackFetch);
 const fetchMock = vi.fn();
@@ -206,6 +207,33 @@ describe("fetchChampionDetail", () => {
     const second = await fetchChampionDetail("1.0.1", "Ahri");
     expect(second).toBe(first);
     expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it("keeps a separate cache entry per locale", async () => {
+    fetchMock
+      .mockResolvedValueOnce(ok({ data: { Ahri: detail("Ahri ES") } }))
+      .mockResolvedValueOnce(ok({ data: { Ahri: detail("Ahri EN") } }));
+    const es = await fetchChampionDetail("1.0.7", "Ahri", "es_ES");
+    const en = await fetchChampionDetail("1.0.7", "Ahri", "en_US");
+    expect(es?.name).toBe("Ahri ES");
+    expect(en?.name).toBe("Ahri EN");
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      "https://ddragon.leagueoflegends.com/cdn/1.0.7/data/en_US/champion/Ahri.json"
+    );
+  });
+
+  it("defaults to en_US when the UI language is English", async () => {
+    const lang = vi.spyOn(i18n, "language", "get").mockReturnValue("en");
+    try {
+      fetchMock.mockResolvedValue(ok({ data: { Ahri: detail("Ahri EN") } }));
+      await fetchChampionDetail("1.0.8", "Ahri");
+      expect(fetchMock).toHaveBeenCalledWith(
+        "https://ddragon.leagueoflegends.com/cdn/1.0.8/data/en_US/champion/Ahri.json"
+      );
+    } finally {
+      lang.mockRestore();
+    }
   });
 
   it("falls back to en_US when the localized file is missing, and caches that", async () => {

@@ -50,8 +50,9 @@ export async function listAutoBackups(): Promise<AutoBackupEntry[]> {
 }
 
 /** Restore from a specific filesystem path (used by the auto-backup list).
- * Same Rust validation as the manual file picker — magic header check +
- * safety copy to .pre-restore. */
+ * Same Rust validation as the manual file picker (magic header check). The
+ * file is only staged: Rust swaps it in on the next launch, keeping the
+ * current DB as .pre-restore, so nothing changes until the app restarts. */
 export async function restoreFromPath(sourcePath: string): Promise<number> {
   if (!isTauri()) throw new Error(i18n.t("about.desktopOnly"));
   return await invoke<number>("db_restore_from", { sourcePath });
@@ -65,8 +66,8 @@ export interface RestoreResult {
 }
 
 /**
- * Open a native "Save As..." picker, then copy the running SQLite DB to
- * the chosen location. Returns the chosen path + byte count on success,
+ * Open a native "Save As..." picker, then write a consistent snapshot of
+ * the running SQLite DB (WAL included) to the chosen location. Returns the chosen path + byte count on success,
  * or `{path: "", bytes: 0}` if the user cancelled.
  */
 export async function backupDatabase(): Promise<BackupResult> {
@@ -86,13 +87,13 @@ export async function backupDatabase(): Promise<BackupResult> {
 
 /**
  * Open a native "Open file" picker, validate the chosen file is a SQLite
- * 3 database, then copy it over the current app DB. A safety copy of the
- * existing DB is kept at `<dir>/lol-draft-advisor.db.pre-restore` so the
- * user has one undo if the imported file is wrong.
+ * 3 database, then stage it. The swap happens on the next launch (the live
+ * DB can't be replaced safely while it is open); the existing DB is kept at
+ * `<dir>/lol-draft-advisor.db.pre-restore` so the user has one undo if the
+ * imported file is wrong.
  *
  * The caller is responsible for prompting the user to restart the app —
- * SQLite connections cache file handles; the new DB won't be visible
- * until the next launch.
+ * the restore does not take effect until the next launch.
  */
 export async function restoreDatabase(): Promise<RestoreResult> {
   if (!isTauri()) {

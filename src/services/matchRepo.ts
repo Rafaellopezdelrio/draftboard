@@ -16,6 +16,35 @@ export async function existingMatchIds(): Promise<Set<string>> {
   return new Set(rows.map((r) => r.match_id));
 }
 
+/** Numeric game id shared by both id forms: "LCU_7412" and "EUW1_7412" → "7412". */
+export function gameIdOf(matchId: string): string {
+  return matchId.slice(matchId.lastIndexOf("_") + 1);
+}
+
+/**
+ * The same game can be stored twice: once from the LCU ("LCU_<id>") and once
+ * from the Riot API ("<PLATFORM>_<id>"). Drops every LCU row that has a Riot
+ * twin (the Riot row is authoritative) and re-points drafts linked to it.
+ * Idempotent, so it also cleans up duplicates stored by older versions.
+ */
+export async function dropLcuTwins(): Promise<void> {
+  if (!isTauri()) return;
+  const db = await getDb();
+  const twinOf = (lcuCol: string) =>
+    `SELECT r.match_id FROM matches r
+       WHERE r.match_id NOT LIKE 'LCU|_%' ESCAPE '|'
+         AND substr(r.match_id, instr(r.match_id, '_') + 1) = substr(${lcuCol}, 5)
+       LIMIT 1`;
+  await db.execute(
+    `UPDATE drafts SET match_id = (${twinOf("drafts.match_id")})
+     WHERE match_id LIKE 'LCU|_%' ESCAPE '|' AND EXISTS (${twinOf("drafts.match_id")})`
+  );
+  await db.execute(
+    `DELETE FROM matches
+     WHERE match_id LIKE 'LCU|_%' ESCAPE '|' AND EXISTS (${twinOf("matches.match_id")})`
+  );
+}
+
 export async function saveMatch(m: MatchSummary): Promise<void> {
   if (!isTauri()) return;
   const db = await getDb();

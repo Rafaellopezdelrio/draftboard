@@ -4,7 +4,9 @@ import type { ChampionPersonalStat, MatchRow } from "../services/matchRepo";
 export interface ChampionPoolInsight {
   type: "main" | "spam" | "rusty" | "tilt" | "practice";
   championId: number;
-  message: string;
+  /** i18n key + interpolation values; the panel renders t(key, params). */
+  key: string;
+  params?: Record<string, string | number>;
   severity: "info" | "good" | "warn" | "bad";
 }
 
@@ -37,7 +39,8 @@ export function analyzeChampionPool({
     out.push({
       type: "spam",
       championId: topRecent.id,
-      message: `Has jugado ${topRecent.n}/${last10.length} con este campeón — es tu spam pick.`,
+      key: "championPool.insight.spam",
+      params: { n: topRecent.n, total: last10.length },
       severity: "info",
     });
   }
@@ -49,7 +52,8 @@ export function analyzeChampionPool({
       out.push({
         type: "main",
         championId: m.championId,
-        message: `Tu main: ${(stat.winRate * 100).toFixed(0)}% WR (${stat.games}g). Sigue subiendo.`,
+        key: "championPool.insight.main",
+        params: { wr: (stat.winRate * 100).toFixed(0), games: stat.games },
         severity: "good",
       });
       break;
@@ -73,7 +77,8 @@ export function analyzeChampionPool({
       out.push({
         type: "tilt",
         championId: id,
-        message: `${e.max} derrotas seguidas con este campeón. Considera cambiar o tomar un descanso.`,
+        key: "championPool.insight.tilt",
+        params: { n: e.max },
         severity: "bad",
       });
       break; // only show one
@@ -95,7 +100,12 @@ export function analyzeChampionPool({
       out.push({
         type: "rusty",
         championId: m.championId,
-        message: `No lo juegas hace ${daysSince === Infinity ? "mucho" : `${Math.floor(daysSince)} días`}. Práctica antes de SoloQ.`,
+        ...(daysSince === Infinity
+          ? { key: "championPool.insight.rustyNever" }
+          : {
+              key: "championPool.insight.rusty",
+              params: { days: Math.floor(daysSince) },
+            }),
         severity: "warn",
       });
       break; // only one rusty suggestion
@@ -110,7 +120,7 @@ export function analyzeChampionPool({
       out.push({
         type: "practice",
         championId: m.championId,
-        message: "Tienes maestría alta pero pocos games registrados. Buen pick para spam.",
+        key: "championPool.insight.practice",
         severity: "info",
       });
       break;

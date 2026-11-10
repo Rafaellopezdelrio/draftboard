@@ -1,7 +1,7 @@
 // Hybrid sync: prefers LCU (no key needed) for personal data,
 // falls back to Riot API only when key is configured AND LCU lacks data.
 
-import { saveMatch, existingMatchIds } from "./matchRepo";
+import { saveMatch, existingMatchIds, dropLcuTwins, gameIdOf } from "./matchRepo";
 import { linkDraftToMatch } from "./draftsRepo";
 import {
   lcuMasteries,
@@ -104,9 +104,12 @@ async function tryLcuSync(
   }
 
   const known = await existingMatchIds();
+  // Compare by numeric game id: the Riot API stores the same game as
+  // "<PLATFORM>_<id>", so an exact-id check would save it again as "LCU_<id>".
+  const knownGames = new Set(Array.from(known, gameIdOf));
   let saved = 0;
   for (let i = 0; i < matches.length; i++) {
-    if (known.has(matches[i].matchId)) continue;
+    if (knownGames.has(gameIdOf(matches[i].matchId))) continue;
     await saveMatch(matches[i]);
     await linkDraftToMatch(
       matches[i].matchId,
@@ -155,6 +158,13 @@ async function riotApiSync(
       total: todo.length,
       message: `Descargando ${i + 1}/${todo.length}`,
     });
+  }
+  // Games saved earlier through the LCU fallback now have a Riot twin: keep
+  // only the Riot row so personal stats don't count them twice. Best-effort.
+  try {
+    await dropLcuTwins();
+  } catch {
+    // skip
   }
   let masteries: ChampionMasteryDto[] = [];
   try {

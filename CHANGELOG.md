@@ -30,6 +30,27 @@ focus, auto runes, champ-select capture) — see docs/handoff.md.
   server provides both.
 
 ### Fixed
+- Second review round (30 issues):
+  - Client writes: saving the Draftboard item set no longer wipes your other
+    item sets; Flash stays on the key you use (D or F); rune pages are only
+    replaced when the client reports the page limit; Apply never sends an
+    illegal page; no Smite outside jungle.
+  - Build panel: spell win/pick rates only show for the pair displayed;
+    apply status no longer leaks to the next champion.
+  - Champ select: the champion you hover stays in your suggestions and is not
+    scored as a teammate; "followed suggestion" is logged correctly; AI draft
+    coach clears on champion switch and uses your real lane opponent.
+  - Data: backups and restores are complete and safe while the DB is in use;
+    multi-region meta sync writes readable patch labels and keeps data when
+    a sync fetches nothing; skill max order ties; pro-play pick rate; no
+    duplicate games from client + Riot sync; patch-notes cache; champion
+    abilities/lore follow the UI language.
+  - Views: AI chat, champion guide, 7-day plan, coach analysis and Pro
+    Players work with the built-in server (no personal key); plans are saved
+    once; resync keeps your matches if the download fails; lookup finds
+    players on other servers; chat replies stay in their conversation; guide
+    cache respects role and language.
+  - More Spanish-only texts now follow the UI language.
 - Advice review (32 issues): role, mode and data fixes across the coach.
   - In game: Soul calls stop once a team has Soul; Elder timer is 6 min;
     first Baron gets a countdown from 17:00; no dragon/recall calls in ARAM

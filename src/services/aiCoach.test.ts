@@ -350,16 +350,16 @@ describe("AI coach orchestration", () => {
       expect(p.userPrompt).not.toContain("Champ10");
     });
 
-    it("persists the plan and a goal memory, then returns the plan text", async () => {
+    it("persists a goal memory but NOT the plan (the caller saves it once), then returns the text", async () => {
       callAi.mockResolvedValue("Día 1: ...");
       const out = await aiLessonPlan(lessonInput());
       expect(out).toBe("Día 1: ...");
 
-      const [planSql, planParams] = executeMock.mock.calls[0];
-      expect(planSql).toMatch(/INSERT INTO lesson_plans/);
-      expect(planParams).toEqual([NOW, "deaths", "Agresivo", "Día 1: ...", 0]);
+      // Saving the plan here too stored every plan twice.
+      expect(executeMock).toHaveBeenCalledTimes(1);
+      expect(executeMock.mock.calls.some(([sql]) => /lesson_plans/.test(sql))).toBe(false);
 
-      const [memSql, memParams] = executeMock.mock.calls[1];
+      const [memSql, memParams] = executeMock.mock.calls[0];
       expect(memSql).toMatch(/INSERT INTO ai_memory/);
       expect(memParams).toEqual([
         "goal",
@@ -377,8 +377,7 @@ describe("AI coach orchestration", () => {
       const p = callAi.mock.calls[0][0];
       expect(p.systemPrompt).toContain("Respond in English.");
       expect(p.userPrompt).toContain("Mi mayor problema: no identificado");
-      expect(executeMock.mock.calls[0][1][1]).toBeNull();
-      expect(executeMock.mock.calls[1][1].slice(1, 3)).toEqual([
+      expect(executeMock.mock.calls[0][1].slice(1, 3)).toEqual([
         null,
         "Plan de 7 días generado: foco en mejora general",
       ]);

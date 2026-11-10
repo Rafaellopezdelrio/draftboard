@@ -247,7 +247,25 @@
     "perkFallback": "Runa {{id}}",
     "spellFallback": "Hechizo {{id}}",
     "applyPageLimit": "Sin hueco: borra una página tuya",
-    "toastPageLimitDetail": "Todas tus páginas de runas están ocupadas. Borra o renombra una en el cliente; Draftboard nunca borra las tuyas."
+    "toastPageLimitDetail": "Todas tus páginas de runas están ocupadas. Borra o renombra una en el cliente; Draftboard nunca borra las tuyas.",
+    "spellReason": {
+      "jungleSmite": "Jungla → Smite obligatorio",
+      "topSplitpush": "Splitpush en top → TP",
+      "topTank": "Tanque/frontline en top → TP para rotar y tener presencia en el mapa",
+      "topAssassin": "Asesino/burst → Ignite para hacer snowball",
+      "midAssassin": "Mid asesino/burst → Ignite",
+      "midTank": "Mid tanque/engage (Galio, Lissandra...) → TP",
+      "midPokeMage": "Mago de poke/waveclear → TP",
+      "midMarksman": "Tirador en mid (Corki, Tristana...) → TP",
+      "botAssassin": "ADC asesino/burst (Lucian, Samira...) → Ignite",
+      "botStandard": "ADC estándar → Heal",
+      "supEngage": "Soporte engage (Leona, Naut, Rakan...) → Ignite",
+      "supPeel": "Soporte peel (Janna, Lulu...) → Exhaust",
+      "supPick": "Soporte pick (Thresh, Bard, Blitz...) → Ignite",
+      "supMage": "Soporte mago → Ignite",
+      "opgg": "Recomendación dominante de op.gg",
+      "fallback": "Por defecto según el rol (sin datos)"
+    }
   },
   "scout": {
     "title": "Scout enemigos",
@@ -589,13 +607,63 @@
     }
   },
   "playstyle": {
-    "title": "Tu estilo"
+    "title": "Tu estilo",
+    "archetypes": {
+      "aggressive": {
+        "label": "Agresivo",
+        "tip": "Buscas peleas. Los counters defensivos te frenan. Practica decision-making sobre cuándo desengajarte."
+      },
+      "scaling": {
+        "label": "Scaling",
+        "tip": "Ganas partidas largas. Tus enemigos quieren cerrar rápido. Juega seguro pre-15min y deja que el tiempo trabaje."
+      },
+      "safe": {
+        "label": "Seguro",
+        "tip": "Mueres poco y farmeas bien. Tu gap es generar plays. Practica engage timings."
+      },
+      "playmaker": {
+        "label": "Playmaker",
+        "tip": "Creas plays. Necesitas equipos que sigan tus engages. Pickea con visión."
+      },
+      "carry": {
+        "label": "Carry",
+        "tip": "Eres el que cierra. Necesitas farm + ítems. Evita teamfights forzados pre-2 ítems."
+      },
+      "supportive": {
+        "label": "Supportive",
+        "tip": "Tu valor está en peel/utility. Pickea campeones que escalen con visión y crowd control."
+      },
+      "balanced": {
+        "label": "Balanceado",
+        "tip": "Sin tendencia clara. Identifica qué estilo te gana más LP y especialízate."
+      }
+    },
+    "traits": {
+      "highKills": "Alta presión de kills",
+      "highDeaths": "Mueres mucho — riesgo alto",
+      "lowDeaths": "Muy seguro, casi no mueres",
+      "greatFarm": "Excelente farm",
+      "lowFarm": "Farm bajo",
+      "highKda": "KDA alto consistente",
+      "longGames": "Tendencia a partidas largas",
+      "fastGames": "Cierra rápido",
+      "assistHeavy": "Asistencias > kills (peeler/playmaker)",
+      "killHeavy": "Solo carry, kills > assists"
+    }
   },
   "masteries": {
     "title": "Tus mejores campeones"
   },
   "championPool": {
-    "title": "Tu pool"
+    "title": "Tu pool",
+    "insight": {
+      "spam": "Has jugado {{n}}/{{total}} con este campeón — es tu spam pick.",
+      "main": "Tu main: {{wr}}% WR ({{games}}g). Sigue subiendo.",
+      "tilt": "{{n}} derrotas seguidas con este campeón. Considera cambiar o tomar un descanso.",
+      "rusty": "No lo juegas hace {{days}} días. Practica antes de SoloQ.",
+      "rustyNever": "No lo juegas hace mucho. Practica antes de SoloQ.",
+      "practice": "Tienes maestría alta pero pocos games registrados. Buen pick para spam."
+    }
   },
   "logs": {
     "title": "Logs · últimas {{count}} líneas",
@@ -750,7 +818,8 @@
     "region": "Región {{region}} ({{i}}/{{total}})",
     "regionPhase": "{{region}}: {{phase}}",
     "regionFailed": "Región {{region}} falló: {{err}}",
-    "multiDone": "Multi-región completado"
+    "multiDone": "Multi-región completado",
+    "noMatches": "No se pudo descargar ninguna partida. Se conservan los datos anteriores."
   },
   "feedback": {
     "title": "Reportar problema",
@@ -927,7 +996,9 @@
     "proxyActiveTitle": "🌟 Modo proxy premium activo",
     "proxyActiveBodyPrefix": "Las features que necesitan Riot API funcionan sin que tú configures key. El proxy",
     "proxyActiveBodySuffix": "se encarga.",
-    "resync": "Re-sync"
+    "resync": "Re-sync",
+    "resyncNoSource": "No se ha borrado nada: ahora mismo no puedo volver a descargar tus partidas. Abre el cliente de LoL o revisa tu Riot ID y reintenta.",
+    "resyncNothing": "Partidas borradas, pero no se pudo descargar ninguna. Reintenta en unos minutos."
   },
   "preferences": {
     "title": "Preferencias",
@@ -1201,7 +1272,10 @@
     "title": "Novedades de Draftboard"
   },
   "draftCoach": {
-    "tooltip": "La IA explica tu pick + el matchup + cómo jugarlo"
+    "tooltip": "La IA explica tu pick + el matchup + cómo jugarlo",
+    "button": "Explica el draft (IA)",
+    "thinking": "Pensando…",
+    "needKey": "Configura tu API key ({{provider}}) en Prefs."
   },
   "metaSource": {
     "title": "Fuente del meta tier",
@@ -1287,7 +1361,10 @@
     "recentMatches": "Últimas partidas",
     "noPublicData": "Sin datos públicos disponibles para este jugador.",
     "dataSource": "Datos vía Riot API · públicos",
-    "copyPuuid": "Copia el PUUID al portapapeles"
+    "copyPuuid": "Copia el PUUID al portapapeles",
+    "notOnServer": "No hay datos de este jugador en {{server}}. Elige su servidor en el desplegable y busca de nuevo.",
+    "serverTitle": "Servidor del jugador",
+    "serverAuto": "Auto"
   },
   "about": {
     "title": "Acerca de Draftboard",
@@ -1445,7 +1522,11 @@
       "adc": "ADC",
       "sup": "Sup",
       "filterLabel": "Filtrar por rol"
-    }
+    },
+    "champFiltered": "{{count}} partidas con los filtros actuales",
+    "winrateTrend": "Tendencia de winrate (ventana de {{count}} partidas)",
+    "winrateTrendAria": "Tendencia de winrate con {{name}}",
+    "lastPlayed": "Última partida: {{date}}"
   },
   "viewBoundary": {
     "title": "Algo se rompió en esta vista",
@@ -1630,5 +1711,17 @@
     "pickTurn": "Tu turno de pickear",
     "gameStarted": "Partida empezada",
     "postGameReady": "Análisis post-partida listo"
+  },
+  "notify": {
+    "banTurnBody": "Abre Draftboard para ver sugerencias.",
+    "pickTurnBody": "Abre Draftboard para ver el pick óptimo."
+  },
+  "proPlayers": {
+    "loadAll": "Cargar todos",
+    "tabAll": "Todos",
+    "load": "Cargar",
+    "needAccess": "Necesitas el proxy o una API key de Riot configurada en ⚙",
+    "publicNote": "(datos públicos, solo para mostrar partidas pro)",
+    "footer": "{{count}} pro players · datos públicos vía Riot API"
   }
 }

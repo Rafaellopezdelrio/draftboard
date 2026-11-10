@@ -14,6 +14,8 @@ vi.mock("../db/client", () => ({
 import {
   clearAllMatches,
   existingMatchIds,
+  dropLcuTwins,
+  gameIdOf,
   saveMatch,
   recentMatches,
   personalStatsByChampion,
@@ -74,6 +76,28 @@ describe("clearAllMatches / existingMatchIds", () => {
     const ids = await existingMatchIds();
     expect(ids).toEqual(new Set(["A", "B"]));
     expect(selectMock.mock.calls[0][0]).toContain("SELECT match_id FROM matches");
+  });
+});
+
+describe("gameIdOf / dropLcuTwins", () => {
+  it("gameIdOf returns the numeric game id shared by the LCU and Riot id forms", () => {
+    expect(gameIdOf("LCU_7412345678")).toBe("7412345678");
+    expect(gameIdOf("EUW1_7412345678")).toBe("7412345678");
+  });
+
+  it("dropLcuTwins re-points drafts and then deletes only LCU rows", async () => {
+    await dropLcuTwins();
+    const sqls = executeMock.mock.calls.map((c) => String(c[0]));
+    expect(sqls).toHaveLength(2);
+    expect(sqls[0]).toContain("UPDATE drafts SET match_id");
+    expect(sqls[1]).toContain("DELETE FROM matches");
+    expect(sqls[1]).toContain("LIKE 'LCU|_%' ESCAPE '|'");
+  });
+
+  it("dropLcuTwins is a no-op outside Tauri", async () => {
+    tauri = false;
+    await dropLcuTwins();
+    expect(getDbMock).not.toHaveBeenCalled();
   });
 });
 

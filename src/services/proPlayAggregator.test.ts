@@ -148,11 +148,11 @@ describe("aggregateFromProPlay", () => {
     expect(result).toEqual({ rows: 3, games: 3 });
     const proPatch = `proplay-${PATCH}`;
     expect(executeMock.mock.calls[0]).toEqual(["DELETE FROM meta_aggregate WHERE patch = $1", [proPatch]]);
-    // 5 counted picks in total → pick rate = games / 5.
+    // Pick rate is per game (3 games), not per counted player row (5).
     expect(insertedRows()).toEqual([
-      [103, "MIDDLE", 2, 1, 0.5, 2 / 5, 0, proPatch, NOW],
-      [62, "TOP", 2, 1, 0.5, 2 / 5, 0, proPatch, NOW],
-      [64, "JUNGLE", 1, 1, 1, 1 / 5, 0, proPatch, NOW],
+      [103, "MIDDLE", 2, 1, 0.5, 2 / 3, 0, proPatch, NOW],
+      [62, "TOP", 2, 1, 0.5, 2 / 3, 0, proPatch, NOW],
+      [64, "JUNGLE", 1, 1, 1, 1 / 3, 0, proPatch, NOW],
     ]);
     expect(metaWrite("proplay_last_run")).toEqual([String(NOW)]);
     expect(metaWrite("proplay_games")).toEqual(["3"]);

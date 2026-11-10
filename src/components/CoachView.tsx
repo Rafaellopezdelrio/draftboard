@@ -1,3 +1,4 @@
+import { aiReady } from "../services/aiProvider";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { i18n } from "../i18n";
@@ -66,6 +67,8 @@ export function CoachView({ db, onClose }: Props) {
         ? s.prefs.geminiApiKey
         : s.prefs.anthropicApiKey
   );
+  // Groq works through the Draftboard proxy without a personal key.
+  const aiUsable = aiReady(aiProvider, aiKey, usePrefsStore((st) => st.prefs.riotProxyUrl));
   const aiLang = usePrefsStore((s) => s.prefs.aiCoachLanguage);
   const [aiResponse, setAiResponse] = useState<string>("");
   const [aiLoading, setAiLoading] = useState(false);
@@ -302,13 +305,13 @@ export function CoachView({ db, onClose }: Props) {
                   </h3>
                   <button
                     onClick={runAi}
-                    disabled={aiLoading || !aiKey}
+                    disabled={aiLoading || !aiUsable}
                     className="text-xs px-2 py-1 bg-accent text-black rounded disabled:opacity-50"
                   >
                     {aiLoading ? t("coach.aiAnalyzing") : t("coach.aiAnalyze")}
                   </button>
                 </div>
-                {!aiKey && (
+                {!aiUsable && (
                   <p className="text-xs text-meh">
                     {t("coach.apiKeyHint", { provider: aiProvider })}
                   </p>

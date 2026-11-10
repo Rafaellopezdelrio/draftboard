@@ -19,6 +19,7 @@ import { PowerSpikesBars } from "./PowerSpikesBars";
 import { BuildPanel } from "./BuildPanel";
 import { getMatchupTips } from "../data/matchupTips";
 import { generateChampionGuide, getCachedGuide } from "../services/aiChampionGuide";
+import { aiReady } from "../services/aiProvider";
 import { usePrefsStore } from "../state/prefsStore";
 import {
   Sparkles,
@@ -438,29 +439,43 @@ function AiGuideTab({
         : s.prefs.anthropicApiKey
   );
   const lang = usePrefsStore((s) => s.prefs.aiCoachLanguage);
+  // Groq works keyless through the proxy, so a missing key alone is not a block.
+  const ready = aiReady(provider, apiKey, usePrefsStore((s) => s.prefs.riotProxyUrl));
 
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [cached, setCached] = useState(false);
 
+  // The guide is written for one role in one language: reload on either change.
   useEffect(() => {
+    let stale = false;
     setText("");
     setErr(null);
     setCached(false);
-    getCachedGuide(championId, patch).then((g) => {
-      if (g) {
+    getCachedGuide(championId, patch, role, lang).then((g) => {
+      if (g && !stale) {
         setText(g.guideText);
         setCached(true);
       }
     });
-  }, [championId, patch]);
+    return () => {
+      stale = true;
+    };
+  }, [championId, patch, role, lang]);
+
+  // What the tab shows right now; a guide that finishes generating after the
+  // user moved to another role/language must not be painted under it.
+  const shownKey = `${championId}|${patch}|${role}|${lang}`;
+  const shownKeyRef = useRef(shownKey);
+  shownKeyRef.current = shownKey;
 
   async function generate(force = false) {
-    if (!apiKey) {
+    if (!ready) {
       setErr(t("championGuide.ai.configureKey", { provider }));
       return;
     }
+    const key = shownKey;
     setErr(null);
     setLoading(true);
     try {
@@ -474,10 +489,12 @@ function AiGuideTab({
         language: lang,
         force,
       });
-      setText(guideText);
-      setCached(true);
+      if (shownKeyRef.current === key) {
+        setText(guideText);
+        setCached(true);
+      }
     } catch (e) {
-      setErr(String(e));
+      if (shownKeyRef.current === key) setErr(String(e));
     } finally {
       setLoading(false);
     }
@@ -506,13 +523,13 @@ function AiGuideTab({
           </p>
           <button
             onClick={() => generate(false)}
-            disabled={!apiKey}
+            disabled={!ready}
             className="px-3 py-1.5 bg-accent text-black font-medium rounded-md text-xs disabled:opacity-50 inline-flex items-center gap-1.5"
           >
             <Sparkles className="w-3 h-3" />
             {t("championGuide.ai.generate")}
           </button>
-          {!apiKey && (
+          {!ready && (
             <p className="text-[10px] text-meh mt-2">
               {t("championGuide.ai.needKey", { provider })}
             </p>
@@ -535,7 +552,7 @@ function AiGuideTab({
           </div>
           <button
             onClick={() => generate(true)}
-            disabled={loading || !apiKey}
+            disabled={loading || !ready}
             className="mt-3 text-[10px] text-white/45 hover:text-accent uppercase tracking-widest"
           >
             {t("championGuide.ai.regenerate")}

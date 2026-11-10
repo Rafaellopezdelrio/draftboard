@@ -1,10 +1,12 @@
 // Pro players watchlist — view their last games and what they're playing.
 
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   getAccountByRiotId,
   getRecentMatchIds,
   getMatchFull,
+  getRiotProxyUrl,
   type RiotConfig,
 } from "../services/riotApi";
 import { loadSettings } from "../services/settingsRepo";
@@ -41,6 +43,7 @@ interface ProPlayerData {
 type RegionTab = "ALL" | "kr" | "euw1" | "na1";
 
 export function ProPlayersView({ db, onClose }: Props) {
+  const { t } = useTranslation();
   useEscape(onClose);
   const [region, setRegion] = useState<RegionTab>("ALL");
   const [data, setData] = useState<Record<string, ProPlayerData>>({});
@@ -49,17 +52,20 @@ export function ProPlayersView({ db, onClose }: Props) {
   useEffect(() => {
     loadSettings().then((s) => setCfg(s ?? null));
   }, []);
+  // The proxy injects the Riot key server-side, so a local key (or even saved
+  // settings) is optional — same rule as SummonerLookupView / SettingsView.
+  const hasRiotAccess = !!cfg?.apiKey || !!getRiotProxyUrl();
 
   const visiblePlayers = PRO_PLAYERS.filter(
     (p) => region === "ALL" || p.region === region
   );
 
   async function loadPlayer(p: ProPlayer) {
-    if (!cfg?.apiKey) return;
+    if (!hasRiotAccess) return;
     setData((d) => ({ ...d, [p.name]: { player: p, lastMatches: [], loading: true } }));
     try {
       const playerCfg: RiotConfig = {
-        apiKey: cfg.apiKey,
+        apiKey: cfg?.apiKey ?? "",
         region: p.region,
         riotIdName: p.riotIdName,
         riotIdTag: p.riotIdTag,
@@ -126,16 +132,16 @@ export function ProPlayersView({ db, onClose }: Props) {
             </h2>
             <button
               onClick={loadAllVisible}
-              disabled={!cfg?.apiKey}
+              disabled={!hasRiotAccess}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs bg-accent/15 text-accent rounded-md ring-1 ring-accent/40 hover:bg-accent/25 disabled:opacity-50 transition"
             >
               <RefreshCw className="w-3 h-3" />
-              Cargar todos
+              {t("proPlayers.loadAll")}
             </button>
           </div>
           <Tabs<RegionTab>
             tabs={[
-              { value: "ALL", label: "Todos" },
+              { value: "ALL", label: t("proPlayers.tabAll") },
               { value: "kr", label: "LCK" },
               { value: "euw1", label: "LEC" },
               { value: "na1", label: "LCS" },
@@ -146,18 +152,18 @@ export function ProPlayersView({ db, onClose }: Props) {
         </div>
 
         <div className="overflow-y-auto p-4 space-y-2">
-          {!cfg?.apiKey && (
+          {!hasRiotAccess && (
             <div className="text-center py-8">
               <p className="text-sm text-white/70 mb-2">
-                Necesitas API key Riot configurada en ⚙
+                {t("proPlayers.needAccess")}
               </p>
               <p className="text-xs text-white/40">
-                (datos públicos, solo para mostrar partidas pro)
+                {t("proPlayers.publicNote")}
               </p>
             </div>
           )}
 
-          {cfg?.apiKey && visiblePlayers.map((p) => {
+          {hasRiotAccess && visiblePlayers.map((p) => {
             const d = data[p.name];
             return (
               <Panel key={p.name} padding="sm">
@@ -194,11 +200,11 @@ export function ProPlayersView({ db, onClose }: Props) {
                         onClick={() => loadPlayer(p)}
                         className="text-[10px] text-white/55 hover:text-white px-2 py-1 rounded ring-1 ring-border-subtle hover:ring-accent/60 transition"
                       >
-                        Cargar
+                        {t("proPlayers.load")}
                       </button>
                     )}
                     {d?.loading && (
-                      <span className="text-[10px] text-white/40">cargando...</span>
+                      <span className="text-[10px] text-white/40">{t("common.loading")}</span>
                     )}
                   </div>
                 </div>
@@ -250,7 +256,7 @@ export function ProPlayersView({ db, onClose }: Props) {
         </div>
 
         <div className="px-4 py-2 border-t border-border-subtle text-[10px] uppercase tracking-widest text-white/40">
-          {visiblePlayers.length} pro players · datos públicos vía Riot API
+          {t("proPlayers.footer", { count: visiblePlayers.length })}
         </div>
       </div>
     </div>

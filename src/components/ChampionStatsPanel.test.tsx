@@ -10,6 +10,7 @@ import { render, screen } from "@testing-library/react";
 import { ChampionStatsPanel } from "./ChampionStatsPanel";
 import type { MatchRow } from "../services/matchRepo";
 import type { ChampionDb } from "../types/champion";
+import i18n from "i18next";
 
 function mkMatch(over: Partial<MatchRow> = {}): MatchRow {
   return {
@@ -74,7 +75,9 @@ describe("ChampionStatsPanel", () => {
       />
     );
     expect(screen.getByText("Aatrox")).toBeInTheDocument();
-    expect(screen.getByText(/2 partidas/)).toBeInTheDocument();
+    expect(
+      screen.getByText(i18n.t("history.champFiltered", { count: 2 }) as string)
+    ).toBeInTheDocument();
   });
 
   it("computes winrate correctly (3 wins of 5 = 60%)", () => {
@@ -106,7 +109,7 @@ describe("ChampionStatsPanel", () => {
     );
     // Panel renders (1 match -> aggregate stats) but no trend chart.
     expect(container.textContent).toContain("Aatrox");
-    expect(container.textContent).not.toContain("Winrate trend");
+    expect(container.querySelector("svg.lucide-calendar ~ svg, [role='img'][aria-label]")).toBeNull();
   });
 
   it("renders the last-played date when at least 1 match present", () => {
@@ -116,6 +119,27 @@ describe("ChampionStatsPanel", () => {
     render(
       <ChampionStatsPanel matches={matches} championId={266} db={minimalDb} />
     );
-    expect(screen.getByText(/Última partida/)).toBeInTheDocument();
+    const date = new Date("2026-01-15").toLocaleDateString();
+    expect(
+      screen.getByText(i18n.t("history.lastPlayed", { date }) as string)
+    ).toBeInTheDocument();
+  });
+
+  it("takes every label from i18n (no hardcoded Spanish in the English UI)", () => {
+    const matches = Array.from({ length: 6 }, () => mkMatch());
+    const { container } = render(
+      <ChampionStatsPanel matches={matches} championId={266} db={minimalDb} />
+    );
+    const text = container.textContent ?? "";
+    for (const [key, opts] of [
+      ["history.champFiltered", { count: 6 }],
+      ["history.matches", {}],
+      ["history.winrate", {}],
+      ["history.avgKda", {}],
+      ["history.csPerMin", {}],
+      ["history.winrateTrend", { count: 3 }],
+    ] as const) {
+      expect(text).toContain(i18n.t(key, opts) as string);
+    }
   });
 });

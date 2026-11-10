@@ -32,6 +32,7 @@ vi.mock("./riotApi", () => ({
 import {
   aggregateFromMaster,
   aggregateMultiRegion,
+  computeMaxOrder,
   type AggregateProgress,
 } from "./metaAggregator";
 
@@ -325,7 +326,7 @@ describe("aggregateFromMaster", () => {
     });
   });
 
-  it("caps the sample at 150 Master accounts and still clears tables when nothing resolves", async () => {
+  it("caps the sample at 150 Master accounts and keeps the stored data when nothing resolves", async () => {
     getMasterLeagueMock.mockResolvedValue({
       tier: "MASTER",
       entries: Array.from({ length: 160 }, (_, i) => ({ summonerId: `s${i}` })),
@@ -333,19 +334,54 @@ describe("aggregateFromMaster", () => {
     getPuuidMock.mockRejectedValue(new Error("403"));
     const progress: AggregateProgress[] = [];
 
-    await aggregateFromMaster(CFG, PATCH, (p) => progress.push(p));
+    // Zero matches must fail the run: no DELETE, no last_run stamp.
+    await expect(aggregateFromMaster(CFG, PATCH, (p) => progress.push(p))).rejects.toThrow();
 
     expect(getPuuidMock).toHaveBeenCalledTimes(150);
     expect(getRecentMatchIdsMock).not.toHaveBeenCalled();
     expect(getMatchFullMock).not.toHaveBeenCalled();
     expect(progress).toContainEqual({ phase: "Resolviendo cuentas", done: 150, total: 150 });
-    expect(statementKinds()).toEqual([
-      "DELETE FROM meta_aggregate",
-      "DELETE FROM counter_aggregate",
-      "DELETE FROM build_aggregate",
-      "DELETE FROM rune_aggregate",
-      "DELETE FROM skill_order_aggregate",
-      "INSERT INTO aggregation_meta",
+    expect(executeMock).not.toHaveBeenCalled();
+  });
+
+  it("uses the puuid a league entry already carries instead of the summonerId lookup", async () => {
+    const fixtures = matchFixtures();
+    getMasterLeagueMock.mockResolvedValue({ tier: "MASTER", entries: [{ puuid: "p-direct" }] });
+    getRecentMatchIdsMock.mockResolvedValue(["M1"]);
+    getMatchFullMock.mockResolvedValue(fixtures.M1.full);
+    getMatchTimelineMock.mockResolvedValue(fixtures.M1.tl);
+
+    await aggregateFromMaster(CFG, PATCH, () => {});
+
+    expect(getPuuidMock).not.toHaveBeenCalled();
+    expect(getRecentMatchIdsMock).toHaveBeenCalledWith(CFG, "p-direct", 10);
+    expect(insertedRows("meta_aggregate", 9)).toHaveLength(4);
+  });
+
+  it("ignores EVOLVE level-ups when deriving the max order", async () => {
+    const evolve = (slot: number): TimelineEvent => ({
+      type: "SKILL_LEVEL_UP",
+      timestamp: 99,
+      participantId: 1,
+      skillSlot: slot,
+      levelUpType: "EVOLVE",
+    });
+    getMasterLeagueMock.mockResolvedValue({ tier: "MASTER", entries: [{ summonerId: "s1" }] });
+    getPuuidMock.mockResolvedValue("p1");
+    // Two games: skill rows need at least 2 to be stored.
+    getRecentMatchIdsMock.mockResolvedValue(["K1", "K2"]);
+    getMatchFullMock.mockResolvedValue(
+      full("K1", 420, [part({ participantId: 1, championId: 121, teamId: 100, position: "JUNGLE", win: true })])
+    );
+    // Real ranks: E2 Q1 W1 → "312". Counting the three W evolves would give "231".
+    getMatchTimelineMock.mockResolvedValue(
+      timeline("K1", [[...skillUps(1, [1, 3, 2, 3]), evolve(2), evolve(2), evolve(2)]])
+    );
+
+    await aggregateFromMaster(CFG, PATCH, () => {});
+
+    expect(insertedRows("skill_order_aggregate", 8)).toEqual([
+      [121, "JUNGLE", "132", "312", 2, 2, PATCH, NOW],
     ]);
   });
 
@@ -356,12 +392,73 @@ describe("aggregateFromMaster", () => {
   });
 });
 
+describe("computeMaxOrder", () => {
+  it("breaks 5/5/3 ties by which skill reached its final rank first, not by slot", () => {
+    // E maxed first, then Q, W last (E5 Q5 W3): used to come out as "132".
+    const order = [3, 1, 2, 3, 3, 4, 3, 1, 3, 1, 4, 1, 1, 2, 2];
+    expect(computeMaxOrder(order)).toBe("312");
+  });
+
+  it("keeps the real order at level 18 when every basic skill is rank 5", () => {
+    // E > W > Q, all at 5: used to collapse to "123".
+    const order = [3, 2, 1, 3, 3, 4, 3, 2, 3, 2, 4, 2, 2, 1, 1, 4, 1, 1];
+    expect(computeMaxOrder(order)).toBe("321");
+  });
+
+  it("still ranks by count when there is no tie", () => {
+    expect(computeMaxOrder([3, 1, 2, 1, 4, 1, 1, 2, 2])).toBe("123");
+  });
+});
+
 describe("aggregateMultiRegion", () => {
-  it("runs KR, EUW and NA in order under per-region patch labels and survives a failing region", async () => {
+  it("merges every region into one write under the bare patch and stamps last_run once", async () => {
+    const fixtures = matchFixtures();
+    getMasterLeagueMock.mockImplementation(async (cfg: RiotConfig) => ({
+      tier: "MASTER",
+      entries: [{ summonerId: `s-${cfg.region}` }],
+    }));
+    getPuuidMock.mockImplementation(async (cfg: RiotConfig) => `p-${cfg.region}`);
+    const idsByRegion: Record<string, string[]> = { kr: ["M1"], euw1: ["M2"], na1: ["M3"] };
+    getRecentMatchIdsMock.mockImplementation(async (cfg: RiotConfig) => idsByRegion[cfg.region]);
+    getMatchFullMock.mockImplementation(async (_c: RiotConfig, id: string) => fixtures[id].full);
+    getMatchTimelineMock.mockImplementation(async (_c: RiotConfig, id: string) => fixtures[id].tl);
+
+    await aggregateMultiRegion(CFG, PATCH, () => {});
+
+    // One DELETE + one write per table, all under the patch the readers query.
+    expect(statementKinds().filter((k) => k.startsWith("DELETE"))).toEqual([
+      "DELETE FROM meta_aggregate",
+      "DELETE FROM counter_aggregate",
+      "DELETE FROM build_aggregate",
+      "DELETE FROM rune_aggregate",
+      "DELETE FROM skill_order_aggregate",
+    ]);
+    const patchParams = executeMock.mock.calls
+      .filter(([sql]) => String(sql).startsWith("DELETE FROM"))
+      .map(([, p]) => p);
+    expect(patchParams.every((p) => JSON.stringify(p) === JSON.stringify([PATCH]))).toBe(true);
+    // Ahri played one game in each region: the three are summed, pick rate 3/3.
+    const ahri = insertedRows("meta_aggregate", 9).find((r) => r[0] === AHRI);
+    expect(ahri).toEqual([AHRI, "MIDDLE", 3, 2, 2 / 3, 1, 0, PATCH, NOW]);
+    expect(statementKinds().filter((k) => k === "INSERT INTO aggregation_meta")).toHaveLength(1);
+  });
+
+  it("fails without touching the DB when no region yields a match", async () => {
+    getMasterLeagueMock.mockResolvedValue({ tier: "MASTER", entries: [] });
+    await expect(aggregateMultiRegion(CFG, PATCH, () => {})).rejects.toThrow();
+    expect(executeMock).not.toHaveBeenCalled();
+  });
+
+  it("runs KR, EUW and NA in order and survives a failing region", async () => {
+    const fixtures = matchFixtures();
     getMasterLeagueMock.mockImplementation(async (cfg: RiotConfig) => {
       if (cfg.region === "euw1") throw new Error("429 rate limited");
-      return { tier: "MASTER", entries: [] };
+      return { tier: "MASTER", entries: cfg.region === "kr" ? [{ summonerId: "s1" }] : [] };
     });
+    getPuuidMock.mockResolvedValue("p1");
+    getRecentMatchIdsMock.mockResolvedValue(["M1"]);
+    getMatchFullMock.mockResolvedValue(fixtures.M1.full);
+    getMatchTimelineMock.mockResolvedValue(fixtures.M1.tl);
     const progress: AggregateProgress[] = [];
     const base = { ...CFG, region: "br1" as const };
 
@@ -372,11 +469,11 @@ describe("aggregateMultiRegion", () => {
     expect(calledCfgs.every((c) => c.apiKey === "RGAPI-test")).toBe(true);
     expect(base.region).toBe("br1");
 
-    // EUW threw before any DB work; KR and NA each cleared their own patch label.
+    // EUW threw; what KR downloaded is still written, once, under the bare patch.
     const metaDeletes = executeMock.mock.calls
       .filter(([sql]) => String(sql) === "DELETE FROM meta_aggregate WHERE patch = $1")
       .map(([, p]) => p);
-    expect(metaDeletes).toEqual([["16.1-kr"], ["16.1-na1"]]);
+    expect(metaDeletes).toEqual([[PATCH]]);
 
     const phases = progress.map((p) => p.phase);
     expect(phases[0]).toBe("Región KR (1/3)");

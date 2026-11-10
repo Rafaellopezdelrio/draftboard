@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { renderHook } from "@testing-library/react";
+import { renderHook, act } from "@testing-library/react";
 
 const saveDraft = vi.fn();
 vi.mock("../services/draftsRepo", () => ({
@@ -11,6 +11,7 @@ vi.mock("../services/draftsRepo", () => ({
 }));
 
 import { useDraftLogger } from "./useDraftLogger";
+import { useDraftStore } from "../state/draftStore";
 
 const base = {
   allyKeys: ["266"],
@@ -20,7 +21,10 @@ const base = {
 };
 
 describe("useDraftLogger", () => {
-  beforeEach(() => saveDraft.mockReset());
+  beforeEach(() => {
+    saveDraft.mockReset();
+    useDraftStore.getState().setLocalSelection(null, null, null);
+  });
 
   it("does NOT log while no champion is locked", () => {
     renderHook(() => useDraftLogger({ ...base, myChampionLocked: null }));
@@ -64,5 +68,35 @@ describe("useDraftLogger", () => {
     rerender({ ...base, myChampionLocked: null });
     rerender({ ...base, myChampionLocked: "238" });
     expect(saveDraft).toHaveBeenCalledTimes(2);
+  });
+});
+
+// The live list already ranks the player's own hover (suggest() drops the
+// local champion from the allies), so it is the list to store and compare:
+// a list remembered from before the hover is stale by lock time.
+describe("useDraftLogger — uses the suggestions live at lock time", () => {
+  beforeEach(() => {
+    saveDraft.mockReset();
+    useDraftStore.getState().setLocalSelection(null, null, null);
+  });
+
+  it("does not fall back to a pre-hover list when the pick is unranked", () => {
+    const { rerender } = renderHook((p) => useDraftLogger(p), {
+      initialProps: { ...base, myChampionLocked: null as string | null },
+    });
+    // Hover "61" while it is #1; the enemy then counters it and it drops out.
+    act(() => useDraftStore.getState().setLocalSelection(0, "61", null));
+    rerender({ ...base, myChampionLocked: null, suggestedKeys: ["238", "1"] });
+    act(() => useDraftStore.getState().setLocalSelection(0, "61", "61"));
+    rerender({ ...base, myChampionLocked: "61", suggestedKeys: ["238", "1"] });
+
+    expect(saveDraft).toHaveBeenCalledTimes(1);
+    expect(saveDraft).toHaveBeenCalledWith(
+      expect.objectContaining({
+        pickedKey: "61",
+        followedSuggestion: false,
+        suggestedKeys: ["238", "1"],
+      })
+    );
   });
 });

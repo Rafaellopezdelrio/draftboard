@@ -263,7 +263,7 @@ describe("BuildPanel — loading & fallbacks", () => {
       `https://ddragon.leagueoflegends.com/cdn/${PATCH}/img/item/3031.png`,
       `https://ddragon.leagueoflegends.com/cdn/${PATCH}/img/item/3094.png`,
     ]);
-    expect(screen.getByText(/55% WR ·/)).toHaveTextContent("55% WR · 200 games");
+    expect(screen.getByText(/55% WR ·/)).toHaveTextContent("55% WR · 200 partidas");
 
     expect(screen.getByText("Habilidades")).toBeInTheDocument();
     expect(screen.getByText("Q → W → E")).toBeInTheDocument();
@@ -329,6 +329,61 @@ describe("BuildPanel — rune import", () => {
     });
     expect(screen.getByText("Sin hueco: borra una página tuya")).toBeInTheDocument();
     expect(screen.getByRole("alert")).toHaveTextContent("Draftboard nunca borra las tuyas");
+  });
+
+  it("never sends a page the client would reject (illegal runes or missing shards)", async () => {
+    // 8112 (Electrocute) is a Domination keystone, not a Precision one.
+    vi.mocked(agg.loadAggregatedRunes).mockResolvedValue({ ...RUNES, perks: [8112, ...PERKS.slice(1)] });
+    const { rerender } = renderPanel();
+    fireEvent.click(await screen.findByRole("button", { name: "Aplicar →" }));
+    expect(lcu.applyRunesResult).not.toHaveBeenCalled();
+    expect(screen.getByText("Error — abre el cliente")).toBeInTheDocument();
+
+    vi.mocked(agg.loadAggregatedRunes).mockResolvedValue({ ...RUNES, shards: [] });
+    rerender(
+      <ToastProvider>
+        <BuildPanel db={DB} championKey="99" role="UTILITY" />
+      </ToastProvider>
+    );
+    fireEvent.click(await screen.findByRole("button", { name: "Aplicar →" }));
+    expect(lcu.applyRunesResult).not.toHaveBeenCalled();
+  });
+
+  it("drops the previous champion's import status on a champion switch", async () => {
+    vi.mocked(lcu.applyRunesResult).mockResolvedValue({ ok: true });
+    vi.mocked(agg.loadAggregatedRunes).mockResolvedValue(RUNES);
+    const { rerender } = renderPanel();
+    const btn = await screen.findByRole("button", { name: "Aplicar →" });
+    await act(async () => {
+      fireEvent.click(btn);
+    });
+    expect(screen.getByText("✓ Aplicadas")).toBeInTheDocument();
+
+    rerender(
+      <ToastProvider>
+        <BuildPanel db={DB} championKey="99" role="UTILITY" />
+      </ToastProvider>
+    );
+    expect(await screen.findByRole("button", { name: "Aplicar →" })).toBeInTheDocument();
+    expect(screen.queryByText("✓ Aplicadas")).toBeNull();
+  });
+
+  it("ignores an import that resolves after the champion changed", async () => {
+    const d = deferred<lcu.RuneApplyResult>();
+    vi.mocked(lcu.applyRunesResult).mockReturnValue(d.promise);
+    vi.mocked(agg.loadAggregatedRunes).mockResolvedValue(RUNES);
+    const { rerender } = renderPanel();
+    fireEvent.click(await screen.findByRole("button", { name: "Aplicar →" }));
+
+    rerender(
+      <ToastProvider>
+        <BuildPanel db={DB} championKey="99" role="UTILITY" />
+      </ToastProvider>
+    );
+    await screen.findByRole("button", { name: "Aplicar →" });
+    await act(async () => d.resolve({ ok: true }));
+    expect(screen.queryByText("✓ Aplicadas")).toBeNull();
+    expect(screen.queryByText("Aplicando...")).toBeNull();
   });
 
   it("hides the import button when the pref is off", async () => {
@@ -468,11 +523,11 @@ describe("BuildPanel — champion switch", () => {
         <BuildPanel db={DB} championKey="99" role="UTILITY" />
       </ToastProvider>
     );
-    expect(await screen.findByText(/60% WR ·/)).toHaveTextContent("60% WR · 100 games");
+    expect(await screen.findByText(/60% WR ·/)).toHaveTextContent("60% WR · 100 partidas");
 
     // Jinx's slower aggregate query lands after the switch.
     await act(async () => oldBuilds.resolve(BUILDS));
-    expect(screen.getByText(/WR ·/)).toHaveTextContent("60% WR · 100 games");
+    expect(screen.getByText(/WR ·/)).toHaveTextContent("60% WR · 100 partidas");
   });
 
   it("clears the previous champion's aggregates while the new ones load", async () => {

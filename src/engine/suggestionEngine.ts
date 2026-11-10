@@ -9,6 +9,7 @@ import { counterScore } from "../services/murderBridge";
 import type { ChampionPersonalStat } from "../services/matchRepo";
 import type { ChampionMasteryDto } from "../services/riotApi";
 import { CHAMPION_ROLES } from "../data/championRoles";
+import { useDraftStore } from "../state/draftStore";
 
 export interface ScoredSuggestion {
   champion: Champion;
@@ -73,6 +74,13 @@ interface SuggestParams {
    * differentiates picks instead of returning a flat neutral 0.5.
    */
   liveCounters?: CounterEntry[];
+  /**
+   * The local player's own hovered/locked champion. The LCU sync writes it
+   * into the player's ally slot, so it arrives inside `allyKeys`; it is
+   * dropped here so your own hover stays a candidate and is not scored as a
+   * teammate. Defaults to the draft store's selection; pass null to disable.
+   */
+  selfKey?: string | null;
 }
 
 // Engine weights — re-balanced so champion mastery + personal winrate
@@ -108,7 +116,7 @@ function isUnranked(rankTier?: string | null): boolean {
 export function suggest({
   db,
   role,
-  allyKeys,
+  allyKeys: allyKeysWithSelf,
   enemyKeys,
   bannedKeys,
   personalStats = [],
@@ -116,7 +124,18 @@ export function suggest({
   limit = 10,
   rankTier = null,
   liveCounters = [],
+  selfKey,
 }: SuggestParams): ScoredSuggestion[] {
+  const self =
+    selfKey !== undefined
+      ? selfKey
+      : (() => {
+          const s = useDraftStore.getState();
+          return s.myChampionLocked ?? s.myChampionIntent;
+        })();
+  const allyKeys = self
+    ? allyKeysWithSelf.filter((k) => k !== self)
+    : allyKeysWithSelf;
   const weights = isUnranked(rankTier) ? UNRANKED_WEIGHTS : RANKED_WEIGHTS;
   const taken = new Set([...allyKeys, ...enemyKeys, ...bannedKeys]);
   const missingArchetypes = detectMissingArchetypes(db, allyKeys);

@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { suggest } from "./suggestionEngine";
+import { useDraftStore } from "../state/draftStore";
 import type { Champion, ChampionDb, MetaTier, Role } from "../types/champion";
 import type { ChampionMasteryDto } from "../services/riotApi";
 import type { ChampionPersonalStat } from "../services/matchRepo";
@@ -404,5 +405,54 @@ describe("suggestionEngine", () => {
     const ori = result.find((s) => s.champion.key === ORIANNA_KEY);
     expect(ori!.breakdown.counter).toBeLessThan(0.45);
     expect(ori!.reasons).toContain("suggestions.reason.hardMatchup");
+  });
+});
+
+// Regression: the LCU sync writes the local player's own hover/lock into
+// their ally slot, so it arrived in allyKeys and the engine dropped it from
+// the candidates and scored it as a teammate.
+describe("suggestionEngine — own hovered champion", () => {
+  const params = {
+    role: "MIDDLE" as Role,
+    enemyKeys: [],
+    bannedKeys: [],
+  };
+  const db = mkDb([meta(ZED_KEY, "MIDDLE", 0.1), meta(ORIANNA_KEY, "MIDDLE", 0.1)]);
+
+  it("keeps selfKey as a candidate and does not count it as an ally", () => {
+    const out = suggest({ ...params, db, allyKeys: [ZED_KEY], selfKey: ZED_KEY });
+    const zed = out.find((s) => s.champion.key === ZED_KEY);
+    expect(zed).toBeDefined();
+    expect(zed!.breakdown.hasAllyData).toBe(false);
+    expect(out).toEqual(suggest({ ...params, db, allyKeys: [], selfKey: null }));
+  });
+
+  it("defaults selfKey to the draft store's own selection", () => {
+    useDraftStore.getState().setLocalSelection(0, ZED_KEY, null);
+    try {
+      const keys = suggest({ ...params, db, allyKeys: [ZED_KEY] }).map((s) => s.champion.key);
+      expect(keys).toContain(ZED_KEY);
+    } finally {
+      useDraftStore.getState().setLocalSelection(null, null, null);
+    }
+  });
+
+  // This is what the draft logger's followedSuggestion relies on: at lock-in
+  // the pick sits in the ally slot and must still be ranked.
+  it("still ranks the champion once it is locked", () => {
+    useDraftStore.getState().setLocalSelection(0, ZED_KEY, ZED_KEY);
+    try {
+      const keys = suggest({ ...params, db, allyKeys: [ZED_KEY] }).map((s) => s.champion.key);
+      expect(keys).toContain(ZED_KEY);
+    } finally {
+      useDraftStore.getState().setLocalSelection(null, null, null);
+    }
+  });
+
+  it("still excludes real teammates' picks", () => {
+    const keys = suggest({ ...params, db, allyKeys: [ZED_KEY], selfKey: ORIANNA_KEY }).map(
+      (s) => s.champion.key
+    );
+    expect(keys).not.toContain(ZED_KEY);
   });
 });

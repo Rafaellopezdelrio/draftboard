@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useFocusTrap } from "../hooks/useFocusTrap";
 
 const SETTINGS_TITLE_ID = "settings-view-title";
-import { getAccount, getRiotProxyUrl, type Region } from "../services/riotApi";
+import { getAccount, getRecentMatchIds, getRiotProxyUrl, type Region } from "../services/riotApi";
 import { loadSettings, saveSettings } from "../services/settingsRepo";
 import { getCurrentSummoner } from "../services/lcuService";
 import { syncPersonalData } from "../services/personalDataSync";
@@ -78,11 +78,13 @@ export function SettingsView({ onClose }: Props) {
       // If user just regenerated the key but didn't click "Guardar", resync
       // would otherwise use the stale key from DB.
       const hasRiotAccess = !!apiKey || !!getRiotProxyUrl();
+      let syncPuuid = puuid;
       if (hasRiotAccess && riotIdName && riotIdTag) {
         try {
           const cfg = { apiKey, region, riotIdName, riotIdTag };
           const account = await getAccount(cfg);
           setPuuid(account.puuid);
+          syncPuuid = account.puuid;
           await saveSettings({ ...cfg, puuid: account.puuid });
         } catch (e) {
           setStatus(t("settings.errorValidatingRiotId", { error: String(e) }));
@@ -92,12 +94,31 @@ export function SettingsView({ onClose }: Props) {
       } else if (apiKey) {
         await saveSettings({ apiKey, region, riotIdName, riotIdTag, puuid });
       }
+      // Never wipe before knowing the history can be downloaded again: Riot
+      // must hand back at least one match id, or the LoL client must answer.
+      let reachable = false;
+      if (hasRiotAccess && syncPuuid) {
+        reachable = await getRecentMatchIds({ apiKey, region, riotIdName, riotIdTag }, syncPuuid, 1)
+          .then((ids) => ids.length > 0)
+          .catch(() => false);
+      }
+      if (!reachable) reachable = (await getCurrentSummoner().catch(() => null)) !== null;
+      if (!reachable) {
+        setStatus(t("settings.resyncNoSource"));
+        return;
+      }
       setStatus(t("settings.deletingOldMatches"));
       await clearAllMatches();
       const result = await syncPersonalData((p) =>
         setStatus(`${p.source}: ${p.message ?? `${p.done}/${p.total}`}`)
       );
-      setStatus(t("settings.resyncDone", { matches: result.matches, source: result.source }));
+      if (result.source === "none") {
+        setStatus(t("settings.openClientRetry"));
+      } else if (result.matches === 0) {
+        setStatus(t("settings.resyncNothing"));
+      } else {
+        setStatus(t("settings.resyncDone", { matches: result.matches, source: result.source }));
+      }
     } catch (e) {
       setStatus(t("settings.error", { error: String(e) }));
     } finally {

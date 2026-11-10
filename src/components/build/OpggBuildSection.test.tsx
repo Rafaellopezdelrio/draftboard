@@ -19,6 +19,7 @@ import type { BuildAdaptation } from "../../engine/adaptiveBuildEngine";
 import type { InGameSuggestion } from "../../engine/inGameAdapter";
 import * as matchups from "../../services/opggMatchups";
 import * as pro from "../../services/proBuilds";
+import { i18n } from "../../i18n";
 
 vi.mock("../../services/opggMatchups", async (importActual) => {
   const actual = await importActual<typeof import("../../services/opggMatchups")>();
@@ -249,9 +250,19 @@ describe("OpggBuildSection — full payload", () => {
   it("keeps op.gg's spells when coherent and shows their pick/win rate", async () => {
     renderSection();
     expect(screen.getByText("Flash + Heal")).toBeInTheDocument();
-    expect(screen.getByText("ADC estándar → Heal")).toBeInTheDocument();
+    expect(screen.getByText(i18n.t("build.spellReason.botStandard"))).toBeInTheDocument();
     expect(screen.getByText("53% WR")).toBeInTheDocument();
     expect(screen.getByText("80% PR")).toBeInTheDocument();
+    await act(async () => {});
+  });
+
+  // op.gg's WR/PR belong to op.gg's pair (Flash+Heal); once coherence shows
+  // another pair (jungle → Flash+Smite) they must not be shown under it.
+  it("hides op.gg's pick/win rate when coherence shows a different pair", async () => {
+    renderSection({ role: "JUNGLE" });
+    expect(screen.getByText("Flash + Smite")).toBeInTheDocument();
+    expect(screen.queryByText("53% WR")).toBeNull();
+    expect(screen.queryByText("80% PR")).toBeNull();
     await act(async () => {});
   });
 
@@ -362,10 +373,12 @@ describe("OpggBuildSection — sparse payloads", () => {
 
     // Spells still render: jungle coherence forces Flash + Smite.
     expect(screen.getByText("Flash + Smite")).toBeInTheDocument();
-    expect(screen.getByText(/Jungla → Smite obligatorio/).textContent).toBe(
-      "↳ Jungla → Smite obligatorio"
-    );
-    expect(screen.getByText("0% WR")).toBeInTheDocument();
+    expect(
+      screen.getByText(`↳ ${i18n.t("build.spellReason.jungleSmite")}`)
+    ).toBeInTheDocument();
+    // No op.gg pair → no made-up "0% WR / 0% PR".
+    expect(screen.queryByText("0% WR")).toBeNull();
+    expect(screen.queryByText(/% PR/)).toBeNull();
     await act(async () => {});
   });
 

@@ -15,16 +15,22 @@ import { ProPlayersView } from "./ProPlayersView";
 import type { ChampionDb } from "../types/champion";
 import type { MatchFull } from "../services/riotApi";
 import { PRO_PLAYERS } from "../data/proPlayers";
+import i18n from "i18next";
+
+// Labels come from i18n; resolve them the same way the component does so the
+// tests don't depend on the wording.
+const L = (key: string, opts?: Record<string, unknown>) => i18n.t(key, opts) as string;
 
 vi.mock("../services/settingsRepo", () => ({ loadSettings: vi.fn() }));
 vi.mock("../services/riotApi", () => ({
   getAccountByRiotId: vi.fn(),
   getRecentMatchIds: vi.fn(),
   getMatchFull: vi.fn(),
+  getRiotProxyUrl: vi.fn(),
 }));
 
 import { loadSettings } from "../services/settingsRepo";
-import { getAccountByRiotId, getRecentMatchIds, getMatchFull } from "../services/riotApi";
+import { getAccountByRiotId, getRecentMatchIds, getMatchFull, getRiotProxyUrl } from "../services/riotApi";
 
 const db = {
   patch: "16.10.1",
@@ -67,30 +73,59 @@ beforeEach(() => {
   vi.mocked(getAccountByRiotId).mockReset();
   vi.mocked(getRecentMatchIds).mockReset();
   vi.mocked(getMatchFull).mockReset();
+  vi.mocked(getRiotProxyUrl).mockReset().mockReturnValue(null);
 });
 
 describe("ProPlayersView — no API key", () => {
   it("shows the API key notice, no players, and disables 'Cargar todos'", async () => {
     await renderView(null);
-    expect(screen.getByText(/Necesitas API key Riot configurada/)).toBeInTheDocument();
+    expect(screen.getByText(L("proPlayers.needAccess"))).toBeInTheDocument();
     expect(screen.queryByText("Faker")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Cargar todos/ })).toBeDisabled();
-    expect(screen.getByText(`${PRO_PLAYERS.length} pro players · datos públicos vía Riot API`)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: L("proPlayers.loadAll") })).toBeDisabled();
+    expect(screen.getByText(L("proPlayers.footer", { count: PRO_PLAYERS.length }))).toBeInTheDocument();
   });
 
   it("treats settings without apiKey as unconfigured", async () => {
     await renderView({ ...CFG, apiKey: "" });
-    expect(screen.getByText(/Necesitas API key Riot configurada/)).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Cargar" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Cargar todos/ })).toBeDisabled();
+    expect(screen.getByText(L("proPlayers.needAccess"))).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: L("proPlayers.load") })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: L("proPlayers.loadAll") })).toBeDisabled();
+  });
+});
+
+describe("ProPlayersView — proxy-only access", () => {
+  // The proxy injects the Riot key, so neither a local key nor saved settings
+  // are needed (regression: the view was blocked for default users).
+  it.each([
+    ["no saved settings", null],
+    ["settings without apiKey", { ...CFG, apiKey: "" }],
+  ])("lists and loads players through the proxy with %s", async (_name, cfg) => {
+    vi.mocked(getRiotProxyUrl).mockReturnValue("https://proxy.test");
+    vi.mocked(getAccountByRiotId).mockResolvedValue({ puuid: "pro-puuid", gameName: "x", tagLine: "y" });
+    vi.mocked(getRecentMatchIds).mockResolvedValue(["KR_1"]);
+    vi.mocked(getMatchFull).mockResolvedValue(
+      match("KR_1", { championId: 266, win: true, kills: 4, deaths: 1, assists: 9 })
+    );
+    await renderView(cfg);
+    expect(screen.queryByText(L("proPlayers.needAccess"))).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: L("proPlayers.loadAll") })).toBeEnabled();
+
+    const faker = panelOf("Faker");
+    await act(async () => {
+      fireEvent.click(within(faker).getByRole("button", { name: L("proPlayers.load") }));
+    });
+    expect(vi.mocked(getAccountByRiotId).mock.calls[0][0]).toEqual(
+      expect.objectContaining({ apiKey: "", region: "kr" })
+    );
+    expect(within(faker).getByText("4/1/9")).toBeInTheDocument();
   });
 });
 
 describe("ProPlayersView — list & tabs", () => {
   it("lists every pro with team, role, riot id and region; twitch link only when set", async () => {
     await renderView();
-    expect(screen.queryByText(/Necesitas API key/)).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Cargar todos/ })).toBeEnabled();
+    expect(screen.queryByText(L("proPlayers.needAccess"))).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: L("proPlayers.loadAll") })).toBeEnabled();
 
     const faker = panelOf("Faker");
     expect(within(faker).getByText("FA")).toBeInTheDocument();
@@ -101,7 +136,7 @@ describe("ProPlayersView — list & tabs", () => {
 
     const zeus = panelOf("Zeus");
     expect(within(zeus).queryByRole("link")).not.toBeInTheDocument();
-    expect(within(zeus).getByRole("button", { name: "Cargar" })).toBeInTheDocument();
+    expect(within(zeus).getByRole("button", { name: L("proPlayers.load") })).toBeInTheDocument();
   });
 
   it("filters by region tab and updates the footer count", async () => {
@@ -109,15 +144,15 @@ describe("ProPlayersView — list & tabs", () => {
     fireEvent.click(screen.getByRole("tab", { name: "LEC" }));
     expect(screen.getByText("Caps", { selector: "p" })).toBeInTheDocument();
     expect(screen.queryByText("Faker", { selector: "p" })).not.toBeInTheDocument();
-    expect(screen.getByText(`${countBy("euw1")} pro players · datos públicos vía Riot API`)).toBeInTheDocument();
+    expect(screen.getByText(L("proPlayers.footer", { count: countBy("euw1") }))).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("tab", { name: "LCS" }));
     expect(screen.getByText("Bjergsen", { selector: "p" })).toBeInTheDocument();
     expect(screen.queryByText("Caps", { selector: "p" })).not.toBeInTheDocument();
-    expect(screen.getByText(`${countBy("na1")} pro players · datos públicos vía Riot API`)).toBeInTheDocument();
+    expect(screen.getByText(L("proPlayers.footer", { count: countBy("na1") }))).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("tab", { name: "LCK" }));
-    expect(screen.getByText(`${countBy("kr")} pro players · datos públicos vía Riot API`)).toBeInTheDocument();
+    expect(screen.getByText(L("proPlayers.footer", { count: countBy("kr") }))).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "LCK" })).toHaveAttribute("aria-selected", "true");
   });
 });
@@ -135,7 +170,7 @@ describe("ProPlayersView — loading a player", () => {
     await renderView();
     const faker = panelOf("Faker");
     await act(async () => {
-      fireEvent.click(within(faker).getByRole("button", { name: "Cargar" }));
+      fireEvent.click(within(faker).getByRole("button", { name: L("proPlayers.load") }));
     });
 
     const expectedCfg = { apiKey: "RGAPI-test", region: "kr", riotIdName: "Hide on bush", riotIdTag: "KR1" };
@@ -156,7 +191,7 @@ describe("ProPlayersView — loading a player", () => {
     expect(within(loss).queryByRole("img")).not.toBeInTheDocument();
 
     // Button is gone once data exists.
-    expect(within(faker).queryByRole("button", { name: "Cargar" })).not.toBeInTheDocument();
+    expect(within(faker).queryByRole("button", { name: L("proPlayers.load") })).not.toBeInTheDocument();
   });
 
   it("shows 'cargando...' and a busy skeleton row while the request is pending", async () => {
@@ -167,15 +202,15 @@ describe("ProPlayersView — loading a player", () => {
     const { container } = await renderView();
     const zeus = panelOf("Zeus");
     await act(async () => {
-      fireEvent.click(within(zeus).getByRole("button", { name: "Cargar" }));
+      fireEvent.click(within(zeus).getByRole("button", { name: L("proPlayers.load") }));
     });
-    expect(within(zeus).getByText("cargando...")).toBeInTheDocument();
+    expect(within(zeus).getByText(L("common.loading"))).toBeInTheDocument();
     expect(zeus.querySelector('[aria-busy="true"]')!.children).toHaveLength(5);
 
     await act(async () => {
       resolveAccount({ puuid: "pro-puuid", gameName: "x", tagLine: "y" });
     });
-    expect(within(zeus).queryByText("cargando...")).not.toBeInTheDocument();
+    expect(within(zeus).queryByText(L("common.loading"))).not.toBeInTheDocument();
     expect(container.querySelector('[aria-busy="true"]')).toBeNull();
   });
 
@@ -186,7 +221,7 @@ describe("ProPlayersView — loading a player", () => {
     await renderView();
     const oner = panelOf("Oner");
     await act(async () => {
-      fireEvent.click(within(oner).getByRole("button", { name: "Cargar" }));
+      fireEvent.click(within(oner).getByRole("button", { name: L("proPlayers.load") }));
     });
     const expected = `Error: ${long}`.slice(0, 80);
     expect(within(oner).getByText(expected)).toBeInTheDocument();
@@ -212,7 +247,7 @@ describe("ProPlayersView — loading a player", () => {
     await renderView();
     fireEvent.click(screen.getByRole("tab", { name: "LCS" }));
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: /Cargar todos/ }));
+      fireEvent.click(screen.getByRole("button", { name: L("proPlayers.loadAll") }));
     });
 
     const na = PRO_PLAYERS.filter((p) => p.region === "na1").map((p) => p.riotIdName);

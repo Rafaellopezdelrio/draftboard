@@ -12,6 +12,7 @@ import {
   getRiotProxyUrl,
   type ChampionMasteryDto,
   type LeagueEntryDto,
+  type Region,
 } from "../services/riotApi";
 import { loadSettings } from "../services/settingsRepo";
 import type { ChampionDb } from "../types/champion";
@@ -46,6 +47,8 @@ interface RecentMatch {
 interface ScoutData {
   riotId: string;
   tagLine: string;
+  /** Server the profile data was read from. */
+  server: Region;
   puuid: string;
   level: number | null;
   rank: LeagueEntryDto | null;
@@ -75,25 +78,42 @@ function kdaColor(k: number, d: number, a: number): string {
   return "text-bad";
 }
 
-const REGIONS: Array<{ value: string; label: string }> = [
-  { value: "EUW", label: "EUW" },
-  { value: "EUNE", label: "EUNE" },
-  { value: "NA1", label: "NA" },
-  { value: "KR", label: "KR" },
-  { value: "BR1", label: "BR" },
-  { value: "LAN", label: "LAN" },
-  { value: "LAS", label: "LAS" },
-  { value: "OCE", label: "OCE" },
-  { value: "TR", label: "TR" },
-  { value: "RU", label: "RU" },
-  { value: "JP1", label: "JP" },
+const REGIONS: Array<{ value: string; label: string; region: Region }> = [
+  { value: "EUW", label: "EUW", region: "euw1" },
+  { value: "EUNE", label: "EUNE", region: "eun1" },
+  { value: "NA1", label: "NA", region: "na1" },
+  { value: "KR", label: "KR", region: "kr" },
+  { value: "BR1", label: "BR", region: "br1" },
+  { value: "LAN", label: "LAN", region: "la1" },
+  { value: "LAS", label: "LAS", region: "la2" },
+  { value: "OCE", label: "OCE", region: "oc1" },
+  { value: "TR", label: "TR", region: "tr1" },
+  { value: "RU", label: "RU", region: "ru" },
+  { value: "JP1", label: "JP", region: "jp1" },
 ];
+
+/**
+ * Server a Riot ID tag points at, when it is a default region tag ("KR",
+ * "KR1", "euw"...). Custom tags ("004", "Pepe") say nothing about the server
+ * → null. Riot's default tags may add a "1" (NA1, KR1, EUW1), so accept both.
+ * Exported for unit tests.
+ */
+export function serverFromTag(tag: string): Region | null {
+  const up = tag.trim().toUpperCase();
+  return REGIONS.find((r) => up === r.label || up === `${r.label}1`)?.region ?? null;
+}
+
+function serverLabel(region: Region): string {
+  return REGIONS.find((r) => r.region === region)?.label ?? region.toUpperCase();
+}
 
 export function SummonerLookupView({ db, onClose }: Props) {
   useEscape(onClose);
   const { t } = useTranslation();
   const [name, setName] = useState("");
   const [tag, setTag] = useState("EUW");
+  // "auto" = server guessed from the tag, else the user's own server.
+  const [server, setServer] = useState<Region | "auto">("auto");
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [data, setData] = useState<ScoutData | null>(null);
@@ -107,15 +127,15 @@ export function SummonerLookupView({ db, onClose }: Props) {
       // server-side, so the user doesn't need to paste one locally.
       // Direct mode: the user MUST set their own dev key in Settings.
       // We accept either path — only reject if BOTH are missing.
-      const cfg = (await loadSettings()) ?? {
-        region: "euw1",
+      const ownCfg = (await loadSettings()) ?? {
+        region: "euw1" as Region,
         apiKey: "",
         riotIdName: "",
         riotIdTag: "",
         puuid: "",
       };
       const usingProxy = !!getRiotProxyUrl();
-      if (!usingProxy && !cfg.apiKey) {
+      if (!usingProxy && !ownCfg.apiKey) {
         throw new Error(t("summonerLookup.needApiKey"));
       }
       // A full Riot ID typed into the name box ("Name#TAG") wins over the tag
@@ -127,18 +147,63 @@ export function SummonerLookupView({ db, onClose }: Props) {
         setName(gameName);
         setTag(tagLine);
       }
-      const account = await getAccountByRiotId(cfg, gameName, tagLine);
-      const [summoner, masteries, matchIds] = await Promise.all([
-        getSummonerByPuuid(cfg, account.puuid).catch(() => null),
-        getTopMasteries(cfg, account.puuid, 7).catch(() => []),
-        getRecentMatchIds(cfg, account.puuid, 5).catch(() => []),
-      ]);
-      // Use puuid-based endpoint — Riot is phasing out the by-summoner one
-      // and it returns empty for many regions/accounts now.
-      const leagueEntries = await getLeagueEntriesByPuuid(
-        cfg,
-        account.puuid
-      ).catch(() => []);
+      const account = await getAccountByRiotId(ownCfg, gameName, tagLine);
+      // Accounts resolve globally, but level / rank / masteries / matches live
+      // on ONE server. Query the player's server, not the user's own: asking
+      // the wrong one answers "nothing", which looked like an Unranked profile.
+      const readServer = async (region: Region) => {
+        const cfg = { ...ownCfg, region };
+        const [summoner, masteries, matchIds] = await Promise.all([
+          getSummonerByPuuid(cfg, account.puuid).catch(() => null),
+          getTopMasteries(cfg, account.puuid, 7).catch(() => []),
+          getRecentMatchIds(cfg, account.puuid, 5).catch(() => []),
+        ]);
+        // Use puuid-based endpoint — Riot is phasing out the by-summoner one
+        // and it returns empty for many regions/accounts now.
+        const leagueEntries = await getLeagueEntriesByPuuid(
+          cfg,
+          account.puuid
+        ).catch(() => []);
+        return { region, cfg, summoner, masteries, matchIds, leagueEntries };
+      };
+      // Auto mode tries the server the tag names, then the user's own: region
+      // tags are often vanity ("#KR1" on an EUW account).
+      const tagServer = serverFromTag(tagLine);
+      const candidates: Region[] =
+        server !== "auto"
+          ? [server]
+          : tagServer && tagServer !== ownCfg.region
+            ? [tagServer, ownCfg.region]
+            : [ownCfg.region];
+      let found: Awaited<ReturnType<typeof readServer>> | null = null;
+      for (let i = 0; i < candidates.length && !found; i++) {
+        const r = await readServer(candidates[i]);
+        // Match ids are shared by a whole cluster (europe = EUW + EUNE + ...)
+        // and start with the real server ("EUN1_123"). No summoner here but
+        // games in the cluster → read that server next instead.
+        const platform = r.matchIds[0]?.split("_")[0].toLowerCase();
+        const matchServer = REGIONS.find((x) => x.region === platform)?.region;
+        if (server === "auto" && !r.summoner && matchServer && !candidates.includes(matchServer)) {
+          candidates.splice(i + 1, 0, matchServer);
+          continue;
+        }
+        if (
+          r.summoner ||
+          r.masteries.length > 0 ||
+          r.matchIds.length > 0 ||
+          r.leagueEntries.length > 0
+        ) {
+          found = r;
+        }
+      }
+      // Nothing at all came back: the player is not on that server. Say so
+      // instead of painting an empty "Unranked" profile.
+      if (!found) {
+        throw new Error(
+          t("summonerLookup.notOnServer", { server: serverLabel(candidates[0]) })
+        );
+      }
+      const { region, cfg, summoner, masteries, matchIds, leagueEntries } = found;
       const soloq =
         leagueEntries.find((e) => e.queueType === "RANKED_SOLO_5x5") ?? null;
 
@@ -170,6 +235,7 @@ export function SummonerLookupView({ db, onClose }: Props) {
       setData({
         riotId: account.gameName,
         tagLine: account.tagLine,
+        server: region,
         puuid: account.puuid,
         level: summoner?.summonerLevel ?? null,
         rank: soloq,
@@ -287,6 +353,22 @@ export function SummonerLookupView({ db, onClose }: Props) {
                 ))}
               </datalist>
             </div>
+            {/* Server picker: a custom tag does not reveal the player's
+              * server, so let the user name it. */}
+            <select
+              value={server}
+              onChange={(e) => setServer(e.target.value as Region | "auto")}
+              aria-label={t("summonerLookup.serverTitle")}
+              title={t("summonerLookup.serverTitle")}
+              className="bg-bg-elev/60 px-2 py-2 text-sm rounded-md ring-1 ring-border-subtle focus:ring-accent text-white outline-none transition"
+            >
+              <option value="auto">{t("summonerLookup.serverAuto")}</option>
+              {REGIONS.map((r) => (
+                <option key={r.region} value={r.region}>
+                  {r.label}
+                </option>
+              ))}
+            </select>
             <button
               type="submit"
               disabled={loading || !name || !tag}
@@ -430,20 +512,11 @@ export function SummonerLookupView({ db, onClose }: Props) {
                         <a
                           href={(() => {
                             // op.gg URL needs the SERVER region (euw, na,
-                            // kr...), not the Riot tag — they're often
-                            // different for personalised tags like "004"
-                            // or "Pepe". If the user's tag matches a known
-                            // region, use it; otherwise fall back to EUW
-                            // (most common in our user base). User can
-                            // navigate to op.gg manually if the guess
-                            // misses.
-                            // Labels are op.gg's slugs; Riot default tags may
-                            // add a "1" (NA1, KR1, EUW1), so accept both.
-                            const tagUpper = (tag || "EUW").toUpperCase();
-                            const match = REGIONS.find(
-                              (r) => tagUpper === r.label || tagUpper === `${r.label}1`,
-                            );
-                            const region = match ? match.label.toLowerCase() : "euw";
+                            // kr...), not the Riot tag. Use the server the
+                            // profile was actually read from, so the link
+                            // and the data never disagree. Labels are
+                            // op.gg's slugs.
+                            const region = serverLabel(data.server).toLowerCase();
                             return `https://www.op.gg/summoners/${region}/${encodeURIComponent(data.riotId)}-${data.tagLine}`;
                           })()}
                           target="_blank"

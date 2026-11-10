@@ -325,16 +325,18 @@ export function OpggBuildSection({
       {(() => {
         const opggPair = build.summonerSpells?.[0];
         const coherent = pickCoherentSpells(champion, role, opggPair?.ids);
-        const pickRate = opggPair?.pickRate ?? 0;
-        const winRate = opggPair?.winRate ?? 0;
+        // op.gg's rates only describe op.gg's own pair: hide them when the
+        // coherence layer shows a different one, or op.gg has no pair.
+        const sameSet =
+          !!opggPair && opggPair.ids.every((id) => coherent.ids.includes(id));
         return (
           <SpellsRow
             spell1Id={coherent.ids[0]}
             spell2Id={coherent.ids[1]}
             patch={patch}
-            pickRate={pickRate}
-            winRate={winRate}
-            reason={coherent.reason}
+            pickRate={sameSet ? opggPair?.pickRate : null}
+            winRate={sameSet ? opggPair?.winRate : null}
+            reasonKey={coherent.reasonKey}
             overrode={coherent.overrode}
           />
         );

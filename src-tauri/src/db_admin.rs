@@ -219,6 +219,13 @@ pub fn preboot_db_integrity_check_and_quarantine(
         .app_data_dir()
         .map_err(|e| format!("resolve app data dir: {e}"))?;
     let db_path = app_data.join("lol-draft-advisor.db");
+    // A restore requested in the previous session is swapped in here, while
+    // no connection is open. The integrity check below then covers it too.
+    match apply_pending_restore(&app_data) {
+        Ok(true) => eprintln!("[db-restore] pending restore applied"),
+        Ok(false) => {}
+        Err(e) => eprintln!("[db-restore] pending restore failed: {e}"),
+    }
     if !db_path.exists() {
         // First launch — nothing to check.
         return Ok(());
@@ -388,7 +395,6 @@ fn validate_db_path(path: &str) -> Result<(), String> {
 
 #[tauri::command]
 pub async fn db_backup_to(app: tauri::AppHandle, target_path: String) -> Result<u64, String> {
-    use std::fs;
     validate_db_path(&target_path)?;
     let app_data = app
         .path()
@@ -398,14 +404,133 @@ pub async fn db_backup_to(app: tauri::AppHandle, target_path: String) -> Result<
     if !source.exists() {
         return Err(format!("DB file not found at {}", source.display()));
     }
-    let bytes = fs::copy(&source, &target_path).map_err(|e| format!("copy failed: {e}"))?;
+    snapshot_db(&source, std::path::Path::new(&target_path))
+}
+
+const DB_FILE: &str = "lol-draft-advisor.db";
+const PENDING_RESTORE_FILE: &str = "lol-draft-advisor.db.pending-restore";
+const PRE_RESTORE_FILE: &str = "lol-draft-advisor.db.pre-restore";
+
+/// Consistent snapshot of a live (WAL-mode) DB. A plain file copy misses every
+/// row still sitting in the `-wal` file; `VACUUM INTO` reads through the WAL.
+/// Returns the size of the written file.
+fn snapshot_db(source: &std::path::Path, target: &std::path::Path) -> Result<u64, String> {
+    use std::fs;
+    let target_str = target
+        .to_str()
+        .ok_or_else(|| "target path is not valid UTF-8".to_string())?;
+    // VACUUM INTO refuses an existing file, so write next to the target and
+    // rename over it: a failed snapshot must not destroy the backup the user
+    // already had there (the save dialog asked about overwriting).
+    let tmp_str = format!("{target_str}.tmp");
+    let tmp = std::path::Path::new(&tmp_str);
+    if tmp.exists() {
+        fs::remove_file(tmp).map_err(|e| format!("can't replace target: {e}"))?;
+    }
+    let conn = rusqlite::Connection::open(source).map_err(|e| format!("open: {e}"))?;
+    if let Err(e) = conn.execute("VACUUM INTO ?1", [tmp_str.as_str()]) {
+        let _ = fs::remove_file(tmp);
+        return Err(format!("backup failed: {e}"));
+    }
+    drop(conn);
+    if let Err(e) = fs::rename(tmp, target) {
+        let _ = fs::remove_file(tmp);
+        return Err(format!("can't replace target: {e}"));
+    }
+    fs::metadata(target)
+        .map(|m| m.len())
+        .map_err(|e| format!("can't stat backup: {e}"))
+}
+
+/// Stage a restore: copy `source` next to the live DB as the pending file.
+/// The live DB is NOT touched — the SQL plugin keeps it open for the whole
+/// session, and overwriting it under those connections (with their `-wal`
+/// still around) mixes old and restored pages.
+fn stage_restore(app_data: &std::path::Path, source: &std::path::Path) -> Result<u64, String> {
+    use std::fs;
+    // Copy under a temp name first: a copy cut short (crash, disk full) must
+    // never be picked up as a pending restore on the next boot.
+    let tmp = app_data.join(format!("{PENDING_RESTORE_FILE}.tmp"));
+    let bytes = match fs::copy(source, &tmp) {
+        Ok(b) => b,
+        Err(e) => {
+            let _ = fs::remove_file(&tmp);
+            return Err(format!("copy failed: {e}"));
+        }
+    };
+    if !db_file_is_sound(&tmp) {
+        let _ = fs::remove_file(&tmp);
+        return Err("the selected file is not a healthy SQLite database".to_string());
+    }
+    fs::rename(&tmp, app_data.join(PENDING_RESTORE_FILE))
+        .map_err(|e| format!("copy failed: {e}"))?;
     Ok(bytes)
+}
+
+/// True when the file opens as SQLite and passes `PRAGMA quick_check`.
+fn db_file_is_sound(path: &std::path::Path) -> bool {
+    let ok = rusqlite::Connection::open(path)
+        .and_then(|conn| conn.query_row("PRAGMA quick_check", [], |row| row.get::<_, String>(0)))
+        .map(|s| s == "ok")
+        .unwrap_or(false);
+    // Opening a WAL-mode file can leave sidecars behind under its name.
+    for ext in &["-shm", "-wal"] {
+        let mut name = path.as_os_str().to_owned();
+        name.push(ext);
+        let _ = std::fs::remove_file(std::path::Path::new(&name));
+    }
+    ok
+}
+
+/// Swap a staged restore into place. Must run before anything opens the DB.
+/// The current DB is kept as `.pre-restore` (one undo hop) and its `-wal` /
+/// `-shm` files are removed so they can't be replayed into the restored file.
+/// Returns true when a restore was applied.
+fn apply_pending_restore(app_data: &std::path::Path) -> Result<bool, String> {
+    use std::fs;
+    let pending = app_data.join(PENDING_RESTORE_FILE);
+    if !pending.exists() {
+        return Ok(false);
+    }
+    // Never trade the working DB for a broken file: the integrity check
+    // that follows would quarantine it and the user would boot empty.
+    if !db_file_is_sound(&pending) {
+        let _ = fs::remove_file(&pending);
+        return Err("staged file is not a healthy SQLite database; restore dropped".to_string());
+    }
+    let live = app_data.join(DB_FILE);
+    let pre_restore = app_data.join(PRE_RESTORE_FILE);
+    let had_live = live.exists();
+    if had_live {
+        // Fold any leftover WAL into the main file so the safety copy is
+        // complete. Best-effort: a DB too broken to open is moved as-is.
+        if let Ok(conn) = rusqlite::Connection::open(&live) {
+            let _ = conn.query_row("PRAGMA wal_checkpoint(TRUNCATE)", [], |_| Ok(()));
+        }
+        fs::rename(&live, &pre_restore)
+            .map_err(|e| format!("can't move current DB aside: {e}"))?;
+    }
+    for ext in &["-shm", "-wal"] {
+        let sidecar = app_data.join(format!("{DB_FILE}{ext}"));
+        if sidecar.exists() {
+            let _ = fs::remove_file(&sidecar);
+        }
+    }
+    if let Err(e) = fs::rename(&pending, &live) {
+        // Put the previous DB back so the app doesn't boot on an empty one.
+        if had_live {
+            let _ = fs::rename(&pre_restore, &live);
+        }
+        return Err(format!("can't move restored DB into place: {e}"));
+    }
+    Ok(true)
 }
 
 /// Replace the app's SQLite DB with a user-chosen file. The new file is
 /// validated as a SQLite database (first 16 bytes match the magic header)
-/// before we overwrite. After restore the user MUST restart the app to
-/// reopen the DB connection — we surface that in the UI.
+/// and staged; the swap happens on the next launch (see
+/// `apply_pending_restore`), so the user MUST restart the app — we surface
+/// that in the UI.
 #[tauri::command]
 pub async fn db_restore_from(app: tauri::AppHandle, source_path: String) -> Result<u64, String> {
     use std::fs;
@@ -427,17 +552,7 @@ pub async fn db_restore_from(app: tauri::AppHandle, source_path: String) -> Resu
         .app_data_dir()
         .map_err(|e| format!("can't resolve app data dir: {e}"))?;
     fs::create_dir_all(&app_data).map_err(|e| format!("can't create app data dir: {e}"))?;
-    let target = app_data.join("lol-draft-advisor.db");
-
-    // Keep a safety copy of the CURRENT DB before overwriting — gives
-    // the user one undo hop if the imported file turns out to be wrong.
-    if target.exists() {
-        let safety = app_data.join("lol-draft-advisor.db.pre-restore");
-        let _ = fs::copy(&target, &safety);
-    }
-
-    let bytes = fs::copy(&source_path, &target).map_err(|e| format!("copy failed: {e}"))?;
-    Ok(bytes)
+    stage_restore(&app_data, std::path::Path::new(&source_path))
 }
 
 #[cfg(test)]
@@ -523,6 +638,135 @@ mod tests {
             repair_migration_line_endings(&conn, [(1, "SELECT 1;\n")]).expect("repair"),
             0
         );
+    }
+
+    fn temp_dir(tag: &str) -> std::path::PathBuf {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos();
+        let dir = std::env::temp_dir().join(format!("draftboard-{tag}-{nanos}"));
+        std::fs::create_dir_all(&dir).expect("mkdir");
+        dir
+    }
+
+    fn db_with_row(path: &std::path::Path, value: &str) {
+        let conn = rusqlite::Connection::open(path).expect("open");
+        conn.execute_batch("CREATE TABLE t (v TEXT);")
+            .expect("create");
+        conn.execute("INSERT INTO t (v) VALUES (?1)", [value])
+            .expect("insert");
+    }
+
+    fn rows_of(path: &std::path::Path) -> Vec<String> {
+        let conn = rusqlite::Connection::open(path).expect("open");
+        let mut stmt = conn
+            .prepare("SELECT v FROM t ORDER BY rowid")
+            .expect("prepare");
+        let rows = stmt
+            .query_map([], |r| r.get::<_, String>(0))
+            .expect("query")
+            .collect::<Result<Vec<_>, _>>()
+            .expect("rows");
+        rows
+    }
+
+    #[test]
+    fn snapshot_includes_rows_still_in_the_wal() {
+        let dir = temp_dir("snapshot");
+        let live = dir.join(DB_FILE);
+        // Same state as the running app: WAL mode, connection still open,
+        // the newest row not checkpointed into the main file yet.
+        let conn = rusqlite::Connection::open(&live).expect("open");
+        let _ = conn.pragma_update(None, "journal_mode", "WAL");
+        let _ = conn.pragma_update(None, "wal_autocheckpoint", 0);
+        conn.execute_batch("CREATE TABLE t (v TEXT);")
+            .expect("create");
+        conn.execute("INSERT INTO t (v) VALUES ('only-in-wal')", [])
+            .expect("insert");
+
+        // A plain copy of the main file (the old backup) misses the row.
+        let plain = dir.join("plain-copy.db");
+        std::fs::copy(&live, &plain).expect("copy");
+        assert!(rusqlite::Connection::open(&plain)
+            .and_then(|c| c.query_row("SELECT count(*) FROM t", [], |r| r.get::<_, i64>(0)))
+            .map(|n| n == 0)
+            .unwrap_or(true));
+
+        let target = dir.join("backup.db");
+        std::fs::write(&target, b"old backup").expect("seed target");
+        let bytes = snapshot_db(&live, &target).expect("snapshot");
+        assert!(bytes > 0);
+        assert_eq!(rows_of(&target), vec!["only-in-wal".to_string()]);
+        drop(conn);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn restore_is_staged_then_swapped_in_without_the_old_wal() {
+        let dir = temp_dir("restore");
+        let live = dir.join(DB_FILE);
+        db_with_row(&live, "old");
+        let wal = dir.join(format!("{DB_FILE}-wal"));
+        let shm = dir.join(format!("{DB_FILE}-shm"));
+        let backup = dir.join("picked-backup.db");
+        db_with_row(&backup, "restored");
+
+        // Staging must leave the live DB alone (connections are still open).
+        stage_restore(&dir, &backup).expect("stage");
+        assert_eq!(rows_of(&live), vec!["old".to_string()]);
+        assert!(dir.join(PENDING_RESTORE_FILE).exists());
+
+        // Leftover sidecars of the old DB at the next boot.
+        std::fs::write(&wal, b"stale").expect("wal");
+        std::fs::write(&shm, b"stale").expect("shm");
+        assert!(apply_pending_restore(&dir).expect("apply"));
+        assert!(!wal.exists());
+        assert!(!shm.exists());
+        assert!(!dir.join(PENDING_RESTORE_FILE).exists());
+        assert_eq!(rows_of(&live), vec!["restored".to_string()]);
+        assert_eq!(
+            rows_of(&dir.join(PRE_RESTORE_FILE)),
+            vec!["old".to_string()]
+        );
+        // Nothing staged: no-op.
+        assert!(!apply_pending_restore(&dir).expect("apply again"));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn broken_restore_file_never_replaces_the_live_db() {
+        let dir = temp_dir("restore-bad");
+        let live = dir.join(DB_FILE);
+        db_with_row(&live, "old");
+        // Valid magic header, garbage after it (e.g. a truncated copy).
+        let mut bad = b"SQLite format 3 ".to_vec();
+        bad.extend_from_slice(&[0xAB; 4096]);
+        let picked = dir.join("picked-bad.db");
+        std::fs::write(&picked, &bad).expect("write bad");
+
+        // Rejected at staging time: nothing is left pending.
+        assert!(stage_restore(&dir, &picked).is_err());
+        assert!(!dir.join(PENDING_RESTORE_FILE).exists());
+
+        // Even if a broken file ends up staged, boot keeps the live DB.
+        std::fs::write(dir.join(PENDING_RESTORE_FILE), &bad).expect("write pending");
+        assert!(apply_pending_restore(&dir).is_err());
+        assert!(!dir.join(PENDING_RESTORE_FILE).exists());
+        assert_eq!(rows_of(&live), vec!["old".to_string()]);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn failed_snapshot_keeps_the_previous_backup_file() {
+        let dir = temp_dir("snapshot-fail");
+        let source = dir.join("not-a-db.db");
+        std::fs::write(&source, vec![0xABu8; 4096]).expect("write source");
+        let target = dir.join("backup.db");
+        std::fs::write(&target, b"old backup").expect("seed target");
+        assert!(snapshot_db(&source, &target).is_err());
+        assert_eq!(std::fs::read(&target).expect("read"), b"old backup");
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]

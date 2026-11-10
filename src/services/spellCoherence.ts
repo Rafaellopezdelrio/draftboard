@@ -36,8 +36,8 @@ const GHOST = 6;
 
 export interface CoherenceResult {
   ids: [number, number];
-  /** Human-readable note about why these spells were chosen. */
-  reason: string;
+  /** i18n key (build.spellReason.*) for why these spells were chosen. */
+  reasonKey: string;
   /** Whether the result differs from what op.gg recommended. */
   overrode: boolean;
 }
@@ -53,22 +53,20 @@ export function pickCoherentSpells(
   role: Role,
   opggSpells: [number, number] | undefined
 ): CoherenceResult {
-  const opgg = opggSpells ?? null;
+  const raw = opggSpells ?? null;
 
   // --- Layer 1: role sanity ---
   // Jungle: must have Smite. If op.gg has it, keep it. Otherwise force.
   if (role === "JUNGLE") {
     return {
       ids: [FLASH, SMITE],
-      reason: "Jungla → Smite obligatorio",
-      overrode: !opgg || !opgg.includes(SMITE),
+      reasonKey: "build.spellReason.jungleSmite",
+      overrode: !raw || !raw.includes(SMITE),
     };
   }
-  // Non-jungle: never Smite, even if op.gg suggests it (rare bug case).
-  if (opgg && opgg.includes(SMITE)) {
-    // Strip smite and fall through to archetype layer.
-    // (We'll override the smite slot with the archetype default below.)
-  }
+  // Non-jungle: never Smite, even if op.gg suggests it (rare bug case). A
+  // Smite pair is ignored so the archetype or role default applies instead.
+  const opgg = raw && !raw.includes(SMITE) ? raw : null;
 
   // --- Layer 2: archetype heuristic ---
   // We compute a "preferred 2nd spell" based on tags + archetypes. If it
@@ -83,63 +81,63 @@ export function pickCoherentSpells(
   const isSupport = tags.includes("Support");
 
   let preferred: number | null = null;
-  let reason = "";
+  let reasonKey = "";
 
   if (role === "TOP") {
     // Splitpush (Trynda, Fiora, Camille, Jax) → TP is non-negotiable
     if (archs.includes("splitpush")) {
       preferred = TELEPORT;
-      reason = "Splitpush en top → TP";
+      reasonKey = "build.spellReason.topSplitpush";
     } else if (isTank || archs.includes("frontline")) {
       preferred = TELEPORT;
-      reason = "Tank/frontline en top → TP para roams + map presence";
+      reasonKey = "build.spellReason.topTank";
     } else if (isAssassin || archs.includes("burst")) {
       preferred = IGNITE;
-      reason = "Assassin/burst → Ignite para snowball";
+      reasonKey = "build.spellReason.topAssassin";
     }
     // else: fighter or sustain-dps → let op.gg decide (Renekton/Aatrox style)
   } else if (role === "MIDDLE") {
     if (isAssassin || archs.includes("burst") || archs.includes("pick")) {
       preferred = IGNITE;
-      reason = "Mid asesino/burst → Ignite";
+      reasonKey = "build.spellReason.midAssassin";
     } else if (isTank || archs.includes("frontline") || archs.includes("engage")) {
       preferred = TELEPORT;
-      reason = "Mid tanque/engage (Galio, Lissandra...) → TP";
+      reasonKey = "build.spellReason.midTank";
     } else if (isMage && (archs.includes("poke") || archs.includes("wave-clear"))) {
       preferred = TELEPORT;
-      reason = "Mage de poke/waveclear → TP";
+      reasonKey = "build.spellReason.midPokeMage";
     } else if (isMarksman) {
       preferred = TELEPORT;
-      reason = "Marksman mid (Corki, Tristana...) → TP";
+      reasonKey = "build.spellReason.midMarksman";
     }
   } else if (role === "BOTTOM") {
     if (isAssassin || archs.includes("burst")) {
       preferred = IGNITE;
-      reason = "ADC asesino/burst (Lucian, Samira...) → Ignite";
+      reasonKey = "build.spellReason.botAssassin";
     } else if (isMarksman || isMage) {
       preferred = HEAL;
-      reason = "ADC estándar → Heal";
+      reasonKey = "build.spellReason.botStandard";
     }
   } else if (role === "UTILITY") {
     if (archs.includes("engage")) {
       preferred = IGNITE;
-      reason = "Soporte engage (Leona, Naut, Rakan...) → Ignite";
+      reasonKey = "build.spellReason.supEngage";
     } else if (archs.includes("peel")) {
       preferred = EXHAUST;
-      reason = "Soporte peel (Janna, Lulu...) → Exhaust";
+      reasonKey = "build.spellReason.supPeel";
     } else if (archs.includes("pick")) {
       preferred = IGNITE;
-      reason = "Soporte pick (Thresh, Bard, Blitz...) → Ignite";
+      reasonKey = "build.spellReason.supPick";
     } else if (isMage || isSupport) {
       preferred = IGNITE;
-      reason = "Soporte mago → Ignite";
+      reasonKey = "build.spellReason.supMage";
     }
   }
 
   // --- Decide final pair ---
   if (preferred === null && opgg) {
     // No strong override; trust op.gg.
-    return { ids: opgg, reason: "Recomendación dominante de op.gg", overrode: false };
+    return { ids: opgg, reasonKey: "build.spellReason.opgg", overrode: false };
   }
 
   if (preferred !== null) {
@@ -147,7 +145,7 @@ export function pickCoherentSpells(
     const overrode =
       !opgg ||
       !(opgg.includes(FLASH) && opgg.includes(preferred));
-    return { ids: final, reason, overrode };
+    return { ids: final, reasonKey, overrode };
   }
 
   // No opgg data AND no preferred. Last-resort defaults per role.
@@ -160,7 +158,7 @@ export function pickCoherentSpells(
   };
   return {
     ids: fallback[role],
-    reason: "Fallback por rol (sin datos)",
+    reasonKey: "build.spellReason.fallback",
     overrode: true,
   };
 }

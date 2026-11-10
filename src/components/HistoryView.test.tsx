@@ -11,6 +11,7 @@ import { render, screen, fireEvent, act, within } from "@testing-library/react";
 import { HistoryView } from "./HistoryView";
 import type { MatchRow } from "../services/matchRepo";
 import type { ChampionDb } from "../types/champion";
+import i18n from "i18next";
 
 vi.mock("../services/matchRepo", () => ({
   recentMatches: vi.fn(),
@@ -232,14 +233,14 @@ describe("HistoryView — filters", () => {
     fireEvent.click(jungle);
     expect(jungle).toHaveAttribute("aria-selected", "true");
     expect(within(matchList(1)).getByText("Lee Sin")).toBeInTheDocument();
-    expect(screen.getByText(/1 partidas con los filtros actuales/)).toBeInTheDocument();
+    expect(screen.getByText(i18n.t("history.champFiltered", { count: 1 }) as string)).toBeInTheDocument();
     // One game -> no streak banner.
     expect(screen.queryByText(/Racha/)).toBeNull();
   });
 
   it("no single-champion panel when results mix champions", async () => {
     await renderWith(fixture());
-    expect(screen.queryByText(/partidas con los filtros actuales/)).toBeNull();
+    expect(screen.queryByText(/partidas con los filtros actuales|history.champFiltered/)).toBeNull();
   });
 
   it("champion search is debounced 120ms, case-insensitive, and drops unknown champions", async () => {

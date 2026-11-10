@@ -66,7 +66,7 @@ export function ChampionPoolPanel({ db, masteries }: Props) {
               <img src={c.iconUrl} alt={c.name} className="w-7 h-7 rounded" />
               <div className="flex-1 min-w-0">
                 <p className="text-white font-medium truncate">{c.name}</p>
-                <p className="text-white/65 text-[11px] truncate">{ins.message}</p>
+                <p className="text-white/65 text-[11px] truncate">{t(ins.key, ins.params)}</p>
               </div>
             </div>
           );

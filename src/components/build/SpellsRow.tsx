@@ -21,12 +21,12 @@ interface Props {
   spell1Id: number;
   spell2Id: number;
   patch: string;
-  /** op.gg pick rate of this combo (0-1). */
-  pickRate: number;
-  /** op.gg win rate of this combo (0-1). */
-  winRate: number;
-  /** Human-readable reason from the coherence layer. */
-  reason: string;
+  /** op.gg pick rate of this combo (0-1). Omit when op.gg has no stats for it. */
+  pickRate?: number | null;
+  /** op.gg win rate of this combo (0-1). Omit when op.gg has no stats for it. */
+  winRate?: number | null;
+  /** i18n key of the reason from the coherence layer. */
+  reasonKey: string;
   /** True when our coherence layer overrode op.gg's dominant pick. */
   overrode: boolean;
 }
@@ -37,7 +37,7 @@ export function SpellsRow({
   patch,
   pickRate,
   winRate,
-  reason,
+  reasonKey,
   overrode,
 }: Props) {
   const showButton = usePrefsStore((s) => s.prefs.showSpellImportButton);
@@ -47,8 +47,9 @@ export function SpellsRow({
   const [applied, setApplied] = useState(false);
   const meta1 = SUMMONER_SPELL_META[spell1Id];
   const meta2 = SUMMONER_SPELL_META[spell2Id];
+  const wr = winRate ?? null;
   const wrColor =
-    winRate >= 0.52 ? "text-good" : winRate >= 0.49 ? "text-white/65" : "text-bad/80";
+    wr === null ? "" : wr >= 0.52 ? "text-good" : wr >= 0.49 ? "text-white/65" : "text-bad/80";
 
   const handleApply = async () => {
     setApplying(true);
@@ -74,14 +75,18 @@ export function SpellsRow({
         <p className="text-[10px] uppercase tracking-widest text-white/45">
           {t("build.summonerSpells")}
         </p>
-        <div className="flex flex-col items-end shrink-0 leading-tight">
-          <span className={`text-[11px] tabular-nums font-semibold ${wrColor}`}>
-            {(winRate * 100).toFixed(0)}% WR
-          </span>
-          <span className="text-[9px] tabular-nums text-white/30">
-            {(pickRate * 100).toFixed(0)}% PR
-          </span>
-        </div>
+        {wr !== null && (
+          <div className="flex flex-col items-end shrink-0 leading-tight">
+            <span className={`text-[11px] tabular-nums font-semibold ${wrColor}`}>
+              {(wr * 100).toFixed(0)}% WR
+            </span>
+            {pickRate != null && (
+              <span className="text-[9px] tabular-nums text-white/30">
+                {(pickRate * 100).toFixed(0)}% PR
+              </span>
+            )}
+          </div>
+        )}
       </div>
       <div className="flex items-center gap-2">
         <SpellIcon id={spell1Id} meta={meta1} patch={patch} />
@@ -110,7 +115,7 @@ export function SpellsRow({
         className={`text-[9px] mt-1 ${overrode ? "text-accent/70" : "text-white/30"}`}
       >
         {overrode ? "↳ " : ""}
-        {reason}
+        {t(reasonKey)}
       </p>
     </div>
   );

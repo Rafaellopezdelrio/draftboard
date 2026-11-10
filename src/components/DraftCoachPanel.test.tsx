@@ -15,7 +15,10 @@ import type { ScoredSuggestion } from "../engine/suggestionEngine";
 import type { EnemyMain } from "../engine/banEngine";
 import type { ChampionMasteryDto } from "../services/riotApi";
 
-vi.mock("../services/draftCoach", () => ({ explainDraft: vi.fn() }));
+vi.mock("../services/draftCoach", async (orig) => ({
+  ...(await orig<typeof import("../services/draftCoach")>()),
+  explainDraft: vi.fn(),
+}));
 
 let enemyMains: EnemyMain[] = [];
 const useEnemyMainsSpy = vi.fn();
@@ -99,7 +102,6 @@ describe("DraftCoachPanel — visibility", () => {
 
   it("shows the explain button with its tooltip", () => {
     renderPanel();
-    expect(button()).toHaveTextContent("Explica el draft (IA)");
     expect(button()).toHaveAttribute("title", "La IA explica tu pick + el matchup + cómo jugarlo");
     expect(button()).toBeEnabled();
   });
@@ -118,7 +120,7 @@ describe("DraftCoachPanel — API key gate", () => {
     setPrefs({ aiProvider: provider, ...keys });
     renderPanel();
     fireEvent.click(button());
-    expect(screen.getByText(`⚠ Configura tu API key (${provider}) en Prefs.`)).toBeInTheDocument();
+    expect(screen.getByText(/⚠/)).toBeInTheDocument();
     expect(explainDraft).not.toHaveBeenCalled();
   });
 
@@ -251,14 +253,15 @@ describe("DraftCoachPanel — request lifecycle", () => {
     vi.mocked(explainDraft).mockReturnValue(new Promise<string>((r) => (resolve = r)));
     renderPanel();
 
+    const idle = button().textContent;
     fireEvent.click(button());
-    expect(button()).toHaveTextContent("Pensando…");
+    expect(button().textContent).not.toBe(idle);
     expect(button()).toBeDisabled();
 
     await act(async () => {
       resolve("Consejo listo");
     });
-    expect(button()).toHaveTextContent("Explica el draft (IA)");
+    expect(button().textContent).toBe(idle);
     expect(button()).toBeEnabled();
     expect(screen.getByText("Consejo listo")).toBeInTheDocument();
   });
@@ -285,13 +288,149 @@ describe("DraftCoachPanel — request lifecycle", () => {
     vi.mocked(explainDraft).mockResolvedValue("ok ahora");
     renderPanel();
     fireEvent.click(button());
-    expect(screen.getByText(/Configura tu API key/)).toBeInTheDocument();
+    expect(screen.getByText(/⚠/)).toBeInTheDocument();
 
     act(() => setPrefs({ aiProvider: "anthropic", anthropicApiKey: "sk-ant" }));
     await act(async () => {
       fireEvent.click(button());
     });
-    expect(screen.queryByText(/Configura tu API key/)).toBeNull();
+    expect(screen.queryByText(/⚠/)).toBeNull();
     expect(screen.getByText("ok ahora")).toBeInTheDocument();
+  });
+});
+
+describe("DraftCoachPanel — i18n", () => {
+  // Regression: the button and the key error were hardcoded Spanish.
+  it("takes the button label and the key error from the UI locale", async () => {
+    const { i18n } = await import("../i18n");
+    i18n.addResourceBundle(
+      "zz",
+      "translation",
+      { draftCoach: { button: "BTN", thinking: "BUSY", needKey: "KEY {{provider}}" } },
+      true,
+      true
+    );
+    await act(async () => {
+      await i18n.changeLanguage("zz");
+    });
+    try {
+      setPrefs({ aiProvider: "gemini", geminiApiKey: "" });
+      renderPanel();
+      expect(button()).toHaveTextContent("BTN");
+      fireEvent.click(button());
+      expect(screen.getByText("⚠ KEY gemini")).toBeInTheDocument();
+
+      act(() => setPrefs({ aiProvider: "groq" }));
+      vi.mocked(explainDraft).mockReturnValue(new Promise<string>(() => {}));
+      await act(async () => {
+        fireEvent.click(button());
+      });
+      expect(button()).toHaveTextContent("BUSY");
+    } finally {
+      await act(async () => {
+        await i18n.changeLanguage("es");
+      });
+    }
+  });
+});
+
+describe("DraftCoachPanel — lane opponent", () => {
+  // Regression: every enemy is queried in MY role and entries arrive in
+  // network order, so "first entry for my champion" named an off-lane enemy.
+  it("picks the enemy whose primary role is mine, not the first entry", async () => {
+    vi.mocked(explainDraft).mockResolvedValue("ok");
+    renderPanel({
+      myChampionKey: "103", // Ahri
+      role: "MIDDLE",
+      enemyKeys: ["122", "222", "777"],
+      liveCounters: [
+        // Darius (TOP) answered first with a bigger sample.
+        { championKey: "103", vsChampionKey: "122", role: "MIDDLE", winRate: 0.6, sampleSize: 5000 },
+        { championKey: "103", vsChampionKey: "222", role: "MIDDLE", winRate: 0.55, sampleSize: 40 },
+        { championKey: "103", vsChampionKey: "777", role: "MIDDLE", winRate: 0.5, sampleSize: 9 },
+      ],
+      db: {
+        ...db,
+        champions: { ...db.champions, "777": champ("777", "Syndra") },
+      } as unknown as ChampionDb,
+    });
+    await act(async () => {
+      fireEvent.click(button());
+    });
+    const input = vi.mocked(explainDraft).mock.calls[0][2];
+    expect(input.laneOpponent).toBe("Syndra");
+    expect(input.laneMatchupWinRate).toBe(0.5);
+  });
+
+  it("falls back to the largest sample when nobody mains my role", async () => {
+    vi.mocked(explainDraft).mockResolvedValue("ok");
+    renderPanel({
+      myChampionKey: "103",
+      role: "MIDDLE",
+      liveCounters: [
+        { championKey: "103", vsChampionKey: "222", role: "MIDDLE", winRate: 0.55, sampleSize: 40 },
+        { championKey: "103", vsChampionKey: "122", role: "MIDDLE", winRate: 0.6, sampleSize: 5000 },
+      ],
+    });
+    await act(async () => {
+      fireEvent.click(button());
+    });
+    expect(vi.mocked(explainDraft).mock.calls[0][2].laneOpponent).toBe("Darius");
+  });
+});
+
+describe("DraftCoachPanel — champion switch", () => {
+  const props = (over: Partial<PanelProps>): PanelProps => ({
+    db,
+    myChampionKey: "266",
+    role: "TOP",
+    allyKeys: [],
+    enemyKeys: [],
+    liveCounters: [],
+    suggestions: [],
+    ...over,
+  });
+
+  // Regression: the panel stays mounted when the hover changes, so the old
+  // champion's advice stayed on screen under the new one.
+  it("hides the previous champion's advice", async () => {
+    vi.mocked(explainDraft).mockResolvedValue("Consejo Aatrox");
+    const { rerender } = render(<DraftCoachPanel {...props({})} />);
+    await act(async () => {
+      fireEvent.click(button());
+    });
+    expect(screen.getByText("Consejo Aatrox")).toBeInTheDocument();
+
+    rerender(<DraftCoachPanel {...props({ myChampionKey: "103" })} />);
+    expect(screen.queryByText("Consejo Aatrox")).toBeNull();
+    expect(button()).toBeEnabled();
+  });
+
+  it("ignores a late reply for the previous champion", async () => {
+    const resolvers: Array<(v: string) => void> = [];
+    vi.mocked(explainDraft).mockImplementation(
+      () => new Promise<string>((r) => resolvers.push(r))
+    );
+    const { rerender } = render(<DraftCoachPanel {...props({})} />);
+    await act(async () => {
+      fireEvent.click(button());
+    });
+    rerender(<DraftCoachPanel {...props({ myChampionKey: "103" })} />);
+    expect(button()).toBeEnabled();
+    await act(async () => {
+      fireEvent.click(button());
+    });
+    expect(resolvers).toHaveLength(2);
+
+    await act(async () => {
+      resolvers[0]("Consejo Aatrox");
+    });
+    expect(screen.queryByText("Consejo Aatrox")).toBeNull();
+    expect(button()).toBeDisabled(); // Ahri's request is still running
+
+    await act(async () => {
+      resolvers[1]("Consejo Ahri");
+    });
+    expect(screen.getByText("Consejo Ahri")).toBeInTheDocument();
   });
 });

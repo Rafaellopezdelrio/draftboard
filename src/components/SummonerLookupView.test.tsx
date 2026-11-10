@@ -10,7 +10,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, act, within } from "@testing-library/react";
-import { SummonerLookupView } from "./SummonerLookupView";
+import { SummonerLookupView, serverFromTag } from "./SummonerLookupView";
 import type { ChampionDb } from "../types/champion";
 import type {
   ChampionMasteryDto,
@@ -547,5 +547,111 @@ describe("SummonerLookupView — closing", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
     fireEvent.keyDown(window, { key: "Escape" });
     expect(onClose).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("SummonerLookupView — player's server", () => {
+  const EUW_USER = { region: "euw1" as const, apiKey: "RGAPI-test", riotIdName: "me", riotIdTag: "EUW", puuid: "mine" };
+
+  function serverSelect() {
+    return document.querySelector("select") as HTMLSelectElement;
+  }
+
+  it("serverFromTag reads default region tags and ignores custom ones", () => {
+    expect(serverFromTag("KR1")).toBe("kr");
+    expect(serverFromTag(" kr ")).toBe("kr");
+    expect(serverFromTag("EUW")).toBe("euw1");
+    expect(serverFromTag("NA1")).toBe("na1");
+    expect(serverFromTag("LAS")).toBe("la2");
+    expect(serverFromTag("004")).toBeNull();
+    expect(serverFromTag("Pepe")).toBeNull();
+  });
+
+  it("reads the profile from the server the tag names, not the user's own", async () => {
+    vi.mocked(loadSettings).mockResolvedValue(EUW_USER);
+    setup();
+    renderView();
+    await search("Hide on bush", "KR1");
+    // Accounts resolve globally with the user's own config...
+    expect(getAccountByRiotId).toHaveBeenCalledWith(EUW_USER, "Hide on bush", "KR1");
+    // ...everything else is asked to the player's server.
+    const kr = expect.objectContaining({ region: "kr", apiKey: "RGAPI-test" });
+    expect(getSummonerByPuuid).toHaveBeenCalledWith(kr, PUUID);
+    expect(getTopMasteries).toHaveBeenCalledWith(kr, PUUID, 7);
+    expect(getRecentMatchIds).toHaveBeenCalledWith(kr, PUUID, 5);
+    expect(getLeagueEntriesByPuuid).toHaveBeenCalledWith(kr, PUUID);
+  });
+
+  it("a vanity region tag falls back to the user's own server when the tag's server is empty", async () => {
+    vi.mocked(loadSettings).mockResolvedValue(EUW_USER);
+    setup();
+    const summoner = { id: "s", accountId: "a", puuid: PUUID, profileIconId: 1, summonerLevel: 77 };
+    vi.mocked(getSummonerByPuuid).mockImplementation(async (cfg) => {
+      if (cfg.region !== "euw1") throw new Error("404");
+      return summoner;
+    });
+    renderView();
+    await search("Hide on bush", "KR1");
+    expect(getSummonerByPuuid).toHaveBeenCalledWith(expect.objectContaining({ region: "kr" }), PUUID);
+    expect(screen.getByRole("link", { name: /op\.gg/ }).getAttribute("href")).toMatch(
+      /^https:\/\/www\.op\.gg\/summoners\/euw\//
+    );
+  });
+
+  it("a custom-tag player on another server of the same cluster is read from the server in the match ids", async () => {
+    vi.mocked(loadSettings).mockResolvedValue(EUW_USER);
+    setup();
+    const summoner = { id: "s", accountId: "a", puuid: PUUID, profileIconId: 1, summonerLevel: 77 };
+    vi.mocked(getSummonerByPuuid).mockImplementation(async (cfg) => {
+      if (cfg.region !== "eun1") throw new Error("404");
+      return summoner;
+    });
+    vi.mocked(getRecentMatchIds).mockResolvedValue(["EUN1_1"]);
+    vi.mocked(getMatchFull).mockRejectedValue(new Error("x"));
+    renderView();
+    await search("Hide on bush", "004");
+    expect(getLeagueEntriesByPuuid).toHaveBeenLastCalledWith(expect.objectContaining({ region: "eun1" }), PUUID);
+    expect(screen.getByRole("link", { name: /op\.gg/ }).getAttribute("href")).toMatch(
+      /^https:\/\/www\.op\.gg\/summoners\/eune\//
+    );
+  });
+
+  it("a custom tag uses the user's own server unless one is picked in the selector", async () => {
+    vi.mocked(loadSettings).mockResolvedValue(EUW_USER);
+    setup();
+    renderView();
+    await search("Hide on bush", "004");
+    expect(getSummonerByPuuid).toHaveBeenLastCalledWith(expect.objectContaining({ region: "euw1" }), PUUID);
+
+    fireEvent.change(serverSelect(), { target: { value: "na1" } });
+    await search("Hide on bush", "004");
+    expect(getSummonerByPuuid).toHaveBeenLastCalledWith(expect.objectContaining({ region: "na1" }), PUUID);
+    expect(getRecentMatchIds).toHaveBeenLastCalledWith(expect.objectContaining({ region: "na1" }), PUUID, 5);
+    // The op.gg link follows the server the data came from.
+    expect(screen.getByRole("link", { name: /op\.gg/ }).getAttribute("href")).toMatch(
+      /^https:\/\/www\.op\.gg\/summoners\/na\//
+    );
+  });
+
+  it("the selector wins over a region tag", async () => {
+    setup();
+    renderView();
+    fireEvent.change(serverSelect(), { target: { value: "jp1" } });
+    await search("Hide on bush", "KR1");
+    expect(getSummonerByPuuid).toHaveBeenCalledWith(expect.objectContaining({ region: "jp1" }), PUUID);
+  });
+
+  it("shows an error instead of an empty Unranked profile when the server knows nothing of the player", async () => {
+    setup();
+    vi.mocked(getSummonerByPuuid).mockRejectedValue(new Error("404"));
+    vi.mocked(getLeagueEntriesByPuuid).mockRejectedValue(new Error("404"));
+    vi.mocked(getTopMasteries).mockResolvedValue([]);
+    vi.mocked(getRecentMatchIds).mockResolvedValue([]);
+    renderView();
+    await search("Hide on bush", "004");
+    expect(screen.queryByText("Sin clasificar")).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /op\.gg/ })).not.toBeInTheDocument();
+    expect(screen.queryByText("Busca a cualquier jugador por su Riot ID")).not.toBeInTheDocument();
+    expect(searchButton()).toBeEnabled();
   });
 });

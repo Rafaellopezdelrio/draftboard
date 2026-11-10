@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   loadAggregatedBuilds,
@@ -10,7 +10,7 @@ import {
 } from "../services/aggregateRepo";
 import type { ChampionDb, Role } from "../types/champion";
 import { applyRunesResult } from "../services/lcuService";
-import { runePageName } from "../services/runePages";
+import { isLegalRunePage, runePageName } from "../services/runePages";
 import { OpggBuildSection } from "./build/OpggBuildSection";
 import { LolvvvProBuild } from "./build/LolvvvProBuild";
 import { ItemIcon, PerkIcon } from "./build/icons";
@@ -56,6 +56,9 @@ function BuildPanelInner({ db, championKey, role, enemyKeys = [], gameMode }: Pr
   // Bumped by Retry to re-run the op.gg effect (and its cancellation guard).
   const [opggRetry, setOpggRetry] = useState(0);
   const [importStatus, setImportStatus] = useState<string>("");
+  // Bumped on every champion/role change so an Apply still in flight for the
+  // previous one can't write its status onto the new panel.
+  const importGenRef = useRef(0);
   const showRuneButton = usePrefsStore((s) => s.prefs.showRuneImportButton);
   const { push: pushToast } = useToast();
 
@@ -68,6 +71,8 @@ function BuildPanelInner({ db, championKey, role, enemyKeys = [], gameMode }: Pr
     setBuilds([]);
     setRunes(null);
     setSkills(null);
+    importGenRef.current++;
+    setImportStatus("");
     Promise.all([
       loadAggregatedBuilds(db.patch, champId, role),
       loadAggregatedRunes(db.patch, champId, role),
@@ -289,7 +294,7 @@ function BuildPanelInner({ db, championKey, role, enemyKeys = [], gameMode }: Pr
           </div>
           <p className="text-xs text-white/40 mt-1">
             {((builds[0].wins / builds[0].games) * 100).toFixed(0)}% WR ·{" "}
-            {builds[0].games} games
+            {t("build.games", { count: builds[0].games })}
           </p>
         </div>
       )}
@@ -348,6 +353,16 @@ function BuildPanelInner({ db, championKey, role, enemyKeys = [], gameMode }: Pr
             <button
               className="text-xs font-medium px-2 py-0.5 bg-accent text-black rounded hover:bg-accent-deep transition"
               onClick={async () => {
+                // Same checks as the auto-apply: the client rejects an
+                // illegal page, so never send one.
+                if (
+                  runes.shards.length !== 3 ||
+                  !isLegalRunePage(runes.primaryStyle, runes.subStyle, runes.perks)
+                ) {
+                  setImportStatus(t("build.applyError"));
+                  return;
+                }
+                const gen = importGenRef.current;
                 setImportStatus(t("build.applying"));
                 const res = await applyRunesResult({
                   name: runePageName(`${champ.name} ${role}`),
@@ -357,9 +372,11 @@ function BuildPanelInner({ db, championKey, role, enemyKeys = [], gameMode }: Pr
                 });
                 const ok = res.ok;
                 const limit = !res.ok && res.reason === "page-limit";
-                setImportStatus(
-                  ok ? t("build.applied") : limit ? t("build.applyPageLimit") : t("build.applyError")
-                );
+                if (gen === importGenRef.current) {
+                  setImportStatus(
+                    ok ? t("build.applied") : limit ? t("build.applyPageLimit") : t("build.applyError")
+                  );
+                }
                 // Toast confirmation in addition to the inline status —
                 // ensures the user gets a clear signal even if the button
                 // is off-screen due to scroll.

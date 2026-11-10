@@ -1,4 +1,4 @@
-// On-demand AI-generated champion guides cached per (champion, patch) in SQLite.
+// On-demand AI-generated champion guides cached per (champion, patch, role, language) in SQLite.
 // First request for a champion calls the AI; subsequent loads are instant from cache.
 
 import { getDb, isTauri } from "../db/client";
@@ -11,9 +11,22 @@ export interface AiChampionGuide {
   generatedTsMs: number;
 }
 
+/**
+ * Cache key stored in the "patch" column. The guide text depends on role and
+ * language too, and the table's key is only (champion_id, patch), so both are
+ * folded into that column instead of a schema change. Rows written before
+ * this (plain patch) no longer match and are simply regenerated.
+ * Exported for unit tests.
+ */
+export function guideCacheKey(patch: string, role?: string, language?: "es" | "en"): string {
+  return role ? `${patch}|${role}|${language ?? "es"}` : patch;
+}
+
 export async function getCachedGuide(
   championId: number,
-  patch: string
+  patch: string,
+  role?: string,
+  language?: "es" | "en"
 ): Promise<AiChampionGuide | null> {
   if (!isTauri()) return null;
   const db = await getDb();
@@ -26,25 +39,29 @@ export async function getCachedGuide(
     }>
   >(
     `SELECT * FROM ai_champion_guides WHERE champion_id = $1 AND patch = $2 LIMIT 1`,
-    [championId, patch]
+    [championId, guideCacheKey(patch, role, language)]
   );
   if (rows.length === 0) return null;
   const r = rows[0];
   return {
     championId: r.champion_id,
-    patch: r.patch,
+    patch,
     guideText: r.guide_text,
     generatedTsMs: r.generated_ts_ms,
   };
 }
 
-async function saveGuide(g: AiChampionGuide): Promise<void> {
+async function saveGuide(
+  g: AiChampionGuide,
+  role: string,
+  language?: "es" | "en"
+): Promise<void> {
   if (!isTauri()) return;
   const db = await getDb();
   await db.execute(
     `INSERT OR REPLACE INTO ai_champion_guides (champion_id, patch, guide_text, generated_ts_ms)
      VALUES ($1,$2,$3,$4)`,
-    [g.championId, g.patch, g.guideText, g.generatedTsMs]
+    [g.championId, guideCacheKey(g.patch, role, language), g.guideText, g.generatedTsMs]
   );
 }
 
@@ -63,7 +80,12 @@ export async function generateChampionGuide(
   input: GenerateGuideInput
 ): Promise<string> {
   if (!input.force) {
-    const cached = await getCachedGuide(input.championId, input.patch);
+    const cached = await getCachedGuide(
+      input.championId,
+      input.patch,
+      input.role,
+      input.language
+    );
     if (cached) return cached.guideText;
   }
 
@@ -96,12 +118,16 @@ Sé concreto y meta-aware: combos exactos, breakpoints reales, builds del parche
   // **bold** wrapping we asked for — wrap them ourselves.
   const text = enrichGuideMarkdown(raw);
 
-  await saveGuide({
-    championId: input.championId,
-    patch: input.patch,
-    guideText: text,
-    generatedTsMs: Date.now(),
-  });
+  await saveGuide(
+    {
+      championId: input.championId,
+      patch: input.patch,
+      guideText: text,
+      generatedTsMs: Date.now(),
+    },
+    input.role,
+    input.language
+  );
 
   return text;
 }

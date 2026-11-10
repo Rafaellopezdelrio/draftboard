@@ -271,7 +271,7 @@ describe("AiChatView — context + sending", () => {
 
 describe("AiChatView — API key per provider", () => {
   it("without a key shows the hint and an error on send, never calling the API", async () => {
-    setPrefs({ aiProvider: "groq", groqApiKey: "" });
+    setPrefs({ aiProvider: "groq", groqApiKey: "", riotProxyUrl: "" });
     await renderView();
     expect(
       screen.getByText("⚠ Necesitas una API key (groq) en Prefs. Groq es gratis.")
@@ -283,6 +283,22 @@ describe("AiChatView — API key per provider", () => {
     ).toBeInTheDocument();
     expect(chatWithCoach).not.toHaveBeenCalled();
     expect(createConversation).not.toHaveBeenCalled();
+  });
+
+  it("groq without a key works through the proxy (default user)", async () => {
+    setPrefs({ aiProvider: "groq", groqApiKey: "", riotProxyUrl: "https://proxy.test" });
+    await renderView();
+    expect(screen.queryByText(/Necesitas una API key/)).not.toBeInTheDocument();
+    await typeAndSend("hola");
+    expect(vi.mocked(chatWithCoach).mock.calls[0].slice(0, 2)).toEqual(["groq", ""]);
+    expect(screen.getByText("Farmea mejor.")).toBeInTheDocument();
+  });
+
+  it("the proxy does not unlock a keyless gemini", async () => {
+    setPrefs({ aiProvider: "gemini", geminiApiKey: "", riotProxyUrl: "https://proxy.test" });
+    await renderView();
+    await typeAndSend("hola");
+    expect(chatWithCoach).not.toHaveBeenCalled();
   });
 
   it("uses the gemini key when gemini is selected", async () => {
@@ -447,6 +463,75 @@ describe("AiChatView — history browser", () => {
     // Back in chat view with the empty state.
     expect(screen.getByText("Ideas para empezar")).toBeInTheDocument();
     expect(screen.getByText("groq · 0 mensajes")).toBeInTheDocument();
+  });
+});
+
+describe("AiChatView — switching conversation mid-request", () => {
+  it("'Nueva' while a reply is pending: the late reply is saved under its own chat, not shown", async () => {
+    const d = deferred<string>();
+    vi.mocked(chatWithCoach).mockReturnValue(d.promise);
+    await renderView();
+    await typeAndSend("pregunta");
+    fireEvent.click(screen.getByRole("button", { name: /Nueva/ }));
+    expect(screen.getByText("Ideas para empezar")).toBeInTheDocument();
+    // The new chat is usable right away.
+    expect(screen.getByPlaceholderText(/Escribe tu pregunta/)).not.toBeDisabled();
+
+    await act(async () => {
+      d.resolve("respuesta tardía");
+    });
+    expect(screen.queryByText("respuesta tardía")).not.toBeInTheDocument();
+    expect(screen.getByText("Ideas para empezar")).toBeInTheDocument();
+    expect(appendMessage).toHaveBeenCalledWith(7, "assistant", "respuesta tardía");
+
+    // The next message opens a new conversation with a clean history.
+    vi.mocked(chatWithCoach).mockResolvedValue("ok");
+    vi.mocked(createConversation).mockResolvedValue(8);
+    await typeAndSend("otra");
+    expect(appendMessage).toHaveBeenCalledWith(8, "user", "otra");
+    expect(vi.mocked(chatWithCoach).mock.calls[1][2]).toEqual([{ role: "user", content: "otra" }]);
+  });
+
+  it("'Nueva' while the conversation is still being created does not bring the old id back", async () => {
+    const c = deferred<number>();
+    vi.mocked(createConversation).mockReturnValueOnce(c.promise);
+    await renderView();
+    await typeAndSend("pregunta");
+    fireEvent.click(screen.getByRole("button", { name: /Nueva/ }));
+    await act(async () => {
+      c.resolve(7);
+    });
+    vi.mocked(createConversation).mockResolvedValue(8);
+    await typeAndSend("otra");
+    expect(createConversation).toHaveBeenCalledTimes(2);
+    expect(appendMessage).toHaveBeenCalledWith(8, "user", "otra");
+  });
+
+  it("resuming another chat while a reply is pending keeps that chat clean", async () => {
+    const d = deferred<string>();
+    vi.mocked(chatWithCoach).mockReturnValue(d.promise);
+    vi.mocked(searchConversations).mockResolvedValue([
+      { id: 3, title: "Plan semanal", updatedTsMs: Date.now() },
+    ]);
+    vi.mocked(loadMessages).mockResolvedValue([
+      { role: "user", content: "pregunta vieja" },
+      { role: "assistant", content: "respuesta vieja" },
+    ]);
+    await renderView();
+    await typeAndSend("pregunta");
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /Historial/ }));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByText("Plan semanal"));
+    });
+    await act(async () => {
+      d.resolve("respuesta tardía");
+    });
+    expect(screen.getByText("respuesta vieja")).toBeInTheDocument();
+    expect(screen.queryByText("respuesta tardía")).not.toBeInTheDocument();
+    expect(appendMessage).toHaveBeenCalledWith(7, "assistant", "respuesta tardía");
+    expect(appendMessage).not.toHaveBeenCalledWith(3, "assistant", "respuesta tardía");
   });
 });
 

@@ -346,16 +346,76 @@ describe("ChampionGuideView — tips tab", () => {
 
 describe("ChampionGuideView — AI guide tab", () => {
   it("without a provider key: disabled generate button and a provider-specific hint", async () => {
+    setPrefs({ riotProxyUrl: "" });
     await renderGuide();
     openTab("Guía AI");
     await act(async () => {});
-    // Cache lookup uses the numeric champion key.
-    expect(getCachedGuide).toHaveBeenCalledWith(266, "16.10.1");
+    // Cache lookup uses the numeric champion key, plus role and language.
+    expect(getCachedGuide).toHaveBeenCalledWith(266, "16.10.1", "TOP", "es");
     expect(screen.getByText("Guía AI · TOP · 26.10")).toBeInTheDocument();
     expect(screen.getByText(/Genera una guía AI para Aatrox en TOP/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Generar guía AI" })).toBeDisabled();
     expect(screen.getByText("Necesitas API key (groq) en Prefs. Groq es gratis.")).toBeInTheDocument();
     expect(screen.queryByText("cacheado")).not.toBeInTheDocument();
+  });
+
+  it("groq without a key generates through the proxy (default user)", async () => {
+    setPrefs({ groqApiKey: "", riotProxyUrl: "https://proxy.test" });
+    vi.mocked(generateChampionGuide).mockResolvedValue("Texto vía proxy");
+    await renderGuide();
+    openTab("Guía AI");
+    await act(async () => {});
+    expect(screen.queryByText(/Necesitas API key/)).not.toBeInTheDocument();
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Generar guía AI" }));
+    });
+    expect(generateChampionGuide).toHaveBeenCalledWith(
+      expect.objectContaining({ provider: "groq", apiKey: "" })
+    );
+    expect(screen.getByText("Texto vía proxy")).toBeInTheDocument();
+  });
+
+  it("drops the shown guide and re-reads the cache when the role or language changes", async () => {
+    setPrefs({ groqApiKey: "gsk-test" });
+    vi.mocked(getCachedGuide).mockImplementation(async (_id, patch, role) =>
+      role === "TOP" ? { championId: 266, patch, guideText: "Guía de top", generatedTsMs: 0 } : null
+    );
+    await renderGuide();
+    openTab("Guía AI");
+    await act(async () => {});
+    expect(screen.getByText("Guía de top")).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(roleButton("JUNGLE"));
+    });
+    expect(getCachedGuide).toHaveBeenLastCalledWith(266, "16.10.1", "JUNGLE", "es");
+    expect(screen.queryByText("Guía de top")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Generar guía AI" })).toBeInTheDocument();
+
+    await act(async () => {
+      setPrefs({ groqApiKey: "gsk-test", aiCoachLanguage: "en" });
+    });
+    expect(getCachedGuide).toHaveBeenLastCalledWith(266, "16.10.1", "JUNGLE", "en");
+  });
+
+  it("a guide that finishes generating after a role switch is not shown under the new role", async () => {
+    setPrefs({ groqApiKey: "gsk-test" });
+    let resolve!: (s: string) => void;
+    vi.mocked(generateChampionGuide).mockReturnValueOnce(new Promise((r) => (resolve = r)));
+    await renderGuide();
+    openTab("Guía AI");
+    await act(async () => {});
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Generar guía AI" }));
+    });
+    await act(async () => {
+      fireEvent.click(roleButton("JUNGLE"));
+    });
+    await act(async () => {
+      resolve("Guía de top tardía");
+    });
+    expect(screen.queryByText("Guía de top tardía")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Generar guía AI" })).toBeInTheDocument();
   });
 
   it("renders a cached guide immediately with the cached badge", async () => {

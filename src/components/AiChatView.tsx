@@ -33,6 +33,7 @@ import {
   recentMatches,
 } from "../services/matchRepo";
 import { lcuMasteries, lcuRank } from "../services/lcuPersonalData";
+import { aiReady } from "../services/aiProvider";
 import { useEscape } from "../hooks/useKeyboardShortcuts";
 import type { ChampionDb } from "../types/champion";
 
@@ -77,6 +78,8 @@ export function AiChatView({ db, onClose }: Props) {
         : s.prefs.anthropicApiKey
   );
   const lang = usePrefsStore((s) => s.prefs.aiCoachLanguage);
+  // Groq works keyless through the proxy, so a missing key alone is not a block.
+  const ready = aiReady(provider, apiKey, usePrefsStore((s) => s.prefs.riotProxyUrl));
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -89,6 +92,9 @@ export function AiChatView({ db, onClose }: Props) {
   const [conversations, setConversations] = useState<ConversationMeta[]>([]);
   const [search, setSearch] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
+  // Bumped whenever the active conversation changes (send / new / resume) so a
+  // reply that arrives late is not painted into a different conversation.
+  const reqRef = useRef(0);
 
   useEffect(() => {
     (async () => {
@@ -123,10 +129,11 @@ export function AiChatView({ db, onClose }: Props) {
 
   async function send(text: string) {
     if (!text.trim() || !context || loading) return;
-    if (!apiKey) {
+    if (!ready) {
       setErr(t("aiChat.errKey", { provider }));
       return;
     }
+    const req = ++reqRef.current;
     setErr(null);
     const next = [...messages, { role: "user" as const, content: text }];
     setMessages(next);
@@ -138,7 +145,7 @@ export function AiChatView({ db, onClose }: Props) {
     try {
       if (cid <= 0) {
         cid = await createConversation(text);
-        setConvId(cid);
+        if (reqRef.current === req) setConvId(cid);
       }
       await appendMessage(cid, "user", text);
     } catch {
@@ -146,16 +153,19 @@ export function AiChatView({ db, onClose }: Props) {
     }
     try {
       const reply = await chatWithCoach(provider, apiKey, next, context, lang);
-      setMessages((m) => [...m, { role: "assistant", content: reply }]);
+      if (reqRef.current === req) {
+        setMessages((m) => [...m, { role: "assistant", content: reply }]);
+      }
+      // Still saved under the conversation it belongs to.
       try {
         await appendMessage(cid, "assistant", reply);
       } catch {
         /* ignore */
       }
     } catch (e) {
-      setErr(String(e));
+      if (reqRef.current === req) setErr(String(e));
     } finally {
-      setLoading(false);
+      if (reqRef.current === req) setLoading(false);
     }
   }
 
@@ -168,18 +178,23 @@ export function AiChatView({ db, onClose }: Props) {
 
   /** Load a saved conversation back into the chat. */
   async function resumeConversation(id: number) {
+    const req = ++reqRef.current;
     const msgs = await loadMessages(id);
+    if (reqRef.current !== req) return;
     setMessages(msgs);
     setConvId(id);
     setErr(null);
+    setLoading(false);
     setView("chat");
   }
 
   /** Start a fresh conversation (the current one is already saved). */
   function newChat() {
+    reqRef.current++;
     setMessages([]);
     setConvId(null);
     setErr(null);
+    setLoading(false);
     setView("chat");
   }
 
@@ -428,7 +443,7 @@ export function AiChatView({ db, onClose }: Props) {
               {t("aiChat.send")}
             </button>
           </form>
-          {!apiKey && (
+          {!ready && (
             <p className="text-[11px] text-meh mt-1.5 flex items-center gap-1">
               ⚠ {t("aiChat.needKey", { provider })}
             </p>

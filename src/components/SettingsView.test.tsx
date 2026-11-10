@@ -21,6 +21,7 @@ import type { ChampionDb } from "../types/champion";
 
 vi.mock("../services/riotApi", () => ({
   getAccount: vi.fn(),
+  getRecentMatchIds: vi.fn(),
   getRiotProxyUrl: vi.fn(),
 }));
 vi.mock("../services/settingsRepo", () => ({
@@ -50,7 +51,7 @@ vi.mock("../services/dataDragon", () => ({
   fetchLatestPatch: vi.fn(),
 }));
 
-import { getAccount, getRiotProxyUrl } from "../services/riotApi";
+import { getAccount, getRecentMatchIds, getRiotProxyUrl } from "../services/riotApi";
 import { loadSettings, saveSettings } from "../services/settingsRepo";
 import { getCurrentSummoner } from "../services/lcuService";
 import { syncPersonalData } from "../services/personalDataSync";
@@ -113,6 +114,7 @@ beforeEach(() => {
   setPrefs();
   vi.mocked(getRiotProxyUrl).mockReset().mockReturnValue(null);
   vi.mocked(getAccount).mockReset().mockResolvedValue({ puuid: "puuid-new", gameName: "Faker", tagLine: "KR1" });
+  vi.mocked(getRecentMatchIds).mockReset().mockResolvedValue(["NA1_1"]);
   vi.mocked(loadSettings).mockReset().mockResolvedValue(null);
   vi.mocked(saveSettings).mockReset().mockResolvedValue(undefined);
   vi.mocked(getCurrentSummoner).mockReset().mockResolvedValue(null);
@@ -351,13 +353,68 @@ describe("SettingsView — resync", () => {
   });
 
   it("with neither key nor proxy, skips saving and reports sync errors", async () => {
+    vi.mocked(getCurrentSummoner).mockResolvedValue({ puuid: "p", gameName: "Caps", tagLine: "EUW" } as never);
     vi.mocked(syncPersonalData).mockRejectedValue(new Error("LCU down"));
     await renderView();
     await confirmResync();
     expect(getAccount).not.toHaveBeenCalled();
+    expect(getRecentMatchIds).not.toHaveBeenCalled();
     expect(saveSettings).not.toHaveBeenCalled();
     expect(clearAllMatches).toHaveBeenCalledTimes(1);
     expect(screen.getByText("Error: Error: LCU down")).toHaveClass("text-bad");
+  });
+
+  it("checks the new PUUID's match list before wiping", async () => {
+    vi.mocked(loadSettings).mockResolvedValue(SAVED);
+    await renderView();
+    await confirmResync();
+    expect(getRecentMatchIds).toHaveBeenCalledWith(
+      { apiKey: "RGAPI-saved", region: "na1", riotIdName: "Faker", riotIdTag: "KR1" },
+      "puuid-new",
+      1
+    );
+    expect(vi.mocked(getRecentMatchIds).mock.invocationCallOrder[0]).toBeLessThan(
+      vi.mocked(clearAllMatches).mock.invocationCallOrder[0]
+    );
+  });
+
+  it.each([
+    ["no Riot access and the client closed", null, () => {}],
+    ["Riot failing (429/5xx) and the client closed", SAVED, () =>
+      vi.mocked(getRecentMatchIds).mockRejectedValue(new Error("429"))],
+    ["Riot returning no matches and the client closed", SAVED, () =>
+      vi.mocked(getRecentMatchIds).mockResolvedValue([])],
+  ] as const)("never wipes matches with %s", async (_name, saved, arrange) => {
+    vi.mocked(loadSettings).mockResolvedValue(saved);
+    arrange();
+    await renderView();
+    await confirmResync();
+    expect(clearAllMatches).not.toHaveBeenCalled();
+    expect(syncPersonalData).not.toHaveBeenCalled();
+    expect(screen.queryByText(/Resincronizado ✓/)).toBeNull();
+    expect(btn("Re-sync")).toBeEnabled();
+  });
+
+  it("wipes when Riot is down but the LoL client answers", async () => {
+    vi.mocked(loadSettings).mockResolvedValue(SAVED);
+    vi.mocked(getRecentMatchIds).mockRejectedValue(new Error("503"));
+    vi.mocked(getCurrentSummoner).mockResolvedValue({ puuid: "p", gameName: "Faker", tagLine: "KR1" } as never);
+    await renderView();
+    await confirmResync();
+    expect(clearAllMatches).toHaveBeenCalledTimes(1);
+    expect(screen.getByText("Resincronizado ✓ (12 partidas vía LCU)")).toBeInTheDocument();
+  });
+
+  it.each([
+    ["no source answered", { matches: 0, source: "none" }],
+    ["nothing was downloaded", { matches: 0, source: "Riot API" }],
+  ] as const)("does not report success when %s after the wipe", async (_name, result) => {
+    vi.mocked(loadSettings).mockResolvedValue(SAVED);
+    vi.mocked(syncPersonalData).mockResolvedValue(syncResult(result));
+    await renderView();
+    await confirmResync();
+    expect(screen.queryByText(/Resincronizado ✓/)).toBeNull();
+    expect(document.querySelector(".text-good.text-sm")).toBeNull();
   });
 });
 

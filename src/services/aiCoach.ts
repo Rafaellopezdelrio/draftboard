@@ -12,7 +12,6 @@ import {
   professionalMatchPrompt,
 } from "./aiPromptBuilder";
 import { buildMemoryContext, saveMemory } from "./aiMemory";
-import { saveLessonPlan } from "./lessonPlanRepo";
 import {
   bracketForTier,
   bracketLabel,
@@ -246,14 +245,8 @@ Sé específico y accionable. No uses listas con bullets dentro de cada día —
     maxTokens: 900,
   });
 
-  // Persist for the user to revisit
-  await saveLessonPlan({
-    createdTsMs: Date.now(),
-    weakestArea: input.weakestArea,
-    archetype: input.archetype,
-    planText: text,
-    completed: false,
-  });
+  // The plan itself is saved by the caller (LessonPlanView) — saving here too
+  // stored every plan twice.
   await saveMemory({
     kind: "goal",
     category: input.weakestArea ?? undefined,

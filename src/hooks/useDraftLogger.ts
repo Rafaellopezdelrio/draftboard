@@ -35,6 +35,8 @@ export function useDraftLogger({
     }
     if (loggedFor.current === myChampionLocked) return;
     loggedFor.current = myChampionLocked;
+    // suggestedKeys ranks the player's own hover/lock too: suggest() drops the
+    // local champion from the allies, so the live list is the one to compare.
 
     void saveDraft({
       tsMs: Date.now(),

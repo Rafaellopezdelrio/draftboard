@@ -2,12 +2,12 @@
 // pick + the matchup data into coherent, human draft advice (why the pick, how
 // to play the lane, the win condition). Lives in the champ-select column.
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Sparkles, Loader2 } from "lucide-react";
 import { usePrefsStore } from "../state/prefsStore";
 import { ensureLocaleLoaded, i18n } from "../i18n";
-import { explainDraft } from "../services/draftCoach";
+import { explainDraft, pickLaneMatchup } from "../services/draftCoach";
 import { useEnemyMains } from "../hooks/useEnemyMains";
 import { detectMissingArchetypes } from "../engine/suggestionEngine";
 import type { ChampionDb, CounterEntry, Role } from "../types/champion";
@@ -55,6 +55,11 @@ export function DraftCoachPanel({
   const [advice, setAdvice] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  // advice/err/loading belong to the champion+role they were requested for;
+  // the panel stays mounted when the hover changes, so they are only shown
+  // while that context is still the current one.
+  const [shownFor, setShownFor] = useState<string | null>(null);
+  const requestId = useRef(0);
   const enemyMains = useEnemyMains(enemySummonerIds);
 
   if (!myChampionKey || !role) return null;
@@ -64,16 +69,21 @@ export function DraftCoachPanel({
   const safeRole: Role = role;
 
   const name = (k: string) => db.champions[k]?.name ?? k;
-  // My matchup vs the lane opponent = the liveCounters entry keyed on MY champ
-  // (op.gg data is same-lane, so this resolves the direct laner when present).
-  const mine = liveCounters.find((c) => c.championKey === myChampionKey);
+  const ctx = `${myChampionKey}-${role}`;
+  const current = shownFor === ctx;
+  const mine = pickLaneMatchup(db, liveCounters, myChampionKey, safeRole);
   const laneOpponent = mine ? name(mine.vsChampionKey) : null;
   const laneWr = mine ? mine.winRate : null;
 
   async function run() {
+    // A newer request (or a champion switch + click) supersedes older replies.
+    const id = ++requestId.current;
+    setShownFor(ctx);
     // Groq routes through the shared proxy (no key needed); others need a key.
     if (provider !== "groq" && !apiKey?.trim()) {
-      setErr(`Configura tu API key (${provider}) en Prefs.`);
+      setErr(t("draftCoach.needKey", { provider }));
+      setAdvice(null);
+      setLoading(false);
       return;
     }
     setErr(null);
@@ -109,33 +119,37 @@ export function DraftCoachPanel({
         compMissing: [...detectMissingArchetypes(db, allyKeys)].map(String),
         language: lang === "en" ? "en" : "es",
       });
+      if (requestId.current !== id) return;
       setAdvice(out);
     } catch (e) {
+      if (requestId.current !== id) return;
       setErr(String(e));
     } finally {
-      setLoading(false);
+      if (requestId.current === id) setLoading(false);
     }
   }
+
+  const busy = current && loading;
 
   return (
     <div className="rounded-lg border border-border-subtle bg-bg-card/40 p-3 space-y-2">
       <button
         onClick={run}
-        disabled={loading}
+        disabled={busy}
         className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-md bg-accent/15 ring-1 ring-accent/40 text-accent text-sm font-semibold hover:bg-accent/25 transition disabled:opacity-50"
         title={t("draftCoach.tooltip")}
       >
-        {loading ? (
+        {busy ? (
           <Loader2 className="w-4 h-4 animate-spin" />
         ) : (
           <Sparkles className="w-4 h-4" />
         )}
-        {loading ? "Pensando…" : "Explica el draft (IA)"}
+        {busy ? t("draftCoach.thinking") : t("draftCoach.button")}
       </button>
 
-      {err && <p className="text-xs text-bad">⚠ {err}</p>}
+      {current && err && <p className="text-xs text-bad">⚠ {err}</p>}
 
-      {advice && (
+      {current && advice && (
         <p className="text-sm text-white/85 whitespace-pre-wrap leading-relaxed animate-[fadeIn_200ms_ease-out]">
           {advice}
         </p>

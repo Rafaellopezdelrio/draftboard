@@ -95,6 +95,51 @@ describe("getLatestPatchSummary — proxy primary + Leaguepedia fallback", () =>
     expect(mockFetch.mock.calls.length).toBe(callsAfterFirst);
   });
 
+  it("hits the cache when DDragon's X.Y.Z build version maps to the worker's X.Y", async () => {
+    mockFetch.mockResolvedValue(
+      ok({
+        patch: "16.21",
+        changes: [
+          { championName: "Aatrox", championId: "Aatrox", type: "buff", details: [] },
+        ],
+      })
+    );
+    await getLatestPatchSummary("16.21.1");
+    const callsAfterFirst = mockFetch.mock.calls.length;
+    const again = await getLatestPatchSummary("16.21.1");
+    expect(mockFetch.mock.calls.length).toBe(callsAfterFirst);
+    expect(again?.changes).toHaveLength(1);
+  });
+
+  it("asks Leaguepedia for the X.Y version too", async () => {
+    mockFetch
+      .mockResolvedValueOnce(ok({ patch: "16.21", changes: [] }))
+      .mockResolvedValueOnce(ok({ cargoquery: [] }));
+    await getLatestPatchSummary("16.21.1");
+    const leaguepediaUrl = decodeURIComponent(String(mockFetch.mock.calls[1][0]));
+    expect(leaguepediaUrl).toContain("16.21");
+    expect(leaguepediaUrl).not.toContain("16.21.1");
+  });
+
+  it("does not cache an empty summary, so notes published later show up", async () => {
+    // Worker down + Leaguepedia has nothing yet.
+    mockFetch.mockResolvedValue(notOk());
+    const empty = await getLatestPatchSummary("16.21.1");
+    expect(empty?.changes).toEqual([]);
+
+    mockFetch.mockReset();
+    mockFetch.mockResolvedValue(
+      ok({
+        patch: "16.21",
+        changes: [
+          { championName: "Aatrox", championId: "Aatrox", type: "nerf", details: [] },
+        ],
+      })
+    );
+    const later = await getLatestPatchSummary("16.21.1");
+    expect(later?.changes).toHaveLength(1);
+  });
+
   it("re-fetches when asking for a different patch", async () => {
     mockFetch.mockResolvedValue(ok({ patch: "x", changes: [] }));
     await getLatestPatchSummary("16.10");

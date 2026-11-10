@@ -433,6 +433,13 @@ fn used_page_slots(pages: &[Value]) -> usize {
         .count()
 }
 
+/// True when the client rejected a new rune page because every slot is taken
+/// (400 with `"message":"Max pages reached"`). Any other rejection — an
+/// invalid page, a client hiccup — says nothing about slots.
+fn is_page_limit_error(body: &str) -> bool {
+    body.to_ascii_lowercase().contains("max pages reached")
+}
+
 #[tauri::command]
 pub async fn lcu_apply_runes(page: RunePageInput) -> Result<(), String> {
     apply_runes(page).await.map_err(|e| e.to_string())
@@ -491,13 +498,16 @@ async fn apply_runes(page: RunePageInput) -> Result<()> {
 
     // Create first, then drop the previous Draftboard page(s): a failed
     // create must not leave the player with no page at all.
-    let mut resp = post().await?;
+    let resp = post().await?;
     if resp.status().is_success() {
         delete_ours().await;
         return Ok(());
     }
+    let mut status = resp.status();
+    let mut detail = resp.text().await.unwrap_or_default();
     // Only a full set of slots justifies freeing one of OUR pages; any other
     // rejection (invalid page, client hiccup) must leave them in place.
+    let page_limit = is_page_limit_error(&detail);
     let owned = client
         .get(format!("{}/lol-perks/v1/inventory", base))
         .header("Authorization", format!("Basic {}", auth_b64))
@@ -510,19 +520,19 @@ async fn apply_runes(page: RunePageInput) -> Result<()> {
     }
     .and_then(|v| v.get("ownedPageCount").and_then(Value::as_u64));
     let slots_full = owned.is_some_and(|n| used_page_slots(&pages) as u64 >= n);
-    if slots_full && !ours.is_empty() {
+    if page_limit && !ours.is_empty() {
         delete_ours().await;
-        resp = post().await?;
-        if resp.status().is_success() {
+        let retry = post().await?;
+        if retry.status().is_success() {
             return Ok(());
         }
-    } else if slots_full {
+        status = retry.status();
+        detail = retry.text().await.unwrap_or_default();
+    } else if page_limit || (slots_full && ours.is_empty()) {
         // The frontend maps this prefix to a "free a rune page slot" message.
         // The player's own pages are never deleted.
         return Err(anyhow!("PAGE_LIMIT: all rune page slots are in use"));
     }
-    let status = resp.status();
-    let detail = resp.text().await.unwrap_or_default();
     Err(anyhow!(
         "apply runes returned {}: {}",
         status,
@@ -627,6 +637,25 @@ fn default_one() -> u32 {
     1
 }
 
+/// Upsert `new_set` (matched by uid) into the player's saved item sets. The
+/// PUT replaces the WHOLE collection, so every set already there has to be
+/// sent back with it. None when the current list isn't in the expected shape:
+/// writing then would wipe the player's sets.
+fn merge_item_sets(existing: &Value, new_set: Value, account_id: u64) -> Option<Value> {
+    let mut body = existing.as_object()?.clone();
+    let mut sets = match body.get("itemSets") {
+        Some(Value::Array(sets)) => sets.clone(),
+        Some(Value::Null) | None => Vec::new(),
+        Some(_) => return None,
+    };
+    let uid = new_set.get("uid").cloned();
+    sets.retain(|s| s.get("uid") != uid.as_ref());
+    sets.push(new_set);
+    body.insert("accountId".to_string(), serde_json::json!(account_id));
+    body.insert("itemSets".to_string(), Value::Array(sets));
+    Some(Value::Object(body))
+}
+
 #[tauri::command]
 pub async fn lcu_push_item_set(set: ItemSetInput) -> Result<bool, String> {
     push_item_set(set).await.map_err(|e| e.to_string())
@@ -674,9 +703,7 @@ async fn push_item_set(set: ItemSetInput) -> Result<bool> {
         .collect();
 
     let uid = format!("draftboard-{}-{}", set.champion_id, summoner_id);
-    let body = serde_json::json!({
-        "accountId": summoner_id,
-        "itemSets": [{
+    let new_set = serde_json::json!({
             "uid": uid,
             "title": set.title,
             "associatedChampions": [set.champion_id],
@@ -690,14 +717,32 @@ async fn push_item_set(set: ItemSetInput) -> Result<bool> {
             "preferredItemSlots": [],
             "startedFrom": "Imported",
             "isGlobalForChampions": true,
-        }]
     });
 
+    // Read the sets the player already has and send them back with ours. If
+    // they can't be read, don't write at all.
+    let sets_url = format!(
+        "{}/lol-item-sets/v1/item-sets/{}/sets",
+        base, summoner_id
+    );
+    let current = client
+        .get(&sets_url)
+        .header("Authorization", format!("Basic {}", auth_b64))
+        .send()
+        .await?;
+    if current.status().as_u16() == 404 {
+        return Ok(false);
+    }
+    if !current.status().is_success() {
+        return Err(anyhow!("read item sets returned {}", current.status()));
+    }
+    let current: Value = current.json().await?;
+    let Some(body) = merge_item_sets(&current, new_set, summoner_id) else {
+        return Err(anyhow!("unexpected item sets payload"));
+    };
+
     let resp = client
-        .put(format!(
-            "{}/lol-item-sets/v1/item-sets/{}/sets",
-            base, summoner_id
-        ))
+        .put(&sets_url)
         .header("Authorization", format!("Basic {}", auth_b64))
         .json(&body)
         .send()
@@ -723,6 +768,38 @@ async fn push_item_set(set: ItemSetInput) -> Result<bool> {
 /// select — fail-soft so an auto-apply on hover doesn't spam errors when
 /// the user is just hovering outside a real lobby. Hard errors (lockfile
 /// missing, network) still bubble up.
+const FLASH_ID: u64 = 4;
+
+/// The local player's current (spell1Id, spell2Id) from a champ-select session.
+fn current_spells(session: &Value) -> Option<(u64, u64)> {
+    let cell = session.get("localPlayerCellId")?.as_i64()?;
+    let me = session
+        .get("myTeam")?
+        .as_array()?
+        .iter()
+        .find(|p| p.get("cellId").and_then(Value::as_i64) == Some(cell))?;
+    Some((me.get("spell1Id")?.as_u64()?, me.get("spell2Id")?.as_u64()?))
+}
+
+/// Order the new pair so Flash stays on the key (D = spell1, F = spell2) the
+/// player already has it on. Recommendations always list Flash first, which
+/// would flip the keys of everyone who plays Flash on F.
+fn keep_flash_key(spell1: u32, spell2: u32, current: Option<(u64, u64)>) -> (u32, u32) {
+    let Some((cur1, cur2)) = current else {
+        return (spell1, spell2);
+    };
+    let (new1, new2) = (u64::from(spell1), u64::from(spell2));
+    let flash_on_f = cur2 == FLASH_ID && cur1 != FLASH_ID;
+    let flash_on_d = cur1 == FLASH_ID && cur2 != FLASH_ID;
+    if (flash_on_f && new1 == FLASH_ID && new2 != FLASH_ID)
+        || (flash_on_d && new2 == FLASH_ID && new1 != FLASH_ID)
+    {
+        (spell2, spell1)
+    } else {
+        (spell1, spell2)
+    }
+}
+
 #[tauri::command]
 pub async fn lcu_apply_summoner_spells(spell1: u32, spell2: u32) -> Result<bool, String> {
     apply_summoner_spells(spell1, spell2)
@@ -743,6 +820,22 @@ async fn apply_summoner_spells(spell1: u32, spell2: u32) -> Result<bool> {
         .build()?;
 
     let base = format!("https://127.0.0.1:{}", lf.port);
+
+    // Best effort: without the current selection the pair goes out as given.
+    let current = match client
+        .get(format!("{}/lol-champ-select/v1/session", base))
+        .header("Authorization", format!("Basic {}", auth_b64))
+        .send()
+        .await
+    {
+        Ok(r) if r.status().is_success() => r
+            .json::<Value>()
+            .await
+            .ok()
+            .and_then(|s| current_spells(&s)),
+        _ => None,
+    };
+    let (spell1, spell2) = keep_flash_key(spell1, spell2, current);
     let body = serde_json::json!({
         "spell1Id": spell1,
         "spell2Id": spell2,
@@ -948,6 +1041,83 @@ mod tests {
         assert!(draftboard_page_ids(&pages[..3]).is_empty());
         // Temporary recommendation page doesn't take a slot.
         assert_eq!(used_page_slots(&pages), 4);
+    }
+
+    #[test]
+    fn only_a_page_limit_rejection_frees_our_rune_pages() {
+        // String present in LeagueClient.exe (checked 2026-11-10).
+        assert!(is_page_limit_error(
+            r#"{"errorCode":"RPC_ERROR","httpStatus":400,"implementationDetails":{},"message":"Max pages reached"}"#
+        ));
+        // An invalid page (or anything else) must leave our pages alone.
+        assert!(!is_page_limit_error(
+            r#"{"errorCode":"RPC_ERROR","httpStatus":400,"message":"Invalid perk selection"}"#
+        ));
+        assert!(!is_page_limit_error(""));
+    }
+
+    #[test]
+    fn item_set_push_keeps_every_other_set() {
+        let existing: Value = serde_json::from_str(
+            r#"{
+              "accountId": 7,
+              "timestamp": 1730000000000,
+              "itemSets": [
+                {"uid": "mine-1", "title": "My Ahri"},
+                {"uid": "draftboard-103-7", "title": "Draftboard - Ahri", "blocks": []},
+                {"uid": "blitz-xyz", "title": "Blitz Zed"}
+              ]
+            }"#,
+        )
+        .unwrap();
+        let new_set = serde_json::json!({"uid": "draftboard-103-7", "title": "Draftboard - Ahri", "blocks": [1]});
+        let merged = merge_item_sets(&existing, new_set.clone(), 7).unwrap();
+        let uids: Vec<&str> = merged["itemSets"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|s| s["uid"].as_str().unwrap())
+            .collect();
+        // Others kept, our previous set for the champion replaced (not duplicated).
+        assert_eq!(uids, vec!["mine-1", "blitz-xyz", "draftboard-103-7"]);
+        assert_eq!(merged["itemSets"][2], new_set);
+        assert_eq!(merged["timestamp"], 1730000000000u64);
+        assert_eq!(merged["accountId"], 7);
+
+        // No sets yet → just ours.
+        let fresh = merge_item_sets(&serde_json::json!({"accountId": 7}), new_set.clone(), 7).unwrap();
+        assert_eq!(fresh["itemSets"].as_array().unwrap().len(), 1);
+
+        // Unreadable list → refuse to build a body (the caller must not PUT).
+        assert!(merge_item_sets(&serde_json::json!([]), new_set.clone(), 7).is_none());
+        assert!(merge_item_sets(&serde_json::json!({"itemSets": "oops"}), new_set, 7).is_none());
+    }
+
+    #[test]
+    fn spell_apply_keeps_flash_on_the_players_key() {
+        let session: Value = serde_json::from_str(
+            r#"{
+              "localPlayerCellId": 2,
+              "myTeam": [
+                {"cellId": 1, "spell1Id": 4, "spell2Id": 12},
+                {"cellId": 2, "spell1Id": 14, "spell2Id": 4}
+              ]
+            }"#,
+        )
+        .unwrap();
+        assert_eq!(current_spells(&session), Some((14, 4)));
+        assert_eq!(current_spells(&serde_json::json!({"myTeam": []})), None);
+
+        // Flash on F: stays on F whatever comes with it.
+        assert_eq!(keep_flash_key(4, 14, Some((14, 4))), (14, 4));
+        assert_eq!(keep_flash_key(4, 11, Some((12, 4))), (11, 4));
+        // Flash on D: stays on D even if the source lists it second.
+        assert_eq!(keep_flash_key(14, 4, Some((4, 7))), (4, 14));
+        assert_eq!(keep_flash_key(4, 14, Some((4, 12))), (4, 14));
+        // No Flash now, no Flash in the new pair, or no session: as given.
+        assert_eq!(keep_flash_key(4, 14, Some((6, 14))), (4, 14));
+        assert_eq!(keep_flash_key(6, 14, Some((14, 4))), (6, 14));
+        assert_eq!(keep_flash_key(4, 14, None), (4, 14));
     }
 
     #[test]

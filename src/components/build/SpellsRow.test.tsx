@@ -10,6 +10,7 @@ import { ToastProvider } from "../ui/ToastContainer";
 import { usePrefsStore, DEFAULT_PREFS } from "../../state/prefsStore";
 import { UI_FEEDBACK_MS } from "../../config";
 import * as lcu from "../../services/lcuService";
+import { i18n } from "../../i18n";
 
 vi.mock("../../services/lcuService", () => ({ applySummonerSpells: vi.fn() }));
 
@@ -22,7 +23,7 @@ const BASE: Props = {
   patch: PATCH,
   pickRate: 0.734,
   winRate: 0.525,
-  reason: "Recomendación dominante de op.gg",
+  reasonKey: "build.spellReason.opgg",
   overrode: false,
 };
 
@@ -85,16 +86,25 @@ describe("SpellsRow — display", () => {
     );
   });
 
-  it("prefixes the reason with an arrow only when coherence overrode op.gg", () => {
-    const { unmount } = renderRow({ reason: "ADC estándar → Heal", overrode: true });
-    const line = screen.getByText(/ADC estándar → Heal/);
-    expect(line.textContent).toBe("↳ ADC estándar → Heal");
+  it("hides WR / PR when op.gg has no stats for the displayed pair", () => {
+    renderRow({ winRate: null, pickRate: null });
+    expect(screen.queryByText(/% WR/)).toBeNull();
+    expect(screen.queryByText(/% PR/)).toBeNull();
+    expect(screen.getByText("Flash + Ignite")).toBeInTheDocument();
+  });
+
+  it("translates the reason key and prefixes an arrow only when coherence overrode op.gg", () => {
+    // Expected text comes from i18n so this holds in any UI language.
+    const heal = i18n.t("build.spellReason.botStandard");
+    const { unmount } = renderRow({ reasonKey: "build.spellReason.botStandard", overrode: true });
+    const line = screen.getByText(`↳ ${heal}`);
     expect(line.className).toContain("text-accent/70");
     unmount();
 
-    renderRow({ reason: "Recomendación dominante de op.gg", overrode: false });
-    const plain = screen.getByText("Recomendación dominante de op.gg");
-    expect(plain.textContent).toBe("Recomendación dominante de op.gg");
+    const opgg = i18n.t("build.spellReason.opgg");
+    renderRow({ reasonKey: "build.spellReason.opgg", overrode: false });
+    const plain = screen.getByText(opgg);
+    expect(plain.textContent).toBe(opgg);
     expect(plain.className).toContain("text-white/30");
   });
 

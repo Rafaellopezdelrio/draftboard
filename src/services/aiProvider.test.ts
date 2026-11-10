@@ -15,7 +15,33 @@ vi.mock("./riotApi", () => ({
   getRiotProxyUrl: () => proxyUrl,
 }));
 
-import { callAi, type AiCallParams } from "./aiProvider";
+import { callAi, aiReady, type AiCallParams } from "./aiProvider";
+
+describe("aiReady — can an AI call go out?", () => {
+  beforeEach(() => {
+    proxyUrl = null;
+  });
+
+  it("any provider is ready with a non-blank key", () => {
+    expect(aiReady("groq", "gsk", "")).toBe(true);
+    expect(aiReady("gemini", "gem", "")).toBe(true);
+    expect(aiReady("anthropic", "sk-ant", "")).toBe(true);
+    expect(aiReady("groq", "   ", "")).toBe(false);
+  });
+
+  it("groq is ready without a key when a proxy is set; other providers are not", () => {
+    expect(aiReady("groq", "", "https://proxy.test")).toBe(true);
+    expect(aiReady("groq", null, "  ")).toBe(false);
+    expect(aiReady("gemini", "", "https://proxy.test")).toBe(false);
+    expect(aiReady("anthropic", "", "https://proxy.test")).toBe(false);
+  });
+
+  it("falls back to the live proxy URL when none is passed", () => {
+    expect(aiReady("groq", "")).toBe(false);
+    proxyUrl = "https://proxy.test";
+    expect(aiReady("groq", "")).toBe(true);
+  });
+});
 
 /** Build a minimal Response-shaped object the provider code reads. */
 function res(status: number, body: unknown) {

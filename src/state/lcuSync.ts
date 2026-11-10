@@ -586,8 +586,8 @@ function applySession(s: LcuChampSelectSession | null | undefined) {
     lastSpokenMyBanTurnId = myTurnActiveBan;
     voiceCoach.speak(i18n.t("voice.banTurn"));
     nativeNotify({
-      title: "Tu turno de banear",
-      body: "Abre Draftboard para ver sugerencias.",
+      title: i18n.t("voice.banTurn"),
+      body: i18n.t("notify.banTurnBody"),
       tag: "draft-turn",
       durationMs: 5000,
     });
@@ -596,8 +596,8 @@ function applySession(s: LcuChampSelectSession | null | undefined) {
     lastSpokenMyPickTurnId = myTurnActivePick;
     voiceCoach.speak(i18n.t("voice.pickTurn"));
     nativeNotify({
-      title: "Tu turno de pickear",
-      body: "Abre Draftboard para ver el pick óptimo.",
+      title: i18n.t("voice.pickTurn"),
+      body: i18n.t("notify.pickTurnBody"),
       tag: "draft-turn",
       durationMs: 5000,
     });

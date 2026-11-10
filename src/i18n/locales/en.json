@@ -247,7 +247,25 @@
     "perkFallback": "Perk {{id}}",
     "spellFallback": "Spell {{id}}",
     "applyPageLimit": "No free slot: delete one of your pages",
-    "toastPageLimitDetail": "All your rune page slots are in use. Delete or rename one in the client; Draftboard never deletes yours."
+    "toastPageLimitDetail": "All your rune page slots are in use. Delete or rename one in the client; Draftboard never deletes yours.",
+    "spellReason": {
+      "jungleSmite": "Jungle → Smite required",
+      "topSplitpush": "Top splitpusher → TP",
+      "topTank": "Top tank/frontline → TP for roams and map presence",
+      "topAssassin": "Assassin/burst → Ignite to snowball",
+      "midAssassin": "Assassin/burst mid → Ignite",
+      "midTank": "Tank/engage mid (Galio, Lissandra...) → TP",
+      "midPokeMage": "Poke/waveclear mage → TP",
+      "midMarksman": "Marksman mid (Corki, Tristana...) → TP",
+      "botAssassin": "Assassin/burst ADC (Lucian, Samira...) → Ignite",
+      "botStandard": "Standard ADC → Heal",
+      "supEngage": "Engage support (Leona, Naut, Rakan...) → Ignite",
+      "supPeel": "Peel support (Janna, Lulu...) → Exhaust",
+      "supPick": "Pick support (Thresh, Bard, Blitz...) → Ignite",
+      "supMage": "Mage support → Ignite",
+      "opgg": "op.gg's dominant recommendation",
+      "fallback": "Role default (no data)"
+    }
   },
   "scout": {
     "title": "Enemy scout",
@@ -589,13 +607,63 @@
     }
   },
   "playstyle": {
-    "title": "Your style"
+    "title": "Your style",
+    "archetypes": {
+      "aggressive": {
+        "label": "Aggressive",
+        "tip": "You look for fights. Defensive counters slow you down. Practice deciding when to disengage."
+      },
+      "scaling": {
+        "label": "Scaling",
+        "tip": "You win long games. Your enemies want to close fast. Play safe before 15 min and let time work for you."
+      },
+      "safe": {
+        "label": "Safe",
+        "tip": "You rarely die and farm well. Your gap is creating plays. Practice engage timings."
+      },
+      "playmaker": {
+        "label": "Playmaker",
+        "tip": "You create plays. You need teams that follow your engages. Pick with vision in mind."
+      },
+      "carry": {
+        "label": "Carry",
+        "tip": "You are the one who closes games. You need farm + items. Avoid forced teamfights before 2 items."
+      },
+      "supportive": {
+        "label": "Supportive",
+        "tip": "Your value is peel/utility. Pick champions that scale with vision and crowd control."
+      },
+      "balanced": {
+        "label": "Balanced",
+        "tip": "No clear tendency. Find which style wins you the most LP and specialize."
+      }
+    },
+    "traits": {
+      "highKills": "High kill pressure",
+      "highDeaths": "You die a lot — high risk",
+      "lowDeaths": "Very safe, you almost never die",
+      "greatFarm": "Excellent farm",
+      "lowFarm": "Low farm",
+      "highKda": "Consistently high KDA",
+      "longGames": "Tends towards long games",
+      "fastGames": "Closes games fast",
+      "assistHeavy": "Assists > kills (peeler/playmaker)",
+      "killHeavy": "Solo carry, kills > assists"
+    }
   },
   "masteries": {
     "title": "Your best champions"
   },
   "championPool": {
-    "title": "Your pool"
+    "title": "Your pool",
+    "insight": {
+      "spam": "You played this champion in {{n}}/{{total}} games — it's your spam pick.",
+      "main": "Your main: {{wr}}% WR ({{games}}g). Keep climbing.",
+      "tilt": "{{n}} losses in a row on this champion. Consider switching or taking a break.",
+      "rusty": "You haven't played it in {{days}} days. Practice before SoloQ.",
+      "rustyNever": "You haven't played it in a long time. Practice before SoloQ.",
+      "practice": "High mastery but few recorded games. A good pick to spam."
+    }
   },
   "logs": {
     "title": "Logs · last {{count}} lines",
@@ -750,7 +818,8 @@
     "region": "Region {{region}} ({{i}}/{{total}})",
     "regionPhase": "{{region}}: {{phase}}",
     "regionFailed": "Region {{region}} failed: {{err}}",
-    "multiDone": "Multi-region done"
+    "multiDone": "Multi-region done",
+    "noMatches": "No matches could be downloaded. The previous data was kept."
   },
   "feedback": {
     "title": "Report a problem",
@@ -927,7 +996,9 @@
     "proxyActiveTitle": "🌟 Premium proxy mode active",
     "proxyActiveBodyPrefix": "Features that need the Riot API work without you configuring a key. The proxy",
     "proxyActiveBodySuffix": "handles it.",
-    "resync": "Re-sync"
+    "resync": "Re-sync",
+    "resyncNoSource": "Nothing was deleted: I can't download your matches again right now. Open the LoL client or check your Riot ID and retry.",
+    "resyncNothing": "Matches deleted, but none could be downloaded. Retry in a few minutes."
   },
   "preferences": {
     "title": "Preferences",
@@ -1201,7 +1272,10 @@
     "title": "What's new in Draftboard"
   },
   "draftCoach": {
-    "tooltip": "The AI explains your pick + the matchup + how to play it"
+    "tooltip": "The AI explains your pick + the matchup + how to play it",
+    "button": "Explain the draft (AI)",
+    "thinking": "Thinking…",
+    "needKey": "Set your API key ({{provider}}) in Prefs."
   },
   "metaSource": {
     "title": "Meta tier source",
@@ -1287,7 +1361,10 @@
     "recentMatches": "Recent matches",
     "noPublicData": "No public data available for this player.",
     "dataSource": "Data via Riot API · public",
-    "copyPuuid": "Copy PUUID to clipboard"
+    "copyPuuid": "Copy PUUID to clipboard",
+    "notOnServer": "No data for this player on {{server}}. Pick their server in the dropdown and search again.",
+    "serverTitle": "Player's server",
+    "serverAuto": "Auto"
   },
   "about": {
     "title": "About Draftboard",
@@ -1445,7 +1522,11 @@
       "adc": "ADC",
       "sup": "Sup",
       "filterLabel": "Filter by role"
-    }
+    },
+    "champFiltered": "{{count}} matches with the current filters",
+    "winrateTrend": "Winrate trend ({{count}}-game window)",
+    "winrateTrendAria": "Winrate trend with {{name}}",
+    "lastPlayed": "Last match: {{date}}"
   },
   "viewBoundary": {
     "title": "Something broke in this view",
@@ -1630,5 +1711,17 @@
     "pickTurn": "Your turn to pick",
     "gameStarted": "Game started",
     "postGameReady": "Post-game analysis ready"
+  },
+  "notify": {
+    "banTurnBody": "Open Draftboard to see suggestions.",
+    "pickTurnBody": "Open Draftboard to see the best pick."
+  },
+  "proPlayers": {
+    "loadAll": "Load all",
+    "tabAll": "All",
+    "load": "Load",
+    "needAccess": "You need the proxy or a Riot API key set in ⚙",
+    "publicNote": "(public data, only used to show pro matches)",
+    "footer": "{{count}} pro players · public data via Riot API"
   }
 }

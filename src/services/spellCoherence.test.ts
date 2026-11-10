@@ -47,7 +47,7 @@ describe("pickCoherentSpells — TOP heuristic", () => {
     );
     expect(r.ids).toEqual([FLASH, TELEPORT]);
     expect(r.overrode).toBe(true);
-    expect(r.reason.toLowerCase()).toContain("split");
+    expect(r.reasonKey).toBe("build.spellReason.topSplitpush");
   });
 
   it("tank or frontline → Flash+TP (Malphite-style)", () => {
@@ -116,6 +116,38 @@ describe("pickCoherentSpells — UTILITY heuristic", () => {
       [FLASH, IGNITE]
     );
     expect(r.ids).toEqual([FLASH, EXHAUST]);
+  });
+});
+
+describe("pickCoherentSpells — non-jungle never gets Smite", () => {
+  it("ignores an op.gg Smite pair when no archetype rule fires", () => {
+    const r = pickCoherentSpells(
+      champ({ tags: ["Fighter"], archetypes: ["sustain-dps"] }),
+      "TOP",
+      [FLASH, SMITE]
+    );
+    expect(r.ids).toEqual([FLASH, TELEPORT]);
+    expect(r.overrode).toBe(true);
+  });
+
+  it("marks the archetype pick as an override of a Smite pair", () => {
+    const r = pickCoherentSpells(champ({ tags: ["Assassin"] }), "MIDDLE", [SMITE, IGNITE]);
+    expect(r.ids).toEqual([FLASH, IGNITE]);
+    expect(r.overrode).toBe(true);
+  });
+});
+
+describe("pickCoherentSpells — reason", () => {
+  it("is an i18n key, never display text", () => {
+    const cases: Array<[Champion | undefined, Role, [number, number] | undefined]> = [
+      [champ(), "JUNGLE", undefined],
+      [champ({ archetypes: ["peel"] }), "UTILITY", [FLASH, IGNITE]],
+      [champ({ tags: ["Fighter"] }), "TOP", [FLASH, IGNITE]],
+      [undefined, "MIDDLE", undefined],
+    ];
+    for (const [c, role, ids] of cases) {
+      expect(pickCoherentSpells(c, role, ids).reasonKey).toMatch(/^build.spellReason.[a-zA-Z]+$/);
+    }
   });
 });
 

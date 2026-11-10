@@ -34,13 +34,16 @@ const STORAGE_KEY = "lol-draft-advisor:patch-notes:v2";
 export async function getLatestPatchSummary(
   patch: string
 ): Promise<PatchSummary | null> {
+  // DDragon hands us the "X.Y.Z" build version; the worker (and Leaguepedia)
+  // use "X.Y". Normalise once so the cache check and both fetchers agree.
+  const key = patch.split(".").slice(0, 2).join(".");
   // Cache for 24h
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const cached = JSON.parse(raw) as PatchSummary;
       if (
-        cached.patch === patch &&
+        cached.patch === key &&
         Date.now() - cached.fetchedAt < 24 * 60 * 60 * 1000
       ) {
         return cached;
@@ -51,16 +54,20 @@ export async function getLatestPatchSummary(
   }
 
   // Primary: our worker scrapes Riot's official patch notes page.
-  let summary = await fetchFromRiotProxy(patch);
+  let summary = await fetchFromRiotProxy(key);
   // Fallback: Leaguepedia Cargo. Works for older patches but rarely has
   // the same level of structured detail as Riot's own page.
   if (!summary || summary.changes.length === 0) {
-    summary = await fetchFromLeaguepedia(patch);
+    summary = await fetchFromLeaguepedia(key);
   }
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(summary));
-  } catch {
-    // ignore quota
+  // Don't cache an empty summary: it usually means "worker down" or "notes not
+  // published yet", and caching it would hide the real notes for 24h.
+  if (summary.changes.length > 0) {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...summary, patch: key }));
+    } catch {
+      // ignore quota
+    }
   }
   return summary;
 }

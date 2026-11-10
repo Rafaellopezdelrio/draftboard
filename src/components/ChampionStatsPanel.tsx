@@ -6,6 +6,7 @@
 // Pure computation from the already-filtered MatchRow array — no
 // extra DB query, no async, no loading state.
 
+import { useTranslation } from "react-i18next";
 import type { MatchRow } from "../services/matchRepo";
 import type { ChampionDb } from "../types/champion";
 import { Trophy, Target, Zap, Calendar } from "lucide-react";
@@ -24,6 +25,7 @@ interface Props {
 /** Show the panel when the user has filtered to a single champion in
  * HistoryView. Renders compact stat cards + a winrate trend line. */
 export function ChampionStatsPanel({ matches, championId, db }: Props) {
+  const { t } = useTranslation();
   if (matches.length === 0) return null;
   const champ = db.champions[String(championId)];
   if (!champ) return null;
@@ -61,27 +63,27 @@ export function ChampionStatsPanel({ matches, championId, db }: Props) {
         <div>
           <p className="text-sm font-semibold text-white">{champ.name}</p>
           <p className="text-[10px] text-white/45">
-            {matches.length} partidas con los filtros actuales
+            {t("history.champFiltered", { count: matches.length })}
           </p>
         </div>
       </div>
       <div className="grid grid-cols-4 gap-2">
         <StatCard
           value={matches.length}
-          label="Partidas"
+          label={t("history.matches")}
         />
         <StatCard
           value={`${winrate.toFixed(0)}%`}
-          label="Winrate"
+          label={t("history.winrate")}
           color={winrate >= 55 ? "good" : winrate >= 45 ? "default" : "bad"}
         />
-        <StatCard value={avgKda.toFixed(2)} label="KDA medio" />
-        <StatCard value={avgCs.toFixed(1)} label="CS/min" />
+        <StatCard value={avgKda.toFixed(2)} label={t("history.avgKda")} />
+        <StatCard value={avgCs.toFixed(1)} label={t("history.csPerMin")} />
       </div>
       {winrateSeries.length >= 2 && (
         <div className="mt-3 flex items-center gap-3">
           <div className="text-[10px] uppercase tracking-wide text-white/45 shrink-0">
-            Winrate trend ({windowSize}-game window)
+            {t("history.winrateTrend", { count: windowSize })}
           </div>
           <SparkLine
             data={winrateSeries}
@@ -89,14 +91,14 @@ export function ChampionStatsPanel({ matches, championId, db }: Props) {
             color={winrate >= 50 ? "#94d09b" : "#d09b94"}
             width={200}
             height={28}
-            ariaLabel={`Tendencia de winrate con ${champ.name}`}
+            ariaLabel={t("history.winrateTrendAria", { name: champ.name })}
           />
         </div>
       )}
       {lastPlayed && (
         <p className="text-[10px] text-white/40 mt-2 flex items-center gap-1">
           <Calendar className="w-3 h-3" aria-hidden="true" />
-          Última partida: {new Date(lastPlayed).toLocaleDateString()}
+          {t("history.lastPlayed", { date: new Date(lastPlayed).toLocaleDateString() })}
         </p>
       )}
     </div>

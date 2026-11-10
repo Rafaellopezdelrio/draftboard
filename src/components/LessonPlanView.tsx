@@ -9,6 +9,7 @@ import {
   type LessonPlan,
 } from "../services/lessonPlanRepo";
 import { aiLessonPlan } from "../services/aiCoach";
+import { aiReady } from "../services/aiProvider";
 import { recentMatches } from "../services/matchRepo";
 import {
   buildPlaystyleProfile,
@@ -47,6 +48,8 @@ export function LessonPlanView({ db, onClose }: Props) {
         : s.prefs.anthropicApiKey
   );
   const lang = usePrefsStore((s) => s.prefs.aiCoachLanguage);
+  // Groq works keyless through the proxy, so a missing key alone is not a block.
+  const ready = aiReady(provider, apiKey, usePrefsStore((s) => s.prefs.riotProxyUrl));
 
   const [tab, setTab] = useState<Tab>("current");
   const [past, setPast] = useState<LessonPlan[]>([]);
@@ -59,7 +62,7 @@ export function LessonPlanView({ db, onClose }: Props) {
   }, [text]);
 
   async function generate() {
-    if (!apiKey) {
+    if (!ready) {
       setErr(t("lessonPlan.errKey", { provider }));
       return;
     }
@@ -93,14 +96,14 @@ export function LessonPlanView({ db, onClose }: Props) {
         recentMatches: summary,
         language: lang,
       });
-      // Persist BEFORE setText: generated plans were never saved (the repo's
-      // saveLessonPlan was unused), so History stayed permanently empty and a
-      // plan vanished on close. Saving first means the [text] effect below
-      // re-runs recentLessonPlans and the new plan shows up immediately.
+      // Persist BEFORE setText so the [text] effect below re-runs
+      // recentLessonPlans and the new plan shows up immediately. This is the
+      // ONLY save (aiLessonPlan no longer saves, it produced duplicates).
+      // The archetype is stored as its id and translated when shown.
       await saveLessonPlan({
         createdTsMs: Date.now(),
         weakestArea: weakest?.detail ?? null,
-        archetype: archetypeLabel,
+        archetype: profile?.archetype ?? "balanced",
         planText: result,
         completed: false,
       }).catch(() => {});
@@ -158,13 +161,13 @@ export function LessonPlanView({ db, onClose }: Props) {
                   </ul>
                   <button
                     onClick={generate}
-                    disabled={loading || !apiKey}
+                    disabled={loading || !ready}
                     className="mt-3 w-full px-4 py-2 bg-accent text-black font-medium rounded-md text-sm disabled:opacity-50 inline-flex items-center justify-center gap-2"
                   >
                     <Sparkles className="w-4 h-4" />
                     {t("lessonPlan.generate")}
                   </button>
-                  {!apiKey && (
+                  {!ready && (
                     <p className="text-[11px] text-meh mt-2">
                       {t("lessonPlan.needKey", { provider })}
                     </p>
@@ -226,7 +229,13 @@ export function LessonPlanView({ db, onClose }: Props) {
                   <div className="flex items-baseline justify-between mb-2">
                     <p className="text-xs text-white/55">
                       {new Date(p.createdTsMs).toLocaleDateString()} ·{" "}
-                      <span className="text-accent">{p.archetype}</span>
+                      <span className="text-accent">
+                        {p.archetype
+                          ? t(`playstyle.archetypes.${p.archetype}.label`, {
+                              defaultValue: p.archetype,
+                            })
+                          : ""}
+                      </span>
                     </p>
                     {p.completed ? (
                       <span className="text-[10px] text-good inline-flex items-center gap-1 uppercase tracking-widest">
