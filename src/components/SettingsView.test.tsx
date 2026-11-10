@@ -22,6 +22,7 @@ import type { ChampionDb } from "../types/champion";
 vi.mock("../services/riotApi", () => ({
   getAccount: vi.fn(),
   getRecentMatchIds: vi.fn(),
+  getMatch: vi.fn(),
   getRiotProxyUrl: vi.fn(),
 }));
 vi.mock("../services/settingsRepo", () => ({
@@ -51,7 +52,7 @@ vi.mock("../services/dataDragon", () => ({
   fetchLatestPatch: vi.fn(),
 }));
 
-import { getAccount, getRecentMatchIds, getRiotProxyUrl } from "../services/riotApi";
+import { getAccount, getMatch, getRecentMatchIds, getRiotProxyUrl } from "../services/riotApi";
 import { loadSettings, saveSettings } from "../services/settingsRepo";
 import { getCurrentSummoner } from "../services/lcuService";
 import { syncPersonalData } from "../services/personalDataSync";
@@ -115,6 +116,7 @@ beforeEach(() => {
   vi.mocked(getRiotProxyUrl).mockReset().mockReturnValue(null);
   vi.mocked(getAccount).mockReset().mockResolvedValue({ puuid: "puuid-new", gameName: "Faker", tagLine: "KR1" });
   vi.mocked(getRecentMatchIds).mockReset().mockResolvedValue(["NA1_1"]);
+  vi.mocked(getMatch).mockReset().mockResolvedValue({} as never);
   vi.mocked(loadSettings).mockReset().mockResolvedValue(null);
   vi.mocked(saveSettings).mockReset().mockResolvedValue(undefined);
   vi.mocked(getCurrentSummoner).mockReset().mockResolvedValue(null);
@@ -384,6 +386,8 @@ describe("SettingsView — resync", () => {
       vi.mocked(getRecentMatchIds).mockRejectedValue(new Error("429"))],
     ["Riot returning no matches and the client closed", SAVED, () =>
       vi.mocked(getRecentMatchIds).mockResolvedValue([])],
+    ["Riot listing matches but failing to serve them, client closed", SAVED, () =>
+      vi.mocked(getMatch).mockRejectedValue(new Error("503"))],
   ] as const)("never wipes matches with %s", async (_name, saved, arrange) => {
     vi.mocked(loadSettings).mockResolvedValue(saved);
     arrange();

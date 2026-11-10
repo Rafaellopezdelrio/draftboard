@@ -181,6 +181,8 @@ describe("syncPersonalData — Riot API path", () => {
       done: 0,
       total: 0,
       message: "Riot API falló (Error: 403 Forbidden), probando LCU...",
+      messageKey: "sync.riotFailed",
+      messageParams: { error: "Error: 403 Forbidden" },
     });
     expect(result).toEqual({ matches: 0, masteries: 0, rank: RANK, source: "LCU" });
   });
@@ -227,9 +229,9 @@ describe("syncPersonalData — LCU path", () => {
     ]);
     expect(linkDraftToMatchMock).toHaveBeenCalledWith("LCU_2", 64, 1_700_000_000_000);
     expect(progress).toEqual([
-      { source: "LCU", done: 0, total: 1, message: "Conectando al cliente..." },
-      { source: "LCU", done: 2, total: 3, message: "Guardando 2/3" },
-      { source: "LCU", done: 3, total: 3, message: "Guardando 3/3" },
+      { source: "LCU", done: 0, total: 1, message: "Conectando al cliente...", messageKey: "sync.connecting" },
+      { source: "LCU", done: 2, total: 3, message: "Guardando 2/3", messageKey: "sync.saving", messageParams: { done: 2, total: 3 } },
+      { source: "LCU", done: 3, total: 3, message: "Guardando 3/3", messageKey: "sync.saving", messageParams: { done: 3, total: 3 } },
     ]);
   });
 
@@ -271,6 +273,7 @@ describe("syncPersonalData — LCU path", () => {
       done: 0,
       total: 0,
       message: "No data source available",
+      messageKey: "sync.noSource",
     });
   });
 });

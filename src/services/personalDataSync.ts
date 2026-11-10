@@ -24,6 +24,9 @@ export interface SyncProgress {
   done: number;
   total: number;
   message?: string;
+  /** i18n key (+ params) for `message`; UIs should prefer it. */
+  messageKey?: string;
+  messageParams?: Record<string, string | number>;
 }
 
 export interface SyncResult {
@@ -76,6 +79,8 @@ async function runSync(
         done: 0,
         total: 0,
         message: `Riot API falló (${String(e).slice(0, 60)}), probando LCU...`,
+        messageKey: "sync.riotFailed",
+        messageParams: { error: String(e).slice(0, 60) },
       });
       // Fall through to LCU
     }
@@ -85,14 +90,14 @@ async function runSync(
   const lcuResult = await tryLcuSync(onProgress);
   if (lcuResult) return lcuResult;
 
-  onProgress({ source: "none", done: 0, total: 0, message: "No data source available" });
+  onProgress({ source: "none", done: 0, total: 0, message: "No data source available", messageKey: "sync.noSource" });
   return { matches: 0, masteries: 0, rank: null, source: "none" };
 }
 
 async function tryLcuSync(
   onProgress: (p: SyncProgress) => void
 ): Promise<SyncResult | null> {
-  onProgress({ source: "LCU", done: 0, total: 1, message: "Conectando al cliente..." });
+  onProgress({ source: "LCU", done: 0, total: 1, message: "Conectando al cliente...", messageKey: "sync.connecting" });
   const [matches, masteries, rank] = await Promise.all([
     lcuRecentMatches(20).catch(() => []),
     lcuMasteries().catch(() => []),
@@ -122,6 +127,8 @@ async function tryLcuSync(
       done: i + 1,
       total: matches.length,
       message: `Guardando ${i + 1}/${matches.length}`,
+      messageKey: "sync.saving",
+      messageParams: { done: i + 1, total: matches.length },
     });
   }
   return {
@@ -136,7 +143,7 @@ async function riotApiSync(
   cfg: RiotConfig & { puuid?: string },
   onProgress: (p: SyncProgress) => void
 ): Promise<SyncResult> {
-  onProgress({ source: "Riot API", done: 0, total: 1, message: "Listando partidas..." });
+  onProgress({ source: "Riot API", done: 0, total: 1, message: "Listando partidas...", messageKey: "sync.listing" });
   const ids = await getRecentMatchIds(cfg, cfg.puuid!, 50);
   const known = await existingMatchIds();
   const todo = ids.filter((id) => !known.has(id));
@@ -157,6 +164,8 @@ async function riotApiSync(
       done: i + 1,
       total: todo.length,
       message: `Descargando ${i + 1}/${todo.length}`,
+      messageKey: "sync.downloading",
+      messageParams: { done: i + 1, total: todo.length },
     });
   }
   // Games saved earlier through the LCU fallback now have a Riot twin: keep

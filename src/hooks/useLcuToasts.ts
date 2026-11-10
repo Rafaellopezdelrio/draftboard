@@ -10,6 +10,7 @@ import { useEffect, useRef } from "react";
 import type { LcuStatus } from "../services/lcuService";
 import type { ChampionDb } from "../types/champion";
 import { useToast } from "../components/ui/ToastContainer";
+import { i18n } from "../i18n";
 
 interface ChampionLockedDetail {
   championKey: string;
@@ -33,15 +34,15 @@ export function useLcuConnectToasts(lcuStatus: LcuStatus): void {
     if (lcuStatus.connected) {
       pushToast({
         type: "success",
-        title: "Cliente de LoL conectado",
-        detail: "Champ select y partidas se trackearán automáticamente.",
+        title: i18n.t("lcuToast.connectedTitle"),
+        detail: i18n.t("lcuToast.connectedDetail"),
         durationMs: 3000,
       });
     } else {
       pushToast({
         type: "warn",
-        title: "Cliente de LoL desconectado",
-        detail: "Reabre el cliente para reanudar el tracking.",
+        title: i18n.t("lcuToast.disconnectedTitle"),
+        detail: i18n.t("lcuToast.disconnectedDetail"),
         durationMs: 4000,
       });
     }
@@ -61,7 +62,7 @@ export function useChampionLockToast(db: ChampionDb | null): void {
       const champ = detail?.championKey ? db?.champions[detail.championKey] : null;
       pushToast({
         type: "success",
-        title: "Campeón bloqueado",
+        title: i18n.t("voice.locked"),
         detail: champ?.name ?? "Locked in",
         durationMs: 2000,
       });

@@ -1723,5 +1723,19 @@
     "needAccess": "You need the proxy or a Riot API key set in ⚙",
     "publicNote": "(public data, only used to show pro matches)",
     "footer": "{{count}} pro players · public data via Riot API"
+  },
+  "sync": {
+    "riotFailed": "Riot API failed ({{error}}), trying the client...",
+    "noSource": "No data source available",
+    "connecting": "Connecting to the client...",
+    "saving": "Saving {{done}}/{{total}}",
+    "listing": "Listing matches...",
+    "downloading": "Downloading {{done}}/{{total}}"
+  },
+  "lcuToast": {
+    "connectedTitle": "LoL client connected",
+    "connectedDetail": "Champ select and games will be tracked automatically.",
+    "disconnectedTitle": "LoL client disconnected",
+    "disconnectedDetail": "Reopen the client to resume tracking."
   }
 }

@@ -1723,5 +1723,19 @@
     "needAccess": "Necesitas el proxy o una API key de Riot configurada en ⚙",
     "publicNote": "(datos públicos, solo para mostrar partidas pro)",
     "footer": "{{count}} pro players · datos públicos vía Riot API"
+  },
+  "sync": {
+    "riotFailed": "Riot API falló ({{error}}), probando el cliente...",
+    "noSource": "No hay fuente de datos disponible",
+    "connecting": "Conectando al cliente...",
+    "saving": "Guardando {{done}}/{{total}}",
+    "listing": "Listando partidas...",
+    "downloading": "Descargando {{done}}/{{total}}"
+  },
+  "lcuToast": {
+    "connectedTitle": "Cliente de LoL conectado",
+    "connectedDetail": "Champ select y partidas se trackearán automáticamente.",
+    "disconnectedTitle": "Cliente de LoL desconectado",
+    "disconnectedDetail": "Reabre el cliente para reanudar el tracking."
   }
 }

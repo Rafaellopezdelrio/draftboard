@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useFocusTrap } from "../hooks/useFocusTrap";
 
 const SETTINGS_TITLE_ID = "settings-view-title";
-import { getAccount, getRecentMatchIds, getRiotProxyUrl, type Region } from "../services/riotApi";
+import { getAccount, getMatch, getRecentMatchIds, getRiotProxyUrl, type Region } from "../services/riotApi";
 import { loadSettings, saveSettings } from "../services/settingsRepo";
 import { getCurrentSummoner } from "../services/lcuService";
 import { syncPersonalData } from "../services/personalDataSync";
@@ -95,11 +95,14 @@ export function SettingsView({ onClose }: Props) {
         await saveSettings({ apiKey, region, riotIdName, riotIdTag, puuid });
       }
       // Never wipe before knowing the history can be downloaded again: Riot
-      // must hand back at least one match id, or the LoL client must answer.
+      // must hand back a match id AND that match itself (ids can answer while
+      // match details fail), or the LoL client must answer.
       let reachable = false;
       if (hasRiotAccess && syncPuuid) {
-        reachable = await getRecentMatchIds({ apiKey, region, riotIdName, riotIdTag }, syncPuuid, 1)
-          .then((ids) => ids.length > 0)
+        const probeCfg = { apiKey, region, riotIdName, riotIdTag };
+        const probePuuid = syncPuuid;
+        reachable = await getRecentMatchIds(probeCfg, probePuuid, 1)
+          .then(async (ids) => ids.length > 0 && (await getMatch(probeCfg, probePuuid, ids[0])) != null)
           .catch(() => false);
       }
       if (!reachable) reachable = (await getCurrentSummoner().catch(() => null)) !== null;
@@ -110,7 +113,7 @@ export function SettingsView({ onClose }: Props) {
       setStatus(t("settings.deletingOldMatches"));
       await clearAllMatches();
       const result = await syncPersonalData((p) =>
-        setStatus(`${p.source}: ${p.message ?? `${p.done}/${p.total}`}`)
+        setStatus(`${p.source}: ${p.messageKey ? t(p.messageKey, p.messageParams) : (p.message ?? `${p.done}/${p.total}`)}`)
       );
       if (result.source === "none") {
         setStatus(t("settings.openClientRetry"));
