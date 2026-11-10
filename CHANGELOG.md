@@ -11,6 +11,10 @@ ships everything below them too. Before tagging: play one real game (overlay
 focus, auto runes, champ-select capture) — see docs/handoff.md.
 
 ### Added
+- **Build against your lane opponent**: the build panel now shows what
+  players of your champion buy and run against the enemy in your lane
+  (starter, core, boots, runes), your win rate in that matchup, who has the
+  lane edge and a tip, from op.gg. Needs a worker deploy to take effect.
 - Enemy scout now works in ranked: Riot hides the enemy team during champ
   select, so from the loading screen on Draftboard looks the enemies up via
   spectator-v5 (official Riot API) and shows each one's threat level, a

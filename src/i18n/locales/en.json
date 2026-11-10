@@ -265,7 +265,14 @@
       "supMage": "Mage support → Ignite",
       "opgg": "op.gg's dominant recommendation",
       "fallback": "Role default (no data)"
-    }
+    },
+    "vsOpponent": "Against {{name}}",
+    "laneEdgeMine": "You have the lane edge",
+    "laneEdgeTheirs": "{{name}} has the lane edge: play safe",
+    "matchupStart": "Start",
+    "matchupCore": "Core",
+    "matchupBoots": "Boots",
+    "matchupRunes": "Runes"
   },
   "scout": {
     "title": "Enemy scout",

@@ -12,6 +12,7 @@ import type { ChampionDb, Role } from "../types/champion";
 import { applyRunesResult } from "../services/lcuService";
 import { isLegalRunePage, runePageName } from "../services/runePages";
 import { OpggBuildSection } from "./build/OpggBuildSection";
+import { MatchupBuildCard } from "./build/MatchupBuildCard";
 import { LolvvvProBuild } from "./build/LolvvvProBuild";
 import { ItemIcon, PerkIcon } from "./build/icons";
 import { usePrefsStore } from "../state/prefsStore";
@@ -261,6 +262,10 @@ function BuildPanelInner({ db, championKey, role, enemyKeys = [], gameMode }: Pr
             ))}
           </div>
         </div>
+      )}
+
+      {role && !isAram && (
+        <MatchupBuildCard db={db} championDdId={champ.id} role={role} enemyKeys={enemyKeys} />
       )}
 
       {opggBuild && (

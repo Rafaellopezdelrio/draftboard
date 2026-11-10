@@ -265,7 +265,14 @@
       "supMage": "Soporte mago → Ignite",
       "opgg": "Recomendación dominante de op.gg",
       "fallback": "Por defecto según el rol (sin datos)"
-    }
+    },
+    "vsOpponent": "Contra {{name}}",
+    "laneEdgeMine": "Tienes ventaja en línea",
+    "laneEdgeTheirs": "{{name}} tiene ventaja en línea: juega seguro",
+    "matchupStart": "Inicio",
+    "matchupCore": "Core",
+    "matchupBoots": "Botas",
+    "matchupRunes": "Runas"
   },
   "scout": {
     "title": "Scout enemigos",
