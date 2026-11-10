@@ -3,7 +3,7 @@
 // for the previous opponent never paints under the new one.
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { MatchupBuildCard, laneOpponentKey } from "./MatchupBuildCard";
 import { fetchMatchupBuild, type MatchupBuild } from "../../services/opggMatchupBuild";
 import type { ChampionDb } from "../../types/champion";
@@ -22,6 +22,8 @@ const db = {
     "238": champ("238", "Zed"),
     "64": champ("64", "LeeSin", "Lee Sin"),
     "7": champ("7", "Leblanc", "LeBlanc"),
+    "157": champ("157", "Yasuo"),
+    "84": champ("84", "Akali"),
   },
 } as unknown as ChampionDb;
 
@@ -104,6 +106,29 @@ describe("MatchupBuildCard", () => {
     rerender(<MatchupBuildCard db={db} championDdId="Ahri" role="MIDDLE" enemyKeys={["7"]} />);
     await waitFor(() => expect(fetchMatchupBuild).toHaveBeenCalledTimes(2));
     expect(container).toBeEmptyDOMElement();
+  });
+
+  it("flex picks: the player can switch to another enemy that plays the role", async () => {
+    vi.mocked(fetchMatchupBuild).mockResolvedValue(resp(build({ laneAdvantage: null })));
+    // Yasuo (mid/top/bot) and Akali (mid/top) can both be my mid opponent.
+    render(<MatchupBuildCard db={db} championDdId="Ahri" role="MIDDLE" enemyKeys={["157", "84"]} />);
+    await screen.findByText(/^Contra /);
+    const first = vi.mocked(fetchMatchupBuild).mock.calls[0][2];
+    const other = first === "Yasuo" ? "Akali" : "Yasuo";
+    fireEvent.click(screen.getByRole("button", { name: other }));
+    await waitFor(() =>
+      expect(fetchMatchupBuild).toHaveBeenLastCalledWith("Ahri", "MIDDLE", other, "es")
+    );
+    await screen.findByText(/se gana en equipo/);
+    expect(screen.getByText(`Contra ${other}`)).toBeInTheDocument();
+  });
+
+  it("no chooser when only one enemy can play my role", async () => {
+    vi.mocked(fetchMatchupBuild).mockResolvedValue(resp(build()));
+    render(<MatchupBuildCard db={db} championDdId="Ahri" role="MIDDLE" enemyKeys={["64", "238"]} />);
+    await screen.findByText("Contra Zed");
+    expect(screen.queryByRole("button")).toBeNull();
+    expect(screen.getByText(/se gana en equipo/)).toBeInTheDocument();
   });
 
   it("a late answer for the previous opponent never shows under the new one", async () => {

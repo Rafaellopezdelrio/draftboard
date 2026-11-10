@@ -272,7 +272,9 @@
     "matchupStart": "Inicio",
     "matchupCore": "Core",
     "matchupBoots": "Botas",
-    "matchupRunes": "Runas"
+    "matchupRunes": "Runas",
+    "matchupFlex": "¿Otro rival en tu línea?",
+    "matchupTeamNote": "Esto es solo tu línea. La partida se gana en equipo: el resto de objetos, según el equipo rival (abajo)."
   },
   "scout": {
     "title": "Scout enemigos",

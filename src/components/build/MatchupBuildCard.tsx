@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import { Swords } from "lucide-react";
 import type { ChampionDb, Role } from "../../types/champion";
 import { inferEnemyRoles } from "../../data/matchupTips";
+import { CHAMPION_ROLES } from "../../data/championRoles";
 import { usePrefsStore } from "../../state/prefsStore";
 import { fetchMatchupBuild, type MatchupBuildResponse } from "../../services/opggMatchupBuild";
 import { BuildRow } from "./BuildRow";
@@ -31,12 +32,26 @@ export function laneOpponentKey(db: ChampionDb, role: Role, enemyKeys: string[])
   return i >= 0 ? enemyKeys[i] : null;
 }
 
+/** Every enemy that can play my role: with flex picks the guess above can be
+ * wrong, so the player gets to choose among these. */
+export function laneOpponentCandidates(db: ChampionDb, role: Role, enemyKeys: string[]): string[] {
+  return enemyKeys.filter((k) => {
+    const id = db.champions[k]?.id;
+    return id ? (CHAMPION_ROLES[id] ?? []).includes(role) : false;
+  });
+}
+
 export function MatchupBuildCard({ db, championDdId, role, enemyKeys }: Props) {
   const { t } = useTranslation();
   const lang = usePrefsStore((s) => s.prefs.uiLocale);
   const enemySig = enemyKeys.join(",");
   // eslint-disable-next-line react-hooks/exhaustive-deps -- enemySig stands in for enemyKeys
-  const oppKey = useMemo(() => laneOpponentKey(db, role, enemyKeys), [db, role, enemySig]);
+  const guessKey = useMemo(() => laneOpponentKey(db, role, enemyKeys), [db, role, enemySig]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- enemySig stands in for enemyKeys
+  const candidates = useMemo(() => laneOpponentCandidates(db, role, enemyKeys), [db, role, enemySig]);
+  // The player's own choice wins while that enemy is still on the board.
+  const [picked, setPicked] = useState<string | null>(null);
+  const oppKey = picked && candidates.includes(picked) ? picked : guessKey;
   const opp = oppKey ? db.champions[oppKey] : undefined;
   const oppDdId = opp?.id;
   const want = oppDdId ? `${championDdId}:${role}:${oppDdId}:${lang}` : null;
@@ -54,9 +69,38 @@ export function MatchupBuildCard({ db, championDdId, role, enemyKeys }: Props) {
   }, [want, championDdId, role, oppDdId, lang]);
 
   // Only the answer for the pair on screen — never the previous opponent's.
-  const build = want && got?.key === want ? got.data?.build : null;
-  if (!opp || !build) return null;
-  if (build.games !== null && build.games < MIN_MATCHUP_BUILD_GAMES) return null;
+  const answer = want && got?.key === want ? got.data?.build : null;
+  const build =
+    answer && (answer.games === null || answer.games >= MIN_MATCHUP_BUILD_GAMES) ? answer : null;
+  const flex = candidates.length > 1;
+  // With a flex pick the chooser stays up even when this pair has no data.
+  if (!opp || (!build && !flex)) return null;
+  const chooser = flex && (
+    <div className="flex flex-wrap items-center gap-1">
+      <span className="text-[10px] text-white/45">{t("build.matchupFlex")}</span>
+      {candidates.map((k) => (
+        <button
+          key={k}
+          type="button"
+          onClick={() => setPicked(k)}
+          aria-pressed={k === oppKey}
+          className={`px-1.5 py-0.5 rounded text-[10px] ring-1 ${
+            k === oppKey ? "bg-accent/20 text-accent ring-accent/40" : "text-white/60 ring-white/15 hover:text-white"
+          }`}
+        >
+          {db.champions[k]?.name}
+        </button>
+      ))}
+    </div>
+  );
+  if (!build) {
+    return (
+      <div className="rounded-lg bg-white/5 ring-1 ring-accent/25 p-2 space-y-1.5" data-testid="matchup-build">
+        <p className="text-xs font-semibold text-white/85">{t("build.vsOpponent", { name: opp.name })}</p>
+        {chooser}
+      </div>
+    );
+  }
 
   const winRate = build.games && build.wins !== null ? build.wins / build.games : null;
   const core = build.coreItems[0];
@@ -90,6 +134,7 @@ export function MatchupBuildCard({ db, championDdId, role, enemyKeys }: Props) {
           </span>
         )}
       </div>
+      {chooser}
       {edge && (
         <p className={`text-[11px] ${edge === "mine" ? "text-good" : "text-meh"}`}>
           {t(edge === "mine" ? "build.laneEdgeMine" : "build.laneEdgeTheirs", { name: opp.name })}
@@ -111,6 +156,7 @@ export function MatchupBuildCard({ db, championDdId, role, enemyKeys }: Props) {
         </div>
       )}
       {build.tip && <p className="text-[11px] text-white/60 leading-snug">{build.tip}</p>}
+      <p className="text-[10px] text-white/40 leading-snug">{t("build.matchupTeamNote")}</p>
     </div>
   );
 }

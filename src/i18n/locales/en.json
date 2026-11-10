@@ -272,7 +272,9 @@
     "matchupStart": "Start",
     "matchupCore": "Core",
     "matchupBoots": "Boots",
-    "matchupRunes": "Runes"
+    "matchupRunes": "Runes",
+    "matchupFlex": "Different lane opponent?",
+    "matchupTeamNote": "This is only your lane. Games are won as a team: build the rest against the enemy team (below)."
   },
   "scout": {
     "title": "Enemy scout",
