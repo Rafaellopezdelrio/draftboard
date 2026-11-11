@@ -7,26 +7,41 @@
 Pro-level draft advisor and AI coach for League of Legends.
 
 A free, privacy-first desktop application that helps players from Iron to
-Challenger climb solo queue. Champion-select suggestions tuned to your
-mastery, full matchup grid with real win-rates per opponent, live in-game
-overlay, post-game AI coaching, and per-bracket tier lists.
+Challenger climb solo queue. It answers three questions in plain language —
+**what to ban, what to pick, what to buy** — and keeps the deep data (matchup
+grid, comp analysis, tier lists, AI coaching) one click away.
 
-8 MB installer. All player data stays local (SQLite). All Riot API calls are
+Small installer. All player data stays local (SQLite). All Riot API calls are
 routed through a Cloudflare Worker proxy with edge caching — no per-user API
 key required.
 
-![Champion select — suggestions, comp analysis and matchup tips](docs/screenshots/champ-select.png)
+![Simple view — ban, pick and buy in three steps](docs/screenshots/simple-view.png)
 
-Champion select: the engine ranks your pool against the live draft, scores the
-comp (engage / frontline / peel / burst, AD-AP split) and surfaces per-opponent
-matchup tips.
+Simple view (the default screen): three steps, each with its reason. Champions
+you already play come first, and the buy order is built for your lane opponent
+and then adjusted for the whole enemy team.
 
-![Per-bracket tier list from dpm.lol](docs/screenshots/tier-list.png)
+![Detailed view — draft board, build, comp analysis and matchup tips](docs/screenshots/champ-select.png)
+
+Detailed view: the full draft board, pro build with skill order and runes, comp
+score (engage / frontline / peel / burst, AD-AP split) and per-opponent tips.
+
+![AI Coach chat](docs/screenshots/ai-coach.png)
+
+AI Coach: a chat that knows your recent games, masteries and rank.
+
+![Tier list by rank bracket and region](docs/screenshots/tier-list.png)
 
 Tier list: per rank bracket and region, with win-rate / pick-rate / ban-rate and
 a pick-rate floor so small-sample champions don't fake their way into S tier.
 
 ## Features
+
+### Simple view
+- **Ban / Pick / Buy** on one screen, no jargon. Never suggests banning a
+  champion it also suggests picking.
+- **Four header entries** (Game, Coach, Search, Settings); everything else is
+  one menu away. The full panel layout sits behind "More details".
 
 ### Champion select
 - **Top Picks engine** — combines tier list + your mastery + draft context
@@ -39,21 +54,31 @@ a pick-rate floor so small-sample champions don't fake their way into S tier.
 - **Counter detection** — full 62-entry matchup grid per (champion, role).
   Shows real WR% vs each opponent with sample sizes; the bad and the good
   separated so you actually see what beats you.
+- **Matchup buy plan** — one ordered list (start, first item, boots, second,
+  third) with the reason for each line. Start and first item are for your
+  lane opponent; boots and later items adapt to the whole enemy team, because
+  games are won as a team. Handles flex picks: when the lane opponent is
+  unclear you choose between the candidates.
+- **Item sets pushed to the in-game shop**, merged with the sets you already
+  have. Your Flash key (D or F) is kept when spells are applied.
 
 ### Tier list
-- **Per-bracket tier list** powered by dpm.lol — choose your exact rank
-  (Iron → Challenger, 17 brackets) and region (EUW, KR, NA, etc).
+- **Tier list by rank bracket and region** (EUW, KR, NA, etc). Currently
+  served from op.gg; the dpm.lol per-bracket source is paused until dpm.lol
+  grants permission.
 - **Pick-rate filter** removes statistical noise: a champ in S+ tier must
   have at least 3% pickRate, not just a small-sample win streak. Genuinely
   meta picks (Vayne TOP in Challenger with 8% PR) stay at the top regardless
   of bracket volume.
-- **op.gg fallback** with role-rate filter (drops Vayne TOP, Shaco SUP,
+- **Role-rate filter** (drops Vayne TOP, Shaco SUP,
   etc. unless they're really played in that role).
 
 ### In-game (live)
 - **Live game panel** via Riot's localhost:2999 API. Game timer, team
   scores, your gold/level, dragon and baron ETAs derived from kill events.
 - Polls every 2s while in a game, drops to 10s between games.
+- The buy plan switches to your **real lane opponent** once the game starts.
+- Loading-screen scout of the players in your game.
 
 ### AI Coach
 - **Multi-provider**: Groq (fast, free), Anthropic Claude (best reasoning),
@@ -64,7 +89,8 @@ a pick-rate floor so small-sample champions don't fake their way into S tier.
 - **Bilingual (es / en)** with curated matchup tips for ~44 champions.
 
 ### Match scout & history
-- Lookup any Riot ID, see masteries and recent matches.
+- Lookup any Riot ID, see masteries and recent matches. Names typed with
+  look-alike letters (Ð, Λ, Σ and friends) are still found.
 - LCU integration auto-loads your rank for engine calibration.
 - Trends panel: last 20-50 matches with detected patterns.
 
@@ -124,7 +150,7 @@ npm run tauri dev
 Tests:
 
 ```bash
-npm test               # 961 unit/integration tests (117 files)
+npm test               # 2600+ unit/integration tests (212 files)
 npm run test:e2e       # Playwright smoke suite
 npm run check:all      # typecheck + unit tests + clippy + rustfmt
 ```
@@ -146,7 +172,7 @@ these are blocking — nothing merges around them:
 | `cargo audit` (RustSec) | advisories in the Rust/network crate tree |
 | `tsc --noEmit` on Linux **and** Windows | case-sensitivity bugs a single OS hides |
 | `eslint` (react-hooks) | rules-of-hooks + stale-closure deps |
-| `vitest` (961 tests) | engine, services, stores, parsers |
+| `vitest` (2600+ tests) | engine, services, stores, parsers |
 | Playwright smoke (8 tests) | the app actually boots and renders |
 | `vitest --coverage` | coverage may not regress below baseline |
 | `scripts/bundle-check.mjs` | chunk-size budget (hard fail over 650 KB) |
@@ -167,9 +193,9 @@ See [`docs/releasing.md`](docs/releasing.md) for the release flow
 
 ## Roadmap
 
+- Simple in-game screen and a simple home screen (same style as the new
+  ban / pick / buy view)
 - In-game transparent overlay (currently a separate window)
-- Auto-scout the 10 players in your lobby (Porofessor-style)
-- Item-set sync to the in-game shop
 - Pro builds (Faker's Aatrox specifically) via Leaguepedia
 - Cerebras as a 4th AI provider for redundancy
 

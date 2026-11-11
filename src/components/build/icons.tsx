@@ -4,9 +4,10 @@
 // ProBuildsSection, MatchupGrid, etc) can import them without pulling
 // the whole BuildPanel module + its 1k LOC of unrelated logic.
 
-import { useEffect, useState } from "react";
+import { useEffect, useReducer, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { getItemMeta, subscribeToItemMeta } from "../../services/itemMeta";
+import { getPerkIconUrl, subscribeToPerkIcons } from "../../services/perkIcons";
 
 /**
  * DDragon item icon by ID. Returns null for invalid IDs (0, undefined,
@@ -44,17 +45,19 @@ export function ItemIcon({ patch, id }: { patch: string; id: number }) {
 }
 
 /**
- * CommunityDragon perk icon by raw perk id. Used for runes in the
- * legacy aggregator path (not the new RuneIcon which uses the perks
- * manifest). Kept thin — fall through to default opacity dim on 404.
+ * Perk (rune) icon by raw perk id. CommunityDragon files perk icons by name,
+ * not id, so the URL comes from its perks manifest; until that loads the
+ * generic rune icon shows, then this re-renders with the real one.
  */
 export function PerkIcon({ id, small = false }: { id: number; small?: boolean }) {
   const { t } = useTranslation();
+  const [, manifestLoaded] = useReducer((n: number) => n + 1, 0);
+  useEffect(() => subscribeToPerkIcons(manifestLoaded), []);
   const size = small ? "w-5 h-5" : "w-8 h-8";
   const fallback = t("build.perkFallback", { id });
   return (
     <img
-      src={`https://raw.communitydragon.org/latest/game/assets/perks/${id}.png`}
+      src={getPerkIconUrl(id)}
       alt={fallback}
       className={`${size} rounded`}
       onError={(e) => ((e.target as HTMLImageElement).style.opacity = "0.3")}

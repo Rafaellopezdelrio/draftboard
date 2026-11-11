@@ -39,6 +39,11 @@ vi.mock("../services/opggBuilds", async (importActual) => {
   return { ...actual, fetchOpggBuild: vi.fn() };
 });
 vi.mock("../services/lcuService", () => ({ applyRunesResult: vi.fn() }));
+// Perk icon URLs come from CommunityDragon's manifest (network) — stub it.
+vi.mock("../services/perkIcons", () => ({
+  getPerkIconUrl: (id: number) => `perk-icon/${id}.png`,
+  subscribeToPerkIcons: () => () => {},
+}));
 vi.mock("../engine/inGameAdapter", () => ({ suggestInGameAdaptations: vi.fn() }));
 // ItemIcon would lazily fetch DDragon items.json — keep it offline.
 vi.mock("../services/itemMeta", () => ({
@@ -274,10 +279,8 @@ describe("BuildPanel — loading & fallbacks", () => {
     expect(screen.getByAltText("Runa 8008").className).toContain("w-8");
     expect(screen.getByAltText("Runa 8014").className).toContain("w-8");
     expect(screen.getByAltText("Runa 8304").className).toContain("w-5");
-    expect(screen.getByAltText("Runa 8345")).toHaveAttribute(
-      "src",
-      "https://raw.communitydragon.org/latest/game/assets/perks/8345.png"
-    );
+    // The URL is looked up in the perks manifest, never built from the id.
+    expect(screen.getByAltText("Runa 8345")).toHaveAttribute("src", "perk-icon/8345.png");
   });
 });
 

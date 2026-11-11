@@ -72,9 +72,12 @@ async function pickChampion(page, team, slot, champion) {
   await search.waitFor({ state: "detached", timeout: 10_000 }).catch(() => {});
 }
 
-async function shoot(page, name) {
+async function shoot(page, name, height = VIEWPORT.height) {
   await page.waitForTimeout(700); // let count-ups and bar transitions settle
-  await page.screenshot({ path: `${OUT}/${name}.png` });
+  await page.screenshot({
+    path: `${OUT}/${name}.png`,
+    clip: { x: 0, y: 0, width: VIEWPORT.width, height },
+  });
   console.log(`[screenshots] wrote ${OUT}/${name}.png`);
 }
 
@@ -99,18 +102,35 @@ await page.getByRole("button", { name: /Don.t show again/i }).click().catch(() =
 await page.waitForTimeout(500);
 
 await page.locator("select").first().selectOption("MIDDLE");
+// The simple view is the default screen; the draft board lives behind details.
+await page.getByRole("button", { name: /More details/i }).click();
 for (const [i, champ] of ENEMY.entries()) await pickChampion(page, 1, i + 1, champ);
 for (const [i, champ] of ALLY.entries()) await pickChampion(page, 0, i + 1, champ);
-// Our own mid pick unlocks the per-opponent matchup tips in the right rail.
-// (The Build tab stays out of reach: it needs a champion resolved from the
-// LCU, which never happens outside Tauri — App.tsx falls back to Picks.)
 await pickChampion(page, 0, 3, "Viktor");
-await page.waitForTimeout(1_500); // suggestion engine re-runs on our pick
-await page.getByText(/Matchup tips/i).first().click();
+// "My champion" normally comes from the LoL client. Outside Tauri there is
+// none, so set it on the store directly (same module instance under Vite dev)
+// — that is what unlocks the buy plan and the matchup tips.
+await page.evaluate(async () => {
+  const { useDraftStore } = await import("/src/state/draftStore.ts");
+  useDraftStore.setState({ myChampionLocked: "112" }); // Viktor
+});
+await page.waitForTimeout(2_500); // engine re-run + op.gg matchup fetch
+await page.getByText(/Matchup tips/i).first().click().catch(() => {});
 await shoot(page, "champ-select");
 
-await page.getByRole("button", { name: /Tier List/i }).click();
+await page.getByRole("button", { name: /Back to the simple view/i }).click();
+await page.waitForTimeout(2_500);
+await shoot(page, "simple-view", 700); // the three cards, not the empty space below
+
+await page.getByRole("button", { name: /Settings/i }).click();
+await page.getByText(/Tier List/i).click();
 await page.waitForTimeout(2_000); // lazy chunk + per-bracket fetch
 await shoot(page, "tier-list");
+await page.keyboard.press("Escape");
+
+await page.getByRole("button", { name: /^Coach/i }).click();
+await page.getByText(/AI Coach/i).first().click();
+await page.waitForTimeout(1_500);
+await shoot(page, "ai-coach");
 
 await browser.close();
