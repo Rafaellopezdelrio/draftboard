@@ -22,7 +22,9 @@
     "connected": "Conectado",
     "waitingClient": "Esperando cliente",
     "waitingClientTip": "Esperando que abras el cliente de LoL",
-    "uiLanguage": "Idioma de la interfaz"
+    "uiLanguage": "Idioma de la interfaz",
+    "match": "Partida",
+    "coach": "Coach"
   },
   "winConditions": {
     "title": "Game plan",
@@ -1753,5 +1755,26 @@
     "connectedDetail": "Champ select y partidas se trackearán automáticamente.",
     "disconnectedTitle": "Cliente de LoL desconectado",
     "disconnectedDetail": "Reabre el cliente para reanudar el tracking."
+  },
+  "simple": {
+    "step": "Paso {{n}}",
+    "banTitle": "Banea",
+    "pickTitle": "Elige",
+    "buyTitle": "Compra",
+    "needRole": "Elige tu posición arriba para afinar los consejos.",
+    "banEmpty": "Sin baneos claros todavía. Juega unas partidas y la app aprende contra quién pierdes.",
+    "banNoBans": "En este modo no hay baneos.",
+    "tagBest": "Mejor opción",
+    "tagKnown": "Lo dominas",
+    "tagNew": "Menos práctica",
+    "buyFor": "Con {{name}}",
+    "buyEmpty": "Marca o fija un campeón y aquí sale qué comprar.",
+    "buyLoading": "Buscando qué comprar…",
+    "buyCore": "Objetos",
+    "buyGenericNote": "Compra general. Cuando se vea tu rival de línea, se ajusta a él y a su equipo.",
+    "yourTeam": "Tu equipo",
+    "versus": "contra",
+    "moreDetails": "Ver más detalles ▾",
+    "backToSimple": "◂ Volver a la vista sencilla"
   }
 }

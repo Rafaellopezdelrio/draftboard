@@ -150,8 +150,9 @@ test.describe("Draftboard smoke", () => {
     await page.getByText(/Patch\s+\d+\.\d+/i).waitFor({ timeout: 30_000 });
     await dismissOnboarding(page);
 
-    // Tier List
-    await page.getByRole("button", { name: /Tier List/i }).click();
+    // Tier List — in the simple view it lives in the Ajustes menu.
+    await page.getByRole("button", { name: /Ajustes/i }).click();
+    await page.getByText(/Tier List/i).click();
     // Modal mount is lazy — wait for it.
     await page.waitForTimeout(500);
     // Close via Escape (every modal supports it).

@@ -89,6 +89,8 @@ export interface Preferences {
 
   // UI
   compactMode: boolean;
+  /** Simple main screen (ban / pick / buy); the full panels sit behind "more details". */
+  simpleView: boolean;
 
   /** UI locale for the Draftboard interface (Spanish / English). Distinct
    * from `aiCoachLanguage` — that one controls what the AI coach replies
@@ -223,6 +225,7 @@ export const DEFAULT_PREFS: Preferences = {
   liveScoutRefresh: true,
 
   compactMode: false,
+  simpleView: true,
 
   uiLocale: "es",
   updateChannel: "stable",

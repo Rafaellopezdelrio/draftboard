@@ -507,8 +507,7 @@ fn apply_pending_restore(app_data: &std::path::Path) -> Result<bool, String> {
         if let Ok(conn) = rusqlite::Connection::open(&live) {
             let _ = conn.query_row("PRAGMA wal_checkpoint(TRUNCATE)", [], |_| Ok(()));
         }
-        fs::rename(&live, &pre_restore)
-            .map_err(|e| format!("can't move current DB aside: {e}"))?;
+        fs::rename(&live, &pre_restore).map_err(|e| format!("can't move current DB aside: {e}"))?;
     }
     for ext in &["-shm", "-wal"] {
         let sidecar = app_data.join(format!("{DB_FILE}{ext}"));

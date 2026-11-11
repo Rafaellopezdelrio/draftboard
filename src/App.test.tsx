@@ -184,6 +184,8 @@ const ACCEPTED: Partial<Preferences> = {
   termsAcceptedAt: 1_700_000_000_000,
   termsAcceptedVersion: TERMS_VERSION,
   onboardingDone: true,
+  // These suites cover the full panel layout; the simple view has its own.
+  simpleView: false,
 };
 
 const draftInitial = useDraftStore.getState();
@@ -578,5 +580,50 @@ describe("App — Riot proxy URL validation", () => {
     seedPrefs({ ...ACCEPTED, riotProxyUrl: url });
     await renderApp();
     await waitFor(() => expect(h.setRiotProxyUrl).toHaveBeenLastCalledWith(expected));
+  });
+});
+
+vi.mock("./components/SimpleDraftView", () => ({ SimpleDraftView: stub("SimpleDraftView") }));
+
+describe("App — simple view (default)", () => {
+  beforeEach(() => seedPrefs({ ...ACCEPTED, simpleView: true }));
+
+  it("shows the three-step screen and four header entries instead of the panels", async () => {
+    await renderApp();
+    expect(screen.getByTestId("SimpleDraftView")).toBeInTheDocument();
+    expect(screen.queryByTestId("DraftBoard")).not.toBeInTheDocument();
+    for (const name of ["Partida", "Coach", "Buscar", "Ajustes"]) {
+      expect(screen.getByRole("button", { name })).toBeInTheDocument();
+    }
+    expect(screen.queryByRole("button", { name: "Tier List" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Mi juego" })).not.toBeInTheDocument();
+  });
+
+  it("the moved entries still open their views from the menus", async () => {
+    await renderApp();
+    fireEvent.click(screen.getByRole("button", { name: "Ajustes" }));
+    fireEvent.click(await screen.findByText("Tier List"));
+    expect(await screen.findByTestId("TierListView")).toBeInTheDocument();
+    fireEvent.click(screen.getByText("close-TierListView"));
+    fireEvent.click(screen.getByRole("button", { name: "Coach" }));
+    fireEvent.click(await screen.findByText("Coach post-partida"));
+    expect(await screen.findByTestId("CoachView")).toBeInTheDocument();
+  });
+
+  it("'more details' opens the full layout and Partida returns to the simple one", async () => {
+    await renderApp();
+    act(() => (h.props.SimpleDraftView.onShowDetails as () => void)());
+    expect(screen.getByTestId("DraftBoard")).toBeInTheDocument();
+    expect(screen.queryByTestId("SimpleDraftView")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Partida" }));
+    expect(screen.getByTestId("SimpleDraftView")).toBeInTheDocument();
+    expect(screen.queryByTestId("DraftBoard")).not.toBeInTheDocument();
+  });
+
+  it("in game the full layout stays (live panel has no simple twin yet)", async () => {
+    h.gamePhase.phase = "InProgress";
+    await renderApp();
+    expect(screen.queryByTestId("SimpleDraftView")).not.toBeInTheDocument();
+    expect(screen.getByTestId("LiveGamePanel")).toBeInTheDocument();
   });
 });

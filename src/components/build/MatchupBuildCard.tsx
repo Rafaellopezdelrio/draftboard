@@ -3,7 +3,7 @@
 // whole enemy team calls for (comp adaptations). Renders nothing until a lane
 // opponent is known and op.gg has data for the pair.
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Swords } from "lucide-react";
 import type { ChampionDb, Role } from "../../types/champion";
@@ -29,6 +29,8 @@ interface Props {
   adaptations?: BuildAdaptation[];
   /** In game: the enemy really in my position (Live Client). Beats the guess. */
   knownOpponentKey?: string | null;
+  /** Shown instead of nothing when there is no matchup data to show. */
+  fallback?: ReactNode;
 }
 
 /** The enemy that plays my role, by best-guess role assignment. */
@@ -56,6 +58,7 @@ export function MatchupBuildCard({
   enemyKeys,
   adaptations = NO_ADAPTATIONS,
   knownOpponentKey = null,
+  fallback = null,
 }: Props) {
   const { t } = useTranslation();
   const lang = usePrefsStore((s) => s.prefs.uiLocale);
@@ -89,7 +92,7 @@ export function MatchupBuildCard({
     answer && (answer.games === null || answer.games >= MIN_MATCHUP_BUILD_GAMES) ? answer : null;
   const flex = !knownOpponentKey && candidates.length > 1;
   // With a flex pick the chooser stays up even when this pair has no data.
-  if (!opp || (!build && !flex)) return null;
+  if (!opp || (!build && !flex)) return <>{fallback}</>;
   const chooser = flex && (
     <div className="flex flex-wrap items-center gap-1">
       <span className="text-[10px] text-white/45">{t("build.matchupFlex")}</span>
@@ -113,6 +116,7 @@ export function MatchupBuildCard({
       <div className="rounded-lg bg-white/5 ring-1 ring-accent/25 p-2 space-y-1.5" data-testid="matchup-build">
         <p className="text-xs font-semibold text-white/85">{t("build.vsOpponent", { name: opp.name })}</p>
         {chooser}
+        {fallback}
       </div>
     );
   }

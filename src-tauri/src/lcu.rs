@@ -721,10 +721,7 @@ async fn push_item_set(set: ItemSetInput) -> Result<bool> {
 
     // Read the sets the player already has and send them back with ours. If
     // they can't be read, don't write at all.
-    let sets_url = format!(
-        "{}/lol-item-sets/v1/item-sets/{}/sets",
-        base, summoner_id
-    );
+    let sets_url = format!("{}/lol-item-sets/v1/item-sets/{}/sets", base, summoner_id);
     let current = client
         .get(&sets_url)
         .header("Authorization", format!("Basic {}", auth_b64))
@@ -1085,7 +1082,8 @@ mod tests {
         assert_eq!(merged["accountId"], 7);
 
         // No sets yet → just ours.
-        let fresh = merge_item_sets(&serde_json::json!({"accountId": 7}), new_set.clone(), 7).unwrap();
+        let fresh =
+            merge_item_sets(&serde_json::json!({"accountId": 7}), new_set.clone(), 7).unwrap();
         assert_eq!(fresh["itemSets"].as_array().unwrap().len(), 1);
 
         // Unreadable list → refuse to build a body (the caller must not PUT).

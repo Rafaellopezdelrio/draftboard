@@ -4,6 +4,7 @@ import { useDraftStore, isNoLaneMode } from "./state/draftStore";
 import { useShallow } from "zustand/react/shallow";
 import type { Role } from "./types/champion";
 import { DraftBoard } from "./components/DraftBoard";
+import { SimpleDraftView } from "./components/SimpleDraftView";
 import { SuggestionPanel } from "./components/SuggestionPanel";
 import { DraftCoachPanel } from "./components/DraftCoachPanel";
 import { CompAnalysis } from "./components/CompAnalysis";
@@ -363,6 +364,8 @@ function App() {
   // bans into one 4-screen scroll during a timed champ select. Split into
   // "picks" (decide now) and "build" (after you lock). Default picks.
   const [centerTab, setCenterTab] = useState<"picks" | "build">("picks");
+  // Simple view: the full panel layout only shows on request.
+  const [showDetails, setShowDetails] = useState(false);
 
   // Sentry navigation breadcrumbs — one hook call per view modal.
   // Extracted from a wall of 10 useEffects that all did the same
@@ -567,6 +570,7 @@ function App() {
     gameMode ?? (liveGame.inGame ? liveGame.snapshot?.gameData?.gameMode : null)
   );
   const buildChampId = buildChampionKey ? db?.champions[buildChampionKey]?.id : undefined;
+  const simpleMain = prefs.simpleView && !showDetails && gamePhase.phase !== "InProgress";
   const buildRole: Role | null =
     myRole ?? (noLaneMode && buildChampId ? CHAMPION_ROLES[buildChampId]?.[0] ?? null : null);
 
@@ -723,6 +727,36 @@ function App() {
           </div>
         </div>
         <div className="flex items-center gap-1.5 flex-wrap">
+          {prefs.simpleView ? (
+            <>
+              {/* Simple view: four entries. Everything else is one menu away. */}
+              <HeaderBtn onClick={() => setShowDetails(false)} primary icon={<Radio className="w-3.5 h-3.5" />} label={t("nav.match")} />
+              <HeaderMenu
+                label={t("nav.coach")}
+                icon={<GraduationCap className="w-3.5 h-3.5" />}
+                items={[
+                  { label: t("nav.aiCoach"), icon: <Sparkles className="w-3.5 h-3.5" />, onClick: () => setShowChat(true) },
+                  { label: t("nav.postGameCoach"), icon: <GraduationCap className="w-3.5 h-3.5" />, onClick: () => setShowCoach(true) },
+                  { label: t("nav.trends"), icon: <TrendingUp className="w-3.5 h-3.5" />, onClick: () => setShowTrends(true) },
+                  { label: t("nav.history"), icon: <History className="w-3.5 h-3.5" />, onClick: () => setShowHistory(true) },
+                  { label: t("nav.lessonPlan"), icon: <Calendar className="w-3.5 h-3.5" />, onClick: () => setShowLessonPlan(true) },
+                ]}
+              />
+              <HeaderBtn onClick={() => setShowLookup(true)} icon={<UserSearch className="w-3.5 h-3.5" />} label={t("nav.search")} />
+              <HeaderMenu
+                label={t("nav.settings")}
+                icon={<Cog className="w-3.5 h-3.5" />}
+                items={[
+                  { label: t("nav.preferences"), icon: <SlidersHorizontal className="w-3.5 h-3.5" />, onClick: () => setShowPrefs(true) },
+                  { label: t("nav.riotConfig"), icon: <Cog className="w-3.5 h-3.5" />, onClick: () => setShowSettings(true) },
+                  { label: t("nav.tierList"), icon: <Trophy className="w-3.5 h-3.5" />, onClick: () => setShowTierList(true) },
+                  { label: t("nav.live"), icon: <Radio className="w-3.5 h-3.5" />, onClick: () => setShowLiveGame(true) },
+                  { label: t("nav.diagnostics"), icon: <Activity className="w-3.5 h-3.5" />, onClick: () => setShowDiag(true) },
+                ]}
+              />
+            </>
+          ) : (
+            <>
           <HeaderBtn onClick={() => setShowChat(true)} primary icon={<Sparkles className="w-3.5 h-3.5" />} label={t("nav.aiCoach")} />
           <HeaderBtn onClick={() => setShowTierList(true)} icon={<Trophy className="w-3.5 h-3.5" />} label={t("nav.tierList")} />
           <HeaderBtn onClick={() => setShowLookup(true)} icon={<UserSearch className="w-3.5 h-3.5" />} label={t("nav.search")} />
@@ -746,6 +780,8 @@ function App() {
               { label: t("nav.diagnostics"), icon: <Activity className="w-3.5 h-3.5" />, onClick: () => setShowDiag(true) },
             ]}
           />
+            </>
+          )}
           <select
             value={myRole ?? ""}
             onChange={(e) =>
@@ -786,6 +822,34 @@ function App() {
       </header>
 
       {gamePhase.phase === "InProgress" && <InGameTimers />}
+
+      {/* Simple view (default): ban / pick / buy. In game the full layout
+          stays for now — its live panel has no simple twin yet. */}
+      {simpleMain ? (
+        <SimpleDraftView
+          db={db}
+          role={myRole}
+          suggestions={suggestions}
+          bannedKeys={bannedKeys}
+          allyKeys={allyKeys}
+          enemyKeys={enemyKeys}
+          enemySummonerIds={enemySummonerIds}
+          buildChampionKey={buildChampionKey}
+          buildRole={buildRole}
+          noLaneMode={noLaneMode}
+          onShowDetails={() => setShowDetails(true)}
+        />
+      ) : (
+        <>
+      {prefs.simpleView && gamePhase.phase !== "InProgress" && (
+        <button
+          type="button"
+          onClick={() => setShowDetails(false)}
+          className="text-xs text-white/60 hover:text-white border border-dashed border-border-strong rounded-full px-4 py-1.5 transition"
+        >
+          {t("simple.backToSimple")}
+        </button>
+      )}
 
       {/* Multi-column layout: draft board on the left, a TWO-column right
           rail so panels distribute horizontally instead of becoming one
@@ -978,6 +1042,8 @@ function App() {
           </div>
         </div>
       </div>
+        </>
+      )}
 
       <AppFooter
         onShowChangelog={() => {

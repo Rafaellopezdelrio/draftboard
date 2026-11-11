@@ -22,7 +22,9 @@
     "connected": "Connected",
     "waitingClient": "Waiting for client",
     "waitingClientTip": "Waiting for you to open the LoL client",
-    "uiLanguage": "Interface language"
+    "uiLanguage": "Interface language",
+    "match": "Game",
+    "coach": "Coach"
   },
   "winConditions": {
     "title": "Game plan",
@@ -1753,5 +1755,26 @@
     "connectedDetail": "Champ select and games will be tracked automatically.",
     "disconnectedTitle": "LoL client disconnected",
     "disconnectedDetail": "Reopen the client to resume tracking."
+  },
+  "simple": {
+    "step": "Step {{n}}",
+    "banTitle": "Ban",
+    "pickTitle": "Pick",
+    "buyTitle": "Buy",
+    "needRole": "Pick your position above for sharper advice.",
+    "banEmpty": "No clear bans yet. Play a few games and the app learns who beats you.",
+    "banNoBans": "No bans in this mode.",
+    "tagBest": "Best option",
+    "tagKnown": "You know it",
+    "tagNew": "Less practice",
+    "buyFor": "With {{name}}",
+    "buyEmpty": "Hover or lock a champion to see what to buy.",
+    "buyLoading": "Finding what to buy…",
+    "buyCore": "Items",
+    "buyGenericNote": "General build. Once your lane opponent shows, it adapts to them and their team.",
+    "yourTeam": "Your team",
+    "versus": "vs",
+    "moreDetails": "More details ▾",
+    "backToSimple": "◂ Back to the simple view"
   }
 }
