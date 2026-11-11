@@ -198,6 +198,13 @@ function diagnosticLog(s: LcuChampSelectSession) {
  * announcements or skip the first frame. `myRole` is intentionally
  * preserved (the user may have set it manually for out-of-select planning).
  */
+// True from a "game starting" exit until the next live champ-select frame.
+// The client sends the emptied session more than once on game start; the
+// first exit consumes the phase, so without this the repeat looked like a
+// dodge and wiped the board one second after it was kept (seen in the log:
+// "last phase GAME_STARTING → board kept" then "last phase none → board reset").
+let boardKeptForGame = false;
+
 function leaveChampSelect() {
   // Always reset the per-session dedup state so the NEXT champ select starts
   // clean (TTS turns, blind-pick warn, frame signature, voice).
@@ -219,7 +226,8 @@ function leaveChampSelect() {
   // cancel) clears the board.
   const gameStarting =
     lastChampSelectPhase === "FINALIZATION" ||
-    lastChampSelectPhase === "GAME_STARTING";
+    lastChampSelectPhase === "GAME_STARTING" ||
+    (boardKeptForGame && lastChampSelectPhase === null);
   // Consume the phase: it's a one-shot signal about THIS exit. Dodge frames
   // arrive without `s.timer`, so they never overwrite `lastChampSelectPhase`
   // — leaving it set would make a dodge that immediately follows a finalized
@@ -231,6 +239,7 @@ function leaveChampSelect() {
     `[lcuSync] left champ select — last phase ${lastChampSelectPhase ?? "none"} → ${gameStarting ? "board kept" : "board reset"}`
   );
   lastChampSelectPhase = null;
+  boardKeptForGame = gameStarting;
   if (gameStarting) return;
 
   const store = useDraftStore.getState();
@@ -310,6 +319,8 @@ function applySession(s: LcuChampSelectSession | null | undefined) {
     leaveChampSelect();
     return;
   }
+  // A live champ select: the next exit is judged on its own phase again.
+  boardKeptForGame = false;
   refreshGameMode();
 
   // ARAM diagnostic: when both teams come in fully populated but champion

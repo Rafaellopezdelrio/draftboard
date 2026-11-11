@@ -121,6 +121,33 @@ describe("lcuSync.applySession — defensive parsing", () => {
     } as unknown as Parameters<typeof applySession>[0]);
   });
 
+  it("keeps the board when the client repeats the empty frame on game start", () => {
+    // Real log: "last phase GAME_STARTING → board kept" and, one second later,
+    // "last phase none → board reset". The repeat must not wipe the draft.
+    applySession({
+      localPlayerCellId: 0,
+      myTeam: [player(0, 266), player(1, 157)],
+      theirTeam: [player(5, 23)],
+      bans: { myTeamBans: [1, 2], theirTeamBans: [3, 4] },
+      timer: { phase: "GAME_STARTING", adjustedTimeLeftInPhase: 1000 },
+    } as unknown as Parameters<typeof applySession>[0]);
+    const empty = { localPlayerCellId: -1, myTeam: [], theirTeam: [] };
+    applySession(empty as unknown as Parameters<typeof applySession>[0]);
+    applySession(empty as unknown as Parameters<typeof applySession>[0]);
+    applySession(null);
+    const s = useDraftStore.getState();
+    expect(s.ally[0].championKey).toBe("266");
+    expect(s.bans.ally[0]).toBe("1");
+
+    // Cleanup: a live non-final frame ends the "kept for game" state.
+    applySession({
+      localPlayerCellId: 0,
+      myTeam: [player(0, 266)],
+      theirTeam: [player(5, 23)],
+      timer: { phase: "BAN_PICK", adjustedTimeLeftInPhase: 30000 },
+    } as unknown as Parameters<typeof applySession>[0]);
+  });
+
   it("does NOT preserve a dead draft on a dodge right after a finalized game (F3)", () => {
     // 1. A game finalizes — phase recorded as FINALIZATION.
     applySession({
