@@ -76,6 +76,36 @@ describe("MatchupBuildCard", () => {
     expect([...icons].some((i) => i.getAttribute("src")?.endsWith("/item/3118.png"))).toBe(true);
   });
 
+  it("merges lane and team: team boots and third item, each with its why", async () => {
+    vi.mocked(fetchMatchupBuild).mockResolvedValue(resp(build()));
+    render(
+      <MatchupBuildCard
+        db={db}
+        championDdId="Ahri"
+        role="MIDDLE"
+        enemyKeys={["64", "238"]}
+        adaptations={[
+          { itemId: 3111, itemName: "Mercurio", reason: "mucho control", priority: "core" },
+          { itemId: 3165, itemName: "Morello", reason: "curación", priority: "core" },
+          { itemId: 2420, itemName: "Cronómetro", reason: "asesinos", priority: "situational" },
+        ]}
+      />
+    );
+    await screen.findByText("Contra Zed");
+    const src = (slot: string) =>
+      screen.getByTestId(`plan-${slot}`).querySelector("img")?.getAttribute("src") ?? "";
+    expect(src("first")).toContain("/item/3118.png");
+    expect(src("boots")).toContain("/item/3111.png");
+    expect(src("second")).toContain("/item/4645.png");
+    expect(src("third")).toContain("/item/3165.png");
+    expect(screen.getByTestId("plan-first")).toHaveTextContent("por Zed");
+    expect(screen.getByTestId("plan-boots")).toHaveTextContent("por su equipo: mucho control");
+    expect(screen.getByTestId("plan-third")).toHaveTextContent("por su equipo: curación");
+    expect(screen.getByTestId("plan-situational").querySelector("img")?.getAttribute("src")).toContain(
+      "/item/2420.png"
+    );
+  });
+
   it("says the edge is mine when op.gg names my champion", async () => {
     vi.mocked(fetchMatchupBuild).mockResolvedValue(resp(build({ laneAdvantage: "Ahri" })));
     render(<MatchupBuildCard db={db} championDdId="Ahri" role="MIDDLE" enemyKeys={["238"]} />);

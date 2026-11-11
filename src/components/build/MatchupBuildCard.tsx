@@ -1,6 +1,7 @@
-// Build against your lane opponent — what players of your champion actually
-// buy and run in THIS matchup (op.gg), next to the generic build. Renders
-// nothing until a lane opponent is known and op.gg has data for the pair.
+// One buy order for this game: what players of your champion buy against
+// your lane opponent (op.gg), with boots and later items swapped for what the
+// whole enemy team calls for (comp adaptations). Renders nothing until a lane
+// opponent is known and op.gg has data for the pair.
 
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -10,8 +11,9 @@ import { inferEnemyRoles } from "../../data/matchupTips";
 import { CHAMPION_ROLES } from "../../data/championRoles";
 import { usePrefsStore } from "../../state/prefsStore";
 import { fetchMatchupBuild, type MatchupBuildResponse } from "../../services/opggMatchupBuild";
-import { BuildRow } from "./BuildRow";
-import { PerkIcon } from "./icons";
+import type { BuildAdaptation } from "../../engine/adaptiveBuildEngine";
+import { buildMatchupPlan } from "../../engine/matchupPlan";
+import { ItemIcon, PerkIcon } from "./icons";
 
 /** Below this many games the matchup numbers are noise, not advice. */
 export const MIN_MATCHUP_BUILD_GAMES = 100;
@@ -23,6 +25,8 @@ interface Props {
   role: Role;
   /** Enemy champion keys (numeric strings), as held by the draft board. */
   enemyKeys: string[];
+  /** What the whole enemy team calls for (suggestBuildAdaptations). */
+  adaptations?: BuildAdaptation[];
 }
 
 /** The enemy that plays my role, by best-guess role assignment. */
@@ -41,7 +45,15 @@ export function laneOpponentCandidates(db: ChampionDb, role: Role, enemyKeys: st
   });
 }
 
-export function MatchupBuildCard({ db, championDdId, role, enemyKeys }: Props) {
+const NO_ADAPTATIONS: BuildAdaptation[] = [];
+
+export function MatchupBuildCard({
+  db,
+  championDdId,
+  role,
+  enemyKeys,
+  adaptations = NO_ADAPTATIONS,
+}: Props) {
   const { t } = useTranslation();
   const lang = usePrefsStore((s) => s.prefs.uiLocale);
   const enemySig = enemyKeys.join(",");
@@ -103,9 +115,7 @@ export function MatchupBuildCard({ db, championDdId, role, enemyKeys }: Props) {
   }
 
   const winRate = build.games && build.wins !== null ? build.wins / build.games : null;
-  const core = build.coreItems[0];
-  const boots = build.boots[0];
-  const starter = build.starterItems[0];
+  const plan = buildMatchupPlan(build, adaptations);
   const runes = build.runes[0];
   // op.gg names the champion with the edge, or "EVEN".
   const adv = build.laneAdvantage?.toLowerCase();
@@ -140,9 +150,41 @@ export function MatchupBuildCard({ db, championDdId, role, enemyKeys }: Props) {
           {t(edge === "mine" ? "build.laneEdgeMine" : "build.laneEdgeTheirs", { name: opp.name })}
         </p>
       )}
-      {starter && <BuildRow label={t("build.matchupStart")} path={starter} patch={db.patch} />}
-      {core && <BuildRow label={t("build.matchupCore")} path={core} patch={db.patch} highlight />}
-      {boots && <BuildRow label={t("build.matchupBoots")} path={boots} patch={db.patch} />}
+      {plan.steps.map((step) => (
+        <div key={step.slot} className="flex items-center gap-2" data-testid={`plan-${step.slot}`}>
+          <span className="text-[10px] uppercase tracking-wider text-white/45 w-12 shrink-0">
+            {t(`build.planSlot.${step.slot}`)}
+          </span>
+          <div className="flex gap-1 shrink-0">
+            {step.ids.map((id, i) => (
+              <ItemIcon key={i} patch={db.patch} id={id} />
+            ))}
+          </div>
+          <span
+            className={`text-[10px] leading-snug flex-1 min-w-0 ${
+              step.source === "team" ? "text-meh" : "text-white/45"
+            }`}
+          >
+            {step.source === "team"
+              ? t("build.planWhyTeam", { reason: step.reason })
+              : t("build.planWhyLane", { name: opp.name })}
+          </span>
+        </div>
+      ))}
+      {plan.situational.length > 0 && (
+        <div className="flex items-center gap-2" data-testid="plan-situational">
+          <span className="text-[10px] uppercase tracking-wider text-white/45 w-12 shrink-0">
+            {t("build.planSituational")}
+          </span>
+          <div className="flex gap-1 flex-1 flex-wrap">
+            {plan.situational.map((a, i) => (
+              <span key={i} title={`${a.itemName} — ${a.reason}`}>
+                <ItemIcon patch={db.patch} id={a.itemId} />
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
       {runes && (
         <div className="flex items-center gap-2">
           <span className="text-[10px] uppercase tracking-wider text-white/45 w-12 shrink-0">

@@ -269,12 +269,19 @@
     "vsOpponent": "Against {{name}}",
     "laneEdgeMine": "You have the lane edge",
     "laneEdgeTheirs": "{{name}} has the lane edge: play safe",
-    "matchupStart": "Start",
-    "matchupCore": "Core",
-    "matchupBoots": "Boots",
     "matchupRunes": "Runes",
     "matchupFlex": "Different lane opponent?",
-    "matchupTeamNote": "This is only your lane. Games are won as a team: build the rest against the enemy team (below)."
+    "matchupTeamNote": "Games are won as a team: start and first item are for your lane; boots and the rest are for all five enemies.",
+    "planSlot": {
+      "start": "Start",
+      "first": "1st",
+      "boots": "Boots",
+      "second": "2nd",
+      "third": "3rd"
+    },
+    "planWhyLane": "for {{name}}",
+    "planWhyTeam": "for their team: {{reason}}",
+    "planSituational": "If needed"
   },
   "scout": {
     "title": "Enemy scout",

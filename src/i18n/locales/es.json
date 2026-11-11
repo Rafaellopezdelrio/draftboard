@@ -269,12 +269,19 @@
     "vsOpponent": "Contra {{name}}",
     "laneEdgeMine": "Tienes ventaja en línea",
     "laneEdgeTheirs": "{{name}} tiene ventaja en línea: juega seguro",
-    "matchupStart": "Inicio",
-    "matchupCore": "Core",
-    "matchupBoots": "Botas",
     "matchupRunes": "Runas",
     "matchupFlex": "¿Otro rival en tu línea?",
-    "matchupTeamNote": "Esto es solo tu línea. La partida se gana en equipo: el resto de objetos, según el equipo rival (abajo)."
+    "matchupTeamNote": "La partida se gana en equipo: el inicio y el primer objeto son por tu línea; las botas y lo demás, por los cinco rivales.",
+    "planSlot": {
+      "start": "Inicio",
+      "first": "1.º",
+      "boots": "Botas",
+      "second": "2.º",
+      "third": "3.º"
+    },
+    "planWhyLane": "por {{name}}",
+    "planWhyTeam": "por su equipo: {{reason}}",
+    "planSituational": "Si hace falta"
   },
   "scout": {
     "title": "Scout enemigos",

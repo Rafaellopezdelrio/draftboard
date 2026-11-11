@@ -265,7 +265,13 @@ function BuildPanelInner({ db, championKey, role, enemyKeys = [], gameMode }: Pr
       )}
 
       {role && !isAram && (
-        <MatchupBuildCard db={db} championDdId={champ.id} role={role} enemyKeys={enemyKeys} />
+        <MatchupBuildCard
+          db={db}
+          championDdId={champ.id}
+          role={role}
+          enemyKeys={enemyKeys}
+          adaptations={adaptations}
+        />
       )}
 
       {opggBuild && (
