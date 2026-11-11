@@ -153,6 +153,22 @@ describe("MatchupBuildCard", () => {
     expect(screen.getByText(`Contra ${other}`)).toBeInTheDocument();
   });
 
+  it("in game the real lane opponent wins over the guess, with no chooser", async () => {
+    vi.mocked(fetchMatchupBuild).mockResolvedValue(resp(build({ laneAdvantage: null })));
+    render(
+      <MatchupBuildCard
+        db={db}
+        championDdId="Ahri"
+        role="MIDDLE"
+        enemyKeys={["157", "84", "64"]}
+        knownOpponentKey="64"
+      />
+    );
+    expect(await screen.findByText("Contra Lee Sin")).toBeInTheDocument();
+    expect(fetchMatchupBuild).toHaveBeenCalledWith("Ahri", "MIDDLE", "LeeSin", "es");
+    expect(screen.queryByRole("button")).toBeNull();
+  });
+
   it("no chooser when only one enemy can play my role", async () => {
     vi.mocked(fetchMatchupBuild).mockResolvedValue(resp(build()));
     render(<MatchupBuildCard db={db} championDdId="Ahri" role="MIDDLE" enemyKeys={["64", "238"]} />);

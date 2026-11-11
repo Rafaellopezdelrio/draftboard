@@ -9,6 +9,7 @@ import {
   fetchLiveGameSnapshot,
   findMyPlayer,
   liveChampionKey,
+  liveLaneOpponentKey,
   liveRosterKeys,
   attributeObjectives,
   type LiveGameActivePlayer,
@@ -300,5 +301,37 @@ describe("liveRosterKeys — in-game roster from the Live Client player list", (
   it("returns empty arrays for a null or empty snapshot", () => {
     expect(liveRosterKeys(db, null)).toEqual({ allyKeys: [], enemyKeys: [] });
     expect(liveRosterKeys(db, snap("Rafa", []))).toEqual({ allyKeys: [], enemyKeys: [] });
+  });
+});
+
+describe("liveLaneOpponentKey — the enemy really in my position", () => {
+  const db = {
+    champions: {
+      "59": { id: "JarvanIV", key: "59", name: "Jarvan IV" },
+      "19": { id: "Warwick", key: "19", name: "Warwick" },
+      "62": { id: "MonkeyKing", key: "62", name: "Wukong" },
+    },
+  } as unknown as ChampionDb;
+  const raw = (id: string) => `game_character_displayname_${id}`;
+  const active = { summonerName: "Me#EUW" } as LiveGameActivePlayer;
+  const me = mkPlayer({ summonerName: "Me#EUW", team: "ORDER", position: "JUNGLE", rawChampionName: raw("Warwick") });
+
+  it("picks the enemy with my position, not the first enemy or an ally", () => {
+    const allPlayers = [
+      me,
+      mkPlayer({ summonerName: "ally", team: "ORDER", position: "TOP", rawChampionName: raw("MonkeyKing") }),
+      mkPlayer({ summonerName: "e1", team: "CHAOS", position: "TOP", rawChampionName: raw("MonkeyKing") }),
+      mkPlayer({ summonerName: "e2", team: "CHAOS", position: "JUNGLE", rawChampionName: raw("JarvanIV") }),
+    ];
+    expect(liveLaneOpponentKey(db, { activePlayer: active, allPlayers })).toBe("59");
+  });
+
+  it("null without positions (ARAM), without me, or with no enemy in my position", () => {
+    const aram = [{ ...me, position: "" }, mkPlayer({ summonerName: "e", team: "CHAOS", position: "", rawChampionName: raw("JarvanIV") })];
+    expect(liveLaneOpponentKey(db, { activePlayer: active, allPlayers: aram })).toBeNull();
+    const others = [mkPlayer({ summonerName: "x", team: "CHAOS", position: "JUNGLE", rawChampionName: raw("JarvanIV") })];
+    expect(liveLaneOpponentKey(db, { activePlayer: active, allPlayers: others })).toBeNull();
+    const noOpp = [me, mkPlayer({ summonerName: "e", team: "CHAOS", position: "TOP", rawChampionName: raw("JarvanIV") })];
+    expect(liveLaneOpponentKey(db, { activePlayer: active, allPlayers: noOpp })).toBeNull();
   });
 });

@@ -27,6 +27,8 @@ interface Props {
   enemyKeys: string[];
   /** What the whole enemy team calls for (suggestBuildAdaptations). */
   adaptations?: BuildAdaptation[];
+  /** In game: the enemy really in my position (Live Client). Beats the guess. */
+  knownOpponentKey?: string | null;
 }
 
 /** The enemy that plays my role, by best-guess role assignment. */
@@ -53,6 +55,7 @@ export function MatchupBuildCard({
   role,
   enemyKeys,
   adaptations = NO_ADAPTATIONS,
+  knownOpponentKey = null,
 }: Props) {
   const { t } = useTranslation();
   const lang = usePrefsStore((s) => s.prefs.uiLocale);
@@ -63,7 +66,7 @@ export function MatchupBuildCard({
   const candidates = useMemo(() => laneOpponentCandidates(db, role, enemyKeys), [db, role, enemySig]);
   // The player's own choice wins while that enemy is still on the board.
   const [picked, setPicked] = useState<string | null>(null);
-  const oppKey = picked && candidates.includes(picked) ? picked : guessKey;
+  const oppKey = knownOpponentKey ?? (picked && candidates.includes(picked) ? picked : guessKey);
   const opp = oppKey ? db.champions[oppKey] : undefined;
   const oppDdId = opp?.id;
   const want = oppDdId ? `${championDdId}:${role}:${oppDdId}:${lang}` : null;
@@ -84,7 +87,7 @@ export function MatchupBuildCard({
   const answer = want && got?.key === want ? got.data?.build : null;
   const build =
     answer && (answer.games === null || answer.games >= MIN_MATCHUP_BUILD_GAMES) ? answer : null;
-  const flex = candidates.length > 1;
+  const flex = !knownOpponentKey && candidates.length > 1;
   // With a flex pick the chooser stays up even when this pair has no data.
   if (!opp || (!build && !flex)) return null;
   const chooser = flex && (

@@ -207,6 +207,21 @@ export function liveChampionKey(
 }
 
 /**
+ * The enemy in MY position, straight from the Live Client (positions are real
+ * in game, so flex picks can't fool it). null outside Summoner's Rift roles,
+ * when "me" can't be resolved, or when the champion isn't in the db.
+ */
+export function liveLaneOpponentKey(
+  db: ChampionDb,
+  snapshot: Pick<LiveGameSnapshot, "activePlayer" | "allPlayers">
+): string | null {
+  const me = findMyPlayer(snapshot.activePlayer, snapshot.allPlayers);
+  if (!me || !me.position) return null;
+  const opp = snapshot.allPlayers.find((p) => p.team !== me.team && p.position === me.position);
+  return opp ? liveChampionKey(db, opp) : null;
+}
+
+/**
  * Derive the full draft roster (ally/enemy champion keys) from the Live Client
  * player list. In-game data is NOT anonymized — all 10 champions are visible —
  * so this restores the comp/matchup/win-condition panels when Riot's anonymized

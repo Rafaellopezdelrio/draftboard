@@ -1,11 +1,43 @@
-# Draftboard — Session Handoff (2026-10-28)
+# Draftboard — Session Handoff (2026-11-11)
 
 Internal working notes: where the repo stands, what's verified, what's still
 open. Not user documentation — see [`../README.md`](../README.md) for that.
 
 ## Status
 
-- **main is green locally.** `tsc --noEmit`, `eslint src`, **1568 vitest tests**
+- **2026-11-09..11 — two review rounds + contextual builds (all pushed; worker
+  deployed 2026-11-11, version a86ed1fa).**
+  - Round 1 (32 issues, commit 2062737): advice that ignored role/mode —
+    soul/elder/baron timers, ARAM/Arena gating, counter items per class,
+    role-aware matchup tips + win conditions, GPI/coach/trends baselines for
+    jungle/support, scout + lobby fixes. Round 2 (30 issues, dd2c83d +
+    ecf447a): item-set push now GET+merge (it used to wipe the player's other
+    sets), Flash key kept, rune retry only on "Max pages reached", safe DB
+    backup/restore (VACUUM INTO), AI features via proxy without a personal
+    key, resync probes a real match before wiping, more i18n.
+  - **Contextual builds v1.** Worker `/opgg/matchup-build?champion&role&
+    opponent&lang` (op.gg MCP `lol_get_lane_matchup_guide`, mapper
+    `matchupBuildFromGuide`). App: `services/opggMatchupBuild.ts`,
+    `components/build/MatchupBuildCard.tsx`, `engine/matchupPlan.ts`. The card
+    shows ONE buy order: start + first item from the lane matchup; boots and
+    2nd/3rd slots give way to `suggestBuildAdaptations` "core" items (user
+    rule: "ganar solo tu línea no sirve, es un juego de equipo"). Lane
+    opponent = `inferEnemyRoles` guess in champ select, with a chooser when
+    several enemies can play the role (flex picks); in game it is the real
+    one (`liveLaneOpponentKey`, Live Client positions).
+  - **Not verified in a real game**: the matchup card, item-set merge, Flash
+    key, jungle scout notes, Baron timer (shows from 17:00).
+  - Known gaps: op.gg's tip text comes in English even with `lang=es_ES`;
+    team needs come from tag rules, not stats; matchup runes are shown, not
+    applied (auto-runes still use the generic page).
+  - Ideas parked: push-to-talk "ask the coach" (seen in Amokk; allowed if it
+    only uses on-screen data + mic consent); Production key application text
+    is ready in docs/RIOT_KEY_APPLICATION.md (user submits).
+  - Session tooling: scratchpad helpers get wiped between runs; recreate
+    `phase.ps1` (LCU gameflow phase via lockfile) before trusting any
+    "is the user in game" check.
+
+- **main is green locally.** `tsc --noEmit`, `eslint src`, **2603 vitest tests** (+170 worker, 35 Rust)
   (145 files, 0 skipped; worker tests excluded when the submodule is absent),
   `cargo check --all-targets`.
 - **2026-10-29 Tauri 2.11 → 2.12.5** (+ all plugins to latest 2.x, npm

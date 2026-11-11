@@ -27,7 +27,7 @@ import { aramAdvice } from "../engine/aramEngine";
 import { runeAdvice } from "../engine/runeAdvice";
 import type { Champion } from "../types/champion";
 import { useLiveGame } from "../hooks/useLiveGame";
-import { findMyPlayer } from "../services/liveClient";
+import { findMyPlayer, liveLaneOpponentKey } from "../services/liveClient";
 import { useToast } from "./ui/ToastContainer";
 // All sub-components that need OpggBuild types live in components/build/.
 // BuildPanel.tsx is now the shell: fetches build + adaptations +
@@ -159,6 +159,11 @@ function BuildPanelInner({ db, championKey, role, enemyKeys = [], gameMode }: Pr
     });
   }, [liveGame.inGame, liveGame.snapshot, champ]);
 
+  const liveOpponentKey = useMemo(
+    () => (liveGame.inGame && liveGame.snapshot ? liveLaneOpponentKey(db, liveGame.snapshot) : null),
+    [liveGame.inGame, liveGame.snapshot, db]
+  );
+
   // All hooks above now run unconditionally (rules-of-hooks); safe to bail
   // if the champion key isn't in the DB (unknown/brand-new champ).
   if (!champ) return null;
@@ -271,6 +276,7 @@ function BuildPanelInner({ db, championKey, role, enemyKeys = [], gameMode }: Pr
           role={role}
           enemyKeys={enemyKeys}
           adaptations={adaptations}
+          knownOpponentKey={liveOpponentKey}
         />
       )}
 
