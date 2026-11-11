@@ -588,3 +588,30 @@ describe("riotApi — client", () => {
     });
   });
 });
+
+describe("getAccountByRiotId — lookalike letters", () => {
+  beforeEach(() => httpFetchMock.mockReset());
+  const urls = () => httpFetchMock.mock.calls.map((c) => decodeURIComponent(String(c[0])));
+
+  it("a 404 for a fancy name retries the spelling that looks the same", async () => {
+    // Account is ÐΛΣRΣN (Latin N); the user typed Greek Ν.
+    httpFetchMock
+      .mockResolvedValueOnce(res(404))
+      .mockResolvedValueOnce(res(200, { puuid: "P", gameName: "ÐΛΣRΣN", tagLine: "EUW" }));
+    const acc = await getAccountByRiotId(baseCfg, "ÐΛΣRΣΝ", "EUW");
+    expect(acc.gameName).toBe("ÐΛΣRΣN");
+    expect(urls()[1].endsWith("/by-riot-id/ÐΛΣRΣN/EUW")).toBe(true);
+  });
+
+  it("a plain-ASCII miss is not retried", async () => {
+    httpFetchMock.mockResolvedValue(res(404));
+    await expect(getAccountByRiotId(baseCfg, "NOBODY", "EUW")).rejects.toThrow();
+    expect(httpFetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("when no spelling exists the original not-found error surfaces, bounded", async () => {
+    httpFetchMock.mockResolvedValue(res(404));
+    await expect(getAccountByRiotId(baseCfg, "ÐΛΣRΣΝ", "EUW")).rejects.toThrow();
+    expect(httpFetchMock.mock.calls.length).toBeLessThanOrEqual(7);
+  });
+});
