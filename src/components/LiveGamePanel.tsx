@@ -43,7 +43,7 @@ import type { ChampionDb } from "../types/champion";
 // the user gets a hands-free alert even without an on-screen overlay. Mounted
 // only while in-game; unmount (game over) resets the per-session dedup so the
 // next game alerts again. Respects the global voice toggle via voiceCoach.
-function LiveVoice({ insights }: { insights: LiveCoachInsight[] }) {
+export function LiveVoice({ insights }: { insights: LiveCoachInsight[] }) {
   const criticals = insights.filter((c) => c.severity === "critical");
   const sig = criticals.map((c) => c.key).join(",");
   useEffect(() => {

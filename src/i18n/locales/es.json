@@ -283,7 +283,8 @@
     },
     "planWhyLane": "por {{name}}",
     "planWhyTeam": "por su equipo: {{reason}}",
-    "planSituational": "Si hace falta"
+    "planSituational": "Si hace falta",
+    "matchupWinRate": "ganas {{pct}} de cada 100"
   },
   "scout": {
     "title": "Scout enemigos",
@@ -1775,6 +1776,101 @@
     "yourTeam": "Tu equipo",
     "versus": "contra",
     "moreDetails": "Ver más detalles ▾",
-    "backToSimple": "◂ Volver a la vista sencilla"
+    "backToSimple": "◂ Volver a la vista sencilla",
+    "banWhy": {
+      "personal": "Pierdes mucho contra él: {{lost}} de {{games}} partidas.",
+      "global": "Muy fuerte ahora mismo: gana {{wr}} de cada 100 partidas.",
+      "scout": "Un rival lo juega muchísimo. Quítaselo."
+    },
+    "why": {
+      "perfectPick": "encaja perfecto",
+      "main": "tu main",
+      "youKnowIt": "lo dominas",
+      "comfort": "te sientes cómodo con él",
+      "counters": "bueno contra sus campeones",
+      "hardMatchup": "⚠ rival difícil en tu línea",
+      "synergy": "combina bien con tu equipo",
+      "strongMeta": "muy fuerte ahora mismo",
+      "fillsGap": "aporta lo que le falta al equipo"
+    }
+  },
+  "simpleLive": {
+    "nowStep": "Ahora mismo",
+    "minute": "minuto {{time}}",
+    "loading": "Cargando la partida…",
+    "loadingHint": "En cuanto empiece, aquí sale qué hacer en cada momento.",
+    "calm": "Todo en orden. Sigue sumando oro y mira el mapa.",
+    "timerNow": "¡Ya!",
+    "dragon": "Dragón",
+    "baron": "Barón",
+    "buyTitle": "Lo siguiente",
+    "gold": "Tienes {{gold}} de oro.",
+    "goldShop": "Tienes {{gold}} de oro: vuelve a base cuando puedas.",
+    "rivalsStep": "Rivales",
+    "rivalsTitle": "Ojo con",
+    "rivalsEmpty": "Nadie destaca todavía.",
+    "rival": {
+      "danger": "Va {{k}}/{{d}}. No pelees solo contra él.",
+      "watch": "Su jungla ({{k}}/{{d}}). Mira el mapa antes de avanzar.",
+      "weak": "Va {{k}}/{{d}}. Buen objetivo para atacar."
+    },
+    "tag": {
+      "danger": "Peligro",
+      "watch": "Atento",
+      "weak": "Débil"
+    },
+    "voiceNote": "La voz te avisa de lo importante. Esta pantalla es para un vistazo rápido.",
+    "coach": {
+      "deathsCritical": "Estás muriendo demasiado ({{k}}/{{d}}/{{a}}). Ahora lo primero es no morir.",
+      "deathsWarn": "Mueres más de lo que ayudas ({{k}}/{{d}}/{{a}}). Juega más atrás y suma oro.",
+      "lowHp": "Te queda poca vida ({{hp}}%). Retírate o vuelve a base.",
+      "laneBehind": "{{champ}} te saca {{diff}} súbditos. Quédate cerca de tu torre y no pierdas más.",
+      "laneAhead": "Le sacas {{diff}} súbditos a {{champ}}. Aprovecha: ayuda a otra línea o ve a un objetivo.",
+      "lvlBehind": "{{champ}} te saca {{levels}} niveles. No abandones tu línea ahora.",
+      "csPace": "Llevas pocos súbditos: {{cs}} en {{min}} minutos (lo normal son unos {{expected}}).",
+      "objBaron": "Barón en {{eta}} segundos. Pon visión ya y no entres a ciegas.",
+      "objDragon": "Dragón en {{eta}} segundos. Empuja tu línea y pon visión en el río.",
+      "soulDeny": "Al rival le falta un dragón para el alma. No les dejéis el siguiente.",
+      "soulTake": "Os falta un dragón para el alma. Id todos juntos a por el siguiente.",
+      "baronEnemy": "El rival tiene el Barón ({{sec}} s). No peleéis lejos de vuestras torres.",
+      "baronMine": "Tenéis el Barón ({{sec}} s). Empujad las líneas juntos.",
+      "spikeStrong": "Ahora eres fuerte. Busca peleas y objetivos.",
+      "spikeWeak": "Ahora eres débil: {{summary}}. Juega seguro un poco más.",
+      "recall": "Tienes {{gold}} de oro sin gastar. Vuelve a base cuando tu línea esté empujada."
+    }
+  },
+  "simpleHome": {
+    "lastStep": "Tu última partida",
+    "loading": "Cargando tus partidas…",
+    "noGames": "Todavía no hay partidas guardadas. Juega una con la app abierta y aquí verás el resumen.",
+    "wonWith": "Victoria con {{name}}",
+    "lostWith": "Derrota con {{name}}",
+    "minutes": "{{n}} minutos",
+    "agoMin": "hace {{n}} min",
+    "agoHours": "hace {{n}} h",
+    "agoDays": "hace {{n}} días",
+    "kda": "Asesinatos / muertes / asistencias",
+    "nextTitle": "Una cosa para la próxima",
+    "tip": {
+      "deaths": "Moriste {{deaths}} veces. Juega más atrás cuando no veas a su jungla en el mapa.",
+      "farm": "Te llevaste {{perMin}} súbditos por minuto. Intenta no perder los de cada oleada: es oro seguro.",
+      "vision": "Pusiste poca visión. Compra guardianes de control y úsalos antes de cada dragón.",
+      "win": "Buena partida. Repite lo que funcionó: mismo campeón, mismo plan.",
+      "loss": "Partida ajustada. Sigue con este campeón: la práctica cuenta."
+    },
+    "review": "Ver el repaso completo",
+    "askCoach": "Preguntar al coach",
+    "recentStep": "Cómo vas",
+    "recentTitle_one": "Última partida",
+    "recentTitle_other": "Últimas {{count}} partidas",
+    "winsLosses": "Victorias – derrotas",
+    "rank": "Tu liga",
+    "best": "Tu mejor campeón reciente: {{name}} ({{wins}} de {{games}} ganadas).",
+    "autoStep": "Cuando entres en cola",
+    "autoTitle": "Yo me encargo",
+    "autoIntro": "La app cambia sola de pantalla:",
+    "autoDraft": "Selección → qué banear, elegir y comprar.",
+    "autoGame": "Partida → qué hacer ahora.",
+    "autoAfter": "Al acabar → qué mejorar."
   }
 }

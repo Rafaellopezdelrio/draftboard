@@ -584,11 +584,32 @@ describe("App — Riot proxy URL validation", () => {
 });
 
 vi.mock("./components/SimpleDraftView", () => ({ SimpleDraftView: stub("SimpleDraftView") }));
+vi.mock("./components/SimpleLiveView", () => ({ SimpleLiveView: stub("SimpleLiveView") }));
+vi.mock("./components/SimpleHomeView", () => ({ SimpleHomeView: stub("SimpleHomeView") }));
 
 describe("App — simple view (default)", () => {
   beforeEach(() => seedPrefs({ ...ACCEPTED, simpleView: true }));
 
+  it("with no draft and no game, the home screen shows and opens the review and the chat", async () => {
+    await renderApp();
+    expect(screen.getByTestId("SimpleHomeView")).toBeInTheDocument();
+    expect(screen.queryByTestId("SimpleDraftView")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("DraftBoard")).not.toBeInTheDocument();
+    act(() => (h.props.SimpleHomeView.onOpenReview as () => void)());
+    expect(await screen.findByTestId("CoachView")).toBeInTheDocument();
+    act(() => (h.props.SimpleHomeView.onOpenChat as () => void)());
+    expect(await screen.findByTestId("AiChatView")).toBeInTheDocument();
+  });
+
+  it("home 'more details' opens the full layout (to set up a draft by hand)", async () => {
+    await renderApp();
+    act(() => (h.props.SimpleHomeView.onShowDetails as () => void)());
+    expect(screen.getByTestId("DraftBoard")).toBeInTheDocument();
+    expect(screen.queryByTestId("SimpleHomeView")).not.toBeInTheDocument();
+  });
+
   it("shows the three-step screen and four header entries instead of the panels", async () => {
+    h.gamePhase.phase = "ChampSelect";
     await renderApp();
     expect(screen.getByTestId("SimpleDraftView")).toBeInTheDocument();
     expect(screen.queryByTestId("DraftBoard")).not.toBeInTheDocument();
@@ -611,6 +632,7 @@ describe("App — simple view (default)", () => {
   });
 
   it("'more details' opens the full layout and Partida returns to the simple one", async () => {
+    h.gamePhase.phase = "ChampSelect";
     await renderApp();
     act(() => (h.props.SimpleDraftView.onShowDetails as () => void)());
     expect(screen.getByTestId("DraftBoard")).toBeInTheDocument();
@@ -620,10 +642,24 @@ describe("App — simple view (default)", () => {
     expect(screen.queryByTestId("DraftBoard")).not.toBeInTheDocument();
   });
 
-  it("in game the full layout stays (live panel has no simple twin yet)", async () => {
+  it("in game the simple live screen shows; details brings the full live panel and back", async () => {
     h.gamePhase.phase = "InProgress";
     await renderApp();
+    expect(screen.getByTestId("SimpleLiveView")).toBeInTheDocument();
     expect(screen.queryByTestId("SimpleDraftView")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("LiveGamePanel")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("InGameTimers")).not.toBeInTheDocument();
+    act(() => (h.props.SimpleLiveView.onShowDetails as () => void)());
     expect(screen.getByTestId("LiveGamePanel")).toBeInTheDocument();
+    expect(screen.getByTestId("InGameTimers")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Volver a la vista sencilla/ }));
+    expect(screen.getByTestId("SimpleLiveView")).toBeInTheDocument();
+  });
+
+  it("the language switch also moves the coach language", async () => {
+    await renderApp();
+    fireEvent.click(screen.getByRole("button", { name: "en" }));
+    expect(usePrefsStore.getState().prefs.uiLocale).toBe("en");
+    expect(usePrefsStore.getState().prefs.aiCoachLanguage).toBe("en");
   });
 });

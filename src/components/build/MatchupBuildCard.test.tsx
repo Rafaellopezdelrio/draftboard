@@ -69,7 +69,7 @@ describe("MatchupBuildCard", () => {
     render(<MatchupBuildCard db={db} championDdId="Ahri" role="MIDDLE" enemyKeys={["64", "238"]} />);
     expect(await screen.findByText("Contra Zed")).toBeInTheDocument();
     expect(fetchMatchupBuild).toHaveBeenCalledWith("Ahri", "MIDDLE", "Zed", "es");
-    expect(screen.getByText("49% WR")).toBeInTheDocument();
+    expect(screen.getByText("ganas 49 de cada 100")).toBeInTheDocument();
     expect(screen.getByText("Zed tiene ventaja en línea: juega seguro")).toBeInTheDocument();
     expect(screen.getByText("Guarda el Encanto hasta que Zed use la W.")).toBeInTheDocument();
     const icons = screen.getByTestId("matchup-build").querySelectorAll("img");

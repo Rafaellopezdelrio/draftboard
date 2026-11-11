@@ -283,7 +283,8 @@
     },
     "planWhyLane": "for {{name}}",
     "planWhyTeam": "for their team: {{reason}}",
-    "planSituational": "If needed"
+    "planSituational": "If needed",
+    "matchupWinRate": "you win {{pct}} in 100"
   },
   "scout": {
     "title": "Enemy scout",
@@ -1775,6 +1776,101 @@
     "yourTeam": "Your team",
     "versus": "vs",
     "moreDetails": "More details ▾",
-    "backToSimple": "◂ Back to the simple view"
+    "backToSimple": "◂ Back to the simple view",
+    "banWhy": {
+      "personal": "You lose a lot against them: {{lost}} of {{games}} games.",
+      "global": "Very strong right now: wins {{wr}} of every 100 games.",
+      "scout": "An enemy plays it a lot. Take it away."
+    },
+    "why": {
+      "perfectPick": "a perfect fit",
+      "main": "your main",
+      "youKnowIt": "you know it",
+      "comfort": "you are comfortable on it",
+      "counters": "good against their champions",
+      "hardMatchup": "⚠ tough lane opponent",
+      "synergy": "works well with your team",
+      "strongMeta": "very strong right now",
+      "fillsGap": "gives the team what it lacks"
+    }
+  },
+  "simpleLive": {
+    "nowStep": "Right now",
+    "minute": "minute {{time}}",
+    "loading": "Loading the game…",
+    "loadingHint": "Once it starts, this shows what to do at each moment.",
+    "calm": "All good. Keep earning gold and watch the map.",
+    "timerNow": "Now!",
+    "dragon": "Dragon",
+    "baron": "Baron",
+    "buyTitle": "Next up",
+    "gold": "You have {{gold}} gold.",
+    "goldShop": "You have {{gold}} gold: go back to base when you can.",
+    "rivalsStep": "Enemies",
+    "rivalsTitle": "Watch out for",
+    "rivalsEmpty": "Nobody stands out yet.",
+    "rival": {
+      "danger": "They are {{k}}/{{d}}. Don't fight them alone.",
+      "watch": "Their jungler ({{k}}/{{d}}). Check the map before moving up.",
+      "weak": "They are {{k}}/{{d}}. A good target."
+    },
+    "tag": {
+      "danger": "Danger",
+      "watch": "Careful",
+      "weak": "Weak"
+    },
+    "voiceNote": "The voice warns you about what matters. This screen is for a quick look.",
+    "coach": {
+      "deathsCritical": "You are dying too much ({{k}}/{{d}}/{{a}}). Not dying comes first now.",
+      "deathsWarn": "You die more than you help ({{k}}/{{d}}/{{a}}). Play further back and earn gold.",
+      "lowHp": "You are low on health ({{hp}}%). Back off or return to base.",
+      "laneBehind": "{{champ}} is {{diff}} minions ahead. Stay near your tower and lose no more.",
+      "laneAhead": "You are {{diff}} minions ahead of {{champ}}. Use it: help another lane or take an objective.",
+      "lvlBehind": "{{champ}} is {{levels}} levels ahead. Don't leave your lane now.",
+      "csPace": "Few minions so far: {{cs}} in {{min}} minutes (about {{expected}} is normal).",
+      "objBaron": "Baron in {{eta}} seconds. Place vision now and don't walk in blind.",
+      "objDragon": "Dragon in {{eta}} seconds. Push your lane and place vision in the river.",
+      "soulDeny": "The enemy is one dragon from the soul. Don't let them have the next one.",
+      "soulTake": "You are one dragon from the soul. Go for the next one together.",
+      "baronEnemy": "The enemy has Baron ({{sec}} s). Don't fight far from your towers.",
+      "baronMine": "You have Baron ({{sec}} s). Push the lanes together.",
+      "spikeStrong": "You are strong right now. Look for fights and objectives.",
+      "spikeWeak": "You are weak right now: {{summary}}. Play safe a bit longer.",
+      "recall": "You have {{gold}} unspent gold. Go back to base once your lane is pushed."
+    }
+  },
+  "simpleHome": {
+    "lastStep": "Your last game",
+    "loading": "Loading your games…",
+    "noGames": "No games saved yet. Play one with the app open and the summary shows up here.",
+    "wonWith": "Win with {{name}}",
+    "lostWith": "Loss with {{name}}",
+    "minutes": "{{n}} minutes",
+    "agoMin": "{{n}} min ago",
+    "agoHours": "{{n}} h ago",
+    "agoDays": "{{n}} days ago",
+    "kda": "Kills / deaths / assists",
+    "nextTitle": "One thing for next time",
+    "tip": {
+      "deaths": "You died {{deaths}} times. Play further back when you can't see their jungler on the map.",
+      "farm": "You got {{perMin}} minions per minute. Try not to miss the ones in each wave: it is safe gold.",
+      "vision": "You placed little vision. Buy control wards and use them before each dragon.",
+      "win": "Good game. Repeat what worked: same champion, same plan.",
+      "loss": "Close game. Stick with this champion: practice counts."
+    },
+    "review": "See the full review",
+    "askCoach": "Ask the coach",
+    "recentStep": "How you are doing",
+    "recentTitle_one": "Last game",
+    "recentTitle_other": "Last {{count}} games",
+    "winsLosses": "Wins – losses",
+    "rank": "Your rank",
+    "best": "Your best recent champion: {{name}} ({{wins}} of {{games}} won).",
+    "autoStep": "When you queue up",
+    "autoTitle": "I'll handle it",
+    "autoIntro": "The app switches screens by itself:",
+    "autoDraft": "Champion select → what to ban, pick and buy.",
+    "autoGame": "In game → what to do now.",
+    "autoAfter": "After the game → what to improve."
   }
 }

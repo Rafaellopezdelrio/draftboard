@@ -5,6 +5,8 @@ import { useShallow } from "zustand/react/shallow";
 import type { Role } from "./types/champion";
 import { DraftBoard } from "./components/DraftBoard";
 import { SimpleDraftView } from "./components/SimpleDraftView";
+import { SimpleLiveView } from "./components/SimpleLiveView";
+import { SimpleHomeView } from "./components/SimpleHomeView";
 import { SuggestionPanel } from "./components/SuggestionPanel";
 import { DraftCoachPanel } from "./components/DraftCoachPanel";
 import { CompAnalysis } from "./components/CompAnalysis";
@@ -570,7 +572,18 @@ function App() {
     gameMode ?? (liveGame.inGame ? liveGame.snapshot?.gameData?.gameMode : null)
   );
   const buildChampId = buildChampionKey ? db?.champions[buildChampionKey]?.id : undefined;
-  const simpleMain = prefs.simpleView && !showDetails && gamePhase.phase !== "InProgress";
+  // Which main screen shows. The simple view has one screen per moment:
+  // in game, in a draft (champ select or a board filled by hand), or home.
+  const draftActive =
+    gamePhase.phase === "ChampSelect" || allyKeys.length + enemyKeys.length > 0 || !!buildChampionKey;
+  const mainView: "full" | "live" | "draft" | "home" =
+    !prefs.simpleView || showDetails
+      ? "full"
+      : gamePhase.phase === "InProgress"
+        ? "live"
+        : draftActive
+          ? "draft"
+          : "home";
   const buildRole: Role | null =
     myRole ?? (noLaneMode && buildChampId ? CHAMPION_ROLES[buildChampId]?.[0] ?? null : null);
 
@@ -806,7 +819,11 @@ function App() {
             {(["es", "en"] as const).map((loc) => (
               <button
                 key={loc}
-                onClick={() => setPref("uiLocale", loc)}
+                onClick={() => {
+                  setPref("uiLocale", loc);
+                  // The coach follows the app language (Preferences can still split them).
+                  setPref("aiCoachLanguage", loc);
+                }}
                 aria-pressed={uiLocale === loc}
                 className={`px-2 py-1 uppercase transition ${
                   uiLocale === loc
@@ -821,11 +838,29 @@ function App() {
         </div>
       </header>
 
-      {gamePhase.phase === "InProgress" && <InGameTimers />}
+      {mainView === "full" && gamePhase.phase === "InProgress" && <InGameTimers />}
 
-      {/* Simple view (default): ban / pick / buy. In game the full layout
-          stays for now — its live panel has no simple twin yet. */}
-      {simpleMain ? (
+      {/* Simple view (default): one plain screen per moment — home, draft
+          (ban / pick / buy) and in game. The full panels sit behind details. */}
+      {mainView === "home" ? (
+        <SimpleHomeView
+          db={db}
+          rankTier={rankTier}
+          refreshKey={gamePhase.phase}
+          onOpenReview={() => setShowCoach(true)}
+          onOpenChat={() => setShowChat(true)}
+          onShowDetails={() => setShowDetails(true)}
+        />
+      ) : mainView === "live" ? (
+        <SimpleLiveView
+          db={db}
+          buildChampionKey={buildChampionKey}
+          buildRole={buildRole}
+          enemyKeys={enemyKeys}
+          noLaneMode={noLaneMode}
+          onShowDetails={() => setShowDetails(true)}
+        />
+      ) : mainView === "draft" ? (
         <SimpleDraftView
           db={db}
           role={myRole}
@@ -841,7 +876,7 @@ function App() {
         />
       ) : (
         <>
-      {prefs.simpleView && gamePhase.phase !== "InProgress" && (
+      {prefs.simpleView && (
         <button
           type="button"
           onClick={() => setShowDetails(false)}

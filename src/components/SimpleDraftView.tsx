@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { ChampionDb, Role } from "../types/champion";
 import type { ScoredSuggestion } from "../engine/suggestionEngine";
-import { suggestBans } from "../engine/banEngine";
+import { suggestBans, type BanSuggestion } from "../engine/banEngine";
 import { suggestBuildAdaptations } from "../engine/adaptiveBuildEngine";
 import { personalMatchupsByRole, type PersonalMatchupStat } from "../services/matchRepo";
 import { fetchOpggBuild, topBuild, type OpggBuild } from "../services/opggBuilds";
@@ -172,11 +172,24 @@ export function SimpleDraftView({
     [db, buildChamp, enemyKeys]
   );
 
+  // Plain-language twin of each engine reason; falls back to the engine text.
   const reasonOf = (s: ScoredSuggestion) =>
     s.reasons
       .slice(0, 2)
-      .map((r) => t(r))
+      .map((r) => t(`simple.why.${r.split(".").pop()}`, { defaultValue: t(r) }))
       .join(" · ") || t("suggestions.decentPick");
+  // Same for bans: the numbers say it without "S-tier" or "WR".
+  const banWhy = (b: BanSuggestion) => {
+    if (b.source === "scout") return t("simple.banWhy.scout");
+    if (b.source === "personal" && b.personalGames && b.personalWinRate != null)
+      return t("simple.banWhy.personal", {
+        lost: Math.round(b.personalGames * (1 - b.personalWinRate)),
+        games: b.personalGames,
+      });
+    if (b.source === "global" && b.globalWinRate != null)
+      return t("simple.banWhy.global", { wr: Math.round(b.globalWinRate * 100) });
+    return b.reason;
+  };
   const tagOf = (s: ScoredSuggestion, i: number) =>
     i === 0
       ? { label: t("simple.tagBest"), tone: "good" as const }
@@ -197,7 +210,7 @@ export function SimpleDraftView({
           ) : bans.length === 0 ? (
             <p className="text-xs text-white/45">{t("simple.banEmpty")}</p>
           ) : (
-            bans.map((b) => <Row key={b.championKey} icon={b.iconUrl} name={b.championName} text={b.reason} />)
+            bans.map((b) => <Row key={b.championKey} icon={b.iconUrl} name={b.championName} text={banWhy(b)} />)
           )}
         </section>
 

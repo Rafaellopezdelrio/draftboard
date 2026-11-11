@@ -106,6 +106,25 @@ describe("SimpleDraftView", () => {
     expect(within(ban).getByText("Zed")).toBeInTheDocument();
   });
 
+  it("ban reasons are plain numbers, no tier or win-rate jargon", () => {
+    vi.mocked(suggestBans).mockReturnValue([
+      { championKey: "238", championName: "Zed", iconUrl: "", reason: "Pierdes 75% vs él en JUNGLE (4g)", severity: "high", source: "personal", personalGames: 4, personalWinRate: 0.25 },
+      { championKey: "254", championName: "Vi", iconUrl: "", reason: "S-tier en JUNGLE (53% global)", severity: "medium", source: "global", globalWinRate: 0.53 },
+      { championKey: "59", championName: "Jarvan IV", iconUrl: "", reason: "Main enemigo: 400k maestría", severity: "high", source: "scout" },
+    ]);
+    render(<SimpleDraftView {...base} />);
+    const ban = screen.getByRole("region", { name: "Banea" });
+    expect(within(ban).getByText("Pierdes mucho contra él: 3 de 4 partidas.")).toBeInTheDocument();
+    expect(within(ban).getByText("Muy fuerte ahora mismo: gana 53 de cada 100 partidas.")).toBeInTheDocument();
+    expect(within(ban).getByText("Un rival lo juega muchísimo. Quítaselo.")).toBeInTheDocument();
+    expect(ban.textContent).not.toMatch(/S-tier|global|maestría/);
+  });
+
+  it("pick reasons use the plain wording", () => {
+    render(<SimpleDraftView {...base} suggestions={[sug("64", true, ["suggestions.reason.strongMeta", "suggestions.reason.hardMatchup"])]} />);
+    expect(screen.getByText("muy fuerte ahora mismo · ⚠ rival difícil en tu línea")).toBeInTheDocument();
+  });
+
   it("no bans in ARAM / Arena", () => {
     vi.mocked(suggestBans).mockReturnValue([
       { championKey: "238", championName: "Zed", iconUrl: "", reason: "x", severity: "high", source: "personal" },

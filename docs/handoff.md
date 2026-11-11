@@ -1,10 +1,30 @@
-# Draftboard — Session Handoff (2026-11-11)
+# Draftboard — Session Handoff (2026-11-12)
 
 Internal working notes: where the repo stands, what's verified, what's still
 open. Not user documentation — see [`../README.md`](../README.md) for that.
 
 ## Status
 
+- **2026-11-12 — simple view complete + v0.5.0 tagged.**
+  - `prefs.simpleView` (default on) picks one screen per moment in
+    `App.tsx` (`mainView`): `SimpleHomeView` (no draft, no game),
+    `SimpleDraftView` (champ select or a hand-filled board) and
+    `SimpleLiveView` (in game). "More details" shows the full panel layout.
+    The simple screens use plain-language twins of the engine texts
+    (`simple.why.*`, `simple.banWhy.*`, `simpleLive.coach.*`) and fall back
+    to the engine text; the full layout and the voice keep the original ones.
+  - `SimpleLiveView` replaces `LiveGamePanel` on screen, so it also mounts
+    `LiveVoice` and drives `setOverlayVisible`.
+  - Header language switch sets `aiCoachLanguage` too.
+  - `PerkIcon` reads its URL from the CDragon perks manifest (was a dead URL).
+  - CI green again: rustfmt, ubuntu pinned to 24.04, RUSTSEC-2026-0459
+    (bundled SQLite) accepted in `src-tauri/.cargo/audit.toml` until sqlx
+    allows libsqlite3-sys >= 0.39.
+  - **Not verified in a real game**: the three simple screens (home with
+    real stored matches, live screen with a real snapshot), plus the list
+    below. v0.5.0 was tagged at the owner's request before that pass; the
+    updater manifest in the worker stays on 0.4.0 until the owner says
+    "despliega".
 - **2026-11-09..11 — two review rounds + contextual builds (all pushed; worker
   deployed 2026-11-11, version a86ed1fa).**
   - Round 1 (32 issues, commit 2062737): advice that ignored role/mode —

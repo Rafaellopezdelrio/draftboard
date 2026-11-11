@@ -147,7 +147,7 @@ export function MatchupBuildCard({
             }`}
             title={t("build.games", { count: build.games })}
           >
-            {(winRate * 100).toFixed(0)}% WR
+            {t("build.matchupWinRate", { pct: (winRate * 100).toFixed(0) })}
           </span>
         )}
       </div>
