@@ -612,6 +612,6 @@ describe("getAccountByRiotId — lookalike letters", () => {
   it("when no spelling exists the original not-found error surfaces, bounded", async () => {
     httpFetchMock.mockResolvedValue(res(404));
     await expect(getAccountByRiotId(baseCfg, "ÐΛΣRΣΝ", "EUW")).rejects.toThrow();
-    expect(httpFetchMock.mock.calls.length).toBeLessThanOrEqual(7);
+    expect(httpFetchMock.mock.calls.length).toBeLessThanOrEqual(11);
   });
 });

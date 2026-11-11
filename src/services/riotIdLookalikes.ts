@@ -1,31 +1,59 @@
 // Riot IDs with "fancy" letters mix alphabets: ÐΛΣRΣN looks all-Greek but
-// ends in a Latin N. Typed by eye, the lookalike from the wrong alphabet
-// (Greek Ν) gives a different Riot ID and a 404. These helpers produce the
-// spellings worth retrying.
+// starts with an Icelandic Ð and ends in a Latin N. Typed by eye, a lookalike
+// from another alphabet (Croatian Đ, Greek Ν, Latin Ʃ...) gives a different
+// Riot ID and a 404. These helpers produce the spellings worth retrying.
 
-/** Greek / Cyrillic capitals and smalls that look like a Latin letter. */
-const TO_LATIN: Record<string, string> = {
-  // Greek
-  Α: "A", Β: "B", Ε: "E", Ζ: "Z", Η: "H", Ι: "I", Κ: "K", Μ: "M", Ν: "N",
-  Ο: "O", Ρ: "P", Τ: "T", Υ: "Y", Χ: "X", ο: "o", ν: "v",
-  // Cyrillic
-  А: "A", В: "B", Е: "E", К: "K", М: "M", Н: "H", О: "O", Р: "P", С: "C",
-  Т: "T", Х: "X", У: "Y", а: "a", е: "e", о: "o", р: "p", с: "c", х: "x", у: "y",
-};
+/**
+ * Characters that look the same on screen. First entry = the one fancy names
+ * use most (Latin for plain letters, the Greek/Icelandic original for
+ * symbols); the Greek twin of a Latin letter, when there is one, comes second.
+ */
+const GROUPS: string[][] = [
+  // Symbols with no plain-Latin twin
+  ["Ð", "Đ", "Ɖ"],
+  ["Λ", "Ʌ", "∧"],
+  ["Σ", "Ʃ", "∑"],
+  ["Δ", "∆", "△"],
+  ["Ω", "Ω"], // Greek Omega, Ohm sign
+  ["Ø", "∅", "Φ"],
+  ["ð", "đ"],
+  // Latin letter, Greek twin, Cyrillic twin
+  ["A", "Α", "А"],
+  ["B", "Β", "В"],
+  ["E", "Ε", "Е"],
+  ["Z", "Ζ"],
+  ["H", "Η", "Н"],
+  ["I", "Ι", "І"],
+  ["K", "Κ", "К"],
+  ["M", "Μ", "М"],
+  ["N", "Ν"],
+  ["O", "Ο", "О"],
+  ["P", "Ρ", "Р"],
+  ["T", "Τ", "Т"],
+  ["Y", "Υ", "У"],
+  ["X", "Χ", "Х"],
+  ["C", "Ϲ", "С"],
+  ["a", "а"],
+  ["e", "е"],
+  ["o", "ο", "о"],
+  ["p", "р"],
+  ["c", "с"],
+  ["x", "х"],
+  ["y", "у"],
+  ["v", "ν"],
+];
 
-/** Latin letter -> its Greek lookalike (the usual "fancy name" alphabet). */
-const TO_GREEK: Record<string, string> = {
-  A: "Α", B: "Β", E: "Ε", Z: "Ζ", H: "Η", I: "Ι", K: "Κ", M: "Μ", N: "Ν",
-  O: "Ο", P: "Ρ", T: "Τ", Y: "Υ", X: "Χ",
-};
+const GROUP_OF = new Map<string, string[]>();
+for (const g of GROUPS) for (const c of g) GROUP_OF.set(c, g);
 
-const MAX_VARIANTS = 6;
+const MAX_VARIANTS = 10;
+const isGreek = (c: string) => c >= "Ͱ" && c <= "Ͽ";
 
 /**
  * Other spellings of `name` that look the same on screen, most likely first:
- * every lookalike as Latin, every lookalike as Greek, then one letter swapped
- * at a time. Never includes `name` itself; capped so a miss costs a handful
- * of requests at most.
+ * every lookalike in its usual form, the all-Greek reading (for names that
+ * already use Greek), then one character swapped at a time. Never includes
+ * `name` itself; capped so a miss costs a handful of requests at most.
  */
 export function riotIdLookalikes(name: string): string[] {
   const chars = [...name];
@@ -33,14 +61,21 @@ export function riotIdLookalikes(name: string): string[] {
   const add = (s: string) => {
     if (s !== name && !out.includes(s) && out.length < MAX_VARIANTS) out.push(s);
   };
-  add(chars.map((c) => TO_LATIN[c] ?? c).join(""));
-  // Only names that already use Greek letters are worth turning fully Greek.
-  if (chars.some((c) => c >= "Ͱ" && c <= "Ͽ")) {
-    add(chars.map((c) => TO_GREEK[c] ?? c).join(""));
+  add(chars.map((c) => GROUP_OF.get(c)?.[0] ?? c).join(""));
+  if (chars.some(isGreek)) {
+    add(
+      chars
+        .map((c) => {
+          const g = GROUP_OF.get(c);
+          return g ? (g.find(isGreek) ?? g[0]) : c;
+        })
+        .join("")
+    );
   }
   chars.forEach((c, i) => {
-    const swap = TO_LATIN[c] ?? TO_GREEK[c];
-    if (swap) add([...chars.slice(0, i), swap, ...chars.slice(i + 1)].join(""));
+    for (const alt of GROUP_OF.get(c) ?? []) {
+      if (alt !== c) add([...chars.slice(0, i), alt, ...chars.slice(i + 1)].join(""));
+    }
   });
   return out;
 }
