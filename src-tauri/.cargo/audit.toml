@@ -22,4 +22,14 @@ ignore = [
   # not compiled into the app. Approved by the owner 2026-10-28.
   # Unblock: rust_decimal moves to rkyv >= 0.8.17.
   "RUSTSEC-2026-0235",
+  # libsqlite3-sys < 0.39 bundles a C SQLite with CVE-2026-119375 (WAL
+  # uninitialized-memory disclosure; local vector, needs a crafted database
+  # file). Unfixable on our side: sqlx-sqlite (via tauri-plugin-sql 2.6) caps
+  # libsqlite3-sys below 0.38 even in sqlx 0.9.0, and rusqlite must share the
+  # same sys crate. Exposure is minimal: the app only opens its own database
+  # in the user's profile and never loads database files from outside.
+  # Approved by the owner 2026-11-12.
+  # Unblock: tauri-plugin-sql / sqlx accept libsqlite3-sys >= 0.39, then bump
+  # rusqlite to >= 0.41 alongside.
+  "RUSTSEC-2026-0459",
 ]
