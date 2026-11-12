@@ -23,8 +23,9 @@ open. Not user documentation — see [`../README.md`](../README.md) for that.
   - **Not verified in a real game**: the three simple screens (home with
     real stored matches, live screen with a real snapshot), plus the list
     below. v0.5.0 was tagged at the owner's request before that pass; the
-    updater manifest in the worker stays on 0.4.0 until the owner says
-    "despliega".
+    updater manifest was deployed the same day (worker version
+    2026-11-12.1), so 0.4.0 installs now get the update banner. Rollback:
+    put LATEST_VERSION back to 0.4.0 in the worker and redeploy.
 - **2026-11-09..11 — two review rounds + contextual builds (all pushed; worker
   deployed 2026-11-11, version a86ed1fa).**
   - Round 1 (32 issues, commit 2062737): advice that ignored role/mode —
