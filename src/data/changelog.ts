@@ -15,6 +15,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "0.5.2",
+    date: "2026-11-12",
+    highlights: [
+      "🎯 Ya salen los counters: «bueno contra sus campeones» y «rival difícil en tu línea»",
+      "📈 Selección: tus opciones de ganar, qué le falta a tu equipo y aviso si un rival juega mucho su campeón",
+      "🧩 Prepara: runas, hechizos y qué habilidad subir, con un botón para ponerlos en el juego",
+      "🗺️ «Cómo ganáis»: el plan de la partida en dos frases sencillas",
+      "👆 Toca a un enemigo para decir que es tu rival de línea",
+      "💰 En partida: cómo va cada línea en oro",
+      "🔧 Los iconos de runas se recuperan solos si fallan al abrir la app",
+    ],
+  },
+  {
     version: "0.5.1",
     date: "2026-11-12",
     highlights: [

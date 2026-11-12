@@ -4,6 +4,31 @@ All notable changes to Draftboard are documented here.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/);
 versions match the Tauri app version + the `vX.Y.Z` git tags.
 
+## [0.5.2] — 2026-11-12
+
+### Fixed
+- Counters: the pick list only said "good against them" when a champion
+  averaged over 55% against the whole enemy team, which real matchups
+  (47-53%) almost never reach, so it never showed. The bar is now 52% (and
+  48% for "hard lane"), and pairs with under 50 games are ignored so an
+  off-lane enemy's tiny sample can't drown the real lane matchup.
+- Rune icons: if the rune list failed to download at startup, every rune
+  icon stayed broken until restart; it now retries.
+
+### Added
+- Simple champ select, top strip: win chance with its main reason, what
+  your team lacks (or the enemy damage type), and a warning when an enemy
+  plays their champion a lot.
+- "Get ready" step: runes, summoner spells and skill order for your pick,
+  with one button to put runes and spells in the client (they are still
+  set automatically on lock-in).
+- "How you win": the game plan in two plain sentences.
+- Tap an enemy in the bottom bar to mark them as your lane opponent; a note
+  says when the lane opponent isn't known yet; a line shows how many
+  champions are left to pick; a short first-time tour.
+- Simple in-game screen: how each lane is doing in gold (items bought plus
+  farm, approximate).
+
 ## [0.5.1] — 2026-11-12
 
 ### Fixed
