@@ -56,6 +56,42 @@ owner's PC, free plan. Read-only look: no login, no settings changed.
   Poke / Safe), trading score, kill threat.
 - Three builds to choose from.
 
+## Seen live in a real game (2026-11-12, owner's ranked game, Viego jungle)
+Screenshots in D:\Claude\itero-capturas (not in the repo).
+- **Queue / ready check**: nothing new; the window stays as it was (it was
+  minimised, so no shots of those phases).
+- **Champ select** (window switches to a draft layout on its own):
+  - First time: a 4-step guided tour ("1/4 Skip / Next") pointing at each
+    block ("this is the summary, the two scores matter most").
+  - Top bar: both teams' picks in order + bans as small icons, and a status
+    pill: "Esperando la selección final" / "Actualizado".
+  - Left: Overall score + Lane phase score, mastery (12k, red = low), champ
+    WR, synergy avg, counter avg, AD ratio of the team, early advantage.
+  - Centre "Encuentros": synergy score with each ally, counter score vs each
+    enemy (red/orange/green numbers). A red * marks **blind matchups** ("based
+    on average stats") until the enemy picks.
+  - Bottom: "Builds" (3 compact rows: runes + spells + items each) and
+    "Emparejamiento"; shows "waiting for everyone to lock" until then.
+  - Recommendations grid with a score per champion during your pick.
+- **In game** (separate window, Alt+I show/hide, Alt+O switch tab):
+  - Tabs "Player Scouting" (empty grid on the free plan) and "Game Data".
+  - Your champion's draft score (4.5), **"Lane state 0-7 min: Even"**.
+  - Synergy/counter numbers per champion again, with **"Got the draft wrong?
+    Edit"** to fix who plays which lane.
+  - No overlay drawn on the game itself (windowed game, nothing seen).
+- **End of game**: window was minimised, no shots.
+
+## New ideas from the live look
+7. "Blind" marker: until the lane opponent picks, say "aún no sabes contra
+   quién; consejo general" next to the build (we already fall back, but
+   don't say it on every card).
+8. Status pill in champ select ("esperando picks" / "listo").
+9. A short first-time tour of the simple screen (3-4 bubbles).
+10. Let the user fix lanes when the game guesses them wrong (the Ahri
+    mid-as-top bug showed this happens).
+11. Lane state in the first minutes ("tu línea va igualada") — partly done by
+    the per-lane gold card in the simple in-game screen.
+
 ## Ideas for Draftboard (not built yet)
 1. Draft score per game in the history + LP graph + last-10 bar.
 2. Coach score per game-time window, each stat vs your league with a plain
