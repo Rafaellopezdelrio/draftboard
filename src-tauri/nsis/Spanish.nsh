@@ -1,4 +1,4 @@
-﻿; Tauri built-in installer strings (copied from the installed Tauri CLI), with
+; Tauri built-in installer strings (copied from the installed Tauri CLI), with
 ; {{product_name}} rendered as ${PRODUCTNAME}, plus Draftboard install-mode texts.
 ; NSIS ships "Instación" in its Spanish MultiUser file; hooks.nsh points the
 ; install-mode page at the Draftboard strings below. Re-copy on Tauri upgrades.
