@@ -38,8 +38,10 @@ a pick-rate floor so small-sample champions don't fake their way into S tier.
 ## Features
 
 ### Simple view
-- **Ban / Pick / Buy** on one screen, no jargon. Never suggests banning a
-  champion it also suggests picking.
+- **One plain screen per moment**, no jargon: home (last game and one thing
+  to improve), champion select (ban / pick / buy) and in game (what to do
+  now, what to buy next, which enemies to watch).
+- Never suggests banning a champion it also suggests picking.
 - **Four header entries** (Game, Coach, Search, Settings); everything else is
   one menu away. The full panel layout sits behind "More details".
 
@@ -193,8 +195,6 @@ See [`docs/releasing.md`](docs/releasing.md) for the release flow
 
 ## Roadmap
 
-- Simple in-game screen and a simple home screen (same style as the new
-  ban / pick / buy view)
 - In-game transparent overlay (currently a separate window)
 - Pro builds (Faker's Aatrox specifically) via Leaguepedia
 - Cerebras as a 4th AI provider for redundancy

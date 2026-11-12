@@ -15,6 +15,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "0.5.0",
+    date: "2026-11-12",
+    highlights: [
+      "🧭 Pantalla sencilla nueva: qué banear, qué elegir y qué comprar, sin jerga",
+      "🎮 En partida: qué hacer ahora, qué comprar y con qué rivales tener cuidado",
+      "🏠 Inicio: resumen de tu última partida y una cosa para mejorar",
+      "🛒 Plan de compra por tu rival de línea y por todo el equipo enemigo",
+      "🕵️ Análisis de rivales también en clasificatorias, desde la pantalla de carga",
+      "🔎 El buscador encuentra nombres con letras raras (Ð, Λ, Σ…)",
+      "🔧 Más de 60 arreglos en consejos, runas, objetos y datos",
+    ],
+  },
+  {
     version: "0.3.0",
     date: "2026-05-21",
     highlights: [

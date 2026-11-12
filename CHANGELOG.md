@@ -4,13 +4,24 @@ All notable changes to Draftboard are documented here.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/);
 versions match the Tauri app version + the `vX.Y.Z` git tags.
 
-## [Unreleased] — planned as 0.5.0
+## [0.5.0] — 2026-11-12
 
-Draft for the next release. 0.4.1 and 0.4.2 were never published, so 0.5.0
-ships everything below them too. Before tagging: play one real game (overlay
-focus, auto runes, champ-select capture) — see docs/handoff.md.
+0.4.1 and 0.4.2 were never published, so 0.5.0 ships everything below them
+too. Tagged at the owner's request before a full real-game pass of the new
+simple screens; the items still to confirm in a real game are listed in
+docs/handoff.md.
 
 ### Added
+- **Simple view (new default)**: one plain screen per moment, no jargon.
+  Home (last game, one thing to improve, recent record), champion select
+  (ban / pick / buy in three steps) and in game (what to do now, what to buy
+  next, which enemies to watch). The header drops to four entries; the full
+  panels sit behind "More details".
+- **One buy list**: start and first item for your lane opponent, boots and
+  later items for the whole enemy team, each with its reason. Handles flex
+  picks, and switches to your real lane opponent once the game starts.
+- Player search finds names typed with look-alike letters (Ð, Λ, Σ…).
+- The header language switch now also sets the AI coach language.
 - **Build against your lane opponent**: the build panel now shows what
   players of your champion buy and run against the enemy in your lane
   (starter, core, boots, runes), your win rate in that matchup, who has the
@@ -34,6 +45,10 @@ focus, auto runes, champ-select capture) — see docs/handoff.md.
   server provides both.
 
 ### Fixed
+- Rune icons in the matchup card and the aggregate rune page no longer show
+  as broken images.
+- The draft board is no longer wiped when the game starts (the client sends
+  the emptied champ-select session twice).
 - Second review round (30 issues):
   - Client writes: saving the Draftboard item set no longer wipes your other
     item sets; Flash stays on the key you use (D or F); rune pages are only
