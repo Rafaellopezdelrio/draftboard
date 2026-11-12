@@ -1332,7 +1332,8 @@
     "riotIdNotFound": "Riot ID not found. Check the name and the tag (the part after #).",
     "lastMustBeUser": "The last message must be from the user",
     "aiKeyNeeded": "You need a {{provider}} API key. Set it in Prefs.",
-    "proxyRateLimit": "Too many requests, wait 1 min"
+    "proxyRateLimit": "Too many requests, wait 1 min",
+    "proxyRiotDown": "Draftboard's server can't reach Riot right now. You don't need to do anything: try again in a while."
   },
   "engine": {
     "betterMetaTier": "Your team has the better meta tier",

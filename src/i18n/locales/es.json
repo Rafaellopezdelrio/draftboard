@@ -1332,7 +1332,8 @@
     "riotIdNotFound": "Riot ID no encontrado. Revisa el nombre y el tag (lo que va después de #).",
     "lastMustBeUser": "El último mensaje debe ser del usuario",
     "aiKeyNeeded": "Necesitas una API key de {{provider}}. Configúrala en Prefs.",
-    "proxyRateLimit": "Demasiadas peticiones, espera 1 min"
+    "proxyRateLimit": "Demasiadas peticiones, espera 1 min",
+    "proxyRiotDown": "El servidor de Draftboard no puede hablar con Riot ahora mismo. No tienes que hacer nada: prueba otra vez en un rato."
   },
   "engine": {
     "betterMetaTier": "Tienes mejor meta tier",

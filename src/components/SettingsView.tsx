@@ -268,6 +268,10 @@ export function SettingsView({ onClose }: Props) {
           <p>{t("settings.autoModeBody")}</p>
         </div>
 
+        {/* Own-key option only for people who use it (a key already saved) or
+          * who turned Draftboard's server off: everyone else needs nothing,
+          * and a key box with a developer-site link read as "you must get one". */}
+        {(apiKey || !getRiotProxyUrl()) && (
         <details className="bg-bg-card border border-border-subtle rounded p-3 text-xs text-white/70">
           <summary className="cursor-pointer text-white/80 font-medium">
             {t("settings.advancedOptions")}
@@ -315,6 +319,7 @@ export function SettingsView({ onClose }: Props) {
             </Field>
           </div>
         </details>
+        )}
 
         <Field label="Idioma / Language">
           <LocalePicker />
