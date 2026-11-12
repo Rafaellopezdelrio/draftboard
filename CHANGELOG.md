@@ -4,6 +4,16 @@ All notable changes to Draftboard are documented here.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/);
 versions match the Tauri app version + the `vX.Y.Z` git tags.
 
+## [0.5.4] — 2026-11-13
+
+### Fixed
+- Tier list: with dpm.lol paused the list comes from op.gg, which has one
+  list for all ranks, yet the rank/region selectors and a "dpm.lol · Gold"
+  title still showed, so switching Gold to Challenger changed nothing. The
+  selectors now show only for live per-rank data; otherwise a note says it's
+  one list for all ranks.
+- Removed an English debug counter ("7 entries · 4 in TOP") shown to users.
+
 ## [0.5.3] — 2026-11-12
 
 ### Fixed

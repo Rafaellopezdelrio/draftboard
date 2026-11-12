@@ -15,6 +15,14 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "0.5.4",
+    date: "2026-11-13",
+    highlights: [
+      "📊 Tier list: ya no aparenta cambiar por rango cuando no hay datos por rango; lo dice claro",
+      "🧹 Fuera un contador en inglés que no servía para nada",
+    ],
+  },
+  {
     version: "0.5.3",
     date: "2026-11-12",
     highlights: [
