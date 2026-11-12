@@ -335,7 +335,7 @@ describe("SettingsView — resync", () => {
     vi.mocked(getAccount).mockRejectedValue(new Error("bad id"));
     await renderView();
     await confirmResync();
-    expect(screen.getByText("Error validando Riot ID: Error: bad id")).toHaveClass("text-bad");
+    expect(screen.getByText("No pudimos comprobar tu Riot ID. bad id")).toHaveClass("text-bad");
     expect(clearAllMatches).not.toHaveBeenCalled();
     expect(syncPersonalData).not.toHaveBeenCalled();
     expect(btn("Re-sync")).toBeEnabled();

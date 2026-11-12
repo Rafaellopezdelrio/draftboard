@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   getAccountByRiotId,
+
   getSummonerByPuuid,
   getLeagueEntriesByPuuid,
   getTopMasteries,
@@ -14,6 +15,7 @@ import {
   type LeagueEntryDto,
   type Region,
 } from "../services/riotApi";
+import { splitRiotId } from "../services/riotId";
 import { loadSettings } from "../services/settingsRepo";
 import type { ChampionDb } from "../types/champion";
 import { useEscape } from "../hooks/useKeyboardShortcuts";
@@ -141,8 +143,7 @@ export function SummonerLookupView({ db, onClose }: Props) {
       // A full Riot ID typed into the name box ("Name#TAG") wins over the tag
       // box — otherwise we'd look up "Name#TAG#EUW" and get a 404.
       const hash = name.indexOf("#");
-      const gameName = (hash >= 0 ? name.slice(0, hash) : name).trim();
-      const tagLine = (hash >= 0 && name.slice(hash + 1).trim()) || tag.trim();
+      const { gameName, tagLine } = splitRiotId(name, tag);
       if (hash >= 0) {
         setName(gameName);
         setTag(tagLine);

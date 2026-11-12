@@ -958,7 +958,7 @@
     "updateChannel": "Update channel",
     "updateChannelHint": "Stable: tested versions. Beta: new things earlier, but more bugs.",
     "savingConfig": "Saving config...",
-    "errorValidatingRiotId": "Error validating Riot ID: {{error}}",
+    "errorValidatingRiotId": "We couldn't check your Riot ID. {{error}}",
     "deletingOldMatches": "Deleting old matches...",
     "resyncDone": "Re-synced ✓ ({{matches}} matches via {{source}})",
     "error": "Error: {{error}}",

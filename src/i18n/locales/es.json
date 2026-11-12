@@ -958,7 +958,7 @@
     "updateChannel": "Canal de actualizaciones",
     "updateChannelHint": "Estable: versiones ya probadas. Beta: las novedades antes, pero con más fallos.",
     "savingConfig": "Guardando configuración...",
-    "errorValidatingRiotId": "Error validando Riot ID: {{error}}",
+    "errorValidatingRiotId": "No pudimos comprobar tu Riot ID. {{error}}",
     "deletingOldMatches": "Borrando partidas viejas...",
     "resyncDone": "Resincronizado ✓ ({{matches}} partidas vía {{source}})",
     "error": "Error: {{error}}",

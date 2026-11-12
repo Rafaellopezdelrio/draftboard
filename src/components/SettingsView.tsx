@@ -4,6 +4,7 @@ import { useFocusTrap } from "../hooks/useFocusTrap";
 
 const SETTINGS_TITLE_ID = "settings-view-title";
 import { getAccount, getMatch, getRecentMatchIds, getRiotProxyUrl, type Region } from "../services/riotApi";
+import { splitRiotId } from "../services/riotId";
 import { loadSettings, saveSettings } from "../services/settingsRepo";
 import { getCurrentSummoner } from "../services/lcuService";
 import { syncPersonalData } from "../services/personalDataSync";
@@ -87,7 +88,7 @@ export function SettingsView({ onClose }: Props) {
           syncPuuid = account.puuid;
           await saveSettings({ ...cfg, puuid: account.puuid });
         } catch (e) {
-          setStatus(t("settings.errorValidatingRiotId", { error: String(e) }));
+          setStatus(t("settings.errorValidatingRiotId", { error: e instanceof Error ? e.message : String(e) }));
           setBusy(false);
           return;
         }
@@ -350,7 +351,15 @@ export function SettingsView({ onClose }: Props) {
           <div className="flex gap-2">
             <input
               value={riotIdName}
-              onChange={(e) => setRiotIdName(e.target.value)}
+              onChange={(e) => {
+                // "Name#TAG" typed whole: split it into the two boxes.
+                const v = e.target.value;
+                if (v.includes("#")) {
+                  const { gameName, tagLine } = splitRiotId(v, riotIdTag);
+                  setRiotIdName(gameName);
+                  setRiotIdTag(tagLine);
+                } else setRiotIdName(v);
+              }}
               onBlur={(e) => setRiotIdName(e.target.value.trim())}
               placeholder="Faker"
               className="flex-1 bg-bg px-3 py-2 rounded border border-border-subtle text-white"
@@ -358,7 +367,7 @@ export function SettingsView({ onClose }: Props) {
             <span className="self-center text-white/40">#</span>
             <input
               value={riotIdTag}
-              onChange={(e) => setRiotIdTag(e.target.value)}
+              onChange={(e) => setRiotIdTag(e.target.value.replace(/#/g, ""))}
               onBlur={(e) => setRiotIdTag(e.target.value.trim())}
               placeholder="KR1"
               className="w-24 bg-bg px-3 py-2 rounded border border-border-subtle text-white"
