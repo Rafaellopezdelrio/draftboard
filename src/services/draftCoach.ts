@@ -7,6 +7,7 @@
 // On-demand (a button), never auto: each call is one LLM request.
 
 import { callAi, type AiProvider } from "./aiProvider";
+import { plainStyle } from "./aiStyle";
 import { CHAMPION_ROLES } from "../data/championRoles";
 import type { ChampionDb, CounterEntry, Role } from "../types/champion";
 
@@ -142,7 +143,7 @@ export function buildDraftCoachPrompts(input: DraftCoachInput): {
   if (input.compMissing?.length) {
     lines.push(`${L.lacks}: ${input.compMissing.join(", ")}.`);
   }
-  return { system, user: lines.join("\n") };
+  return { system: `${system}\n\n${plainStyle(en ? "en" : "es", { closingTip: false })}`, user: lines.join("\n") };
 }
 
 /** Ask the AI to explain the current draft. Returns the coaching prose. */

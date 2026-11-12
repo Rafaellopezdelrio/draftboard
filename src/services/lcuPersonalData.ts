@@ -2,6 +2,7 @@
 // No Riot API key required — works as long as the LoL client is open.
 
 import { invoke } from "@tauri-apps/api/core";
+import { choosePosition } from "./positionFix";
 import type { MatchSummary } from "./riotApi";
 import type { ChampionMasteryDto } from "./riotApi";
 
@@ -160,6 +161,14 @@ export function inferPosition(
 ): string {
   // ARAM has no positions
   if (queueId === 450) return "";
+  // Riot's guesses can be wrong (a mid Ahri stored as TOP): check them against
+  // the champion's usual roles.
+  return choosePosition([rawPosition(p), p.stats.individualPosition], p.championId);
+}
+
+function rawPosition(
+  p: LcuMatchHistoryResponse["games"]["games"][number]["participants"][number]
+): string {
 
   // 1. Modern teamPosition (most reliable when available)
   const tp = (p.stats.teamPosition ?? "").toUpperCase();

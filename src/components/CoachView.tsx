@@ -1,6 +1,7 @@
 import { aiReady } from "../services/aiProvider";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Markdown } from "./ui/Markdown";
 import { i18n } from "../i18n";
 import { analyzeMatch, type Insight } from "../engine/coachEngine";
 import { computeGpi, type GpiScore } from "../engine/gpiEngine";
@@ -318,9 +319,7 @@ export function CoachView({ db, onClose }: Props) {
                 )}
                 {aiErr && <p className="text-sm text-bad">{aiErr}</p>}
                 {aiResponse && (
-                  <p className="text-sm text-white/90 whitespace-pre-wrap leading-relaxed">
-                    {aiResponse}
-                  </p>
+                  <Markdown source={aiResponse} className="text-sm text-white/90" />
                 )}
               </div>
             )}

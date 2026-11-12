@@ -265,11 +265,6 @@ export function SettingsView({ onClose }: Props) {
             {t("settings.autoModeTitle")}
           </p>
           <p>{t("settings.autoModeBody")}</p>
-          <p className="mt-1.5 text-white/55">
-            {t("settings.autoModeProxyPrefix")}{" "}
-            <strong className="text-accent">{t("settings.autoModeProxyName")}</strong>{" "}
-            {t("settings.autoModeProxySuffix")}
-          </p>
         </div>
 
         <details className="bg-bg-card border border-border-subtle rounded p-3 text-xs text-white/70">
@@ -524,15 +519,10 @@ function ProxyOrLcuStatusBanner() {
   const proxyUrl = usePrefsStore((s) => s.prefs.riotProxyUrl);
   if (proxyUrl.trim().length === 0) return null;
   return (
-    <div className="bg-bg-card border border-purple-400/40 rounded p-3 text-xs text-white/85">
-      <p className="font-medium text-purple-300 mb-1">
-        {t("settings.proxyActiveTitle")}
-      </p>
-      <p>
-        {t("settings.proxyActiveBodyPrefix")}{" "}
-        <code className="text-accent">{shortUrl(proxyUrl)}</code>{" "}
-        {t("settings.proxyActiveBodySuffix")}
-      </p>
+    // The server address is for Diagnostics, not for players: shown on hover only.
+    <div className="bg-bg-card border border-good/30 rounded p-3 text-xs text-white/85" title={shortUrl(proxyUrl)}>
+      <p className="font-medium text-good mb-1">{t("settings.proxyActiveTitle")}</p>
+      <p>{t("settings.proxyActiveBody")}</p>
     </div>
   );
 }

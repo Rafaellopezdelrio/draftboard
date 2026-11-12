@@ -1,6 +1,6 @@
 // Champion guide modal — abilities, info, builds, runes, power spikes, matchups.
 
-import { useEffect, useRef, useState, type ReactElement, type ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFocusTrap } from "../hooks/useFocusTrap";
 
@@ -13,6 +13,7 @@ import {
 import { useEscape } from "../hooks/useKeyboardShortcuts";
 import { displayPatch } from "../data/patchDisplay";
 import { Tabs } from "./ui/Tabs";
+import { Markdown } from "./ui/Markdown";
 import { Panel } from "./ui/Panel";
 import { TierBadge } from "./ui/TierBadge";
 import { PowerSpikesBars } from "./PowerSpikesBars";
@@ -613,116 +614,3 @@ function stripHtml(html: string): string {
 // Exported so unit tests can import it
 export const __testOnly_stripHtml = stripHtml;
 
-/**
- * Tiny markdown renderer for LLM output. Supports:
- *   - `## heading` and `# heading`
- *   - `**bold**`
- *   - `_italic_` and `*italic*` (whole-word boundaries — won't eat
- *     `snake_case_words`)
- *   - bullet lists starting with `- ` or `* `
- *   - paragraphs separated by blank lines
- *
- * Why not pull in react-markdown: it's ~50kB gzipped for what we use here.
- * We control the LLM output prompt so we know the surface area is small.
- */
-function Markdown({ source }: { source: string }) {
-  const blocks: ReactElement[] = [];
-  const lines = source.split(/\r?\n/);
-  let listBuffer: string[] = [];
-  let paraBuffer: string[] = [];
-  let idx = 0;
-
-  const flushPara = () => {
-    if (paraBuffer.length === 0) return;
-    const text = paraBuffer.join(" ");
-    blocks.push(
-      <p key={`p-${idx++}`} className="leading-relaxed">
-        {renderInline(text)}
-      </p>
-    );
-    paraBuffer = [];
-  };
-  const flushList = () => {
-    if (listBuffer.length === 0) return;
-    blocks.push(
-      <ul key={`ul-${idx++}`} className="list-disc list-inside space-y-0.5 pl-1">
-        {listBuffer.map((it, i) => (
-          <li key={i}>{renderInline(it)}</li>
-        ))}
-      </ul>
-    );
-    listBuffer = [];
-  };
-
-  for (const raw of lines) {
-    const line = raw.trim();
-    if (!line) {
-      flushPara();
-      flushList();
-      continue;
-    }
-    // Headers
-    const h = line.match(/^(#{1,4})\s+(.+)$/);
-    if (h) {
-      flushPara();
-      flushList();
-      const level = h[1].length;
-      const cls =
-        level <= 2
-          ? "text-[11px] uppercase tracking-widest text-accent font-semibold mt-2"
-          : "text-[10px] uppercase tracking-wide text-white/70 font-semibold mt-1";
-      blocks.push(
-        <p key={`h-${idx++}`} className={cls}>
-          {renderInline(h[2])}
-        </p>
-      );
-      continue;
-    }
-    // Bullet
-    const bullet = line.match(/^[-*]\s+(.+)$/);
-    if (bullet) {
-      flushPara();
-      listBuffer.push(bullet[1]);
-      continue;
-    }
-    // Numbered list — treat as paragraph with the number kept
-    paraBuffer.push(line);
-  }
-  flushPara();
-  flushList();
-  return <>{blocks}</>;
-}
-
-/**
- * Inline markdown: **bold**, _italic_, *italic*. Splits the string into
- * a list of strings and React nodes. Order matters: bold first (longer
- * delimiter) so it doesn't get eaten by the italic pass.
- */
-function renderInline(text: string): ReactNode {
-  const parts: ReactNode[] = [];
-  const re = /(\*\*[^*]+\*\*)|(\b_[^_\n]+_\b)|(\*[^*\n]+\*)/g;
-  let last = 0;
-  let m: RegExpExecArray | null;
-  let i = 0;
-  while ((m = re.exec(text)) !== null) {
-    if (m.index > last) parts.push(text.slice(last, m.index));
-    const tok = m[0];
-    if (tok.startsWith("**")) {
-      parts.push(
-        <strong key={`b-${i++}`} className="text-white font-semibold">
-          {tok.slice(2, -2)}
-        </strong>
-      );
-    } else {
-      // italic from _x_ or *x*
-      parts.push(
-        <em key={`i-${i++}`} className="text-accent/90 not-italic font-medium">
-          {tok.slice(1, -1)}
-        </em>
-      );
-    }
-    last = m.index + tok.length;
-  }
-  if (last < text.length) parts.push(text.slice(last));
-  return parts;
-}

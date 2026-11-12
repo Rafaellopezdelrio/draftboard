@@ -14,6 +14,7 @@
 // db, error, usingStaleCache, plus a retry() that bumps bootAttempt.
 
 import { useEffect, useState } from "react";
+import { registerChampionIds } from "../services/positionFix";
 import { loadChampionDb, readChampionDbCacheUnsafe } from "../services/championDb";
 import { trackEvent, trackFetch } from "../services/breadcrumbs";
 import { mark, measure, warnIfSlow } from "../services/perf";
@@ -42,6 +43,11 @@ export function useChampionDbBoot(
   pushToast: PushToast
 ): UseChampionDbBoot {
   const [db, setDb] = useState<ChampionDb | null>(null);
+  // Sync code only has champion numbers; give it the number -> name table so
+  // it can sanity-check the positions Riot reports.
+  useEffect(() => {
+    if (db) registerChampionIds(db);
+  }, [db]);
   const [error, setError] = useState<string | null>(null);
   const [usingStaleCache, setUsingStaleCache] = useState(false);
   const [bootAttempt, setBootAttempt] = useState(0);

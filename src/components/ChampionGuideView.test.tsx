@@ -541,13 +541,14 @@ describe("ChampionGuideView — AI guide tab", () => {
     expect(screen.getByText("enfasis").tagName).toBe("EM");
 
     const items = screen.getAllByRole("listitem").map((li) => li.textContent);
-    expect(items).toEqual(["bullet uno", "bullet dos"]);
+    expect(items).toEqual(["bullet uno", "bullet dos", "numerado"]);
     expect(screen.getByText("uno").tagName).toBe("STRONG");
 
-    // snake_case is not italicised; numbered lines stay in the paragraph.
-    const snake = screen.getByText("snake_case_words quedan igual 1. numerado");
+    // snake_case is not italicised; numbered lines become a numbered list.
+    const snake = screen.getByText("snake_case_words quedan igual");
     expect(snake.tagName).toBe("P");
     expect(snake.querySelector("em")).toBeNull();
+    expect(screen.getByText("numerado").closest("ol")).not.toBeNull();
     // Blank line starts a new paragraph.
     expect(screen.getByText("Final").tagName).toBe("P");
   });

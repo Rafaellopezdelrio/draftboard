@@ -80,7 +80,12 @@
         "installMode": "both",
         "installerIcon": "icons/icon.ico",
         "displayLanguageSelector": true,
-        "languages": ["English", "Spanish"]
+        "languages": ["English", "Spanish"],
+        "customLanguageFiles": {
+          "English": "nsis/English.nsh",
+          "Spanish": "nsis/Spanish.nsh"
+        },
+        "installerHooks": "nsis/hooks.nsh"
       }
     },
     "createUpdaterArtifacts": "v1Compatible"

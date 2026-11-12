@@ -138,7 +138,7 @@ describe("SettingsView — hydration + fields", () => {
     expect(nameInput().value).toBe("Faker");
     expect(tagInput().value).toBe("KR1");
     expect(screen.getByText("PUUID: puuid-old")).toBeInTheDocument();
-    expect(screen.getByText("⚠️ Las dev keys caducan cada 24h")).toBeInTheDocument();
+    expect(screen.getByText("⚠️ Esta clave caduca en 24 horas")).toBeInTheDocument();
   });
 
   it("keeps defaults when nothing is saved", async () => {
@@ -184,20 +184,22 @@ describe("SettingsView — proxy banner + pickers", () => {
   it("shows the proxy host when a proxy URL is configured", async () => {
     setPrefs({ riotProxyUrl: "https://my-proxy.example.dev/some/path" });
     await renderView();
-    expect(screen.getByText("🌟 Modo proxy premium activo")).toBeInTheDocument();
-    expect(screen.getByText("my-proxy.example.dev")).toBeInTheDocument();
+    expect(screen.getByText("✓ Conectado a los datos de Riot")).toBeInTheDocument();
+    // Plain words for players; the host only on hover.
+    expect(screen.getByText("✓ Conectado a los datos de Riot").parentElement).toHaveAttribute("title", "my-proxy.example.dev");
+    expect(screen.queryByText(/proxy|API key/i)).toBeNull();
   });
 
   it("falls back to the raw value for a non-URL proxy string", async () => {
     setPrefs({ riotProxyUrl: "not a url" });
     await renderView();
-    expect(screen.getByText("not a url").tagName).toBe("CODE");
+    expect(screen.getByText("✓ Conectado a los datos de Riot").parentElement).toHaveAttribute("title", "not a url");
   });
 
   it("hides the banner when the proxy URL is blank", async () => {
     setPrefs({ riotProxyUrl: "   " });
     await renderView();
-    expect(screen.queryByText("🌟 Modo proxy premium activo")).toBeNull();
+    expect(screen.queryByText("✓ Conectado a los datos de Riot")).toBeNull();
   });
 
   it("locale and update-channel pickers write their prefs", async () => {

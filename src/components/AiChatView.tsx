@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Markdown } from "./ui/Markdown";
 import { useFocusTrap } from "../hooks/useFocusTrap";
 import {
   Bot,
@@ -380,15 +381,19 @@ export function AiChatView({ db, onClose }: Props) {
                 </div>
                 {/* Bubble */}
                 <div
-                  className={`max-w-[80%] rounded-lg px-3 py-2 ${
+                  className={`max-w-[80%] min-w-0 rounded-lg px-3 py-2 ${
                     isUser
                       ? "bg-accent/15 border border-accent/30 rounded-tr-sm"
                       : "bg-bg-card border border-border-subtle rounded-tl-sm"
                   }`}
                 >
-                  <p className="text-sm text-white/90 whitespace-pre-wrap leading-relaxed">
-                    {m.content}
-                  </p>
+                  {isUser ? (
+                    <p className="text-sm text-white/90 whitespace-pre-wrap break-words leading-relaxed">
+                      {m.content}
+                    </p>
+                  ) : (
+                    <Markdown source={m.content} className="text-sm text-white/90" />
+                  )}
                 </div>
               </div>
             );

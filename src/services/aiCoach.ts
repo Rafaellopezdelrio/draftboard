@@ -5,6 +5,7 @@
 import type { Insight } from "../engine/coachEngine";
 import type { GpiScore } from "../engine/gpiEngine";
 import type { MatchFull, MatchTimeline } from "./riotApi";
+import { plainStyle } from "./aiStyle";
 import { callAi, type AiProvider } from "./aiProvider";
 import { buildProAnalytics } from "../engine/matchAnalytics";
 import {
@@ -171,7 +172,9 @@ export function buildTrendsPrompts(input: AiTrendsInput): {
     )
     .join("\n");
 
-  const system = `Eres un coach profesional de League of Legends. Analizas TENDENCIAS, no partidas individuales. Identifica el patrón principal que explica los resultados (winrate, comportamiento, errores recurrentes, fortalezas) y da 2-3 acciones concretas para subir LP. Máximo 250 palabras. Idioma: ${input.language === "en" ? "English" : "Español"}.`;
+  const system = `Eres un coach profesional de League of Legends. Analizas TENDENCIAS, no partidas individuales. Identifica el patrón principal que explica los resultados (winrate, comportamiento, errores recurrentes, fortalezas) y da 2-3 acciones concretas para subir LP. Máximo 350 palabras. Idioma: ${input.language === "en" ? "English" : "Español"}.
+
+${plainStyle(input.language === "en" ? "en" : "es")}`;
 
   const leakBlock = input.leakSummary
     ? `\n\nAnálisis estadístico (muestra completa, no solo las de arriba):\n${input.leakSummary}\n`
@@ -220,7 +223,9 @@ export async function aiLessonPlan(input: LessonPlanInput): Promise<string> {
     )
     .join("\n");
 
-  const systemPrompt = `Eres un coach pro de League of Legends. Diseñas planes de mejora de 7 días personalizados. El plan debe ser CONCRETO: cada día = 1 objetivo específico + 1 ejercicio medible. Total max 350 palabras. ${input.language === "en" ? "Respond in English." : "Responde en español."}`;
+  const systemPrompt = `Eres un coach pro de League of Legends. Diseñas planes de mejora de 7 días personalizados. El plan debe ser CONCRETO: cada día = 1 objetivo específico + 1 ejercicio medible. Total max 350 palabras. ${input.language === "en" ? "Respond in English." : "Responde en español."}
+
+${plainStyle(input.language === "en" ? "en" : "es", { closingTip: false })}`;
 
   const userPrompt = `Crea un plan de práctica de 7 días para mí.
 
@@ -235,7 +240,7 @@ Para cada día:
 - Ejercicio concreto (ej. "20 min en práctica solo last-hits hasta CS@10 = 80")
 - Cómo verificar que mejoraste
 
-Sé específico y accionable. No uses listas con bullets dentro de cada día — texto fluido por día.`;
+Sé específico y accionable. Un día por línea, empezando por "- Día N:".`;
 
   const text = await callAi({
     provider: input.provider,

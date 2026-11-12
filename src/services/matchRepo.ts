@@ -1,4 +1,5 @@
 import { getDb, isTauri } from "../db/client";
+import { choosePosition } from "./positionFix";
 import type { MatchSummary } from "./riotApi";
 
 export async function clearAllMatches(): Promise<void> {
@@ -120,7 +121,8 @@ export async function recentMatches(
     durationSec: r.duration_sec,
     gameEndTimestampMs: r.end_ts_ms,
     queueId: r.queue_id,
-    position: r.position,
+    // Games stored before the position check get it on read.
+    position: choosePosition([r.position], r.champion_id),
     opponentChampionId: r.opponent_champion_id ?? 0,
     visionScore: r.vision_score ?? null,
     goldEarned: r.gold_earned ?? null,

@@ -15,6 +15,10 @@ const base: DraftCoachInput = {
 };
 
 describe("buildDraftCoachPrompts", () => {
+  it("asks the model for plain words (shared writing rules)", () => {
+    expect(buildDraftCoachPrompts(base).system).toContain("CÓMO ESCRIBIR");
+  });
+
   it("grounds the user prompt in the actual draft state", () => {
     const { user } = buildDraftCoachPrompts(base);
     expect(user).toContain("Jarvan IV");

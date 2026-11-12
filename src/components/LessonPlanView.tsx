@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Markdown } from "./ui/Markdown";
 import {
   recentLessonPlans,
   saveLessonPlan,
@@ -198,9 +199,7 @@ export function LessonPlanView({ db, onClose }: Props) {
               )}
               {text && (
                 <Panel padding="sm">
-                  <p className="text-sm text-white/90 whitespace-pre-wrap leading-relaxed">
-                    {text}
-                  </p>
+                  <Markdown source={text} className="text-sm text-white/90" />
                   <button
                     onClick={() => {
                       setText("");

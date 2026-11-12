@@ -73,7 +73,7 @@ describe("chatWithCoach", () => {
       apiKey: "sk-test",
       userPrompt: "analiza mi Ahri",
       history: history.slice(0, 2),
-      maxTokens: 800,
+      maxTokens: 1200,
     });
   });
 
@@ -100,12 +100,12 @@ describe("chatWithCoach", () => {
       })
     );
     const sys: string = callAi.mock.calls[0][0].systemPrompt;
-    expect(sys).toContain("Rango: GOLD II 47LP");
-    expect(sys).toContain("Winrate reciente: 2/3 (67%)");
+    expect(sys).toContain("Liga: GOLD II 47LP");
+    expect(sys).toContain("Últimas 3 partidas: 2 ganadas (67%)");
     expect(sys).toContain("Más jugados: Ahri: 10g 60%WR, #888: 4g 25%WR");
     expect(sys).not.toContain("Yasuo: 2g");
-    expect(sys).toContain("Top maestría: Ahri (M7, 252k)");
-    expect(sys).toContain("Últimas 10 partidas: W Ahri MIDDLE 5/2/7; L #999 TOP 1/6/0; W Ahri MIDDLE 5/2/7");
+    expect(sys).toContain("Más maestría: Ahri (M7, 252k)");
+    expect(sys).toContain("Últimas 3 partidas (la más reciente primero, W = victoria, L = derrota, asesinatos/muertes/asistencias): W Ahri MIDDLE 5/2/7; L #999 TOP 1/6/0; W Ahri MIDDLE 5/2/7");
     expect(sys).toContain("Responde en español.");
   });
 
@@ -141,17 +141,17 @@ describe("chatWithCoach", () => {
     expect(sys).toContain("W C10 MIDDLE");
     expect(sys).not.toContain("W C11 MIDDLE");
     // Winrate still counts all 12 matches.
-    expect(sys).toContain("Winrate reciente: 12/12 (100%)");
+    expect(sys).toContain("Últimas 12 partidas: 12 ganadas (100%)");
   });
 
   it("uses Spanish placeholders when there is no data", async () => {
     await chatWithCoach("groq", "", ask, ctx());
     const sys: string = callAi.mock.calls[0][0].systemPrompt;
-    expect(sys).toContain("Rango: Sin rango detectado");
-    expect(sys).toContain("Winrate reciente: 0/0 (?%)");
+    expect(sys).toContain("Liga: Sin rango detectado");
+    expect(sys).toContain("Últimas 0 partidas: 0 ganadas (?%)");
     expect(sys).toContain("Más jugados: sin datos aún");
-    expect(sys).toContain("Top maestría: sin datos aún");
-    expect(sys).toContain("Últimas 10 partidas: ninguna");
+    expect(sys).toContain("Más maestría: sin datos aún");
+    expect(sys).toContain("Últimas 0 partidas (la más reciente primero, W = victoria, L = derrota, asesinatos/muertes/asistencias): ninguna");
   });
 
   it("builds an English system prompt when language is en", async () => {
@@ -166,12 +166,12 @@ describe("chatWithCoach", () => {
       "en"
     );
     const sys: string = callAi.mock.calls[0][0].systemPrompt;
-    expect(sys).toContain("You are a professional League of Legends coach");
+    expect(sys).toContain("You are a League of Legends coach");
     expect(sys).toContain("- Rank: EMERALD IV 0LP");
-    expect(sys).toContain("- Recent winrate: 0/1 (0%)");
+    expect(sys).toContain("- Last 1 games: 0 won (0%)");
     expect(sys).toContain("- Top played: no data yet");
     expect(sys).toContain("- Top mastery: no data yet");
-    expect(sys).toContain("- Last 10 matches: L Ahri MIDDLE 5/2/7");
+    expect(sys).toContain("- Last 1 games (newest first, W = win, L = loss, kills/deaths/assists): L Ahri MIDDLE 5/2/7");
     expect(sys).toContain("Use English.");
     expect(sys).not.toContain("Responde en español");
   });
@@ -179,8 +179,8 @@ describe("chatWithCoach", () => {
   it("uses English placeholders when there are no matches", async () => {
     await chatWithCoach("groq", "", ask, ctx(), "en");
     const sys: string = callAi.mock.calls[0][0].systemPrompt;
-    expect(sys).toContain("- Recent winrate: 0/0 (?%)");
-    expect(sys).toContain("- Last 10 matches: none");
+    expect(sys).toContain("- Last 0 games: 0 won (?%)");
+    expect(sys).toContain("- Last 0 games (newest first, W = win, L = loss, kills/deaths/assists): none");
   });
 
   it("does not leak the Spanish unranked placeholder into the English prompt", async () => {

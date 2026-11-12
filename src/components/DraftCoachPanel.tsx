@@ -4,6 +4,7 @@
 
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Markdown } from "./ui/Markdown";
 import { Sparkles, Loader2 } from "lucide-react";
 import { usePrefsStore } from "../state/prefsStore";
 import { ensureLocaleLoaded, i18n } from "../i18n";
@@ -150,9 +151,7 @@ export function DraftCoachPanel({
       {current && err && <p className="text-xs text-bad">⚠ {err}</p>}
 
       {current && advice && (
-        <p className="text-sm text-white/85 whitespace-pre-wrap leading-relaxed animate-[fadeIn_200ms_ease-out]">
-          {advice}
-        </p>
+        <Markdown source={advice} className="text-sm text-white/85 animate-[fadeIn_200ms_ease-out]" />
       )}
     </div>
   );

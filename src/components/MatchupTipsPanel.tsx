@@ -1,5 +1,6 @@
 import { memo, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Markdown } from "./ui/Markdown";
 import type { ChampionDb, Role } from "../types/champion";
 import { getMatchupTips, inferEnemyRoles } from "../data/matchupTips";
 import { usePrefsStore } from "../state/prefsStore";
@@ -184,9 +185,7 @@ function AiMatchupRow({
         )}
       </div>
       {text && (
-        <p className="text-xs text-white/85 leading-relaxed whitespace-pre-wrap">
-          {text}
-        </p>
+        <Markdown source={text} className="text-xs text-white/85" />
       )}
       {err && <p className="text-[10px] text-bad mt-1">{err}</p>}
     </div>

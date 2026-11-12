@@ -3,6 +3,7 @@
 // Iron all the way to Challenger / pro.
 
 import type { ProMatchAnalytics } from "../engine/matchAnalytics";
+import { plainStyle } from "./aiStyle";
 import type { Insight } from "../engine/coachEngine";
 
 type EloBucket =
@@ -162,7 +163,9 @@ Even Challenger players have refinement points — find them.
 
 ═══ DO NOT FABRICATE ═══
 
-If the timeline data is missing or contradictory, say "I can't determine X from the timeline" — never guess. Hallucinated coaching is worse than no coaching.`;
+If the timeline data is missing or contradictory, say "I can't determine X from the timeline" — never guess. Hallucinated coaching is worse than no coaching.
+
+${plainStyle(opts.language === "en" ? "en" : "es")}`;
 }
 
 function personaForBucket(bucket: EloBucket): string {

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Markdown } from "./ui/Markdown";
 import { recentMatches, type MatchRow } from "../services/matchRepo";
 import {
   computeTrends,
@@ -474,9 +475,7 @@ export function TrendsView({ db, onClose, rankTier }: Props) {
             </div>
             {aiErr && <p className="text-sm text-bad">{aiErr}</p>}
             {aiText && (
-              <p className="text-sm text-white/90 whitespace-pre-wrap leading-relaxed">
-                {aiText}
-              </p>
+              <Markdown source={aiText} className="text-sm text-white/90" />
             )}
           </div>
         )}

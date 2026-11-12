@@ -2,6 +2,7 @@
 // Used as fallback when no curated tip exists in src/data/matchupTips.ts.
 
 import { getDb, isTauri } from "../db/client";
+import { plainStyle } from "./aiStyle";
 import { callAi, type AiProvider } from "./aiProvider";
 import { isLaneOpponent } from "../data/matchupTips";
 import type { Role } from "../types/champion";
@@ -109,7 +110,9 @@ export async function generateMatchupTips(
   }
   const key = matchupCacheKey(input.position, input.enemyPosition);
 
-  const systemPrompt = `Eres un coach pro de League of Legends. Generas tips de matchup específicos: 3-4 bullets cortos, accionables, basados en mecánicas reales (cooldowns, power spikes, thresholds). NADA de generalidades. ${input.language === "en" ? "Respond in English." : "Responde en español."}`;
+  const systemPrompt = `Eres un coach pro de League of Legends. Generas tips de matchup específicos: 3-4 bullets cortos, accionables, basados en mecánicas reales (cooldowns, power spikes, thresholds). NADA de generalidades. ${input.language === "en" ? "Respond in English." : "Responde en español."}
+
+${plainStyle(input.language === "en" ? "en" : "es", { closingTip: false })}`;
 
   const userPrompt = isLaneMatchup(input.position, input.enemyPosition)
     ? `Matchup: yo juego ${input.championAName} ${input.position}, enemigo es ${input.championBName} ${input.enemyPosition ?? input.position}. Parche ${input.patch}.
