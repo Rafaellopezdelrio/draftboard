@@ -64,15 +64,23 @@ async function loadPerks(): Promise<void> {
       cache = map;
       notifyLoaded();
     } catch {
-      // Network down or CDragon offline — leave cache null so we keep
-      // returning the fallback URL. Don't throw to caller; that would
-      // make every RuneIcon render error.
-      cache = {};
-      notifyLoaded();
+      // Network down or CDragon offline — leave cache null (fallback URL
+      // meanwhile) and try again soon: one hiccup at startup used to leave
+      // every rune icon broken for the whole session. Don't throw to caller;
+      // that would make every RuneIcon render error.
+      loadPromise = null;
+      if (retries < MAX_RETRIES) {
+        retries++;
+        setTimeout(() => void loadPerks(), RETRY_MS);
+      }
     }
   })();
   return loadPromise;
 }
+
+const MAX_RETRIES = 5;
+const RETRY_MS = 15_000;
+let retries = 0;
 
 // Kick off the load on module import so the JSON is in-flight by the
 // time the first RuneIcon mounts. No-op if already loading.
@@ -108,5 +116,6 @@ export function subscribeToPerkIcons(cb: () => void): () => void {
 export function __testOnly_resetPerkIcons(): void {
   cache = null;
   loadPromise = null;
+  retries = 0;
   subscribers.clear();
 }

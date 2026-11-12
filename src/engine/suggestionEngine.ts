@@ -170,6 +170,10 @@ export function suggest({
   return scored.slice(0, limit);
 }
 
+/** Average matchup win rate that counts as "good against them" / "hard lane". */
+const COUNTER_GOOD = 0.52;
+const COUNTER_BAD = 0.48;
+
 interface EngineWeights {
   counter: number;
   synergy: number;
@@ -253,10 +257,12 @@ function scoreChampion(c: Champion, ctx: ScoreCtx): ScoredSuggestion {
   else if (mastery > 0.75) reasons.push("suggestions.reason.youKnowIt");
   else if (isComfort) reasons.push("suggestions.reason.comfort");
   if (personal > 0.6) reasons.push(`WR ${(personal * 100).toFixed(0)}%`);
-  if (counter > 0.55) reasons.push("suggestions.reason.counters");
+  // Real matchup win rates sit around 47-53%: 52+ is already a clear edge
+  // (the old 55% bar almost never fired, so "good against them" never showed).
+  if (counter >= COUNTER_GOOD) reasons.push("suggestions.reason.counters");
   // Surface the trade-off: a pick can top the list on meta/mastery yet have a
   // losing lane. Flag it so "best overall" doesn't read as "best matchup".
-  else if (counter < 0.45) reasons.push("suggestions.reason.hardMatchup");
+  else if (counter <= COUNTER_BAD) reasons.push("suggestions.reason.hardMatchup");
   if (synergy > 0.55) reasons.push("suggestions.reason.synergy");
   if (meta > 0.55) reasons.push("suggestions.reason.strongMeta");
   if (archetype > 0) reasons.push("suggestions.reason.fillsGap");

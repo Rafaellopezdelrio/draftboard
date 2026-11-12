@@ -1873,7 +1873,22 @@
       "roleAdcDefault": "As marksman: in every fight find a safe spot to hit from.",
       "roleTopDive": "Top: save Teleport to reach fights from the side.",
       "roleTopDefault": "Top: push alone or join the team depending on the objective; call it first."
-    }
+    },
+    "tour": {
+      "title": "How this screen works",
+      "steps": "1. Ban: who to remove. 2. Pick: which champion to take and why. 3. Get ready: runes, spells and what to buy.",
+      "extra": "Everything updates by itself as others pick. Below you can tap an enemy to say they're in your lane.",
+      "ok": "Got it"
+    },
+    "status": {
+      "waiting_one": "1 champion left to pick · advice updates by itself",
+      "waiting_other": "{{count}} champions left to pick · advice updates by itself",
+      "ready": "Everyone has picked · advice complete"
+    },
+    "blind": "You don't know your lane opponent yet: this is general advice for now.",
+    "markOpponent": "Mark {{name}} as your lane opponent",
+    "opponentIs": "Your lane opponent: {{name}} (tap another if wrong)",
+    "opponentPick": "Tap the enemy who's in your lane"
   },
   "simpleLive": {
     "nowStep": "Right now",

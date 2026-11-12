@@ -21,9 +21,12 @@ vi.mock("../state/autoActions", () => ({
 }));
 vi.mock("../services/lcuService", () => ({ applyRunesResult: vi.fn(), applySummonerSpells: vi.fn() }));
 vi.mock("./build/MatchupBuildCard", () => ({
-  MatchupBuildCard: (p: { championDdId: string; enemyKeys: string[] }) => (
-    <div data-testid="matchup-card">{`${p.championDdId}|${p.enemyKeys.join(",")}`}</div>
+  MatchupBuildCard: (p: { championDdId: string; enemyKeys: string[]; knownOpponentKey?: string | null }) => (
+    <div data-testid="matchup-card">{`${p.championDdId}|${p.enemyKeys.join(",")}|${p.knownOpponentKey ?? ""}`}</div>
   ),
+  // Zed (238) is the guessed mid laner; nobody else is.
+  laneOpponentKey: (_db: unknown, role: string, keys: string[]) =>
+    role === "MIDDLE" && keys.includes("238") ? "238" : null,
 }));
 
 const champ = (key: string, id: string, name = id) => ({
@@ -65,7 +68,16 @@ const base = {
   onShowDetails: () => {},
 };
 
-beforeEach(() => vi.mocked(suggestBans).mockReset().mockReturnValue([]));
+beforeEach(() => {
+  vi.mocked(suggestBans).mockReset().mockReturnValue([]);
+  // Test env has no localStorage: an in-memory one, tour already seen.
+  const mem = new Map<string, string>([["draftboard.simpleTourSeen", "1"]]);
+  vi.stubGlobal("localStorage", {
+    getItem: (k: string) => mem.get(k) ?? null,
+    setItem: (k: string, v: string) => void mem.set(k, v),
+    removeItem: (k: string) => void mem.delete(k),
+  });
+});
 
 describe("SimpleDraftView", () => {
   it("pick step: champions you know come first, the first one is the best option", () => {
@@ -144,15 +156,47 @@ describe("SimpleDraftView", () => {
     expect(screen.getByText("Marca o fija un campeón y aquí sale qué comprar.")).toBeInTheDocument();
     rerender(<SimpleDraftView {...base} buildChampionKey="64" buildRole="JUNGLE" enemyKeys={["238"]} />);
     expect(screen.getByText("Con Lee Sin")).toBeInTheDocument();
-    expect(screen.getByTestId("matchup-card")).toHaveTextContent("LeeSin|238");
+    expect(screen.getByTestId("matchup-card")).toHaveTextContent("LeeSin|238|");
   });
 
   it("teams strip appears with picks, and 'more details' calls back", () => {
     const onShowDetails = vi.fn();
     render(<SimpleDraftView {...base} allyKeys={["64"]} enemyKeys={["238"]} onShowDetails={onShowDetails} />);
     expect(screen.getByText("Tu equipo")).toBeInTheDocument();
-    expect(screen.getByAltText("Zed")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Marcar a Zed como tu rival de línea" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /Ver más detalles/ }));
     expect(onShowDetails).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("SimpleDraftView — lane opponent, status and tour", () => {
+  it("first visit shows the short tour; Entendido hides it for good", () => {
+    localStorage.removeItem("draftboard.simpleTourSeen");
+    const { unmount } = render(<SimpleDraftView {...base} />);
+    fireEvent.click(screen.getByRole("button", { name: "Entendido" }));
+    expect(screen.queryByTestId("simple-tour")).not.toBeInTheDocument();
+    unmount();
+    render(<SimpleDraftView {...base} />);
+    expect(screen.queryByTestId("simple-tour")).not.toBeInTheDocument();
+  });
+
+  it("status line counts the champions still to pick", () => {
+    const { rerender } = render(<SimpleDraftView {...base} allyKeys={["64"]} enemyKeys={["238"]} />);
+    expect(screen.getByTestId("simple-status")).toHaveTextContent("Faltan 8 campeones por elegir");
+    const ten = ["64", "254", "59", "1", "2"];
+    rerender(<SimpleDraftView {...base} allyKeys={ten} enemyKeys={["238", "3", "4", "5", "6"]} />);
+    expect(screen.getByTestId("simple-status")).toHaveTextContent("Todos han elegido");
+  });
+
+  it("blind note until a lane opponent is known; tapping an enemy marks them", () => {
+    const props = { ...base, role: "MIDDLE" as const, suggestions: [sug("64", true)], buildChampionKey: "64", buildRole: "MIDDLE" as const };
+    const { rerender } = render(<SimpleDraftView {...props} enemyKeys={["254"]} />);
+    expect(screen.getByText(/Aún no sabes contra quién vas/)).toBeInTheDocument();
+    rerender(<SimpleDraftView {...props} enemyKeys={["254", "238"]} />);
+    expect(screen.queryByText(/Aún no sabes contra quién vas/)).not.toBeInTheDocument();
+    expect(screen.getByText(/Tu rival de línea: Zed/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Marcar a Vi como tu rival de línea" }));
+    expect(screen.getByText(/Tu rival de línea: Vi/)).toBeInTheDocument();
+    expect(screen.getByTestId("matchup-card")).toHaveTextContent("LeeSin|254,238|254");
   });
 });

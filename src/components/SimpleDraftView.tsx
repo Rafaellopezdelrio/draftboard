@@ -11,7 +11,7 @@ import { suggestBuildAdaptations } from "../engine/adaptiveBuildEngine";
 import { personalMatchupsByRole, type PersonalMatchupStat } from "../services/matchRepo";
 import { fetchOpggBuild, topBuild, type OpggBuild } from "../services/opggBuilds";
 import { useEnemyMains } from "../hooks/useEnemyMains";
-import { MatchupBuildCard } from "./build/MatchupBuildCard";
+import { MatchupBuildCard, laneOpponentKey } from "./build/MatchupBuildCard";
 import { ItemIcon } from "./build/icons";
 import type { DraftPrediction } from "../engine/draftWinrateEngine";
 import { SimpleGamePlan, SimplePrepare, SimpleTopStrip } from "./SimpleDraftExtras";
@@ -32,6 +32,16 @@ interface Props {
   /** Draft win chance (same as the detailed view badge); null until picks exist. */
   prediction?: DraftPrediction | null;
   onShowDetails: () => void;
+}
+
+const TOUR_KEY = "draftboard.simpleTourSeen";
+
+function tourSeen(): boolean {
+  try {
+    return localStorage.getItem(TOUR_KEY) === "1";
+  } catch {
+    return true; // no storage: never nag
+  }
 }
 
 const CARD = "rounded-2xl bg-bg-elev/60 border border-border-subtle p-4 flex flex-col gap-3 min-w-0";
@@ -131,6 +141,21 @@ export function SimpleDraftView({
   const { t } = useTranslation();
   const [matchups, setMatchups] = useState<PersonalMatchupStat[]>([]);
   const enemyMains = useEnemyMains(enemySummonerIds);
+  // The player can say who their lane opponent is (the guess fails on flex picks).
+  const [chosenOpp, setChosenOpp] = useState<string | null>(null);
+  const laneOpp = chosenOpp && enemyKeys.includes(chosenOpp) ? chosenOpp : null;
+  const guessedOpp = role && !noLaneMode ? laneOpponentKey(db, role, enemyKeys) : null;
+  const shownOpp = laneOpp ?? guessedOpp;
+  const [showTour, setShowTour] = useState(() => !tourSeen());
+  const closeTour = () => {
+    setShowTour(false);
+    try {
+      localStorage.setItem(TOUR_KEY, "1");
+    } catch {
+      // ignore: the tour simply shows again next time
+    }
+  };
+  const missingPicks = Math.max(0, 10 - allyKeys.length - enemyKeys.length);
   useEffect(() => {
     if (!role) {
       setMatchups([]);
@@ -204,6 +229,28 @@ export function SimpleDraftView({
 
   return (
     <div className="space-y-4" data-testid="simple-draft">
+      {showTour && (
+        <div className="rounded-2xl border border-accent/40 bg-accent/10 px-4 py-3 flex items-start gap-3" data-testid="simple-tour">
+          <div className="min-w-0 flex-1 space-y-1">
+            <p className="text-sm font-semibold text-white">{t("simple.tour.title")}</p>
+            <p className="text-xs text-white/70 leading-snug">{t("simple.tour.steps")}</p>
+            <p className="text-xs text-white/70 leading-snug">{t("simple.tour.extra")}</p>
+          </div>
+          <button
+            type="button"
+            onClick={closeTour}
+            className="shrink-0 text-xs font-semibold px-3 py-1.5 rounded-full border border-accent/50 text-accent hover:bg-accent/20 transition"
+          >
+            {t("simple.tour.ok")}
+          </button>
+        </div>
+      )}
+      {!noLaneMode && allyKeys.length + enemyKeys.length > 0 && (
+        <p className="text-xs text-white/55 flex items-center gap-2" data-testid="simple-status">
+          <span className={`w-2 h-2 rounded-full ${missingPicks > 0 ? "bg-meh animate-pulse" : "bg-good"}`} />
+          {missingPicks > 0 ? t("simple.status.waiting", { count: missingPicks }) : t("simple.status.ready")}
+        </p>
+      )}
       {!noLaneMode && (
         <SimpleTopStrip
           db={db}
@@ -247,6 +294,9 @@ export function SimpleDraftView({
             ))
           )}
           {!role && picks.length > 0 && <p className="text-[11px] text-white/45">{t("simple.needRole")}</p>}
+          {role && !noLaneMode && !shownOpp && picks.length > 0 && (
+            <p className="text-[11px] text-meh leading-snug">{t("simple.blind")}</p>
+          )}
           {!noLaneMode && (
             <SimpleGamePlan
               db={db}
@@ -275,6 +325,7 @@ export function SimpleDraftView({
                   role={buildRole}
                   enemyKeys={enemyKeys}
                   adaptations={adaptations}
+                  knownOpponentKey={laneOpp}
                   fallback={<GenericBuy db={db} championKey={buildChampionKey} role={buildRole} />}
                 />
               )}
@@ -293,9 +344,30 @@ export function SimpleDraftView({
               <img key={`a${k}`} src={db.champions[k]?.iconUrl} alt={db.champions[k]?.name ?? ""} className="w-8 h-8 rounded-md" />
             ))}
             <span className="text-xs font-bold text-white/35 mx-2">{t("simple.versus")}</span>
-            {enemyKeys.map((k) => (
-              <img key={`e${k}`} src={db.champions[k]?.iconUrl} alt={db.champions[k]?.name ?? ""} className="w-8 h-8 rounded-md" />
-            ))}
+            {enemyKeys.map((k) =>
+              role && !noLaneMode ? (
+                <button
+                  key={`e${k}`}
+                  type="button"
+                  onClick={() => setChosenOpp(k === laneOpp ? null : k)}
+                  aria-pressed={k === shownOpp}
+                  title={t("simple.markOpponent", { name: db.champions[k]?.name ?? "" })}
+                  aria-label={t("simple.markOpponent", { name: db.champions[k]?.name ?? "" })}
+                  className={`rounded-md transition ${k === shownOpp ? "ring-2 ring-accent" : "opacity-80 hover:opacity-100"}`}
+                >
+                  <img src={db.champions[k]?.iconUrl} alt="" className="w-8 h-8 rounded-md" />
+                </button>
+              ) : (
+                <img key={`e${k}`} src={db.champions[k]?.iconUrl} alt={db.champions[k]?.name ?? ""} className="w-8 h-8 rounded-md" />
+              )
+            )}
+            {role && !noLaneMode && enemyKeys.length > 0 && (
+              <span className="text-[11px] text-white/45">
+                {shownOpp
+                  ? t("simple.opponentIs", { name: db.champions[shownOpp]?.name ?? "" })
+                  : t("simple.opponentPick")}
+              </span>
+            )}
           </>
         )}
         <button

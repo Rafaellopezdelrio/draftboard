@@ -1873,7 +1873,22 @@
       "roleAdcDefault": "Como tirador: en cada pelea busca un sitio seguro desde el que pegar.",
       "roleTopDive": "En la calle de arriba: guarda el teletransporte para llegar a las peleas por un lado.",
       "roleTopDefault": "En la calle de arriba: decide si empujar solo o ir con el equipo según el objetivo; avisa antes."
-    }
+    },
+    "tour": {
+      "title": "Así funciona esta pantalla",
+      "steps": "1. Banea: a quién quitar. 2. Elige: qué campeón coger y por qué. 3. Prepara: runas, hechizos y qué comprar.",
+      "extra": "Todo se actualiza solo según eligen los demás. Abajo puedes tocar a un rival para decir que es el de tu línea.",
+      "ok": "Entendido"
+    },
+    "status": {
+      "waiting_one": "Falta 1 campeón por elegir · los consejos se actualizan solos",
+      "waiting_other": "Faltan {{count}} campeones por elegir · los consejos se actualizan solos",
+      "ready": "Todos han elegido · consejos completos"
+    },
+    "blind": "Aún no sabes contra quién vas en tu línea: de momento es un consejo general.",
+    "markOpponent": "Marcar a {{name}} como tu rival de línea",
+    "opponentIs": "Tu rival de línea: {{name}} (toca otro si no es él)",
+    "opponentPick": "Toca al rival que va a tu línea"
   },
   "simpleLive": {
     "nowStep": "Ahora mismo",
