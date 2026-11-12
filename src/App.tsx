@@ -872,6 +872,7 @@ function App() {
           buildChampionKey={buildChampionKey}
           buildRole={buildRole}
           noLaneMode={noLaneMode}
+          prediction={draftPrediction}
           onShowDetails={() => setShowDetails(true)}
         />
       ) : (

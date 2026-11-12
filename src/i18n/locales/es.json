@@ -1788,6 +1788,91 @@
       "synergy": "combina bien con tu equipo",
       "strongMeta": "muy fuerte ahora mismo",
       "fillsGap": "aporta lo que le falta al equipo"
+    },
+    "prepareTitle": "Prepara",
+    "chance": "{{pct}} de cada 100",
+    "chanceText": "Ganaríais así con estos campeones",
+    "chanceWhy": {
+      "betterMetaTier": "Vuestros campeones están más fuertes ahora mismo",
+      "enemyMoreMeta": "Sus campeones están más fuertes ahora mismo",
+      "compComplete": "Vuestro equipo tiene de todo; al suyo le falta algo",
+      "compGaps": "A vuestro equipo le falta algo; al suyo no",
+      "goodMatchups": "Vuestros campeones suelen ganar a los suyos",
+      "badMatchups": "Sus campeones suelen ganar a los vuestros"
+    },
+    "gap": {
+      "engage": "A tu equipo le falta alguien que empiece las peleas",
+      "frontline": "A tu equipo le falta alguien que aguante golpes",
+      "peel": "A tu equipo le falta alguien que proteja a los que pegan"
+    },
+    "gapHint": {
+      "engage": "Si te toca elegir, mejor un campeón que entre primero",
+      "frontline": "Si te toca elegir, mejor un campeón resistente",
+      "peel": "Si te toca elegir, mejor uno que frene a los que se tiran encima"
+    },
+    "dmg": {
+      "adTitle": "Ellos pegan casi todo con daño físico",
+      "adText": "La armadura os sirve mucho más que la resistencia mágica",
+      "apTitle": "Ellos pegan casi todo con daño mágico",
+      "apText": "La resistencia mágica os sirve mucho más que la armadura",
+      "mixedTitle": "Ellos mezclan daño físico y mágico",
+      "mixedText": "No os sirve cargar solo un tipo de defensa"
+    },
+    "mainTitle": "Ojo: su {{name}} lo juega mucho",
+    "mainTitleHuge": "Ojo: su {{name}} lo juega muchísimo",
+    "mainText": "{{player}} tiene más de {{points}} mil puntos con él",
+    "mainSomeone": "Un rival",
+    "prepRunes": "Runas",
+    "prepSpells": "Hechizos",
+    "prepSpellsText": "{{a}} y {{b}}",
+    "prepSkills": "Subir",
+    "prepSkillsText": "Primero la {{first}}, luego la {{second}}",
+    "prepApply": "Poner en el juego",
+    "prepAuto": "Se ponen solas al fijar tu campeón",
+    "prepDone": "✓ Runas y hechizos puestos",
+    "prepFailed": "No se pudo. ¿Estás en la selección de campeón?",
+    "spell": {
+      "1": "Purificar",
+      "3": "Agotar",
+      "4": "Destello",
+      "6": "Fantasmal",
+      "7": "Curar",
+      "11": "Aplastar",
+      "12": "Teleportar",
+      "13": "Claridad",
+      "14": "Prender",
+      "21": "Barrera",
+      "32": "Marca"
+    },
+    "planTitle": "Cómo ganáis",
+    "plan": {
+      "enemyPokeSiege": "Ellos te van quitando vida desde lejos. Mejor peleas cortas y rápidas antes de que te bajen la vida.",
+      "enemyEngageFrontBack": "Ellos tienen tanques delante. Quédate detrás de los tuyos y no pelees justo después de que entren.",
+      "enemyPickBurst": "Ellos matan rápido a quien va solo. No vayas solo a poner guardianes; id juntos del minuto 14 al 30.",
+      "enemyScalingLate": "Ellos son más fuertes al final. Forzad dragones y peleas antes del minuto 25.",
+      "enemyEarlySkirmish": "Ellos son muy fuertes al principio. Juega tranquilo los primeros minutos y no te arriesgues.",
+      "enemySplit14": "Uno de ellos empuja solo por un lado. Avisa cuando desaparezca y pelead 4 contra 4 en medio.",
+      "allyScalingLate": "Vuestro equipo es más fuerte al final. No pasa nada por ir un poco por detrás: farmea y no mueras.",
+      "allyEngageHard": "Vuestro equipo sabe empezar peleas. Usadlo cerca de dragón o barón, no en peleas sueltas.",
+      "allySplitPush": "Uno de los vuestros puede empujar solo por un lado mientras el resto aguanta en medio.",
+      "dmgApVsAd": "Ellos pegan sobre todo con daño mágico. El tanque y el apoyo deberían comprar resistencia mágica.",
+      "dmgAdVsAp": "Ellos pegan sobre todo con daño físico. Comprad armadura si os matan rápido.",
+      "trueDmg": "Varios rivales hacen daño que ignora la defensa. Mezcla vida, defensa y formas de escapar.",
+      "myHypercarry": "{{name}} es muy fuerte al final. Pide a tu equipo que te proteja y quédate detrás en las peleas.",
+      "myLongRangeVsDive": "Ellos se tiran encima de los que pegan desde lejos. Pon guardianes en el río y guarda tu escape.",
+      "defaultMixed": "Equipos parejos. Id a por dragones y luego a por el barón para cerrar la partida.",
+      "roleJungleScaling": "Como jungla: vigila dónde está su jungla y farmea tranquilo; tu equipo gana al final.",
+      "roleJungleEarly": "Como jungla: ellos pelean pronto; quédate cerca de tus líneas y ayúdalas.",
+      "roleJungleDefault": "Como jungla: tú marcas cuándo ir a dragón; ve cuando tus líneas puedan ayudarte.",
+      "roleSupportPick": "Como apoyo: pon guardianes en los lados y el río antes de cada dragón o barón.",
+      "roleSupportEngage": "Como apoyo: tú empiezas las peleas; búscalas cerca de dragón o barón.",
+      "roleSupportDefault": "Como apoyo: ganas el mapa con visión; compra un guardián de control en cada vuelta a base.",
+      "roleMidPoke": "En medio: empuja tu línea y ve a ayudar a otras cuando ellos se acerquen a tu torre.",
+      "roleMidDefault": "En medio: después de empujar tu línea, ve a ayudar a las otras o a por objetivos.",
+      "roleAdcDive": "Como tirador: colócate siempre detrás; ellos se tiran encima de ti. Guarda tu hechizo para escapar.",
+      "roleAdcDefault": "Como tirador: en cada pelea busca un sitio seguro desde el que pegar.",
+      "roleTopDive": "En la calle de arriba: guarda el teletransporte para llegar a las peleas por un lado.",
+      "roleTopDefault": "En la calle de arriba: decide si empujar solo o ir con el equipo según el objetivo; avisa antes."
     }
   },
   "simpleLive": {
@@ -1833,7 +1918,19 @@
       "spikeStrong": "Ahora eres fuerte. Busca peleas y objetivos.",
       "spikeWeak": "Ahora eres débil: {{summary}}. Juega seguro un poco más.",
       "recall": "Tienes {{gold}} de oro sin gastar. Vuelve a base cuando tu línea esté empujada."
-    }
+    },
+    "lanesTitle": "Cómo va cada línea",
+    "lanesHint": "Calculado con objetos y súbditos, aproximado",
+    "lane": {
+      "TOP": "Arriba",
+      "JUNGLE": "Jungla",
+      "MIDDLE": "Medio",
+      "BOTTOM": "Tirador",
+      "UTILITY": "Apoyo"
+    },
+    "laneEven": "Igualados",
+    "laneAhead": "+{{k}} mil de oro",
+    "laneBehind": "−{{k}} mil de oro"
   },
   "simpleHome": {
     "lastStep": "Tu última partida",

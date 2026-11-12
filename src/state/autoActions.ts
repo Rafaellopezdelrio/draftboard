@@ -129,15 +129,22 @@ export function buildItemSetTitle(championName: string): string {
   return `Draftboard - ${championName}`;
 }
 
+/**
+ * The summoner spell pair to apply: lolvvv's pro pair first, op.gg's dominant
+ * pair as fallback, both through the coherence layer so jungle gets Smite,
+ * supports get Exhaust where appropriate, etc. Exported so the simple screen
+ * shows exactly the pair its button applies.
+ */
+export async function pickAutoSpells(champion: Champion, role: Role): Promise<[number, number]> {
+  const pro = await proBuildFor(champion, role);
+  const ids = pro?.spells?.ids ?? (await fetchOpggBuild(champion.id, role))?.summonerSpells?.[0]?.ids;
+  return pickCoherentSpells(champion, role, ids).ids;
+}
+
 async function applySpells(champion: Champion, role: Role) {
   try {
-    // lolvvv's pro pair first, op.gg's dominant pair as fallback. Either goes
-    // through the coherence layer so jungle gets Smite, supports get Exhaust
-    // where appropriate, etc. — same logic as the visible Build Panel uses.
-    const pro = await proBuildFor(champion, role);
-    const ids = pro?.spells?.ids ?? (await fetchOpggBuild(champion.id, role))?.summonerSpells?.[0]?.ids;
-    const coherent = pickCoherentSpells(champion, role, ids);
-    await applySummonerSpells(coherent.ids[0], coherent.ids[1]);
+    const [a, b] = await pickAutoSpells(champion, role);
+    await applySummonerSpells(a, b);
   } catch {
     // silent — auto-apply must never throw or interrupt UX
   }

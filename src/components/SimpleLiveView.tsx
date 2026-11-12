@@ -61,6 +61,29 @@ export function pickRivals(enemies: LiveGamePlayer[]): Rival[] {
   ].slice(0, 4);
 }
 
+const LANES = ["TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY"] as const;
+/** Rough gold a minion is worth, to fold farm into the lead. */
+const GOLD_PER_CS = 20;
+
+/** Approximate gold a player has turned into items and farm. The Live Client
+ * has no gold totals for other players, so this is items bought + farm. */
+export function goldValue(p: LiveGamePlayer): number {
+  const items = p.items.reduce((sum, it) => sum + (it.price ?? 0) * (it.count || 1), 0);
+  return items + p.scores.creepScore * GOLD_PER_CS;
+}
+
+/** Per-lane lead (mine minus theirs) for every lane both teams fill. */
+export function laneLeads(
+  allies: LiveGamePlayer[],
+  enemies: LiveGamePlayer[]
+): Array<{ lane: (typeof LANES)[number]; ally: LiveGamePlayer; enemy: LiveGamePlayer; lead: number }> {
+  return LANES.flatMap((lane) => {
+    const ally = allies.find((p) => p.position === lane);
+    const enemy = enemies.find((p) => p.position === lane);
+    return ally && enemy ? [{ lane, ally, enemy, lead: goldValue(ally) - goldValue(enemy) }] : [];
+  });
+}
+
 const TONE_CLASS: Record<RivalTone, string> = {
   danger: "bg-bad/15 text-bad",
   watch: "bg-meh/15 text-meh",
@@ -174,6 +197,10 @@ export function SimpleLiveView({ db, buildChampionKey, buildRole, enemyKeys, noL
 
   const laneOpponentKey = laneOpponent ? liveChampionKey(db, laneOpponent) : null;
   const rivals = pickRivals(enemies);
+  const leads = laneLeads(
+    snapshot.allPlayers.filter((p) => p.team === myTeam),
+    enemies
+  );
   const countdown = (at: number | null | undefined) =>
     at == null ? null : at - gameTime <= 0 ? t("simpleLive.timerNow") : formatTime(at - gameTime);
   const dragon = countdown(timers?.nextDragonAt);
@@ -280,6 +307,40 @@ export function SimpleLiveView({ db, buildChampionKey, buildRole, enemyKeys, noL
           )}
         </section>
       </div>
+
+      {leads.length > 0 && !noLaneMode && (
+        <section className={CARD} aria-label={t("simpleLive.lanesTitle")} data-testid="simple-lanes">
+          <div className="flex items-baseline gap-2 flex-wrap">
+            <h2 className="text-base font-bold text-white">{t("simpleLive.lanesTitle")}</h2>
+            <span className="text-[11px] text-white/45">{t("simpleLive.lanesHint")}</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-5 gap-2">
+            {leads.map(({ lane, ally, enemy, lead }) => {
+              const a = liveChampionKey(db, ally);
+              const e = liveChampionKey(db, enemy);
+              const even = Math.abs(lead) < 300;
+              const k = Math.round(Math.abs(lead) / 100) / 10;
+              return (
+                <div key={lane} className="rounded-xl bg-bg/60 border border-border-subtle p-2.5 space-y-1">
+                  <p className="text-[10px] uppercase tracking-[0.14em] text-white/45">{t(`simpleLive.lane.${lane}`)}</p>
+                  <div className="flex items-center gap-1.5">
+                    {a && <img src={db.champions[a]?.iconUrl} alt="" className="w-7 h-7 rounded-md" />}
+                    <span className="text-[10px] text-white/35">vs</span>
+                    {e && <img src={db.champions[e]?.iconUrl} alt="" className="w-7 h-7 rounded-md" />}
+                  </div>
+                  <p
+                    className={`text-xs font-semibold ${even ? "text-white/60" : lead > 0 ? "text-good" : "text-bad"}`}
+                  >
+                    {even
+                      ? t("simpleLive.laneEven")
+                      : t(lead > 0 ? "simpleLive.laneAhead" : "simpleLive.laneBehind", { k })}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       <div className="flex items-center gap-2 flex-wrap rounded-xl bg-bg-elev/60 border border-border-subtle px-3 py-2">
         <span className="text-xs text-white/50">{t("simpleLive.voiceNote")}</span>

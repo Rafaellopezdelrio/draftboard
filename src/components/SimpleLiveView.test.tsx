@@ -3,7 +3,7 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, within } from "@testing-library/react";
-import { SimpleLiveView, pickRivals } from "./SimpleLiveView";
+import { SimpleLiveView, goldValue, laneLeads, pickRivals } from "./SimpleLiveView";
 import type { ChampionDb } from "../types/champion";
 import type { LiveGamePlayer, LiveGameSnapshot } from "../services/liveClient";
 import type { LiveGameState } from "../hooks/useLiveGame";
@@ -92,6 +92,18 @@ beforeEach(() => {
   live.state = { inGame: true, snapshot: snapshot(), reason: "in-game" };
   vi.mocked(coachLiveGame).mockReset().mockReturnValue([]);
   vi.mocked(suggestInGameAdaptations).mockReset().mockReturnValue([]);
+});
+
+describe("laneLeads", () => {
+  it("pairs each lane and compares items bought plus farm", () => {
+    const me = { ...player("LeeSin", "ORDER", "JUNGLE"), items: [{ price: 1000, count: 1 }] } as unknown as LiveGamePlayer;
+    const them = { ...player("Khazix", "CHAOS", "JUNGLE"), scores: { kills: 0, deaths: 0, assists: 0, creepScore: 10, wardScore: 0 } } as unknown as LiveGamePlayer;
+    expect(goldValue(me)).toBe(1000);
+    expect(goldValue(them)).toBe(200);
+    const leads = laneLeads([me], [them, player("Zed", "CHAOS", "MIDDLE")]);
+    expect(leads).toHaveLength(1);
+    expect(leads[0]).toMatchObject({ lane: "JUNGLE", lead: 800 });
+  });
 });
 
 describe("pickRivals", () => {

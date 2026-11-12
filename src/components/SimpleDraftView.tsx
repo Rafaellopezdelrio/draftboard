@@ -13,6 +13,8 @@ import { fetchOpggBuild, topBuild, type OpggBuild } from "../services/opggBuilds
 import { useEnemyMains } from "../hooks/useEnemyMains";
 import { MatchupBuildCard } from "./build/MatchupBuildCard";
 import { ItemIcon } from "./build/icons";
+import type { DraftPrediction } from "../engine/draftWinrateEngine";
+import { SimpleGamePlan, SimplePrepare, SimpleTopStrip } from "./SimpleDraftExtras";
 
 interface Props {
   db: ChampionDb;
@@ -27,6 +29,8 @@ interface Props {
   buildRole: Role | null;
   /** ARAM / Arena: no lanes, no bans. */
   noLaneMode: boolean;
+  /** Draft win chance (same as the detailed view badge); null until picks exist. */
+  prediction?: DraftPrediction | null;
   onShowDetails: () => void;
 }
 
@@ -121,6 +125,7 @@ export function SimpleDraftView({
   buildChampionKey,
   buildRole,
   noLaneMode,
+  prediction = null,
   onShowDetails,
 }: Props) {
   const { t } = useTranslation();
@@ -199,6 +204,16 @@ export function SimpleDraftView({
 
   return (
     <div className="space-y-4" data-testid="simple-draft">
+      {!noLaneMode && (
+        <SimpleTopStrip
+          db={db}
+          prediction={prediction}
+          allyKeys={allyKeys}
+          enemyKeys={enemyKeys}
+          bannedKeys={bannedKeys}
+          enemyMains={enemyMains}
+        />
+      )}
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.25fr_1.25fr] gap-4">
         <section className={CARD} aria-label={t("simple.banTitle")}>
           <p className={STEP}>{t("simple.step", { n: 1 })}</p>
@@ -232,13 +247,24 @@ export function SimpleDraftView({
             ))
           )}
           {!role && picks.length > 0 && <p className="text-[11px] text-white/45">{t("simple.needRole")}</p>}
+          {!noLaneMode && (
+            <SimpleGamePlan
+              db={db}
+              myChampionKey={buildChampionKey}
+              myRole={role}
+              allyKeys={allyKeys}
+              enemyKeys={enemyKeys}
+            />
+          )}
         </section>
 
         <section className={CARD} aria-label={t("simple.buyTitle")}>
           <p className={STEP}>{t("simple.step", { n: 3 })}</p>
-          <h2 className="text-xl font-bold text-white">{t("simple.buyTitle")}</h2>
+          <h2 className="text-xl font-bold text-white">{t("simple.prepareTitle")}</h2>
           {buildChampionKey && buildRole && buildChamp ? (
             <>
+              {!noLaneMode && <SimplePrepare db={db} champion={buildChamp} role={buildRole} />}
+              <div className="border-t border-white/5" />
               <p className="text-xs text-white/60">{t("simple.buyFor", { name: buildChamp.name })}</p>
               {noLaneMode ? (
                 <GenericBuy db={db} championKey={buildChampionKey} role={buildRole} />

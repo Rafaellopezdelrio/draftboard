@@ -1788,6 +1788,91 @@
       "synergy": "works well with your team",
       "strongMeta": "very strong right now",
       "fillsGap": "gives the team what it lacks"
+    },
+    "prepareTitle": "Get ready",
+    "chance": "{{pct}} out of 100",
+    "chanceText": "How often you'd win with these champions",
+    "chanceWhy": {
+      "betterMetaTier": "Your champions are stronger right now",
+      "enemyMoreMeta": "Their champions are stronger right now",
+      "compComplete": "Your team has everything; theirs is missing something",
+      "compGaps": "Your team is missing something; theirs isn't",
+      "goodMatchups": "Your champions usually beat theirs",
+      "badMatchups": "Their champions usually beat yours"
+    },
+    "gap": {
+      "engage": "Your team lacks someone to start fights",
+      "frontline": "Your team lacks someone who can take hits",
+      "peel": "Your team lacks someone to protect the damage dealers"
+    },
+    "gapHint": {
+      "engage": "If you still have to pick, take a champion who goes in first",
+      "frontline": "If you still have to pick, take a tough champion",
+      "peel": "If you still have to pick, take one who stops divers"
+    },
+    "dmg": {
+      "adTitle": "They deal almost all physical damage",
+      "adText": "Armor helps you much more than magic resist",
+      "apTitle": "They deal almost all magic damage",
+      "apText": "Magic resist helps you much more than armor",
+      "mixedTitle": "They mix physical and magic damage",
+      "mixedText": "Stacking only one kind of defense won't help"
+    },
+    "mainTitle": "Watch out: their {{name}} plays it a lot",
+    "mainTitleHuge": "Watch out: their {{name}} plays it a huge amount",
+    "mainText": "{{player}} has over {{points}}k points on it",
+    "mainSomeone": "An enemy",
+    "prepRunes": "Runes",
+    "prepSpells": "Spells",
+    "prepSpellsText": "{{a}} and {{b}}",
+    "prepSkills": "Level",
+    "prepSkillsText": "{{first}} first, then {{second}}",
+    "prepApply": "Put in the game",
+    "prepAuto": "They're set by themselves when you lock in",
+    "prepDone": "✓ Runes and spells set",
+    "prepFailed": "Couldn't do it. Are you in champion select?",
+    "spell": {
+      "1": "Cleanse",
+      "3": "Exhaust",
+      "4": "Flash",
+      "6": "Ghost",
+      "7": "Heal",
+      "11": "Smite",
+      "12": "Teleport",
+      "13": "Clarity",
+      "14": "Ignite",
+      "21": "Barrier",
+      "32": "Mark"
+    },
+    "planTitle": "How you win",
+    "plan": {
+      "enemyPokeSiege": "They chip your health from far away. Go for short, quick fights before your health drops.",
+      "enemyEngageFrontBack": "They have tanks in front. Stay behind yours and don't fight right after they jump in.",
+      "enemyPickBurst": "They kill anyone alone fast. Don't place wards alone; stay together from minute 14 to 30.",
+      "enemyScalingLate": "They get stronger late. Force dragons and fights before minute 25.",
+      "enemyEarlySkirmish": "They're very strong early. Play the first minutes calmly and don't take risks.",
+      "enemySplit14": "One of them pushes a side lane alone. Call it when they vanish and fight 4 vs 4 in the middle.",
+      "allyScalingLate": "Your team gets stronger late. Being a bit behind is fine: farm and don't die.",
+      "allyEngageHard": "Your team is good at starting fights. Use it near dragon or Baron, not in random fights.",
+      "allySplitPush": "One of yours can push a side lane alone while the rest hold the middle.",
+      "dmgApVsAd": "They deal mostly magic damage. Your tank and support should buy magic resist.",
+      "dmgAdVsAp": "They deal mostly physical damage. Buy armor if you die fast.",
+      "trueDmg": "Several enemies deal damage that ignores defense. Mix health, defense and ways to escape.",
+      "myHypercarry": "{{name}} is very strong late. Ask your team to protect you and stay behind in fights.",
+      "myLongRangeVsDive": "They jump on ranged damage dealers. Ward the river and keep your escape ready.",
+      "defaultMixed": "Even teams. Take dragons, then Baron to close the game.",
+      "roleJungleScaling": "As jungler: track their jungler and farm safely; your team wins late.",
+      "roleJungleEarly": "As jungler: they fight early; stay near your lanes and help them.",
+      "roleJungleDefault": "As jungler: you decide when to take dragon; go when your lanes can help.",
+      "roleSupportPick": "As support: ward the sides and river before every dragon or Baron.",
+      "roleSupportEngage": "As support: you start fights; look for them near dragon or Baron.",
+      "roleSupportDefault": "As support: you win the map with vision; buy a control ward every time you go back.",
+      "roleMidPoke": "Mid: push your lane and go help others when they come to your tower.",
+      "roleMidDefault": "Mid: after pushing your lane, go help other lanes or take objectives.",
+      "roleAdcDive": "As marksman: always stand behind; they jump on you. Keep your spell for escaping.",
+      "roleAdcDefault": "As marksman: in every fight find a safe spot to hit from.",
+      "roleTopDive": "Top: save Teleport to reach fights from the side.",
+      "roleTopDefault": "Top: push alone or join the team depending on the objective; call it first."
     }
   },
   "simpleLive": {
@@ -1833,7 +1918,19 @@
       "spikeStrong": "You are strong right now. Look for fights and objectives.",
       "spikeWeak": "You are weak right now: {{summary}}. Play safe a bit longer.",
       "recall": "You have {{gold}} unspent gold. Go back to base once your lane is pushed."
-    }
+    },
+    "lanesTitle": "How each lane is doing",
+    "lanesHint": "Rough guess from items and minions",
+    "lane": {
+      "TOP": "Top",
+      "JUNGLE": "Jungle",
+      "MIDDLE": "Mid",
+      "BOTTOM": "Marksman",
+      "UTILITY": "Support"
+    },
+    "laneEven": "Even",
+    "laneAhead": "+{{k}}k gold",
+    "laneBehind": "−{{k}}k gold"
   },
   "simpleHome": {
     "lastStep": "Your last game",

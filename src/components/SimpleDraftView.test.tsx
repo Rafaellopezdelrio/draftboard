@@ -15,6 +15,11 @@ vi.mock("../services/opggBuilds", () => ({
   fetchOpggBuild: vi.fn(async () => null),
   topBuild: vi.fn(),
 }));
+vi.mock("../state/autoActions", () => ({
+  pickAutoRunePage: vi.fn(async () => null),
+  pickAutoSpells: vi.fn(async () => null),
+}));
+vi.mock("../services/lcuService", () => ({ applyRunesResult: vi.fn(), applySummonerSpells: vi.fn() }));
 vi.mock("./build/MatchupBuildCard", () => ({
   MatchupBuildCard: (p: { championDdId: string; enemyKeys: string[] }) => (
     <div data-testid="matchup-card">{`${p.championDdId}|${p.enemyKeys.join(",")}`}</div>
