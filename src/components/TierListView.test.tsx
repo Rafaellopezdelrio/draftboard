@@ -16,6 +16,12 @@ import type { ChampionDb, MetaTier } from "../types/champion";
 vi.mock("../services/championDb", () => ({
   loadChampionDb: vi.fn(),
 }));
+// dpm.lol can be paused in production; tests pick its state per case.
+let dpmOn = true;
+vi.mock("../services/dpmTierlist", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../services/dpmTierlist")>()),
+  isDpmEnabled: () => dpmOn,
+}));
 
 import { loadChampionDb } from "../services/championDb";
 
@@ -81,6 +87,7 @@ function sourceSelect(): HTMLSelectElement {
 }
 
 beforeEach(() => {
+  dpmOn = true;
   setPrefs({});
   vi.mocked(loadChampionDb).mockReset();
 });
@@ -97,13 +104,6 @@ describe("TierListView — default single-role tier view", () => {
     expect(headers).toEqual(["S+ Tier", "S Tier", "A Tier"]);
     expect(screen.getByText("· 2 campeones")).toBeInTheDocument();
     expect(screen.getAllByText("· 1 campeón")).toHaveLength(2);
-  });
-
-  it("shows the diagnostic counter with total, in-role count and top S champions", () => {
-    render(<TierListView db={mkDb()} onClose={() => {}} />);
-    expect(screen.getByText(/entries/)).toHaveTextContent(
-      "7 entries · 4 in TOP · top S: Aatrox, Akali, Darius"
-    );
   });
 
   it("formats rates as percentages and colours winrate by threshold", () => {
@@ -191,7 +191,6 @@ describe("TierListView — role tabs + search", () => {
       "Bard",
     ]);
     expect(screen.queryAllByText(/ Tier$/)).toHaveLength(0);
-    expect(screen.getByText(/entries/)).toHaveTextContent("7 entries · 7 in ALL");
   });
 
   it("switching to Mid shows only that role with singular footer", () => {
@@ -218,12 +217,10 @@ describe("TierListView — role tabs + search", () => {
     expect(screen.getByText("4 campeones · patch 26.10")).toBeInTheDocument();
   });
 
-  it("diagnostic counter falls back to the champion key for unknown champions", () => {
+  it("an entry whose champion is unknown is not rendered as a row", () => {
     const db = mkDb({ meta: [meta("999", "MIDDLE", "S+", 0.6, 0.1, 0.1), ...META] });
     render(<TierListView db={db} onClose={() => {}} />);
     fireEvent.click(screen.getByRole("tab", { name: "Mid" }));
-    expect(screen.getByText(/entries/)).toHaveTextContent("8 entries · 2 in MIDDLE · top S: 999, Ahri");
-    // The unknown entry is not rendered as a row.
     expect(rowOrder()).toEqual(["Ahri"]);
   });
 
@@ -247,11 +244,26 @@ describe("TierListView — empty state", () => {
     expect(screen.getByText("Sin datos del meta aún")).toBeInTheDocument();
     expect(screen.queryByRole("table")).toBeNull();
     expect(screen.queryByText(/patch/)).toBeNull();
-    expect(screen.getByText(/entries/)).toHaveTextContent("0 entries · 0 in TOP");
   });
 });
 
 describe("TierListView — source selector", () => {
+  it("dpm paused: no rank/region selects, a note says it's one list for all ranks", () => {
+    dpmOn = false;
+    setPrefs({ metaSource: "dpm" });
+    render(<TierListView db={mkDb({ metaSourceRequested: "dpm", metaSourceUsed: "opgg" })} onClose={() => {}} />);
+    expect(screen.getByTestId("tierlist-all-ranks")).toHaveTextContent("todos los rangos juntos");
+    expect(screen.queryByTitle("Rango (Iron → Challenger)")).toBeNull();
+    expect(screen.queryByText(/dpm\.lol · /)).toBeNull();
+  });
+
+  it("dpm on but this list fell back to op.gg: same note, no fake rank selector", () => {
+    setPrefs({ metaSource: "dpm" });
+    render(<TierListView db={mkDb({ metaSourceRequested: "dpm", metaSourceUsed: "opgg" })} onClose={() => {}} />);
+    expect(screen.getByTestId("tierlist-all-ranks")).toBeInTheDocument();
+    expect(screen.queryByTitle("Rango (Iron → Challenger)")).toBeNull();
+  });
+
   it("dpm source shows the bracket label in the title and the rank/region/time selects", () => {
     render(<TierListView db={mkDb()} onClose={() => {}} />);
     expect(screen.getByText("dpm.lol · Emerald+ · EUW")).toBeInTheDocument();
@@ -268,6 +280,7 @@ describe("TierListView — source selector", () => {
   });
 
   it("lists only sources with synced data, hiding legacy op.gg unless it is active", () => {
+    dpmOn = false; // production state: dpm.lol paused
     const db = mkDb({ metaSourceCounts: { opgg: 10, proplay: 5, soloq: 0, dpm: 50 } });
     const { unmount } = render(<TierListView db={db} onClose={() => {}} />);
     let options = within(sourceSelect()).getAllByRole("option").map((o) => o.textContent);
@@ -286,6 +299,7 @@ describe("TierListView — source selector", () => {
   });
 
   it("without source counts only the dpm option is offered", () => {
+    dpmOn = false; // production state: dpm.lol paused
     render(<TierListView db={mkDb()} onClose={() => {}} />);
     const options = within(sourceSelect()).getAllByRole("option").map((o) => o.textContent);
     expect(options).toEqual(["dpm.lol (por rango) (en pausa: pendiente de permiso de dpm.lol)"]);

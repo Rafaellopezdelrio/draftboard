@@ -73,7 +73,14 @@ export function TierListView({ db, onClose, onSelectChampion, onDbUpdate }: Prop
 
   const prefs = usePrefsStore((s) => s.prefs);
   const setPref = usePrefsStore((s) => s.set);
-  const isDpm = prefs.metaSource === "dpm";
+  // Rank/region/period selectors only mean something when the list on screen
+  // really came from dpm.lol. With dpm paused (or failing) the list falls back
+  // to op.gg, which has ONE list for all ranks: showing "Gold" vs "Challenger"
+  // there changed nothing and looked broken.
+  const isDpm =
+    prefs.metaSource === "dpm" && isDpmEnabled() && (db.metaSourceUsed ?? "dpm") === "dpm";
+  const allRanksNote =
+    prefs.metaSource === "dpm" && !isDpm && (db.metaSourceRequested ?? "dpm") === "dpm";
 
   // Any source/filter change (1) persists the new pref, (2) force-reloads the
   // championDb, and (3) hands the new db back up to the parent. Force is
@@ -186,19 +193,6 @@ export function TierListView({ db, onClose, onSelectChampion, onDbUpdate }: Prop
 
   const isEmpty = db.meta.length === 0;
 
-  // Diagnostic counter: total meta entries currently in db + top champion
-  // for the active role. This refreshes whenever the parent swaps `db`
-  // (i.e. after every applyDpmFilter). If you change rank/source and these
-  // numbers don't move, the fetch isn't reaching here.
-  const diagSummary = useMemo(() => {
-    const inRole = role === "ALL" ? db.meta : db.meta.filter((m) => m.role === role);
-    const top = inRole
-      .filter((m) => m.tier === "S+" || m.tier === "S")
-      .slice(0, 3)
-      .map((m) => db.champions[m.championKey]?.name ?? m.championKey)
-      .join(", ");
-    return { total: db.meta.length, inRole: inRole.length, top };
-  }, [db, role]);
 
   const dialogRef = useRef<HTMLDivElement | null>(null);
   useFocusTrap(dialogRef, true);
@@ -228,11 +222,6 @@ export function TierListView({ db, onClose, onSelectChampion, onDbUpdate }: Prop
                   </span>
                 )}
               </h2>
-              {/* Live debug counter — should change on every filter switch */}
-              <p className="text-[10px] text-white/45 mt-0.5">
-                {diagSummary.total} entries · {diagSummary.inRole} in {role}
-                {diagSummary.top && ` · top S: ${diagSummary.top}`}
-              </p>
             </div>
             <div className="relative">
               <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-white/40" />
@@ -286,7 +275,12 @@ export function TierListView({ db, onClose, onSelectChampion, onDbUpdate }: Prop
                   <option value="blend">Pro + SoloQ blend</option>
                 )}
             </select>
-            {db.metaSourceUsed && db.metaSourceRequested && db.metaSourceUsed !== db.metaSourceRequested && (
+            {allRanksNote && (
+              <span className="text-[11px] text-white/55" data-testid="tierlist-all-ranks">
+                {t("tierList.allRanksNote")}
+              </span>
+            )}
+            {!allRanksNote && db.metaSourceUsed && db.metaSourceRequested && db.metaSourceUsed !== db.metaSourceRequested && (
               <span
                 className="text-[10px] uppercase tracking-widest text-yellow-300/80"
                 title={t("tierList.fallbackTip", {

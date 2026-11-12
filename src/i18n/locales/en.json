@@ -1503,7 +1503,8 @@
     "colBanrate": "Banrate",
     "champOne": "champion",
     "champMany": "champions",
-    "sortHint": "Sort: click a header"
+    "sortHint": "Sort: click a header",
+    "allRanksNote": "One list for all ranks (op.gg). Per-rank data isn't available right now."
   },
   "history": {
     "title": "History",

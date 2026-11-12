@@ -1503,7 +1503,8 @@
     "colBanrate": "Banrate",
     "champOne": "campeón",
     "champMany": "campeones",
-    "sortHint": "Ordenar: click en cabecera"
+    "sortHint": "Ordenar: click en cabecera",
+    "allRanksNote": "Lista de todos los rangos juntos (op.gg). Ahora mismo no hay datos separados por rango."
   },
   "history": {
     "title": "Historial",
