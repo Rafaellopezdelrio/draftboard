@@ -3,12 +3,14 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const getSummonerById = vi.fn();
 const getTopMasteries = vi.fn();
 const loadSettings = vi.fn();
+let proxy: string | null = null;
 
 vi.mock("../services/lcuService", () => ({
   getSummonerById: (...a: unknown[]) => getSummonerById(...a),
 }));
 vi.mock("../services/riotApi", () => ({
   getTopMasteries: (...a: unknown[]) => getTopMasteries(...a),
+  getRiotProxyUrl: () => proxy,
 }));
 vi.mock("../services/settingsRepo", () => ({
   loadSettings: (...a: unknown[]) => loadSettings(...a),
@@ -21,6 +23,7 @@ beforeEach(() => {
   getSummonerById.mockReset();
   getTopMasteries.mockReset();
   loadSettings.mockReset();
+  proxy = null;
   loadSettings.mockResolvedValue({ apiKey: "k", puuid: "me" });
   getSummonerById.mockResolvedValue({ puuid: "p1", gameName: "Foe" });
   getTopMasteries.mockResolvedValue([
@@ -46,8 +49,14 @@ describe("getEnemyMains — caching + in-flight dedup", () => {
     expect(getSummonerById).not.toHaveBeenCalled();
   });
 
-  it("returns [] when there is no Riot API key", async () => {
+  it("returns [] when there is no Riot API key and no Draftboard server", async () => {
     loadSettings.mockResolvedValue({ apiKey: "", puuid: "me" });
     expect(await getEnemyMains("99", [99])).toEqual([]);
+  });
+
+  it("works through Draftboard's server without a personal key (normal users)", async () => {
+    proxy = "https://proxy.example";
+    loadSettings.mockResolvedValue({ apiKey: "", puuid: "" });
+    expect(await getEnemyMains("98", [98])).toEqual([{ championId: 1, points: 200_000, summonerName: "Foe" }]);
   });
 });
