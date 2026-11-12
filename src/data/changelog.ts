@@ -15,6 +15,17 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "0.5.3",
+    date: "2026-11-12",
+    highlights: [
+      "🪪 Tu Riot ID se encuentra aunque tenga letras raras (Ð, Λ, Σ…)",
+      "✍️ Puedes escribir «Nombre#TAG» de una vez o poner «#» en la etiqueta: lo entiende igual",
+      "🔑 Ya no parece que tengas que conseguir una clave de Riot: no hace falta",
+      "🕵️ El aviso «su rival juega mucho este campeón» ya funciona para todos",
+      "💬 Mensajes de error más claros cuando algo falla con Riot",
+    ],
+  },
+  {
     version: "0.5.2",
     date: "2026-11-12",
     highlights: [

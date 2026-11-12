@@ -4,6 +4,19 @@ All notable changes to Draftboard are documented here.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/);
 versions match the Tauri app version + the `vX.Y.Z` git tags.
 
+## [0.5.3] — 2026-11-12
+
+### Fixed
+- Riot ID in Settings: names with lookalike letters (ÐΛΣRΣN) failed there
+  while the player search found them; both now use the same lookup.
+  "Name#TAG" typed into the name box is split, a "#" in the tag is dropped.
+- Settings no longer suggests getting a Riot key: the own-key box only shows
+  if a key is saved or Draftboard's server is turned off. A Riot 401/403
+  through the server says it's on our side instead of "regenerate your key".
+- The enemy-mains warning ("their Zed plays it a lot") needed a personal
+  Riot key, so normal users never saw it; it now works through the server.
+- Clearer Riot ID error text.
+
 ## [0.5.2] — 2026-11-12
 
 ### Fixed
