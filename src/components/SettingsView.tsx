@@ -388,7 +388,7 @@ export function SettingsView({ onClose }: Props) {
 
         {status && (
           <p
-            className={`text-sm ${/rror/.test(status) ? "text-bad" : status.includes("✓") ? "text-good" : "text-white/70"}`}
+            className={`text-sm ${/rror|No pudimos|couldn.t/.test(status) ? "text-bad" : status.includes("✓") ? "text-good" : "text-white/70"}`}
           >
             {status}
           </p>
