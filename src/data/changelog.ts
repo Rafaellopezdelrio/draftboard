@@ -15,6 +15,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "0.5.1",
+    date: "2026-11-12",
+    highlights: [
+      "💬 El coach explica con detalle pero fácil: el porqué de cada cosa, sin cuentas ni símbolos raros",
+      "📝 Las respuestas de la IA se ven bien: negritas y listas, sin asteriscos",
+      "⚙️ Configuración con textos sencillos, sin jerga técnica",
+      "🧭 Ya no confunde la posición de una partida (p. ej. Ahri en medio contada como top)",
+      "🏠 El inicio muestra tus partidas en cuanto se descargan",
+      "🛠️ Corregida una errata en el instalador",
+    ],
+  },
+  {
     version: "0.5.0",
     date: "2026-11-12",
     highlights: [

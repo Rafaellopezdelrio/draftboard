@@ -4,6 +4,31 @@ All notable changes to Draftboard are documented here.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/);
 versions match the Tauri app version + the `vX.Y.Z` git tags.
 
+## [0.5.1] — 2026-11-12
+
+### Fixed
+- Home screen: it said "no games saved yet" while the first sync was still
+  running and never looked again; it now refreshes when the sync stores games.
+- Game positions: Riot sometimes reports the wrong position for a game
+  (a mid Ahri stored as TOP, which the AI coach then blamed). Positions are
+  now checked against the champion's usual roles, using both of Riot's
+  signals, on sync and when reading games already stored.
+- Installer: the install-mode page said "Instación" (a typo in NSIS's own
+  Spanish file). Draftboard now ships its own texts for that page, and the
+  "app is running" messages show the app name instead of {{product_name}}.
+- AI answers (chat, post-game, trends, 7-day plan, draft coach, matchup
+  tips) are rendered instead of shown as raw markdown: no more "**" on
+  screen, lists show as lists, long lines wrap instead of scrolling sideways.
+
+### Changed
+- Every AI coach prompt shares one set of writing rules: short plain
+  sentences, no jargon or acronyms, no sums or formulas, no markdown
+  symbols, every point explained with its reason and an in-game example so
+  anyone can follow it, one concrete thing to do next game. In the chat,
+  "the last N games" now means those N.
+- Settings: plain-language texts. No more "premium proxy" / "API key" talk
+  on the main view; the server address only shows on hover.
+
 ## [0.5.0] — 2026-11-12
 
 0.4.1 and 0.4.2 were never published, so 0.5.0 ships everything below them
