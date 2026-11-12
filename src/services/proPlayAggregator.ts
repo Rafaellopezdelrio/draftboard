@@ -119,7 +119,7 @@ export async function aggregateFromProPlay(
     for (let attempt = 0; attempt < 4; attempt++) {
       try {
         resp = await httpFetch(`${LEAGUEPEDIA_API}?${params.toString()}`, {
-          headers: { "User-Agent": "Draftboard/0.2 (contact: rafael.lopez.serrano.99@gmail.com)" },
+          headers: { "User-Agent": "Draftboard (+https://github.com/Rafaellopezdelrio/draftboard)" },
         });
       } catch {
         resp = null;
