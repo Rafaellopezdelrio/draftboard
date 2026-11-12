@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { ChampionDb } from "../types/champion";
 import { recentMatches, type MatchRow } from "../services/matchRepo";
+import { MATCHES_SYNCED_EVENT } from "../services/personalDataSync";
 
 interface Props {
   db: ChampionDb;
@@ -61,6 +62,13 @@ export function bestChampion(matches: MatchRow[]): { championId: number; wins: n
 export function SimpleHomeView({ db, rankTier, refreshKey, onOpenReview, onOpenChat, onShowDetails }: Props) {
   const { t } = useTranslation();
   const [matches, setMatches] = useState<MatchRow[] | null>(null);
+  // The first sync often finishes after this screen opens: read again then.
+  const [syncTick, setSyncTick] = useState(0);
+  useEffect(() => {
+    const onSynced = () => setSyncTick((n) => n + 1);
+    window.addEventListener(MATCHES_SYNCED_EVENT, onSynced);
+    return () => window.removeEventListener(MATCHES_SYNCED_EVENT, onSynced);
+  }, []);
   useEffect(() => {
     let stale = false;
     void recentMatches(RECENT)
@@ -73,7 +81,7 @@ export function SimpleHomeView({ db, rankTier, refreshKey, onOpenReview, onOpenC
     return () => {
       stale = true;
     };
-  }, [refreshKey]);
+  }, [refreshKey, syncTick]);
 
   const last = matches?.[0];
   const lastChamp = last ? db.champions[String(last.championId)] : undefined;

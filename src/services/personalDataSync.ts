@@ -53,13 +53,23 @@ export interface SyncResult {
 // in-flight run (a caller's onProgress is ignored while one is already going).
 let syncInFlight: Promise<SyncResult> | null = null;
 
+/** Fired on window after a sync stores games, so screens that list games
+ *  (the home screen) read them again instead of showing "no games yet". */
+export const MATCHES_SYNCED_EVENT = "draftboard:matches-synced";
+
 export function syncPersonalData(
   onProgress: (p: SyncProgress) => void = () => {}
 ): Promise<SyncResult> {
   if (syncInFlight) return syncInFlight;
-  syncInFlight = runSync(onProgress).finally(() => {
-    syncInFlight = null;
-  });
+  syncInFlight = runSync(onProgress)
+    .then((result) => {
+      if (result.matches > 0 && typeof window !== "undefined")
+        window.dispatchEvent(new CustomEvent(MATCHES_SYNCED_EVENT, { detail: result }));
+      return result;
+    })
+    .finally(() => {
+      syncInFlight = null;
+    });
   return syncInFlight;
 }
 

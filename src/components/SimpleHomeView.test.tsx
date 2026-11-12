@@ -8,6 +8,7 @@ import type { ChampionDb } from "../types/champion";
 import { recentMatches, type MatchRow } from "../services/matchRepo";
 
 vi.mock("../services/matchRepo", () => ({ recentMatches: vi.fn(async () => []) }));
+vi.mock("../services/personalDataSync", () => ({ MATCHES_SYNCED_EVENT: "draftboard:matches-synced" }));
 
 const db = {
   patch: "16.1.1",
@@ -111,6 +112,14 @@ describe("SimpleHomeView", () => {
     expect(onOpenReview).toHaveBeenCalledTimes(1);
     expect(onOpenChat).toHaveBeenCalledTimes(1);
     expect(onShowDetails).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows the games as soon as a sync stores them (was stuck on 'no games yet')", async () => {
+    render(<SimpleHomeView {...base} />);
+    await screen.findByText(/Todavía no hay partidas guardadas/);
+    vi.mocked(recentMatches).mockResolvedValue([match()]);
+    window.dispatchEvent(new CustomEvent("draftboard:matches-synced"));
+    expect(await screen.findByText("Victoria con Lee Sin")).toBeInTheDocument();
   });
 
   it("reads the stored games again when a game ends", async () => {
