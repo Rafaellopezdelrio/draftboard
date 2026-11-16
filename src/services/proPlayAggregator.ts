@@ -13,6 +13,7 @@ import { getDb, isTauri } from "../db/client";
 import { buildBatchInserts } from "../db/batchInsert";
 import { i18n } from "../i18n";
 import type { ChampionDb } from "../types/champion";
+import { fetchGridProGames } from "./gridProPlay";
 
 const LEAGUEPEDIA_API = "https://lol.fandom.com/api.php";
 
@@ -45,6 +46,10 @@ const ROLE_TO_POSITION: Record<string, string> = {
   Bot: "BOTTOM",
   Support: "UTILITY",
 };
+
+const POSITION_TO_ROLE: Record<string, string> = Object.fromEntries(
+  Object.entries(ROLE_TO_POSITION).map(([role, pos]) => [pos, role])
+);
 
 export interface ProAggregateProgress {
   phase: string;
@@ -87,7 +92,23 @@ export async function aggregateFromProPlay(
     (t) => `Tournament LIKE "${t}"`
   ).join(" OR ");
 
-  for (let page = 0; page < 6; page++) {
+  // Official data first (Riot Games Open Access powered by GRID, through our
+  // server). Leaguepedia stays as the fallback while GRID isn't available.
+  const grid = await fetchGridProGames(db, daysBack, (done, total) =>
+    onProgress({ phase: "Descargando partidas oficiales", done, total })
+  ).catch(() => null);
+  if (grid) {
+    for (const p of grid.picks) {
+      allRows.push({
+        GameId: p.gameId,
+        Champion: db.champions[p.championKey]?.name,
+        Role: POSITION_TO_ROLE[p.role],
+        PlayerWin: p.win ? "Yes" : "No",
+      });
+    }
+  }
+
+  for (let page = 0; page < (grid ? 0 : 6); page++) {
     const params = new URLSearchParams({
       action: "cargoquery",
       tables: "ScoreboardPlayers=SP, ScoreboardGames=SG",
@@ -214,7 +235,9 @@ export async function aggregateFromProPlay(
     const wr = v.games > 0 ? v.wins / v.games : 0;
     // Per game (same semantics as the SoloQ aggregator), not per player row.
     const pickRate = games.size > 0 ? v.games / games.size : 0;
-    rows.push([Number(champKey), pos, v.games, v.wins, wr, pickRate, 0, proPatch, now]);
+    // Bans only come with the official data; Leaguepedia rows carry none.
+    const banRate = grid && games.size > 0 ? (grid.bans.get(champKey) ?? 0) / games.size : 0;
+    rows.push([Number(champKey), pos, v.games, v.wins, wr, pickRate, banRate, proPatch, now]);
   }
   const chunks = buildBatchInserts(
     "meta_aggregate",
