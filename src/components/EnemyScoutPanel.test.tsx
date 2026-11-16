@@ -17,16 +17,21 @@ import type { ScoutResult } from "../services/enemyScout";
 
 const m = vi.hoisted(() => ({
   getSummonerById: vi.fn(),
+  getCurrentSummoner: vi.fn(),
   scoutPlayer: vi.fn(),
   loadSettings: vi.fn(),
   isRandomPickScout: vi.fn(() => false),
 }));
-vi.mock("../services/lcuService", () => ({ getSummonerById: m.getSummonerById }));
+vi.mock("../services/lcuService", () => ({
+  getSummonerById: m.getSummonerById,
+  getCurrentSummoner: m.getCurrentSummoner,
+}));
 vi.mock("../services/enemyScout", () => ({ scoutPlayer: m.scoutPlayer }));
 vi.mock("../services/settingsRepo", () => ({ loadSettings: m.loadSettings }));
 vi.mock("../state/enemyScoutTargets", () => ({ isRandomPickScout: m.isRandomPickScout }));
 
 import { EnemyScoutPanel } from "./EnemyScoutPanel";
+import { setRiotProxyUrl } from "../services/riotApi";
 import { usePrefsStore, DEFAULT_PREFS } from "../state/prefsStore";
 import { useDraftStore } from "../state/draftStore";
 import { useToastStore } from "./Toaster";
@@ -108,6 +113,7 @@ describe("EnemyScoutPanel", () => {
     useToastStore.setState({ toasts: [] });
     speak.mockClear();
     m.loadSettings.mockReset().mockResolvedValue(CFG);
+    m.getCurrentSummoner.mockReset().mockResolvedValue(null);
     m.getSummonerById.mockReset().mockImplementation(async (sid: number) => ({
       puuid: `puuid-${sid}`,
     }));
@@ -257,7 +263,22 @@ describe("EnemyScoutPanel", () => {
     expect(screen.queryByText(/amenaza/)).toBeNull();
   });
 
-  it("stays in the loading state when no Riot config is saved", async () => {
+  // Clean install: nothing saved in Settings, but Draftboard's server is on.
+  it("scouts through the server with the client's region when nothing is saved", async () => {
+    m.loadSettings.mockResolvedValue(null);
+    m.getCurrentSummoner.mockResolvedValue({ region: "NA" });
+    setRiotProxyUrl("https://server.test");
+    try {
+      render(<EnemyScoutPanel db={db} enemySummonerIds={[11]} enemyChampionIds={[null]} />);
+      await vi.waitFor(() => expect(m.scoutPlayer).toHaveBeenCalledTimes(1));
+      await flush();
+      expect(m.scoutPlayer.mock.calls[0][0]).toMatchObject({ apiKey: "", region: "na1" });
+    } finally {
+      setRiotProxyUrl(null);
+    }
+  });
+
+  it("stays in the loading state with no saved key and the server turned off", async () => {
     m.loadSettings.mockResolvedValue(null);
     render(<EnemyScoutPanel db={db} enemySummonerIds={[11, 0]} enemyChampionIds={[]} />);
     await flush();
@@ -450,6 +471,7 @@ describe("EnemyScoutPanel - loading-screen targets (anonymized select)", () => {
     useToastStore.setState({ toasts: [] });
     speak.mockClear();
     m.loadSettings.mockReset().mockResolvedValue(CFG);
+    m.getCurrentSummoner.mockReset().mockResolvedValue(null);
     m.getSummonerById.mockReset().mockImplementation(async (sid: number) => ({
       puuid: `puuid-${sid}`,
     }));
@@ -575,7 +597,7 @@ describe("EnemyScoutPanel - loading-screen targets (anonymized select)", () => {
 
   it("shows the filled count in the header while target scouts are still pending", async () => {
     localStorage.removeItem("panel-open:enemyScout");
-    m.loadSettings.mockResolvedValue(null); // no Riot config -> nothing loads
+    m.loadSettings.mockResolvedValue(null); // no key and no server -> nothing loads
     render(
       <EnemyScoutPanel
         db={db}

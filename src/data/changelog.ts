@@ -15,6 +15,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "0.5.5",
+    date: "2026-11-16",
+    highlights: [
+      "🏆 Los datos de profesionales vienen ahora de la fuente oficial de Riot (GRID): más completos y al día",
+      "🪪 Recién instalada ya funciona todo: reconoce tu cuenta sola desde el LoL abierto, sin pasar por ajustes",
+      "🎓 El entrenador tras la partida, la partida en vivo y la info de rivales ya no piden «configura tu Riot ID»",
+      "🤖 La IA viene activada de serie",
+      "🌍 Buscar jugadores usa la región de tu LoL, no siempre Europa Oeste",
+      "💬 Errores y textos más claros: un solo aviso si el servidor falla, sin códigos raros",
+      "🧩 Modo sencillo: «faltan X elecciones» cuenta bien, el tablero se limpia al acabar y todo sale en español",
+    ],
+  },
+  {
     version: "0.5.4",
     date: "2026-11-13",
     highlights: [

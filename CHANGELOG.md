@@ -4,6 +4,31 @@ All notable changes to Draftboard are documented here.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/);
 versions match the Tauri app version + the `vX.Y.Z` git tags.
 
+## [0.5.5] — 2026-11-16
+
+### Added
+- Pro-play data now comes from Riot Games Open Access powered by GRID (the
+  official LoL Esports feed), through Draftboard's server. Leaguepedia stays
+  as the fallback when GRID is unavailable.
+
+### Fixed
+- Clean installs: features no longer depend on the user having pressed save
+  in Settings. The account is read from the open LoL client and resolved by
+  itself, so the post-game coach, live game, enemy scouting and enemy mains
+  work out of the box. Player search uses the client's region.
+- AI coach is on by default; two AI buttons were locked behind a personal
+  key although the server already covered them.
+- Errors: Riot failures through the server say what happened in plain
+  words; one toast per outage instead of one per data source; a failed
+  enemy lookup is retried instead of caching an empty profile; a Riot
+  failure in player search no longer reads as "not on this server".
+- Simple mode: the reason under the win chance matches the number, pending
+  picks are counted from the client (ARAM, hidden enemies), the board clears
+  after a game, buy advice in plain words, lanes and ranks in Spanish.
+- Texts: welcome, terms, settings and health labels rewritten; the server
+  address box only shows when it was changed; technical Riot buttons moved
+  into a collapsed section; the paused dpm.lol option is labelled op.gg.
+
 ## [0.5.4] — 2026-11-13
 
 ### Fixed
