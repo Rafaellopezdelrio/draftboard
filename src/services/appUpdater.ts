@@ -1,5 +1,5 @@
 // Tauri auto-updater wrapper. Polls our worker's `/updater/latest.json`
-// on app startup, verifies signature against the embedded pubkey, and
+// on app startup and every 30 minutes after, verifies signature against the embedded pubkey, and
 // surfaces an "update available" state via a React hook for the UI to
 // render a banner / dialog.
 //
@@ -105,23 +105,36 @@ export async function installUpdate(
   }
 }
 
+/** How often an app left open looks again for a new version. */
+export const UPDATE_RECHECK_MS = 30 * 60_000;
+
 /**
- * React hook: checks for an update on mount and returns the result.
- * Re-runs only when the component remounts (intentional — no constant
- * polling of the updater endpoint).
+ * React hook: checks for an update on mount and returns the result. People
+ * leave the app open for days, so it looks again every 30 minutes until an
+ * update is found (one small request to our worker each time).
  */
 export function useUpdateCheck(enabled: boolean = true): UpdateInfo {
   const channel = usePrefsStore((s) => s.prefs.updateChannel);
   const [info, setInfo] = useState<UpdateInfo>({ available: false });
   useEffect(() => {
     if (!enabled) return;
+    let stopped = false;
+    let t: ReturnType<typeof setTimeout>;
+    const run = () => {
+      checkForUpdate(channel).then((next) => {
+        if (stopped) return;
+        setInfo(next);
+        if (!next.available) t = setTimeout(run, UPDATE_RECHECK_MS);
+      });
+    };
     // Stagger by 3s after mount so initial app load isn't blocked by the
     // network call to our worker. Re-checks if channel changes (user
     // flips beta toggle in Settings).
-    const t = setTimeout(() => {
-      checkForUpdate(channel).then(setInfo);
-    }, 3000);
-    return () => clearTimeout(t);
+    t = setTimeout(run, 3000);
+    return () => {
+      stopped = true;
+      clearTimeout(t);
+    };
   }, [enabled, channel]);
   return info;
 }

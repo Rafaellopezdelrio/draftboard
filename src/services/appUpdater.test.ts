@@ -5,7 +5,7 @@ const plugins = vi.hoisted(() => ({ check: vi.fn(), relaunch: vi.fn() }));
 vi.mock("@tauri-apps/plugin-updater", () => ({ check: plugins.check }));
 vi.mock("@tauri-apps/plugin-process", () => ({ relaunch: plugins.relaunch }));
 
-import { checkForUpdate, installUpdate, useUpdateCheck } from "./appUpdater";
+import { checkForUpdate, installUpdate, useUpdateCheck, UPDATE_RECHECK_MS } from "./appUpdater";
 import { usePrefsStore } from "../state/prefsStore";
 
 type DownloadEvent =
@@ -181,6 +181,48 @@ describe("useUpdateCheck", () => {
       await vi.advanceTimersByTimeAsync(5000);
     });
     expect(plugins.check).not.toHaveBeenCalled();
+  });
+
+  it("looks again every 30 minutes while the app stays open, until an update shows up", async () => {
+    plugins.check.mockResolvedValueOnce(null).mockResolvedValueOnce(null).mockResolvedValue(fakeUpdate());
+    const { result, unmount } = renderHook(() => useUpdateCheck());
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3000);
+    });
+    expect(plugins.check).toHaveBeenCalledTimes(1);
+    expect(result.current.available).toBe(false);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(UPDATE_RECHECK_MS);
+    });
+    expect(plugins.check).toHaveBeenCalledTimes(2);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(UPDATE_RECHECK_MS);
+    });
+    expect(plugins.check).toHaveBeenCalledTimes(3);
+    expect(result.current.version).toBe("0.5.0");
+
+    // Found: no more requests.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(UPDATE_RECHECK_MS * 3);
+    });
+    expect(plugins.check).toHaveBeenCalledTimes(3);
+    unmount();
+  });
+
+  it("stops looking when the app closes", async () => {
+    plugins.check.mockResolvedValue(null);
+    const { unmount } = renderHook(() => useUpdateCheck());
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3000);
+    });
+    expect(plugins.check).toHaveBeenCalledTimes(1);
+    unmount();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(UPDATE_RECHECK_MS * 2);
+    });
+    expect(plugins.check).toHaveBeenCalledTimes(1);
   });
 
   it("re-checks when the update channel changes", async () => {
