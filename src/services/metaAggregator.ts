@@ -31,6 +31,10 @@ export interface AggregateProgress {
 // data points per sync (with dedup ~3-5k after Riot's overlap cleaning).
 const SAMPLE_SUMMONERS = 150;
 const MATCHES_PER_SUMMONER = 10;
+// The timeline (a second request per match) is only read for skill orders.
+// Three regions together have plenty of matches, so the multi-region run
+// takes it for one match in four.
+const MULTI_TIMELINE_EVERY = 4;
 
 /** Running counts for one aggregation run (one or several regions). */
 interface AggregateCounts {
@@ -60,9 +64,10 @@ function newCounts(): AggregateCounts {
 }
 
 /**
- * Multi-region aggregation: pulls Master+ matches from KR + EUW + NA
- * sequentially (rate-limit friendly), merges the counts in memory and writes
- * them once under the bare `patch` — the label every reader queries.
+ * Multi-region aggregation: pulls Master+ matches from KR + EUW + NA at the
+ * same time (Riot's rate limit is per region, and so is riotApi's limiter),
+ * merges the counts in memory and writes them once under the bare `patch` —
+ * the label every reader queries.
  */
 export async function aggregateMultiRegion(
   baseCfg: RiotConfig,
@@ -72,41 +77,45 @@ export async function aggregateMultiRegion(
   if (!isTauri()) return;
   const now = Date.now();
   const counts = newCounts();
-  for (let i = 0; i < MULTI_REGIONS.length; i++) {
-    const region = MULTI_REGIONS[i];
+  // One progress line for the three regions: "KR: … 12/150 · EUW: … · NA: …".
+  const lines = MULTI_REGIONS.map(() => ({ phase: "", done: 0, total: 0 }));
+  const report = () =>
     onProgress({
-      phase: i18n.t("metaSync.region", {
-        region: region.toUpperCase(),
-        i: i + 1,
-        total: MULTI_REGIONS.length,
-      }),
-      done: 0,
-      total: 1,
+      phase: lines.map((l) => l.phase).filter(Boolean).join(" · "),
+      done: lines.reduce((n, l) => n + l.done, 0),
+      total: lines.reduce((n, l) => n + l.total, 0),
     });
-    try {
-      const cfg: RiotConfig = { ...baseCfg, region };
-      await collectRegion(cfg, counts, (p) =>
-        onProgress({
-          phase: i18n.t("metaSync.regionPhase", {
-            region: region.toUpperCase(),
-            phase: p.phase,
-          }),
-          done: p.done,
-          total: p.total,
-        })
-      );
-    } catch (e) {
-      // Continue with next region if one fails (likely rate limit)
-      onProgress({
-        phase: i18n.t("metaSync.regionFailed", {
-          region,
-          err: String(e).slice(0, 60),
-        }),
-        done: 0,
-        total: 1,
-      });
-    }
-  }
+  await Promise.all(
+    MULTI_REGIONS.map(async (region, i) => {
+      try {
+        const cfg: RiotConfig = { ...baseCfg, region };
+        await collectRegion(
+          cfg,
+          counts,
+          (p) => {
+            lines[i] = {
+              phase: i18n.t("metaSync.regionPhase", {
+                region: region.toUpperCase(),
+                phase: `${p.phase} ${p.done}/${p.total}`,
+              }),
+              done: p.done,
+              total: p.total,
+            };
+            report();
+          },
+          MULTI_TIMELINE_EVERY
+        );
+      } catch (e) {
+        // The other regions carry on if one fails (likely rate limit).
+        lines[i] = {
+          phase: i18n.t("metaSync.regionFailed", { region, err: String(e).slice(0, 60) }),
+          done: 0,
+          total: 0,
+        };
+        report();
+      }
+    })
+  );
   // Nothing downloaded from any region: keep the stored data and last_run.
   if (counts.matches === 0) throw new Error(i18n.t("metaSync.noMatches"));
   await writeCounts(counts, patch, now, onProgress);
@@ -139,11 +148,15 @@ export async function aggregateFromMaster(
   onProgress({ phase: i18n.t("metaSync.done"), done: 1, total: 1 });
 }
 
-/** Fetches one region's Master+ sample and adds its matches to `counts`. No DB access. */
+/**
+ * Fetches one region's Master+ sample and adds its matches to `counts`. No DB
+ * access. The timeline is downloaded for one match in `timelineEvery`.
+ */
 async function collectRegion(
   cfg: RiotConfig,
   counts: AggregateCounts,
-  onProgress: (p: AggregateProgress) => void
+  onProgress: (p: AggregateProgress) => void,
+  timelineEvery = 1
 ): Promise<void> {
   onProgress({ phase: i18n.t("metaSync.listingMaster"), done: 0, total: 1 });
   const league = await getMasterLeague(cfg);
@@ -186,7 +199,7 @@ async function collectRegion(
     try {
       const [full, tl] = await Promise.all([
         getMatchFull(cfg, ids[i]),
-        getMatchTimeline(cfg, ids[i]),
+        i % timelineEvery === 0 ? getMatchTimeline(cfg, ids[i]) : null,
       ]);
       // Only ranked solo (queueId 420)
       if (full.queueId === 420) {
@@ -202,7 +215,7 @@ async function collectRegion(
   onProgress({ phase: i18n.t("metaSync.aggregating"), done: 0, total: added });
 }
 
-function addMatch(counts: AggregateCounts, full: MatchFull, tl: MatchTimeline): void {
+function addMatch(counts: AggregateCounts, full: MatchFull, tl: MatchTimeline | null): void {
   const { meta, counters, builds, runes, skills } = counts;
   counts.matches++;
   const team100 = full.participants.filter((p) => p.teamId === 100);
@@ -278,7 +291,7 @@ function addMatch(counts: AggregateCounts, full: MatchFull, tl: MatchTimeline): 
 
   // Skill orders from timeline
   const skillsByPid = new Map<number, number[]>();
-  for (const f of tl.frames) {
+  for (const f of tl?.frames ?? []) {
     for (const ev of f.events) {
       if (ev.type !== "SKILL_LEVEL_UP") continue;
       const e = ev as Extract<typeof ev, { type: "SKILL_LEVEL_UP" }>;

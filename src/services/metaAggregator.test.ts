@@ -449,7 +449,31 @@ describe("aggregateMultiRegion", () => {
     expect(executeMock).not.toHaveBeenCalled();
   });
 
-  it("runs KR, EUW and NA in order and survives a failing region", async () => {
+  it("takes the timeline for one match in four (skill orders need no more)", async () => {
+    const fixtures = matchFixtures();
+    getMasterLeagueMock.mockImplementation(async (cfg: RiotConfig) => ({
+      tier: "MASTER",
+      entries: cfg.region === "kr" ? [{ summonerId: "s1" }] : [],
+    }));
+    getPuuidMock.mockResolvedValue("p1");
+    const ids = ["A0", "A1", "A2", "A3", "A4", "A5"];
+    getRecentMatchIdsMock.mockResolvedValue(ids);
+    getMatchFullMock.mockImplementation(async (_c: RiotConfig, id: string) => ({
+      ...fixtures.M1.full,
+      matchId: id,
+    }));
+    getMatchTimelineMock.mockResolvedValue(fixtures.M1.tl);
+
+    await aggregateMultiRegion(CFG, PATCH, () => {});
+
+    expect(getMatchFullMock).toHaveBeenCalledTimes(6);
+    expect(getMatchTimelineMock.mock.calls.map((c) => c[1])).toEqual(["A0", "A4"]);
+    // Every match still counts for the tier list.
+    const ahri = insertedRows("meta_aggregate", 9).find((r) => r[0] === AHRI);
+    expect(ahri?.[2]).toBe(6);
+  });
+
+  it("runs KR, EUW and NA together and survives a failing region", async () => {
     const fixtures = matchFixtures();
     getMasterLeagueMock.mockImplementation(async (cfg: RiotConfig) => {
       if (cfg.region === "euw1") throw new Error("429 rate limited");
@@ -475,11 +499,11 @@ describe("aggregateMultiRegion", () => {
       .map(([, p]) => p);
     expect(metaDeletes).toEqual([[PATCH]]);
 
+    // One line for the three regions, each with its own step and count.
     const phases = progress.map((p) => p.phase);
-    expect(phases[0]).toBe("Región KR (1/3)");
-    expect(phases).toContain("KR: Listando Master league");
-    expect(phases).toContain("Región euw1 falló: Error: 429 rate limited");
-    expect(phases).toContain("Región NA1 (3/3)");
+    expect(phases[0]).toBe("KR: Listando Master league 0/1");
+    expect(phases.some((p) => p.includes("Región euw1 falló: Error: 429 rate limited"))).toBe(true);
+    expect(phases.some((p) => p.includes("KR: ") && p.includes(" · ") && p.includes("NA1: "))).toBe(true);
     expect(progress[progress.length - 1]).toEqual({ phase: "Multi-región completado", done: 1, total: 1 });
   });
 });

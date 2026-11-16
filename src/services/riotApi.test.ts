@@ -358,6 +358,20 @@ describe("riotApi — client", () => {
       expect(httpFetchMock).toHaveBeenCalledTimes(96);
       await expect(Promise.all(calls)).resolves.toHaveLength(96);
     });
+
+    // Riot counts the limit per region: a full EUW window must not hold KR back.
+    it("keeps a separate window per region", async () => {
+      httpFetchMock.mockResolvedValue(res(200, ACCOUNT));
+      const euw = Array.from({ length: 96 }, () => getAccount(baseCfg));
+      await vi.advanceTimersByTimeAsync(0);
+      expect(httpFetchMock).toHaveBeenCalledTimes(95);
+      const kr = getAccount({ ...baseCfg, region: "kr" });
+      await vi.advanceTimersByTimeAsync(0);
+      expect(httpFetchMock).toHaveBeenCalledTimes(96);
+      expect(urlOf(95)).toContain("asia");
+      await vi.advanceTimersByTimeAsync(120_050);
+      await expect(Promise.all([...euw, kr])).resolves.toHaveLength(97);
+    });
   });
 
   describe("getCurrentGameByPuuid", () => {

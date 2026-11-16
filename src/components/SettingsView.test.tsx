@@ -220,7 +220,7 @@ describe("SettingsView — button gating", () => {
     await renderView();
     expect(btn("Actualizar datos de clasificatorias")).toBeDisabled();
     expect(btn("Actualizar datos de clasificatorias")).toHaveAttribute("title", "Hace falta el servidor de Draftboard (Preferencias) o tu propia clave de Riot");
-    expect(btn("🌍 Actualizar todas las regiones (~30 min)")).toBeDisabled();
+    expect(btn("🌍 Actualizar todas las regiones (~40 min)")).toBeDisabled();
     expect(saveBtn()).toBeDisabled();
     expect(saveBtn()).toHaveAttribute("title", "Hace falta el servidor de Draftboard o tu clave de Riot");
     expect(btn("🏆 Actualizar datos de profesionales")).toBeEnabled();
@@ -232,7 +232,7 @@ describe("SettingsView — button gating", () => {
     await renderView();
     expect(btn("Actualizar datos de clasificatorias")).toBeEnabled();
     expect(btn("Actualizar datos de clasificatorias")).toHaveAttribute("title", "Agrega Master+ SoloQ a la base de datos meta");
-    expect(btn("🌍 Actualizar todas las regiones (~30 min)")).toBeEnabled();
+    expect(btn("🌍 Actualizar todas las regiones (~40 min)")).toBeEnabled();
     expect(saveBtn()).toBeDisabled();
     expect(saveBtn()).toHaveAttribute("title", "Completa Riot ID + tag arriba");
 
@@ -534,7 +534,7 @@ describe("SettingsView — meta syncs", () => {
       return done.promise;
     });
     await renderView();
-    await click(btn("🌍 Actualizar todas las regiones (~30 min)"));
+    await click(btn("🌍 Actualizar todas las regiones (~40 min)"));
     expect(aggregateMultiRegion).toHaveBeenCalledWith(
       { apiKey: "", region: "euw1", riotIdName: "", riotIdTag: "" },
       "16.10.1",
@@ -550,7 +550,7 @@ describe("SettingsView — meta syncs", () => {
     vi.mocked(getRiotProxyUrl).mockReturnValue("https://proxy.test");
     vi.mocked(aggregateMultiRegion).mockRejectedValue(new Error("timeout"));
     await renderView();
-    await click(btn("🌍 Actualizar todas las regiones (~30 min)"));
+    await click(btn("🌍 Actualizar todas las regiones (~40 min)"));
     expect(screen.getByText("Error multi-región: timeout")).toHaveClass("text-bad");
   });
 });
