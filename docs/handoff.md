@@ -77,9 +77,22 @@ open. Not user documentation — see [`../README.md`](../README.md) for that.
     and role (≈250 calls per rank), caches for hours, the app gets the list
     ready. Not checked from the worker, call limits unknown. Done when 10
     random champions match op.gg's site at the same rank.
-  - **Next, agreed:** long syncs keep running with a visible footer
-    indicator after leaving Settings (shared store, no double runs, data
-    reloaded when done). Then 0.5.6, then the tier list.
+  - **Background downloads (on main, unreleased, 1953bd7):** the pro, ranked
+    and best-players downloads live in `state/dataSyncStore.ts`
+    (`runDataSync`): footer pill "Actualizando datos · N%" then the result
+    (`AppFooter` → `DataSyncPill`), Settings shows the progress again when
+    reopened and keeps the download buttons disabled, no second run on top,
+    and `DATA_UPDATED_EVENT` makes `useChampionDbBoot` reload the champion
+    data in place (the "reload the app" hints are gone). Checked in the dev
+    app with the pro download: 1 % → 99 % with Settings closed, 613 games,
+    data reloaded the same second. Closing the app still stops a download.
+  - **Next:** release 0.5.6 (owner's OK), then the tier list per rank.
+    The "compute the aggregate once a night" idea is parked under the
+    owner's rule: our aggregate is only the backup behind op.gg, so making
+    it faster to get improves little.
+  - **Seen, not touched:** two Settings buttons share the 🏆 icon; the
+    ranked button's tooltip is jargon ("Agrega Master+ SoloQ a la base de
+    datos meta"); `loadAggregatedBuilds` ranks one-game builds first.
   - **Still open from before:** real-game pass of the simple screens and
     the list below; Spanish item names in in-game/build advice; matchup tip
     text in Spanish.
