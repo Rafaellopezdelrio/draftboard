@@ -11,6 +11,7 @@ import { suggestBuildAdaptations } from "../engine/adaptiveBuildEngine";
 import { personalMatchupsByRole, type PersonalMatchupStat } from "../services/matchRepo";
 import { fetchOpggBuild, topBuild, type OpggBuild } from "../services/opggBuilds";
 import { useEnemyMains } from "../hooks/useEnemyMains";
+import { useDraftStore } from "../state/draftStore";
 import { MatchupBuildCard, laneOpponentKey } from "./build/MatchupBuildCard";
 import { ItemIcon } from "./build/icons";
 import type { DraftPrediction } from "../engine/draftWinrateEngine";
@@ -97,8 +98,11 @@ function GenericBuy({ db, championKey, role }: { db: ChampionDb; championKey: st
       stale = true;
     };
   }, [want, ddId, role]);
-  const build = want && got?.key === want ? got.build : null;
-  if (!build) return <p className="text-xs text-white/45">{t("simple.buyLoading")}</p>;
+  const answered = !!want && got?.key === want;
+  const build = answered ? got.build : null;
+  if (!answered) return <p className="text-xs text-white/45">{t("simple.buyLoading")}</p>;
+  // Answered with nothing: say so instead of "loading" forever.
+  if (!build) return <p className="text-xs text-white/45">{t("simple.buyUnavailable")}</p>;
   const top = topBuild(build);
   const rows: Array<[string, number[]]> = [
     [t("build.planSlot.start"), top.starter?.ids ?? []],
@@ -155,7 +159,12 @@ export function SimpleDraftView({
       // ignore: the tour simply shows again next time
     }
   };
-  const missingPicks = Math.max(0, 10 - allyKeys.length - enemyKeys.length);
+  // In champ select the client says how many picks are left; on the manual
+  // board, count the empty slots.
+  const pickProgress = useDraftStore((s) => s.pickProgress);
+  const missingPicks = pickProgress
+    ? Math.max(0, pickProgress.total - pickProgress.done)
+    : Math.max(0, 10 - allyKeys.length - enemyKeys.length);
   useEffect(() => {
     if (!role) {
       setMatchups([]);
@@ -206,7 +215,12 @@ export function SimpleDraftView({
   const reasonOf = (s: ScoredSuggestion) =>
     s.reasons
       .slice(0, 2)
-      .map((r) => t(`simple.why.${r.split(".").pop()}`, { defaultValue: t(r) }))
+      .map((r) => {
+        // The engine's personal win rate is a literal ("WR 63%"), not a key.
+        const wr = /^WR (d+)%$/.exec(r);
+        if (wr) return t("simple.why.winRate", { pct: wr[1] });
+        return t(`simple.why.${r.split(".").pop()}`, { defaultValue: t(r) });
+      })
       .join(" · ") || t("suggestions.decentPick");
   // Same for bans: the numbers say it without "S-tier" or "WR".
   const banWhy = (b: BanSuggestion) => {
@@ -293,7 +307,7 @@ export function SimpleDraftView({
               />
             ))
           )}
-          {!role && picks.length > 0 && <p className="text-[11px] text-white/45">{t("simple.needRole")}</p>}
+          {!role && !noLaneMode && picks.length > 0 && <p className="text-[11px] text-white/45">{t("simple.needRole")}</p>}
           {role && !noLaneMode && !shownOpp && picks.length > 0 && (
             <p className="text-[11px] text-meh leading-snug">{t("simple.blind")}</p>
           )}

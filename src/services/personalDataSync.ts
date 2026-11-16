@@ -18,6 +18,7 @@ import {
   type RiotConfig,
 } from "./riotApi";
 import { loadSettings } from "./settingsRepo";
+import { resolveAccount } from "./accountResolve";
 
 export interface SyncProgress {
   source: "LCU" | "Riot API" | "none";
@@ -76,7 +77,10 @@ export function syncPersonalData(
 async function runSync(
   onProgress: (p: SyncProgress) => void = () => {}
 ): Promise<SyncResult> {
-  const cfg = await loadSettings();
+  let cfg = await loadSettings();
+  // Clean install: nothing saved yet. Read the account from the LoL client and
+  // save it, so the Riot path below (and the coach, live game…) can work.
+  if (!cfg?.puuid) cfg = (await resolveAccount().catch(() => null)) ?? cfg;
 
   // 1. Prefer Riot API when key OR proxy is available + we know the puuid
   const hasRiotAccess = !!cfg?.apiKey || !!getRiotProxyUrl();
@@ -84,13 +88,14 @@ async function runSync(
     try {
       return await riotApiSync(cfg, onProgress);
     } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
       onProgress({
         source: "Riot API",
         done: 0,
         total: 0,
-        message: `Riot API falló (${String(e).slice(0, 60)}), probando LCU...`,
+        message: `Riot API falló (${msg}), probando LCU...`,
         messageKey: "sync.riotFailed",
-        messageParams: { error: String(e).slice(0, 60) },
+        messageParams: { error: msg },
       });
       // Fall through to LCU
     }

@@ -53,7 +53,6 @@ export function OnboardingView({ onClose }: Props) {
           tag: summoner?.tagLine ?? "",
           matches: result.matches,
           masteries: result.masteries,
-          source: result.source,
         })
       );
     }
@@ -145,10 +144,9 @@ export function OnboardingView({ onClose }: Props) {
             <h2 className="text-xl font-semibold text-accent">{t("onboarding.syncingTitle")}</h2>
             {progress && (
               <>
-                <p className="text-sm text-white/80">
-                  {t("onboarding.source")} <span className="text-accent">{progress.source}</span>
+                <p className="text-sm text-white/60">
+                  {progress.messageKey ? t(progress.messageKey, progress.messageParams) : progress.message}
                 </p>
-                <p className="text-sm text-white/60">{progress.message}</p>
                 {progress.total > 0 && (
                   <div className="w-full bg-bg-card rounded h-2 overflow-hidden">
                     <div
@@ -184,8 +182,8 @@ export function OnboardingView({ onClose }: Props) {
               <p className="font-medium text-white mb-1">{t("onboarding.nextSteps")}</p>
               <ul className="space-y-1">
                 <li>{t("onboarding.next1")}</li>
-                <li>{t("onboarding.next2Prefix")} <strong>Coach</strong> {t("onboarding.next2Suffix")}</li>
-                <li>{t("onboarding.next3Prefix")} <strong>Prefs</strong> {t("onboarding.next3Suffix")}</li>
+                <li>{t("onboarding.next2Prefix")} <strong>{t("nav.coach")} › {t("nav.postGameCoach")}</strong> {t("onboarding.next2Suffix")}</li>
+                <li>{t("onboarding.next3Prefix")} <strong>{t("nav.settings")} › {t("nav.preferences")}</strong> {t("onboarding.next3Suffix")}</li>
               </ul>
             </div>
             <button

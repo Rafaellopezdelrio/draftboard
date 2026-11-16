@@ -33,10 +33,12 @@ export function nextTip(m: MatchRow): NextTip {
   const minutes = m.durationSec / 60;
   if (m.deaths >= 8 || m.deaths > m.kills + m.assists) return { key: "deaths", params: { deaths: m.deaths } };
   // Junglers and supports don't farm lane minions: the number would mislead.
-  const farms = m.position !== "JUNGLE" && m.position !== "UTILITY";
+  // No position = ARAM, Arena and other modes: lane advice doesn't apply.
+  const onRift = m.position !== "";
+  const farms = onRift && m.position !== "JUNGLE" && m.position !== "UTILITY";
   if (farms && minutes >= 15 && m.cs / minutes < 5)
     return { key: "farm", params: { perMin: (m.cs / minutes).toFixed(1) } };
-  if (m.visionScore != null && minutes >= 15 && m.visionScore / minutes < 0.5)
+  if (onRift && m.visionScore != null && minutes >= 15 && m.visionScore / minutes < 0.5)
     return { key: "vision", params: {} };
   return { key: m.win ? "win" : "loss", params: {} };
 }
@@ -173,7 +175,9 @@ export function SimpleHomeView({ db, rankTier, refreshKey, onOpenReview, onOpenC
               </div>
               {rankTier && (
                 <div>
-                  <p className="text-3xl font-bold text-white capitalize">{rankTier.toLowerCase()}</p>
+                  <p className="text-3xl font-bold text-white capitalize">
+                    {t(`simpleHome.tiers.${rankTier.toUpperCase()}`, { defaultValue: rankTier.toLowerCase() })}
+                  </p>
                   <p className="text-xs text-white/50">{t("simpleHome.rank")}</p>
                 </div>
               )}

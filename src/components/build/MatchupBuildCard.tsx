@@ -204,7 +204,8 @@ export function MatchupBuildCard({
           </div>
         </div>
       )}
-      {build.tip && <p className="text-[11px] text-white/60 leading-snug">{build.tip}</p>}
+      {/* op.gg only writes this tip in English: don't show English text in another language. */}
+      {lang === "en" && build.tip && <p className="text-[11px] text-white/60 leading-snug">{build.tip}</p>}
       <p className="text-[10px] text-white/40 leading-snug">{t("build.matchupTeamNote")}</p>
     </div>
   );

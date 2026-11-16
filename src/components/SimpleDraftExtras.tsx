@@ -19,9 +19,8 @@ import { PerkIcon, SpellIcon } from "./build/icons";
 const STRIP = "rounded-2xl bg-bg-elev/60 border border-border-subtle px-4 py-3 flex items-center gap-3 min-w-0";
 const LABEL = "text-[10px] uppercase tracking-[0.14em] text-white/45 w-16 shrink-0";
 
-// Reverse map: the engine returns translated sentences; find the key so the
-// simple screen can use its plain twin.
-const CHANCE_KEYS = ["betterMetaTier", "enemyMoreMeta", "compComplete", "compGaps", "goodMatchups", "badMatchups"];
+// Reasons that speak in favour of the user's team; the rest speak against.
+const POSITIVE = new Set(["betterMetaTier", "compComplete", "goodMatchups"]);
 
 /** Top strip: win chance · what your team lacks · enemy main warning. */
 export function SimpleTopStrip({
@@ -41,11 +40,11 @@ export function SimpleTopStrip({
 }) {
   const { t } = useTranslation();
   const pct = prediction ? Math.round(prediction.winrate * 100) : null;
-  const chanceWhy = prediction?.reasons
-    .map((r) => CHANCE_KEYS.find((k) => t(`engine.${k}`) === r))
-    .filter((k): k is string => Boolean(k))
-    .slice(0, 1)
-    .map((k) => t(`simple.chanceWhy.${k}`))[0];
+  // Only give a reason that agrees with the number: "you have the edge
+  // because…" must not be followed by something that plays against you.
+  const whyKey =
+    pct == null ? undefined : (prediction?.reasonKeys ?? []).find((k) => POSITIVE.has(k) === pct >= 50);
+  const chanceWhy = whyKey ? t(`simple.chanceWhy.${whyKey}`) : undefined;
 
   // What the team lacks (first gap) or, failing that, the enemy damage type.
   const team = useMemo(() => {
@@ -189,12 +188,17 @@ export function SimplePrepare({ db, champion, role }: { db: ChampionDb; champion
     ]);
     const runesOk = !runes || runes.ok;
     const limit = runes && !runes.ok && runes.reason === "page-limit";
+    // Say only what was actually set.
     setStatus(
-      runesOk && spellsOk !== false
-        ? t("simple.prepDone")
-        : limit
+      !(runesOk && spellsOk !== false)
+        ? limit
           ? t("build.applyPageLimit")
           : t("simple.prepFailed")
+        : page && spells
+          ? t("simple.prepDone")
+          : page
+            ? t("simple.prepDoneRunes")
+            : t("simple.prepDoneSpells")
     );
   };
 
@@ -238,7 +242,7 @@ export function SimplePrepare({ db, champion, role }: { db: ChampionDb; champion
           </span>
         </div>
       )}
-      <div className="flex items-center gap-2 flex-wrap">
+      {(page || spells) && <div className="flex items-center gap-2 flex-wrap">
         <button
           type="button"
           onClick={() => void apply()}
@@ -247,7 +251,7 @@ export function SimplePrepare({ db, champion, role }: { db: ChampionDb; champion
           {t("simple.prepApply")}
         </button>
         <span className="text-[11px] text-white/50">{status || t("simple.prepAuto")}</span>
-      </div>
+      </div>}
     </div>
   );
 }

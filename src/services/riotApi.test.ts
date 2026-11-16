@@ -304,15 +304,13 @@ describe("riotApi — client", () => {
       expect(httpFetchMock).toHaveBeenCalledTimes(2);
     });
 
-    it("names the proxy as the unreachable target and truncates the error detail to 100 chars", async () => {
+    it("through the server, an unreachable network gives a plain message with no raw error text", async () => {
       setRiotProxyUrl("https://proxy.test");
       httpFetchMock.mockRejectedValue(new Error("x".repeat(300)));
       const p = getAccount(baseCfg);
-      // An Error argument makes toThrow compare the whole message (a string
-      // would only check it is a substring, which the untruncated text passes).
-      // "Error: " (7 chars) + 93 x's = 100 chars of detail.
+      // An Error argument makes toThrow compare the whole message.
       const assertion = expect(p).rejects.toThrow(
-        new Error(`Sin conexión a proxy: Error: ${"x".repeat(93)}`)
+        new Error("No hay conexión con el servidor de Draftboard. Revisa tu internet y prueba otra vez.")
       );
       await vi.runAllTimersAsync();
       await assertion;

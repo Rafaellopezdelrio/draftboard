@@ -17,6 +17,7 @@
 import { useEffect, useState } from "react";
 import { useNetworkStatus } from "./useNetworkStatus";
 import { subscribeFetchFailure } from "../services/fetchNotify";
+import { i18n } from "../i18n";
 
 export type HealthLevel = "ok" | "degraded" | "offline";
 
@@ -67,10 +68,8 @@ export function useHealthStatus(): HealthStatus {
   if (!net.ok) {
     return {
       level: "offline",
-      label: net.online ? "Backend caído" : "Sin conexión",
-      detail: net.online
-        ? "El backend de Draftboard no responde. Funcionalidad limitada hasta que vuelva."
-        : "Tu PC ha perdido la conexión a internet. La app sigue usando datos en caché.",
+      label: i18n.t(net.online ? "health.backendDown" : "health.offline"),
+      detail: i18n.t(net.online ? "health.backendDownDetail" : "health.offlineDetail"),
     };
   }
 
@@ -80,8 +79,8 @@ export function useHealthStatus(): HealthStatus {
   if (failedRecently && lastFailure) {
     return {
       level: "degraded",
-      label: "Degradado",
-      detail: `Fallo reciente en ${lastFailure.source}. Algunos paneles pueden mostrar datos en caché.`,
+      label: i18n.t("health.degraded"),
+      detail: i18n.t("health.degradedDetail"),
       lastFailureSource: lastFailure.source,
     };
   }
@@ -89,6 +88,6 @@ export function useHealthStatus(): HealthStatus {
   return {
     level: "ok",
     label: "OK",
-    detail: "Conexión y backend OK. Datos al día.",
+    detail: i18n.t("health.okDetail"),
   };
 }

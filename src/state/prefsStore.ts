@@ -234,7 +234,7 @@ export const DEFAULT_PREFS: Preferences = {
   groqApiKey: "",
   geminiApiKey: "",
   anthropicApiKey: "",
-  aiCoachEnabled: false,
+  aiCoachEnabled: true,
   aiCoachLanguage: "es",
 
   safeMode: false,

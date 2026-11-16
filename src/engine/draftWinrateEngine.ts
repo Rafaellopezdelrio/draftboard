@@ -15,6 +15,8 @@ interface PredictArgs {
 export interface DraftPrediction {
   winrate: number; // 0-1
   reasons: string[];
+  /** Bare keys of `reasons` ("compGaps"…), so views can use their own wording. */
+  reasonKeys?: string[];
 }
 
 export function predictDraftWinrate({
@@ -24,6 +26,7 @@ export function predictDraftWinrate({
   liveCounters = [],
 }: PredictArgs): DraftPrediction {
   const reasons: string[] = [];
+  const reasonKeys: string[] = [];
   let score = 0.5;
   // Prefer broad op.gg matchup data (dense) over the sparse personal
   // db.counters — same merge the suggestion engine uses, so the counter
@@ -40,8 +43,8 @@ export function predictDraftWinrate({
     // so the combined swing across all factors targets ~±0.18 → a 32–68% range
     // for lopsided drafts instead of the old mushy ~45–55% that always read 50%.
     score += diff * 0.8;
-    if (diff > 0.02) reasons.push(i18n.t("engine.betterMetaTier"));
-    else if (diff < -0.02) reasons.push(i18n.t("engine.enemyMoreMeta"));
+    if (diff > 0.02) { reasons.push(i18n.t("engine.betterMetaTier")); reasonKeys.push("betterMetaTier"); }
+    else if (diff < -0.02) { reasons.push(i18n.t("engine.enemyMoreMeta")); reasonKeys.push("enemyMoreMeta"); }
   }
 
   // Archetype completeness
@@ -50,22 +53,22 @@ export function predictDraftWinrate({
   const archetypeDelta = (enemyMissing.size - allyMissing.size) * 0.04;
   score += archetypeDelta;
   if (allyMissing.size === 0 && enemyMissing.size > 0) {
-    reasons.push(i18n.t("engine.compComplete"));
+    { reasons.push(i18n.t("engine.compComplete")); reasonKeys.push("compComplete"); }
   } else if (allyMissing.size > 0 && enemyMissing.size === 0) {
-    reasons.push(i18n.t("engine.compGaps"));
+    { reasons.push(i18n.t("engine.compGaps")); reasonKeys.push("compGaps"); }
   }
 
   // Counter check
   const counterScore = avgCounterScore(counters, allyKeys, enemyKeys);
   if (counterScore > 0.5) {
-    reasons.push(i18n.t("engine.goodMatchups"));
+    { reasons.push(i18n.t("engine.goodMatchups")); reasonKeys.push("goodMatchups"); }
     score += (counterScore - 0.5) * 0.6;
   } else if (counterScore < 0.5 && counterScore > 0) {
-    reasons.push(i18n.t("engine.badMatchups"));
+    { reasons.push(i18n.t("engine.badMatchups")); reasonKeys.push("badMatchups"); }
     score += (counterScore - 0.5) * 0.6;
   }
 
-  return { winrate: clamp01(score), reasons };
+  return { winrate: clamp01(score), reasons, reasonKeys };
 }
 
 function avgMetaWinrate(db: ChampionDb, keys: string[]): number {

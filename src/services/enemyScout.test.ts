@@ -108,11 +108,21 @@ describe("scoutPlayer", () => {
     });
   });
 
-  it("degrades to nulls/empties when every Riot call fails", async () => {
+  it("throws (and caches nothing) when every Riot call fails, so the slot is retried", async () => {
     getSummonerByPuuid.mockRejectedValue(new Error("403"));
     getTopMasteries.mockRejectedValue(new Error("403"));
     getRecentMatchIds.mockRejectedValue(new Error("403"));
     getLeagueEntriesByPuuid.mockRejectedValue(new Error("403"));
+    await expect(scoutPlayer(CFG, "p1", 103)).rejects.toThrow("403");
+    await expect(scoutPlayer(CFG, "p1", 103)).rejects.toThrow("403");
+    expect(getSummonerByPuuid).toHaveBeenCalledTimes(2);
+  });
+
+  it("degrades to nulls/empties when the Riot calls return nothing", async () => {
+    getSummonerByPuuid.mockResolvedValue(null);
+    getTopMasteries.mockResolvedValue([]);
+    getRecentMatchIds.mockResolvedValue([]);
+    getLeagueEntriesByPuuid.mockResolvedValue([]);
 
     const r = await scoutPlayer(CFG, "p1", 103);
 

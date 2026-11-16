@@ -10,7 +10,7 @@ import { SimpleHomeView } from "./components/SimpleHomeView";
 import { SuggestionPanel } from "./components/SuggestionPanel";
 import { DraftCoachPanel } from "./components/DraftCoachPanel";
 import { CompAnalysis } from "./components/CompAnalysis";
-import { useLcuSync } from "./state/lcuSync";
+import { clearBoardAfterGame, useLcuSync } from "./state/lcuSync";
 import { EnemyScoutPanel } from "./components/EnemyScoutPanel";
 import { BuildPanel } from "./components/BuildPanel";
 import { DraftWinrateBadge } from "./components/DraftWinrateBadge";
@@ -265,6 +265,18 @@ function App() {
   const { guideChampionKey, setGuideChampionKey } = useChampionGuideEvent();
   const [personalStats, setPersonalStats] = useState<ChampionPersonalStat[]>([]);
   const gamePhase = useGamePhase();
+  // Game over → drop the board that was kept for the game. The 5 s poll can
+  // skip the end-of-game phases, so "was in game, now in lobby" counts too.
+  const prevGamePhase = useRef<string | null>(null);
+  useEffect(() => {
+    const prev = prevGamePhase.current;
+    const now = gamePhase.phase;
+    prevGamePhase.current = now;
+    const ended = now === "PreEndOfGame" || now === "EndOfGame" || now === "WaitingForStats";
+    const backToLobby =
+      prev === "InProgress" && (now === "Lobby" || now === "None" || now === "Matchmaking" || now === "ReadyCheck");
+    if (ended || backToLobby) clearBoardAfterGame();
+  }, [gamePhase.phase]);
   // Personal data from LCU (masteries + rank). Rank feeds the coach
   // engine + suggestion engine — boosts mastery weight for unranked
   // players who lack a rank signal to anchor meta calibration.
@@ -719,7 +731,7 @@ function App() {
             )}
             {prefs.liveTimer && <PhaseTimer />}
             <span className="text-[10px] uppercase tracking-widest text-white/40 font-medium">
-              Patch {displayPatch(db.patch)}
+              {t("nav.patch")} {displayPatch(db.patch)}
             </span>
             {usingStaleCache && (
               <span
@@ -748,7 +760,7 @@ function App() {
                 label={t("nav.coach")}
                 icon={<GraduationCap className="w-3.5 h-3.5" />}
                 items={[
-                  { label: t("nav.aiCoach"), icon: <Sparkles className="w-3.5 h-3.5" />, onClick: () => setShowChat(true) },
+                  { label: t("nav.aiCoachSimple"), icon: <Sparkles className="w-3.5 h-3.5" />, onClick: () => setShowChat(true) },
                   { label: t("nav.postGameCoach"), icon: <GraduationCap className="w-3.5 h-3.5" />, onClick: () => setShowCoach(true) },
                   { label: t("nav.trends"), icon: <TrendingUp className="w-3.5 h-3.5" />, onClick: () => setShowTrends(true) },
                   { label: t("nav.history"), icon: <History className="w-3.5 h-3.5" />, onClick: () => setShowHistory(true) },
@@ -762,8 +774,8 @@ function App() {
                 items={[
                   { label: t("nav.preferences"), icon: <SlidersHorizontal className="w-3.5 h-3.5" />, onClick: () => setShowPrefs(true) },
                   { label: t("nav.riotConfig"), icon: <Cog className="w-3.5 h-3.5" />, onClick: () => setShowSettings(true) },
-                  { label: t("nav.tierList"), icon: <Trophy className="w-3.5 h-3.5" />, onClick: () => setShowTierList(true) },
-                  { label: t("nav.live"), icon: <Radio className="w-3.5 h-3.5" />, onClick: () => setShowLiveGame(true) },
+                  { label: t("nav.tierListSimple"), icon: <Trophy className="w-3.5 h-3.5" />, onClick: () => setShowTierList(true) },
+                  { label: t("nav.liveSimple"), icon: <Radio className="w-3.5 h-3.5" />, onClick: () => setShowLiveGame(true) },
                   { label: t("nav.diagnostics"), icon: <Activity className="w-3.5 h-3.5" />, onClick: () => setShowDiag(true) },
                 ]}
               />
@@ -805,7 +817,7 @@ function App() {
             <option value="">{t("nav.myRole")}</option>
             {ROLES.map((r) => (
               <option key={r} value={r}>
-                {r}
+                {t(`simpleLive.lane.${r}`)}
               </option>
             ))}
           </select>

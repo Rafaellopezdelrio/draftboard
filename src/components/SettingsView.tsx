@@ -114,7 +114,7 @@ export function SettingsView({ onClose }: Props) {
       setStatus(t("settings.deletingOldMatches"));
       await clearAllMatches();
       const result = await syncPersonalData((p) =>
-        setStatus(`${p.source}: ${p.messageKey ? t(p.messageKey, p.messageParams) : (p.message ?? `${p.done}/${p.total}`)}`)
+        setStatus(p.messageKey ? t(p.messageKey, p.messageParams) : (p.message ?? `${p.done}/${p.total}`))
       );
       if (result.source === "none") {
         setStatus(t("settings.openClientRetry"));
@@ -124,7 +124,7 @@ export function SettingsView({ onClose }: Props) {
         setStatus(t("settings.resyncDone", { matches: result.matches, source: result.source }));
       }
     } catch (e) {
-      setStatus(t("settings.error", { error: String(e) }));
+      setStatus(t("settings.error", { error: e instanceof Error ? e.message : String(e) }));
     } finally {
       setBusy(false);
     }
@@ -141,7 +141,7 @@ export function SettingsView({ onClose }: Props) {
       );
       setStatus(t("settings.metaSoloqDone"));
     } catch (e) {
-      setStatus(t("settings.error", { error: String(e) }));
+      setStatus(t("settings.error", { error: e instanceof Error ? e.message : String(e) }));
     } finally {
       setBusy(false);
     }
@@ -163,7 +163,7 @@ export function SettingsView({ onClose }: Props) {
       );
       setStatus(t("settings.multiRegionDone"));
     } catch (e) {
-      setStatus(t("settings.errorMultiRegion", { error: String(e) }));
+      setStatus(t("settings.errorMultiRegion", { error: e instanceof Error ? e.message : String(e) }));
     } finally {
       setBusy(false);
     }
@@ -184,7 +184,7 @@ export function SettingsView({ onClose }: Props) {
           : t("settings.proMetaDone", { games: result.games, rows: result.rows })
       );
     } catch (e) {
-      setStatus(t("settings.errorProMeta", { error: String(e) }));
+      setStatus(t("settings.errorProMeta", { error: e instanceof Error ? e.message : String(e) }));
     } finally {
       setBusy(false);
     }
@@ -227,7 +227,7 @@ export function SettingsView({ onClose }: Props) {
         await saveSettings({ ...cfg, puuid: account.puuid });
       }
       const result = await syncPersonalData((p) =>
-        setStatus(`${p.source}: ${p.message ?? `${p.done}/${p.total}`}`)
+        setStatus(p.messageKey ? t(p.messageKey, p.messageParams) : (p.message ?? `${p.done}/${p.total}`))
       );
       if (result.source === "none") {
         setStatus(t("settings.openClientRetry"));
@@ -235,7 +235,7 @@ export function SettingsView({ onClose }: Props) {
         setStatus(t("settings.syncDoneReady", { matches: result.matches, source: result.source }));
       }
     } catch (e) {
-      setStatus(t("settings.error", { error: String(e) }));
+      setStatus(t("settings.error", { error: e instanceof Error ? e.message : String(e) }));
     } finally {
       setBusy(false);
     }
@@ -387,10 +387,6 @@ export function SettingsView({ onClose }: Props) {
           </button>
         </Field>
 
-        {puuid && (
-          <p className="text-xs text-white/40 truncate">PUUID: {puuid}</p>
-        )}
-
         {status && (
           <p
             className={`text-sm ${/rror|No pudimos|couldn.t/.test(status) ? "text-bad" : status.includes("✓") ? "text-good" : "text-white/70"}`}
@@ -399,56 +395,62 @@ export function SettingsView({ onClose }: Props) {
           </p>
         )}
 
+        <details className="text-sm">
+          <summary className="cursor-pointer text-white/50 hover:text-white/80">{t("settings.moreActions")}</summary>
+          <div className="flex flex-wrap gap-2 pt-2">
+            <button
+              disabled={busy}
+              onClick={requestResync}
+              type="button"
+              className="px-3 py-1.5 bg-bg-card border border-bad/40 rounded text-bad/90 hover:border-bad disabled:opacity-50"
+              title={t("settings.resyncTooltip")}
+            >
+              {t("settings.resync")}
+            </button>
+            <button
+              disabled={busy}
+              onClick={syncProMeta}
+              type="button"
+              className="px-3 py-1.5 bg-accent/10 border border-accent/40 rounded text-accent hover:bg-accent/20 disabled:opacity-50"
+              title={t("settings.syncProTooltip")}
+            >
+              {t("settings.syncProMeta")}
+            </button>
+            <button
+              disabled={busy || !hasRiotAccess}
+              onClick={syncMeta}
+              type="button"
+              className="px-3 py-1.5 bg-bg-card border border-border-subtle rounded text-white/80 hover:border-accent disabled:opacity-50"
+              title={
+                hasRiotAccess
+                  ? t("settings.syncMetaTooltip")
+                  : t("settings.needKeyOrProxy")
+              }
+            >
+              {t("settings.syncMetaSoloq")}
+            </button>
+            <button
+              disabled={busy || !hasRiotAccess}
+              onClick={syncMetaMultiRegion}
+              type="button"
+              className="px-3 py-1.5 bg-bg-card border border-purple-400/40 rounded text-purple-300 hover:bg-purple-400/10 disabled:opacity-50"
+              title={
+                hasRiotAccess
+                  ? t("settings.multiRegionTooltip")
+                  : t("settings.needKeyOrProxy")
+              }
+            >
+              {t("settings.multiRegion")}
+            </button>
+          </div>
+        </details>
+
         <div className="flex justify-end gap-2 pt-2">
           <button
             onClick={onClose}
             className="px-4 py-2 text-white/70 hover:text-white"
           >
             {t("common.cancel")}
-          </button>
-          <button
-            disabled={busy}
-            onClick={requestResync}
-            type="button"
-            className="px-3 py-2 bg-bg-card border border-bad/40 rounded text-bad/90 hover:border-bad disabled:opacity-50"
-            title={t("settings.resyncTooltip")}
-          >
-            {t("settings.resync")}
-          </button>
-          <button
-            disabled={busy}
-            onClick={syncProMeta}
-            type="button"
-            className="px-3 py-2 bg-accent/10 border border-accent/40 rounded text-accent hover:bg-accent/20 disabled:opacity-50"
-            title={t("settings.syncProTooltip")}
-          >
-            {t("settings.syncProMeta")}
-          </button>
-          <button
-            disabled={busy || !hasRiotAccess}
-            onClick={syncMeta}
-            type="button"
-            className="px-3 py-2 bg-bg-card border border-border-subtle rounded text-white/80 hover:border-accent disabled:opacity-50"
-            title={
-              hasRiotAccess
-                ? t("settings.syncMetaTooltip")
-                : t("settings.needKeyOrProxy")
-            }
-          >
-            {t("settings.syncMetaSoloq")}
-          </button>
-          <button
-            disabled={busy || !hasRiotAccess}
-            onClick={syncMetaMultiRegion}
-            type="button"
-            className="px-3 py-2 bg-bg-card border border-purple-400/40 rounded text-purple-300 hover:bg-purple-400/10 disabled:opacity-50"
-            title={
-              hasRiotAccess
-                ? t("settings.multiRegionTooltip")
-                : t("settings.needKeyOrProxy")
-            }
-          >
-            {t("settings.multiRegion")}
           </button>
           <button
             disabled={busy || !hasRiotAccess || !riotIdName || !riotIdTag}

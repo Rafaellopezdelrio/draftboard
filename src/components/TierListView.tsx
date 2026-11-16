@@ -247,9 +247,8 @@ export function TierListView({ db, onClose, onSelectChampion, onDbUpdate }: Prop
                   visuals. op.gg is hidden by default; user can re-enable via
                   Settings if needed. proplay/soloq/blend stay available when
                   synced (no point hiding sources that have real data). */}
-              <option value="dpm" disabled={!isDpmEnabled()}>
-                {t("tierList.dpmByRank")}
-                {!isDpmEnabled() && ` ${t("metaSource.dpmPaused")}`}
+              <option value="dpm">
+                {isDpmEnabled() ? t("tierList.dpmByRank") : "op.gg"}
                 {db.metaSourceCounts && db.metaSourceCounts.dpm > 0 && ` · ${db.metaSourceCounts.dpm}`}
               </option>
               {/* op.gg deprecated as default — keep option only if user

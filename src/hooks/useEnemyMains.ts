@@ -11,7 +11,7 @@
 import { useEffect, useState } from "react";
 import { getSummonerById } from "../services/lcuService";
 import { getRiotProxyUrl, getTopMasteries } from "../services/riotApi";
-import { loadSettings } from "../services/settingsRepo";
+import { settingsOrDefault } from "../services/accountResolve";
 import type { EnemyMain } from "../engine/banEngine";
 
 const CACHE = new Map<string, { ts: number; mains: EnemyMain[] }>();
@@ -20,11 +20,11 @@ const CACHE_TTL = 5 * 60 * 1000;
 const MAX_CACHE = 50; // bound growth over a long session (1 entry per lobby)
 
 async function fetchEnemyMains(ids: number[]): Promise<EnemyMain[]> {
-  const cfg = await loadSettings();
+  const cfg = await settingsOrDefault();
   // Enemy masteries need Riot API access: the user's own key OR Draftboard's
   // server. Requiring a personal key meant normal users (server, no key)
   // never saw this; only the dev machine, which has a key saved, did.
-  if (!cfg || (!cfg.apiKey && !getRiotProxyUrl())) return [];
+  if (!cfg.apiKey && !getRiotProxyUrl()) return [];
   const out: EnemyMain[] = [];
   for (const sid of ids) {
     try {

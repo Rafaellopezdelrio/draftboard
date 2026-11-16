@@ -17,6 +17,11 @@ import {
   consumeCorruptionRecovery,
 } from "../db/client";
 import { BOOT_TIMEOUTS_MS } from "../config";
+import { i18n } from "../i18n";
+
+/** One "couldn't refresh" toast per outage, not one per data source. */
+const FETCH_TOAST_GAP_MS = 5 * 60_000;
+let lastFetchToastAt = 0;
 
 type PushToast = (toast: Omit<Toast, "id">) => number;
 
@@ -27,14 +32,15 @@ export function useSystemToasts(pushToast: PushToast): void {
   // Services emit via fetchNotify (throttled 30s/source) when a retry
   // chain exhausts. Without this, panels just render empty silently.
   useEffect(() => {
-    return subscribeFetchFailure(({ source, error }) => {
+    return subscribeFetchFailure(() => {
+      // Offline is already covered by the network banner.
+      if (typeof navigator !== "undefined" && navigator.onLine === false) return;
+      if (Date.now() - lastFetchToastAt < FETCH_TOAST_GAP_MS) return;
+      lastFetchToastAt = Date.now();
       pushToast({
         type: "warn",
-        title: `No se pudo cargar: ${source}`,
-        detail:
-          typeof error === "object" && error && "message" in error
-            ? String((error as { message: unknown }).message).slice(0, 140)
-            : "Comprueba tu conexión o reintenta en unos segundos.",
+        title: i18n.t("systemToast.fetchFailedTitle"),
+        detail: i18n.t("systemToast.fetchFailedDetail"),
         durationMs: 6000,
       });
     });

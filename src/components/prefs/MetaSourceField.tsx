@@ -44,9 +44,10 @@ export function MetaSourceField() {
           }
           className="w-full bg-bg text-white text-sm px-3 py-2 rounded border border-border-subtle"
         >
-          <option value="dpm" disabled={!isDpmEnabled()}>
-            🎯 {t("metaSource.optDpm")}
-            {!isDpmEnabled() && ` ${t("metaSource.dpmPaused")}`}
+          {/* While dpm.lol is paused, the "dpm" value is served by op.gg:
+            * label it as what the user actually gets. */}
+          <option value="dpm">
+            {isDpmEnabled() ? `🎯 ${t("metaSource.optDpm")}` : `⚡ ${t("metaSource.optOpgg")}`}
           </option>
           <option value="proplay">🏆 {t("metaSource.optProplay")}</option>
           <option value="soloq">{t("metaSource.optSoloq")}</option>
@@ -59,8 +60,8 @@ export function MetaSourceField() {
           )}
         </select>
         <p className="text-xs text-white/60">
-          {source === "opgg" && t("metaSource.descOpgg")}
-          {source === "dpm" && t("metaSource.descDpm")}
+          {(source === "opgg" || (source === "dpm" && !isDpmEnabled())) && t("metaSource.descOpgg")}
+          {source === "dpm" && isDpmEnabled() && t("metaSource.descDpm")}
           {source === "proplay" && t("metaSource.descProplay")}
           {source === "soloq" && t("metaSource.descSoloq")}
           {source === "blend" && t("metaSource.descBlend")}

@@ -6,7 +6,8 @@ import { useDraftStore, type EnemyScoutTarget } from "../state/draftStore";
 import { getSummonerById } from "../services/lcuService";
 import { isRandomPickScout } from "../state/enemyScoutTargets";
 import { scoutPlayer, type ScoutResult } from "../services/enemyScout";
-import { loadSettings } from "../services/settingsRepo";
+import { settingsOrDefault } from "../services/accountResolve";
+import { getRiotProxyUrl } from "../services/riotApi";
 import { usePrefsStore } from "../state/prefsStore";
 import { toast } from "./Toaster";
 import { voiceCoach } from "../services/voiceCoach";
@@ -128,8 +129,10 @@ function EnemyScoutPanelInner({
     };
 
     async function runScout(force: boolean) {
-      const cfg = await loadSettings();
-      if (!cfg || stale) return;
+      // Scouting rivals doesn't need the user's own account: without saved
+      // settings (clean install) use the client's region through the server.
+      const cfg = await settingsOrDefault();
+      if (stale || (!cfg.apiKey && !getRiotProxyUrl())) return;
       for (const slot of current) {
         if (stale) return;
         const sid = slot.key;

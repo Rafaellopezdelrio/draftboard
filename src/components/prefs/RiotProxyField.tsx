@@ -3,7 +3,7 @@
 // user's own dev key — solves the 24-hour rotating-key UX problem.
 
 import { useTranslation } from "react-i18next";
-import { usePrefsStore } from "../../state/prefsStore";
+import { DEFAULT_PREFS, usePrefsStore } from "../../state/prefsStore";
 
 export function RiotProxyField() {
   const { t } = useTranslation();
@@ -28,10 +28,17 @@ export function RiotProxyField() {
           placeholder={t("prefs.proxy.placeholder")}
           className="w-full bg-bg text-white text-sm px-3 py-2 rounded border border-border-subtle focus:border-accent outline-none font-mono"
         />
+        <button
+          type="button"
+          onClick={() => set("riotProxyUrl", DEFAULT_PREFS.riotProxyUrl)}
+          className="px-3 py-1.5 text-xs rounded bg-accent text-black font-medium"
+        >
+          {t("prefs.proxy.restoreDefault")}
+        </button>
         <p className="text-xs text-white/60 leading-relaxed">
           {active ? (
             <>
-              <span className="text-good">✓</span> {t("prefs.proxy.descActive")}
+{t("prefs.proxy.descActive")}
             </>
           ) : (
             <>

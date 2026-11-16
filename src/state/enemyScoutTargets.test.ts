@@ -17,6 +17,9 @@ vi.mock("../services/riotApi", () => ({ getCurrentGameByPuuid }));
 
 const loadSettings = vi.hoisted(() => vi.fn());
 vi.mock("../services/settingsRepo", () => ({ loadSettings }));
+// Account auto-detection (clean install) has its own tests.
+const resolveAccount = vi.hoisted(() => vi.fn(async () => null as unknown));
+vi.mock("../services/accountResolve", () => ({ resolveAccount }));
 
 import {
   enemyTargetsFromSpectator,

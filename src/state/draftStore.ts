@@ -38,6 +38,9 @@ export interface DraftState {
   myChampionLocked: string | null;
   phase: string | null;
   timerSec: number | null;
+  /** Champ-select picks locked so far / picks in total, from the client's own
+   * pick turns. Null outside champ select (manual board). */
+  pickProgress: { done: number; total: number } | null;
   /** Queue game mode of the current champ select ("CLASSIC", "ARAM",
    *  "CHERRY"…) from the gameflow session; null when unknown. */
   gameMode: string | null;
@@ -53,6 +56,7 @@ export interface DraftState {
     locked: string | null
   ) => void;
   setPhase: (phase: string | null, timerSec: number | null) => void;
+  setPickProgress: (done: number, total: number) => void;
   setGameMode: (mode: string | null) => void;
   reset: () => void;
 }
@@ -77,6 +81,7 @@ export const useDraftStore = create<DraftState>((set, get) => ({
   myChampionLocked: null,
   phase: null,
   timerSec: null,
+  pickProgress: null,
   gameMode: null,
   // Idempotency guards on every setter. LCU sync fires applySession()
   // on every WebSocket frame (~5-20Hz during champ select) and calls
@@ -114,6 +119,11 @@ export const useDraftStore = create<DraftState>((set, get) => ({
     const s = get();
     if (s.phase === phase && s.timerSec === timerSec) return;
     set({ phase, timerSec });
+  },
+  setPickProgress: (done, total) => {
+    const p = get().pickProgress;
+    if (p ? p.done === done && p.total === total : total <= 0) return;
+    set({ pickProgress: total > 0 ? { done, total } : null });
   },
   setGameMode: (mode) => {
     if (get().gameMode === mode) return;

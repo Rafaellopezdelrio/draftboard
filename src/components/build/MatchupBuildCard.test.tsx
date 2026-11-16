@@ -71,7 +71,8 @@ describe("MatchupBuildCard", () => {
     expect(fetchMatchupBuild).toHaveBeenCalledWith("Ahri", "MIDDLE", "Zed", "es");
     expect(screen.getByText("ganas 49 de cada 100")).toBeInTheDocument();
     expect(screen.getByText("Zed tiene ventaja en línea: juega seguro")).toBeInTheDocument();
-    expect(screen.getByText("Guarda el Encanto hasta que Zed use la W.")).toBeInTheDocument();
+    // op.gg writes the tip in English only: hidden when the app is in Spanish.
+    expect(screen.queryByText("Guarda el Encanto hasta que Zed use la W.")).toBeNull();
     const icons = screen.getByTestId("matchup-build").querySelectorAll("img");
     expect([...icons].some((i) => i.getAttribute("src")?.endsWith("/item/3118.png"))).toBe(true);
   });
@@ -192,6 +193,6 @@ describe("MatchupBuildCard", () => {
     resolveZed(resp(build()));
     await Promise.resolve();
     expect(screen.queryByText("Contra Zed")).toBeNull();
-    expect(screen.getByText("tip leblanc")).toBeInTheDocument();
+    expect(screen.getByTestId("matchup-build")).toBeInTheDocument();
   });
 });

@@ -119,7 +119,7 @@ describe("LiveGameView — states", () => {
     vi.mocked(loadSettings).mockResolvedValue(CFG as never);
     vi.mocked(getCurrentGameByPuuid).mockRejectedValue(new Error("Riot 503"));
     await renderView();
-    expect(screen.getByText("Error: Riot 503")).toBeInTheDocument();
+    expect(screen.getByText("Riot 503")).toBeInTheDocument();
     expect(screen.queryByText(/No estás en partida/)).not.toBeInTheDocument();
     expect(screen.getByTitle("Refrescar")).toBeEnabled();
   });
@@ -196,12 +196,12 @@ describe("LiveGameView — refresh", () => {
     vi.mocked(loadSettings).mockResolvedValue(CFG as never);
     vi.mocked(getCurrentGameByPuuid).mockRejectedValueOnce(new Error("Riot 503")).mockResolvedValueOnce(GAME);
     await renderView();
-    expect(screen.getByText("Error: Riot 503")).toBeInTheDocument();
+    expect(screen.getByText("Riot 503")).toBeInTheDocument();
 
     await act(async () => {
       fireEvent.click(screen.getByTitle("Refrescar"));
     });
-    expect(screen.queryByText("Error: Riot 503")).not.toBeInTheDocument();
+    expect(screen.queryByText("Riot 503")).not.toBeInTheDocument();
     expect(screen.getByText("Equipo azul")).toBeInTheDocument();
   });
 

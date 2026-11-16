@@ -4,6 +4,10 @@
 // to estimate magic vs physical damage split, and which threats need MR/armor/QSS.
 
 import type { Champion, ChampionDb } from "../types/champion";
+import { i18n } from "../i18n";
+
+/** Plain-language reason, in the UI language at compute time. */
+const why = (key: string, params?: Record<string, number>) => i18n.t(`build.adapt.${key}`, params);
 
 export interface BuildAdaptation {
   itemId: number;
@@ -166,14 +170,14 @@ export function suggestBuildAdaptations({
       out.push({
         itemId: 4644, // Force of Nature (high MR + magic shield)
         itemName: "Force of Nature",
-        reason: `Equipo enemigo ${(comp.apShare * 100).toFixed(0)}% AP — necesitas MR`,
+        reason: why("needMr", { pct: Math.round(comp.apShare * 100) }),
         priority: "core",
       });
     else if (isAdScaling)
       out.push({
         itemId: 3156, // Maw of Malmortius
         itemName: "Maw of Malmortius",
-        reason: "Squishy AD contra AP — escudo mágico + MR",
+        reason: why("magicShield"),
         priority: "situational",
       });
     else if (isMagicScaling)
@@ -181,13 +185,13 @@ export function suggestBuildAdaptations({
         {
           itemId: 3157, // Zhonya's
           itemName: "Zhonya's Hourglass",
-          reason: "Squishy contra AP — el stasis cancela burst",
+          reason: why("stasis"),
           priority: "situational",
         },
         {
           itemId: 3102, // Banshee's Veil
           itemName: "Banshee's Veil",
-          reason: "Squishy contra AP — el escudo bloquea el primer spell",
+          reason: why("spellBlock"),
           priority: "situational",
         }
       );
@@ -195,7 +199,7 @@ export function suggestBuildAdaptations({
       out.push({
         itemId: 3001, // Abyssal Mask (penetración + MR)
         itemName: "Abyssal Mask",
-        reason: "Penetración mágica + MR vs equipo AP",
+        reason: why("abyssal"),
         priority: "situational",
       });
   }
@@ -206,35 +210,35 @@ export function suggestBuildAdaptations({
       out.push({
         itemId: 3143, // Randuin's Omen
         itemName: "Randuin's Omen",
-        reason: `Equipo enemigo ${(comp.adShare * 100).toFixed(0)}% AD — armadura crítica`,
+        reason: why("needArmor", { pct: Math.round(comp.adShare * 100) }),
         priority: "core",
       });
     else if (tags.has("Marksman"))
       out.push({
         itemId: 3026, // Guardian Angel
         itemName: "Guardian Angel",
-        reason: "AD pesado y eres squishy — Guardian Angel te da una segunda vida",
+        reason: why("secondLife"),
         priority: "situational",
       });
     else if (isAdScaling)
       out.push({
         itemId: 6333, // Death's Dance
         itemName: "Death's Dance",
-        reason: "AD pesado y eres squishy — Death's Dance reduce burst físico",
+        reason: why("lessBurst"),
         priority: "situational",
       });
     else if (isMagicScaling && !out.some((a) => a.itemId === 3157))
       out.push({
         itemId: 3157, // Zhonya's (armor + stasis)
         itemName: "Zhonya's Hourglass",
-        reason: "Squishy contra AD — armadura + stasis cancela burst",
+        reason: why("stasis"),
         priority: "situational",
       });
     if (isAdScaling)
       out.push({
         itemId: 3047, // Plated Steelcaps
         itemName: "Plated Steelcaps",
-        reason: "Botas de armadura vs comp AD",
+        reason: why("armorBoots"),
         priority: "situational",
       });
   }
@@ -244,14 +248,14 @@ export function suggestBuildAdaptations({
     out.push({
       itemId: 6035, // Silvermere Dawn
       itemName: "Silvermere Dawn",
-      reason: `${comp.hardCC} hard CC en el equipo enemigo — limpia con QSS upgrade`,
+      reason: why("cleanse", { count: comp.hardCC }),
       priority: "core",
     });
   } else if (comp.hardCC >= 2) {
     out.push({
       itemId: 3140, // QSS
       itemName: "Quicksilver Sash",
-      reason: `${comp.hardCC} hard CC enemigos — QSS para limpiar el más letal`,
+      reason: why("cleanse", { count: comp.hardCC }),
       priority: "situational",
     });
   }
@@ -261,7 +265,7 @@ export function suggestBuildAdaptations({
     out.push({
       itemId: 2420, // Stopwatch
       itemName: "Stopwatch",
-      reason: `${comp.divers} divers/engage — early stopwatch te salva`,
+      reason: why("divers", { count: comp.divers }),
       priority: "situational",
     });
   }
@@ -271,7 +275,7 @@ export function suggestBuildAdaptations({
     out.push({
       itemId: 3111, // Mercury's Treads
       itemName: "Mercury's Treads",
-      reason: "Mercury's: tenacidad + MR contra AP+CC",
+      reason: why("mercs"),
       priority: "core",
     });
   }
@@ -281,7 +285,6 @@ export function suggestBuildAdaptations({
   // item depends on the SHOPPER's damage type, not the enemy's.
   if (comp.healers >= 1) {
     const core = comp.healers >= 2;
-    const plural = comp.healers >= 2 ? `${comp.healers} fuentes de curación` : "curación fuerte";
     const isTanky = tags.has("Tank");
     if (isTanky || isEnchanter) {
       // Tanks/frontliners and enchanters (no AD/AP scaling): Thornmail gives
@@ -289,7 +292,7 @@ export function suggestBuildAdaptations({
       out.push({
         itemId: 3075, // Thornmail
         itemName: "Thornmail",
-        reason: `${plural} enemiga — Thornmail aplica Grievous y da armadura`,
+        reason: why("antiHealArmor"),
         priority: core ? "core" : "situational",
       });
     } else if (isAdScaling) {
@@ -298,13 +301,13 @@ export function suggestBuildAdaptations({
           ? {
               itemId: 3033, // Mortal Reminder
               itemName: "Mortal Reminder",
-              reason: `${plural} enemiga — Grievous Wounds de AD`,
+              reason: why("antiHeal"),
               priority: "core",
             }
           : {
               itemId: 3123, // Executioner's Calling
               itemName: "Executioner's Calling",
-              reason: `${plural} enemiga — anti-heal temprano barato`,
+              reason: why("antiHealCheap"),
               priority: "situational",
             }
       );
@@ -314,13 +317,13 @@ export function suggestBuildAdaptations({
           ? {
               itemId: 3165, // Morellonomicon
               itemName: "Morellonomicon",
-              reason: `${plural} enemiga — Grievous Wounds de AP`,
+              reason: why("antiHeal"),
               priority: "core",
             }
           : {
               itemId: 3916, // Oblivion Orb
               itemName: "Oblivion Orb",
-              reason: `${plural} enemiga — anti-heal temprano de AP`,
+              reason: why("antiHealCheap"),
               priority: "situational",
             }
       );
@@ -329,7 +332,7 @@ export function suggestBuildAdaptations({
       out.push({
         itemId: 3075, // Thornmail
         itemName: "Thornmail",
-        reason: `${plural} enemiga — Thornmail aplica Grievous y da armadura`,
+        reason: why("antiHealArmor"),
         priority: core ? "core" : "situational",
       });
     }

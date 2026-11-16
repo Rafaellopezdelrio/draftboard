@@ -3,6 +3,8 @@ import type { MatchSummary } from "./riotApi";
 import type { LcuRankInfo } from "./lcuPersonalData";
 
 const loadSettingsMock = vi.fn();
+// Account auto-detection (clean install) has its own tests.
+vi.mock("./accountResolve", () => ({ resolveAccount: vi.fn(async () => null) }));
 vi.mock("./settingsRepo", () => ({
   loadSettings: () => loadSettingsMock(),
 }));
@@ -180,9 +182,9 @@ describe("syncPersonalData — Riot API path", () => {
       source: "Riot API",
       done: 0,
       total: 0,
-      message: "Riot API falló (Error: 403 Forbidden), probando LCU...",
+      message: "Riot API falló (403 Forbidden), probando LCU...",
       messageKey: "sync.riotFailed",
-      messageParams: { error: "Error: 403 Forbidden" },
+      messageParams: { error: "403 Forbidden" },
     });
     expect(result).toEqual({ matches: 0, masteries: 0, rank: RANK, source: "LCU" });
   });

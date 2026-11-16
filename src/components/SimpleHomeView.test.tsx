@@ -95,7 +95,7 @@ describe("SimpleHomeView", () => {
     expect(screen.getByText(/Moriste 9 veces/)).toBeInTheDocument();
     expect(screen.getByText("Últimas 4 partidas")).toBeInTheDocument();
     expect(screen.getByText("2 – 2")).toBeInTheDocument();
-    expect(screen.getByText("gold")).toBeInTheDocument();
+    expect(screen.getByText("Oro")).toBeInTheDocument();
     expect(screen.getByText("Tu mejor campeón reciente: Lee Sin (2 de 3 ganadas).")).toBeInTheDocument();
   });
 

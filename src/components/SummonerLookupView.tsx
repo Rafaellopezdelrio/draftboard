@@ -11,12 +11,13 @@ import {
   getRecentMatchIds,
   getMatchFull,
   getRiotProxyUrl,
+  RiotNotFoundError,
   type ChampionMasteryDto,
   type LeagueEntryDto,
   type Region,
 } from "../services/riotApi";
 import { splitRiotId } from "../services/riotId";
-import { loadSettings } from "../services/settingsRepo";
+import { settingsOrDefault } from "../services/accountResolve";
 import type { ChampionDb } from "../types/champion";
 import { useEscape } from "../hooks/useKeyboardShortcuts";
 import { useFocusTrap } from "../hooks/useFocusTrap";
@@ -129,13 +130,8 @@ export function SummonerLookupView({ db, onClose }: Props) {
       // server-side, so the user doesn't need to paste one locally.
       // Direct mode: the user MUST set their own dev key in Settings.
       // We accept either path — only reject if BOTH are missing.
-      const ownCfg = (await loadSettings()) ?? {
-        region: "euw1" as Region,
-        apiKey: "",
-        riotIdName: "",
-        riotIdTag: "",
-        puuid: "",
-      };
+      // No saved settings (clean install): use the LoL client's region.
+      const ownCfg = await settingsOrDefault();
       const usingProxy = !!getRiotProxyUrl();
       if (!usingProxy && !ownCfg.apiKey) {
         throw new Error(t("summonerLookup.needApiKey"));
@@ -152,19 +148,26 @@ export function SummonerLookupView({ db, onClose }: Props) {
       // Accounts resolve globally, but level / rank / masteries / matches live
       // on ONE server. Query the player's server, not the user's own: asking
       // the wrong one answers "nothing", which looked like an Unranked profile.
+      // Remember a real failure (server down, rate limit, no connection) so it
+      // isn't reported as "this player isn't on that server".
+      let failure: unknown = null;
+      const soft = <T,>(fallback: T) => (e: unknown): T => {
+        if (!(e instanceof RiotNotFoundError) && !failure) failure = e;
+        return fallback;
+      };
       const readServer = async (region: Region) => {
         const cfg = { ...ownCfg, region };
         const [summoner, masteries, matchIds] = await Promise.all([
-          getSummonerByPuuid(cfg, account.puuid).catch(() => null),
-          getTopMasteries(cfg, account.puuid, 7).catch(() => []),
-          getRecentMatchIds(cfg, account.puuid, 5).catch(() => []),
+          getSummonerByPuuid(cfg, account.puuid).catch(soft(null)),
+          getTopMasteries(cfg, account.puuid, 7).catch(soft([])),
+          getRecentMatchIds(cfg, account.puuid, 5).catch(soft([])),
         ]);
         // Use puuid-based endpoint — Riot is phasing out the by-summoner one
         // and it returns empty for many regions/accounts now.
         const leagueEntries = await getLeagueEntriesByPuuid(
           cfg,
           account.puuid
-        ).catch(() => []);
+        ).catch(soft([]));
         return { region, cfg, summoner, masteries, matchIds, leagueEntries };
       };
       // Auto mode tries the server the tag names, then the user's own: region
@@ -200,6 +203,7 @@ export function SummonerLookupView({ db, onClose }: Props) {
       // Nothing at all came back: the player is not on that server. Say so
       // instead of painting an empty "Unranked" profile.
       if (!found) {
+        if (failure) throw failure;
         throw new Error(
           t("summonerLookup.notOnServer", { server: serverLabel(candidates[0]) })
         );
@@ -394,7 +398,7 @@ export function SummonerLookupView({ db, onClose }: Props) {
                 {t("summonerLookup.emptyPrompt")}
               </p>
               <p className="text-xs text-white/40 mt-1">
-                {t("summonerLookup.emptyHint")}
+                {getRiotProxyUrl() ? t("summonerLookup.emptyHintProxy") : t("summonerLookup.emptyHint")}
               </p>
             </div>
           )}

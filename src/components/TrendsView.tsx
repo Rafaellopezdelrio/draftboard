@@ -20,6 +20,7 @@ import {
 import type { ChampionDb, Role } from "../types/champion";
 import { usePrefsStore } from "../state/prefsStore";
 import { aiTrendsAnalysis } from "../services/aiCoach";
+import { aiReady } from "../services/aiProvider";
 import { useEscape } from "../hooks/useKeyboardShortcuts";
 import { EmptyState } from "./ui/EmptyState";
 import { DraftAdherencePanel } from "./DraftAdherencePanel";
@@ -108,6 +109,8 @@ export function TrendsView({ db, onClose, rankTier }: Props) {
         : s.prefs.anthropicApiKey
   );
   const aiLang = usePrefsStore((s) => s.prefs.aiCoachLanguage);
+  // Groq works without a personal key through Draftboard's server.
+  const aiUsable = aiReady(aiProvider, apiKey, usePrefsStore((s) => s.prefs.riotProxyUrl));
   const [aiText, setAiText] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const [aiErr, setAiErr] = useState<string | null>(null);
@@ -465,7 +468,7 @@ export function TrendsView({ db, onClose, rankTier }: Props) {
               </h3>
               <button
                 onClick={runAi}
-                disabled={aiLoading || !apiKey}
+                disabled={aiLoading || !aiUsable}
                 className="text-xs px-2 py-1 bg-accent text-black rounded disabled:opacity-50"
               >
                 {aiLoading

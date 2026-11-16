@@ -86,7 +86,7 @@ describe("FirstRunHealthBanner", () => {
     act(() => {
       vi.advanceTimersByTime(4001);
     });
-    expect(screen.getByRole("alert")).toHaveTextContent(/Backend no responde/);
+    expect(screen.getByRole("alert")).toHaveTextContent(/No podemos conectar con el servidor de Draftboard/);
   });
 
   it("does NOT render when only LCU is disconnected (informational, not blocking)", () => {
@@ -153,7 +153,7 @@ describe("FirstRunHealthBanner", () => {
     act(() => {
       vi.advanceTimersByTime(4001);
     });
-    fireEvent.click(screen.getByRole("button", { name: /Abrir diagnóstico/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Ver detalles/ }));
     expect(onShowDiagnostics).toHaveBeenCalledTimes(1);
   });
 });

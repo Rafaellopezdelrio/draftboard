@@ -12,6 +12,7 @@
 import { useDraftStore, type EnemyScoutTarget } from "./draftStore";
 import { getCurrentGameByPuuid, type CurrentGameInfo } from "../services/riotApi";
 import { loadSettings } from "../services/settingsRepo";
+import { resolveAccount } from "../services/accountResolve";
 
 // Encrypted PUUIDs are 78 url-safe base64 chars; anything else (bots' empty
 // puuid, client-format UUIDs) can't be looked up, so it's dropped.
@@ -100,17 +101,19 @@ export async function refreshEnemyScoutTargets(
   inFlight = true;
   const startedGen = generation;
   try {
-    const cfg = await loadSettings();
-    // Same requirement as LiveGameView: the encrypted PUUID saved by Settings.
-    // Not "resolved": a Riot ID saved mid-game is picked up on a later try.
+    let cfg = await loadSettings();
+    // Clean install: nothing saved yet, so read the account from the LoL client
+    // (and save it). Not "resolved": a later try picks it up once it works.
+    if (!cfg?.puuid) cfg = await resolveAccount().catch(() => null);
     if (!cfg?.puuid) return;
-    const game = await getCurrentGameByPuuid(cfg, cfg.puuid);
+    const myPuuid = cfg.puuid;
+    const game = await getCurrentGameByPuuid(cfg, myPuuid);
     // The game changed (or was reset) while we waited: drop this answer.
     if (startedGen !== generation) return;
     if (!game || (gameId !== undefined && game.gameId !== gameId)) return;
-    if (!(game.participants ?? []).some((p) => p.puuid === cfg.puuid)) return;
+    if (!(game.participants ?? []).some((p) => p.puuid === myPuuid)) return;
     randomPickGame = RANDOM_PICK_MODES.has((game.gameMode || gameMode || "").toUpperCase());
-    useDraftStore.getState().setEnemyScoutTargets(enemyTargetsFromSpectator(game, cfg.puuid));
+    useDraftStore.getState().setEnemyScoutTargets(enemyTargetsFromSpectator(game, myPuuid));
     resolved = true;
   } catch {
     /* spectator down / rate-limited — retried on the next tick */

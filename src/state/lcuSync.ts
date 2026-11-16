@@ -241,13 +241,26 @@ function leaveChampSelect() {
   lastChampSelectPhase = null;
   boardKeptForGame = gameStarting;
   if (gameStarting) return;
+  clearBoard();
+}
 
+function clearBoard() {
   const store = useDraftStore.getState();
   store.reset();
   store.setLocalSelection(null, null, null);
   store.setEnemySummonerIds([]);
   store.setPhase(null, null);
+  store.setPickProgress(0, 0);
   store.setGameMode(null);
+}
+
+/** The board is kept through the game; once the game is over it must go, or
+ * the next visit to the app still shows the finished game's draft. */
+export function clearBoardAfterGame() {
+  if (!boardKeptForGame) return;
+  boardKeptForGame = false;
+  lastChampSelectPhase = null;
+  clearBoard();
 }
 
 // Champ-select payloads carry no queue info, so the game mode (ARAM/Arena
@@ -370,11 +383,20 @@ function applySession(s: LcuChampSelectSession | null | undefined) {
   // hover champ (act.completed=false). We pick locked over hover when
   // both exist for the same cell.
   const cellPickMap = new Map<number, { locked: number; hover: number }>();
+  // Every cell that has a pick turn, and the ones that already locked in:
+  // the honest "N picks to go" (hovers and hidden enemies don't count as done).
+  const pickCells = new Set<number>();
+  const lockedCells = new Set<number>();
   if (Array.isArray(s.actions)) {
     for (const group of s.actions) {
       if (!Array.isArray(group)) continue;
       for (const act of group) {
-        if (!act || act.type !== "pick" || !act.championId || act.championId <= 0) continue;
+        if (!act || act.type !== "pick") continue;
+        if (typeof act.actorCellId === "number") {
+          pickCells.add(act.actorCellId);
+          if (act.completed && act.championId > 0) lockedCells.add(act.actorCellId);
+        }
+        if (!act.championId || act.championId <= 0) continue;
         const cellId = act.actorCellId;
         if (typeof cellId !== "number") continue;
         const existing = cellPickMap.get(cellId) ?? { locked: 0, hover: 0 };
@@ -384,6 +406,7 @@ function applySession(s: LcuChampSelectSession | null | undefined) {
       }
     }
   }
+  useDraftStore.getState().setPickProgress(lockedCells.size, pickCells.size);
   const pickFromActions = (cellId: number | undefined): { locked: string | null; intent: string | null } => {
     if (typeof cellId !== "number") return { locked: null, intent: null };
     const entry = cellPickMap.get(cellId);

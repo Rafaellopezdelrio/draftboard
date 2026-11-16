@@ -52,6 +52,7 @@ export async function scoutPlayer(
   let rank: string | null = null;
   let lp: number | null = null;
   let hotStreak = false;
+  let leagueFailed = false;
   try {
     // Use puuid endpoint — by-summoner is being phased out
     const entries = await getLeagueEntriesByPuuid(cfg, puuid);
@@ -62,8 +63,13 @@ export async function scoutPlayer(
       hotStreak = soloq.hotStreak;
     }
   } catch {
-    // ignore
+    leagueFailed = true;
   }
+  // Everything failed (server down, rate limit): report it instead of building
+  // an empty profile, and never cache a result built from failed calls.
+  const failed = [summonerR, masteriesR, recentIdsR].filter((r) => r.status === "rejected");
+  if (failed.length === 3 && leagueFailed) throw (failed[0] as PromiseRejectedResult).reason;
+  const partial = failed.length > 0 || leagueFailed;
 
   const champCount = new Map<number, { games: number; wins: number }>();
   let recentWins = 0;
@@ -125,10 +131,12 @@ export async function scoutPlayer(
     pickedChampionRecentGames:
       pickedChampionId !== undefined ? champCount.get(pickedChampionId)?.games ?? 0 : 0,
   };
-  CACHE.set(cacheKey, { ts: Date.now(), result });
-  if (CACHE.size > MAX_CACHE) {
-    const oldest = CACHE.keys().next().value;
-    if (oldest !== undefined) CACHE.delete(oldest);
+  if (!partial) {
+    CACHE.set(cacheKey, { ts: Date.now(), result });
+    if (CACHE.size > MAX_CACHE) {
+      const oldest = CACHE.keys().next().value;
+      if (oldest !== undefined) CACHE.delete(oldest);
+    }
   }
   return result;
 }

@@ -57,7 +57,7 @@ const btn = (name: string | RegExp) => screen.getByRole("button", { name });
 describe("OnboardingView — welcome", () => {
   it("renders the welcome copy with start and skip actions", () => {
     setup();
-    expect(screen.getByRole("heading", { name: "Bienvenido a LoL Draft Advisor" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Bienvenido a Draftboard" })).toBeInTheDocument();
     expect(screen.getAllByRole("listitem")).toHaveLength(4);
     expect(screen.getByText("no es baneable")).toBeInTheDocument();
     expect(btn("Empezar — detectar cuenta")).toBeInTheDocument();
@@ -102,18 +102,19 @@ describe("OnboardingView — syncing", () => {
     await act(async () => {
       fireEvent.click(btn("Empezar — detectar cuenta"));
     });
-    expect(screen.getByRole("heading", { name: "Sincronizando..." })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Cargando tus datos..." })).toBeInTheDocument();
     expect(screen.getByText("Buscando cliente de LoL...")).toBeInTheDocument();
 
     act(() => report({ source: "LCU", done: 1, total: 4, message: "Leyendo partidas" }));
     expect(screen.queryByText("Buscando cliente de LoL...")).not.toBeInTheDocument();
-    expect(screen.getByText("LCU")).toBeInTheDocument();
+    // The technical source name ("LCU") is no longer shown.
+    expect(screen.queryByText("LCU")).not.toBeInTheDocument();
     expect(screen.getByText("Leyendo partidas")).toBeInTheDocument();
     const bar = container.querySelector<HTMLElement>("[style]");
     expect(bar?.style.width).toBe("25%");
 
     act(() => report({ source: "Riot API", done: 0, total: 0, message: "Conectando" }));
-    expect(screen.getByText("Riot API")).toBeInTheDocument();
+    expect(screen.getByText("Conectando")).toBeInTheDocument();
     expect(container.querySelector("[style]")).toBeNull();
   });
 
@@ -126,7 +127,7 @@ describe("OnboardingView — syncing", () => {
     });
     expect(screen.getByRole("heading", { name: "¡Listo!" })).toBeInTheDocument();
     expect(
-      screen.getByText("Faker#KR1 — 12 partidas + 30 maestrías sincronizadas vía LCU.")
+      screen.getByText("Faker#KR1 — 12 partidas y 30 maestrías cargadas.")
     ).toBeInTheDocument();
   });
 
@@ -138,7 +139,7 @@ describe("OnboardingView — syncing", () => {
       fireEvent.click(btn("Empezar — detectar cuenta"));
     });
     expect(
-      screen.getByText("Cuenta# — 3 partidas + 0 maestrías sincronizadas vía Riot API.")
+      screen.getByText("Cuenta# — 3 partidas y 0 maestrías cargadas.")
     ).toBeInTheDocument();
   });
 
@@ -162,7 +163,7 @@ describe("OnboardingView — syncing", () => {
     await act(async () => {
       await vi.advanceTimersByTimeAsync(11_999);
     });
-    expect(screen.getByRole("heading", { name: "Sincronizando..." })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Cargando tus datos..." })).toBeInTheDocument();
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1);
     });

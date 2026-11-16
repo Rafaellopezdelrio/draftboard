@@ -7,7 +7,7 @@
 import { useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Search, X } from "lucide-react";
-import { usePrefsStore } from "../state/prefsStore";
+import { DEFAULT_PREFS, usePrefsStore } from "../state/prefsStore";
 import { useEscape } from "../hooks/useKeyboardShortcuts";
 import { useFocusTrap } from "../hooks/useFocusTrap";
 import { ConfirmDialog } from "./ui/ConfirmDialog";
@@ -151,7 +151,8 @@ export function PreferencesView({ onClose }: Props) {
           {!query && (
             <>
               <AutostartField />
-              <RiotProxyField />
+              {/* Only shown when the address was changed: normal users never need it. */}
+              {prefs.riotProxyUrl !== DEFAULT_PREFS.riotProxyUrl && <RiotProxyField />}
               <MetaSourceField />
               <ThemeAccentField />
               <AnthropicKeyField />

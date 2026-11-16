@@ -52,7 +52,7 @@ describe("NetworkStatusBanner", () => {
   it("shows backend-down with the stale-data detail when online but the worker is unreachable", () => {
     setNet({ workerReachable: false });
     render(<NetworkStatusBanner />);
-    expect(screen.getByText("Backend no disponible")).toBeInTheDocument();
+    expect(screen.getByText("Servidor de Draftboard no disponible")).toBeInTheDocument();
     expect(screen.getByText(/Tier list, builds y pro-data/)).toBeInTheDocument();
   });
 

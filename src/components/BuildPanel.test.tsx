@@ -410,7 +410,7 @@ describe("BuildPanel — enemy comp & live game", () => {
     expect(screen.getByText("Adaptaciones vs comp enemiga")).toBeInTheDocument();
     expect(screen.queryByText("Force of Nature")).toBeNull();
     const maw = screen.getByText("Maw of Malmortius").closest("div.rounded") as HTMLElement;
-    expect(maw).toHaveTextContent("Squishy AD contra AP — escudo mágico + MR");
+    expect(maw).toHaveTextContent("Eres frágil y pegan con magia: te da un escudo contra magia.");
     expect(maw.className).toContain("bg-meh/10");
   });
 

@@ -470,6 +470,7 @@ describe("TrendsView — progress box", () => {
 
 describe("TrendsView — AI coach", () => {
   it("is hidden when the AI coach is disabled", async () => {
+    setPrefs({ aiCoachEnabled: false });
     await renderWith(sixTop());
     expect(screen.queryByText("AI Coach (tendencias)")).toBeNull();
   });

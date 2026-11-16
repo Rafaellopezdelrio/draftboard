@@ -69,7 +69,7 @@ describe("useHealthStatus", () => {
     expect(result.current.label).toBe("Sin conexión");
   });
 
-  it("returns level=offline with 'Backend caído' when worker probe fails", () => {
+  it("returns level=offline with 'Servidor sin respuesta' when worker probe fails", () => {
     vi.mocked(useNetworkStatus).mockReturnValue({
       online: true,
       workerReachable: false,
@@ -79,7 +79,7 @@ describe("useHealthStatus", () => {
     });
     const { result } = renderHook(() => useHealthStatus());
     expect(result.current.level).toBe("offline");
-    expect(result.current.label).toBe("Backend caído");
+    expect(result.current.label).toBe("Servidor sin respuesta");
   });
 
   it("flips to degraded when a fetch failure is emitted", () => {
@@ -90,7 +90,8 @@ describe("useHealthStatus", () => {
     });
     expect(result.current.level).toBe("degraded");
     expect(result.current.lastFailureSource).toBe("op.gg meta");
-    expect(result.current.detail).toContain("op.gg meta");
+    // The technical source name stays out of the text the user reads.
+    expect(result.current.detail).not.toContain("op.gg meta");
   });
 
   it("offline still wins over a recent degraded signal", () => {

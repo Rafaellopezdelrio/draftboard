@@ -10,6 +10,7 @@ import {
   generateMatchupTips,
   getCachedMatchupTips,
 } from "../services/aiMatchupTips";
+import { aiReady } from "../services/aiProvider";
 
 interface Props {
   db: ChampionDb;
@@ -119,6 +120,8 @@ function AiMatchupRow({
         : s.prefs.anthropicApiKey
   );
   const lang = usePrefsStore((s) => s.prefs.aiCoachLanguage);
+  // Groq works without a personal key through Draftboard's server.
+  const ready = aiReady(provider, apiKey, usePrefsStore((s) => s.prefs.riotProxyUrl));
 
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
@@ -140,7 +143,7 @@ function AiMatchupRow({
   if (!me || !en) return null;
 
   async function generate() {
-    if (!apiKey) {
+    if (!ready) {
       setErr(t("matchupTips.configApiKey", { provider }));
       return;
     }
@@ -149,7 +152,7 @@ function AiMatchupRow({
     try {
       const t = await generateMatchupTips({
         provider,
-        apiKey,
+        apiKey: apiKey ?? "",
         championA: Number(me.key),
         championAName: me.name,
         championB: Number(en.key),
@@ -176,7 +179,7 @@ function AiMatchupRow({
         {!text && (
           <button
             onClick={generate}
-            disabled={loading || !apiKey}
+            disabled={loading || !ready}
             className="text-[10px] text-accent hover:underline disabled:opacity-40 inline-flex items-center gap-1"
           >
             <Sparkles className="w-2.5 h-2.5" />

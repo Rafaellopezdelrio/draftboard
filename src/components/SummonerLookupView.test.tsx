@@ -27,6 +27,7 @@ vi.mock("../services/riotApi", () => ({
   getRecentMatchIds: vi.fn(),
   getMatchFull: vi.fn(),
   getRiotProxyUrl: vi.fn(),
+  RiotNotFoundError: class RiotNotFoundError extends Error {},
 }));
 
 // isTauri() is true under setup.ts, so the real loadSettings would hit the
@@ -200,7 +201,7 @@ describe("SummonerLookupView — search gating", () => {
     renderView();
     await search();
     expect(
-      screen.getByText(/Necesitas configurar tu Riot API Key/)
+      screen.getByText(/Para buscar otros jugadores hace falta/)
     ).toBeInTheDocument();
     expect(getAccountByRiotId).not.toHaveBeenCalled();
     // Error replaces the empty prompt and the button is usable again.

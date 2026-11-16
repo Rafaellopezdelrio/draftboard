@@ -17,14 +17,18 @@
     "preferences": "Preferences",
     "riotConfig": "Riot config",
     "diagnostics": "Diagnostics",
-    "myRole": "My role",
+    "myRole": "My position",
     "basicData": "Basic data",
     "connected": "Connected",
     "waitingClient": "Waiting for client",
     "waitingClientTip": "Waiting for you to open the LoL client",
     "uiLanguage": "Interface language",
     "match": "Game",
-    "coach": "Coach"
+    "coach": "Coach",
+    "patch": "Patch",
+    "aiCoachSimple": "Ask the coach",
+    "tierListSimple": "Best champions",
+    "liveSimple": "In game"
   },
   "winConditions": {
     "title": "Game plan",
@@ -284,7 +288,24 @@
     "planWhyLane": "for {{name}}",
     "planWhyTeam": "for their team: {{reason}}",
     "planSituational": "If needed",
-    "matchupWinRate": "you win {{pct}} in 100"
+    "matchupWinRate": "you win {{pct}} in 100",
+    "adapt": {
+      "needMr": "Almost all their damage is magic ({{pct}} of 100): gives you magic defence.",
+      "magicShield": "You are squishy and they deal magic damage: gives you a magic shield.",
+      "stasis": "You are squishy: lets you go untouchable for a moment when they jump on you.",
+      "spellBlock": "You are squishy: blocks the first ability they throw at you.",
+      "abyssal": "Defends you against magic and makes yours hurt them more.",
+      "needArmor": "Almost all their damage is physical ({{pct}} of 100): gives you armor.",
+      "secondLife": "You are squishy and they hit hard: gives you a second life.",
+      "lessBurst": "You are squishy and they hit hard: spreads the damage out so you don't die at once.",
+      "armorBoots": "Armor boots: their team deals mostly physical damage.",
+      "cleanse": "They have {{count}} ways to lock you down: this item frees you.",
+      "divers": "{{count}} enemies jump on you: saves you once.",
+      "mercs": "Boots that defend against magic and shorten the time you spend locked down.",
+      "antiHealArmor": "They heal a lot: cuts their healing and gives you armor.",
+      "antiHeal": "They heal a lot: this item cuts their healing.",
+      "antiHealCheap": "They heal a lot: a cheap piece that cuts their healing."
+    }
   },
   "scout": {
     "title": "Enemy scout",
@@ -353,7 +374,7 @@
   },
   "coach": {
     "topInsight": "Top insight",
-    "needRiotId": "Set up your Riot ID first in ⚙",
+    "needRiotId": "Open LoL so we can recognise your account, then try again.",
     "aiAnalyzing": "Analyzing...",
     "aiAnalyze": "Analyze with AI",
     "apiKeyHint": "Paste your API key ({{provider}}) in Prefs. Groq is free.",
@@ -495,20 +516,20 @@
     "subtitleUpdated": "We've changed parts of the notice. Read it and accept again to continue.",
     "dataTitle": "Data we store",
     "dataAccountLabel": "Your LoL account",
-    "dataAccountDetail": "name, PUUID and region. Read from the local LoL client (we don't share it).",
+    "dataAccountDetail": "your player name, your Riot account identifier and your region. Read from the LoL client on your PC. To look up your rank and games they are sent to Draftboard's server, which asks Riot for you.",
     "dataMatchesLabel": "Match history",
-    "dataMatchesDetail": "KDA, CS, builds, items. Stored in local SQLite on your PC.",
+    "dataMatchesDetail": "KDA, CS, builds and items. Stored only on your PC.",
     "dataPrefsLabel": "Preferences",
-    "dataPrefsDetail": "roles, UI settings, optional API keys. All local.",
+    "dataPrefsDetail": "roles, app settings and, if you add them, your own keys. All stored on your PC.",
     "dataTelemetryLabel": "Error telemetry",
-    "dataTelemetryDetail": "(Sentry): only anonymized crashes — no names, no chat, no matches.",
-    "dataGdpr": "You can export or delete everything in Settings → My data. GDPR-compliant (access, portability and erasure rights).",
+    "dataTelemetryDetail": "only app crash reports, with no names, no chat and no games. Can be turned off in Preferences.",
+    "dataGdpr": "You can export or delete everything from “My data / privacy” (find it with Ctrl+K). GDPR-compliant (access, portability and erasure rights).",
     "sourcesTitle": "External data sources",
     "sourcesPrefix": "Draftboard reads public data from:",
-    "sourcesSuffix": "and optionally AI providers (Groq/Anthropic/Gemini) when you add your key.",
+    "sourcesSuffix": "and Groq's AI through Draftboard's server (no key needed), or Anthropic/Gemini if you add your own key.",
     "notEndorsedTitle": "Riot Games — not endorsed",
     "notEndorsedBody": "Draftboard is not endorsed by Riot Games and doesn't reflect the views of Riot Games or anyone officially involved in producing or managing League of Legends. League of Legends and Riot Games are trademarks of Riot Games, Inc.",
-    "notEndorsedSafe": "We only use official APIs (LCU + Live Client). No game memory reads, no in-game automation, nothing bannable.",
+    "notEndorsedSafe": "We only use Riot's official interfaces. We don't read game memory, we don't play for you, and nothing the app does can get you banned.",
     "licensePrefix": "MIT license. Source code and full terms in",
     "licenseSuffix": "inside the package.",
     "agreeLabel": "I have read and accept the privacy notice, the data usage and the Riot Games disclaimer.",
@@ -521,23 +542,23 @@
   },
   "health": {
     "ok": "OK",
-    "okDetail": "Connection and backend OK. Data up to date.",
-    "degraded": "Degraded",
-    "degradedDetail": "Recent failure in {{source}}. Some panels may show cached data.",
+    "okDetail": "Connection and server OK. Data up to date.",
+    "degraded": "Partly updated",
+    "degradedDetail": "Some data couldn't be refreshed a moment ago. Saved data is used meanwhile.",
     "offline": "Offline",
     "offlineDetail": "Your PC has lost internet connection. The app still uses cached data.",
-    "backendDown": "Backend down",
-    "backendDownDetail": "Draftboard's backend isn't responding. Limited functionality until it returns."
+    "backendDown": "Server not responding",
+    "backendDownDetail": "Draftboard's server isn't responding. Some things won't work until it's back."
   },
   "onboarding": {
-    "welcomeTitle": "Welcome to LoL Draft Advisor",
+    "welcomeTitle": "Welcome to Draftboard",
     "helpYou": "I help you:",
-    "help1": "🎯 Pick the optimal champion every draft",
+    "help1": "🎯 Pick the best champion every champ select",
     "help2": "🚫 Ban what hurts you most in your lane",
-    "help3": "🤖 Post-game coach to spot mistakes",
-    "help4": "📊 See your progress and where to climb LP",
-    "privateTitle": "100% private and safe:",
-    "privateBody1": "nothing leaves your PC. Uses the official LoL client API —",
+    "help3": "🤖 Review each game to see what to improve",
+    "help4": "📊 See your progress and where to improve to climb",
+    "privateTitle": "Safe:",
+    "privateBody1": "your games are stored on your PC. Uses the official LoL client API —",
     "privateNotBannable": "not bannable",
     "privateBody2": ", doesn't automate in-game actions.",
     "start": "Start — detect account",
@@ -549,7 +570,7 @@
     "newDesc": "Detailed explanations, tooltips, tips for each pick",
     "expTitle": "⚔️ Experienced",
     "expDesc": "Compact UI, direct data, no tooltip spam",
-    "syncingTitle": "Syncing...",
+    "syncingTitle": "Loading your data...",
     "source": "Source:",
     "searchingClient": "Looking for the LoL client...",
     "skipManual": "Skip and use in manual mode",
@@ -560,12 +581,12 @@
     "next2Prefix": "• After each match, open",
     "next2Suffix": "to review it",
     "next3Prefix": "• In",
-    "next3Suffix": "you can enable the AI Coach (Claude)",
+    "next3Suffix": "you can tune the app to your liking",
     "finish": "Start using the app",
     "account": "Account",
     "timeoutSummary": "The LoL client isn't responding. You can continue in manual mode and open the client later — the app will connect on its own.",
     "noneSummary": "We didn't detect the LoL client open. You can continue in manual mode — the app will connect on its own when you open it.",
-    "syncedSummary": "{{account}}#{{tag}} — {{matches}} matches + {{masteries}} masteries synced via {{source}}.",
+    "syncedSummary": "{{account}}#{{tag}} — {{matches}} matches and {{masteries}} masteries loaded.",
     "manualSummary": "Manual mode enabled. When you open the LoL client, the app will detect your account automatically."
   },
   "tipCarousel": {
@@ -705,7 +726,8 @@
     "blueTeam": "Blue team",
     "redTeam": "Red team",
     "needRiotId": "Set your Riot ID in Settings to detect your game.",
-    "needApiKey": "Set your Riot API Key in Settings (or a proxy)."
+    "needApiKey": "Set your Riot API Key in Settings (or a proxy).",
+    "openClient": "Open LoL to see your game."
   },
   "commandPalette": {
     "group": "Actions",
@@ -917,10 +939,10 @@
   },
   "firstRun": {
     "offline": "No internet connection",
-    "backendDown": "Backend not responding (Cloudflare Worker)",
+    "backendDown": "We can't reach the Draftboard server. Some data may not update; try again in a few minutes.",
     "title": "Problems detected at startup",
-    "lcuNote": "(LoL client not detected — normal if you haven't opened it)",
-    "openDiag": "Open diagnostics"
+    "lcuNote": "(The game isn't open; that's normal if you haven't opened it yet)",
+    "openDiag": "See details"
   },
   "net": {
     "never": "never",
@@ -928,7 +950,7 @@
     "agoMin": "{{n}}min ago",
     "agoHr": "{{n}}h ago",
     "offline": "No internet connection",
-    "backendDown": "Backend unavailable",
+    "backendDown": "Draftboard server unavailable",
     "limited": "Limited connection",
     "offlineDetail": "Showing cached data. We'll reconnect when you're back online.",
     "staleDetail": "Tier list, builds and pro-data may be out of date.",
@@ -960,7 +982,7 @@
     "savingConfig": "Saving config...",
     "errorValidatingRiotId": "We couldn't check your Riot ID. {{error}}",
     "deletingOldMatches": "Deleting old matches...",
-    "resyncDone": "Re-synced ✓ ({{matches}} matches via {{source}})",
+    "resyncDone": "Downloaded again ✓ ({{matches}} games)",
     "error": "Error: {{error}}",
     "syncingMetaSoloq": "Syncing SoloQ meta...",
     "metaSoloqDone": "SoloQ meta synced ✓ (reload the app to use it)",
@@ -976,7 +998,7 @@
     "detected": "Detected: {{name}}#{{tag}}",
     "syncing": "Syncing...",
     "openClientRetry": "Open the LoL client and retry — without LCU or proxy/key I can't sync",
-    "syncDoneReady": "Done ✓ ({{matches}} matches via {{source}})",
+    "syncDoneReady": "Done ✓ ({{matches}} games)",
     "autoModeTitle": "How it works",
     "autoModeBody": "Open the LoL client and the app recognises your account and games by itself. Nothing else to do.",
     "advancedOptions": "⚙️ Advanced options (no need to touch them)",
@@ -993,14 +1015,14 @@
     "riotIdHint": "Your player name with its tag, for example Faker#KR1. You see it top right in the LoL client.",
     "autoDetect": "🔍 Auto-detect from the LoL client",
     "resyncTooltip": "Deletes and re-downloads your matches (useful after updating the app)",
-    "syncProMeta": "🏆 Sync PRO meta",
-    "syncProTooltip": "Downloads the latest LCK/LEC/LCS/LPL matches from Leaguepedia (no key)",
+    "syncProMeta": "🏆 Update pro data",
+    "syncProTooltip": "Downloads the latest pro league games",
     "syncMetaTooltip": "Adds Master+ SoloQ to the meta database",
-    "needKeyOrProxy": "Needs a Riot API key or configured proxy",
-    "syncMetaSoloq": "Sync SoloQ meta",
+    "needKeyOrProxy": "Needs Draftboard's server (Preferences) or your own Riot key",
+    "syncMetaSoloq": "Update ranked data",
     "multiRegionTooltip": "KR + EUW + NA. Takes ~30 min, max data quality",
-    "multiRegion": "🌍 Multi-region",
-    "needKeyOrProxyShort": "Needs a Riot API key or proxy",
+    "multiRegion": "🌍 Update all regions (~30 min)",
+    "needKeyOrProxyShort": "Needs Draftboard's server or your Riot key",
     "completeRiotId": "Fill in Riot ID + tag above",
     "saveSyncTooltip": "Validates your account and syncs your history",
     "saveAndSync": "Save and sync",
@@ -1010,10 +1032,11 @@
     "stableOption": "Stable (recommended)",
     "betaOption": "Beta (new things earlier)",
     "proxyActiveTitle": "✓ Connected to Riot's data",
-    "resync": "Re-sync",
+    "resync": "Download my games again",
     "resyncNoSource": "Nothing was deleted: I can't download your matches again right now. Open the LoL client or check your Riot ID and retry.",
     "resyncNothing": "Matches deleted, but none could be downloaded. Retry in a few minutes.",
-    "proxyActiveBody": "You don't need to enter any key: Draftboard comes with access."
+    "proxyActiveBody": "You don't need to enter any key: Draftboard comes with access.",
+    "moreActions": "More actions (update data)"
   },
   "preferences": {
     "title": "Preferences",
@@ -1042,12 +1065,13 @@
       "desc": "Launches Draftboard at login (minimized to the system tray)."
     },
     "proxy": {
-      "title": "Riot API — premium mode (proxy)",
+      "title": "Draftboard server",
       "active": "active",
       "placeholder": "https://draftboard-riot-proxy.your-account.workers.dev",
-      "descActive": "Using the proxy. You don't need your own Riot API key. Faster (edge cache) and the key never expires.",
-      "descInactivePrefix": "Paste your Cloudflare Worker URL here to avoid renewing the dev key every 24h. See ",
-      "descInactiveSuffix": " in the repo to deploy (free, ~5 min)."
+      "descActive": "You changed the server address. If you don't know what this is, press “Use Draftboard's server”.",
+      "descInactivePrefix": "Without a valid address the app can't query Riot. Press “Use Draftboard's server” to fix it. Guide to host your own: ",
+      "descInactiveSuffix": ".",
+      "restoreDefault": "Use Draftboard's server"
     },
     "theme": {
       "title": "Brand color",
@@ -1056,11 +1080,11 @@
     },
     "ai": {
       "title": "AI provider",
-      "proxyNote": "✓ AI Coach is active automatically via the proxy. You don't need to configure anything. (Power users: paste your own key below to use your own quota.)",
+      "proxyNote": "✓ AI is already included. You don't need to set anything. (Optional: if you have your own key, paste it below.)",
       "groqFree": "✓ 100% free. No card. Create an account and copy the key (30s).",
       "geminiFree": "✓ Generous free quota. Requires a Google account.",
       "anthropicPaid": "⚠️ Pay per use (≈ $0.005-0.03 per response). Best quality.",
-      "keyPlaceholderProxy": "optional — the proxy already injects a shared key",
+      "keyPlaceholderProxy": "optional — not needed",
       "getKey": "Get your free key at {{host}} →"
     }
   },
@@ -1246,8 +1270,8 @@
         "detail": "The browser's TTS announces recommended bans, strong picks and enemies on a streak."
       },
       "aiCoachEnabled": {
-        "label": "Enable AI Coach",
-        "detail": "Natural LLM analysis. Groq by default (free). Set the key below."
+        "label": "AI analysis",
+        "detail": "A written summary of your game and your trends. Already included, nothing to set up."
       }
     },
     "presets": {
@@ -1298,8 +1322,8 @@
     "optProplay": "Pro play (LCK/LEC/LCS/LPL) — needs sync",
     "optSoloq": "SoloQ Master+ — needs sync + Riot API key",
     "optBlend": "Pro + SoloQ blend — needs sync",
-    "optOpgg": "op.gg legacy (switch to dpm.lol)",
-    "descOpgg": "Live op.gg data via our proxy. 170+ champs, zero setup. The most complete.",
+    "optOpgg": "op.gg (recommended, zero setup)",
+    "descOpgg": "Up-to-date op.gg data. 170+ champions, zero setup.",
     "descDpm": "Live dpm.lol data filtered by rank and region. Pick your exact bracket from the Tier List button.",
     "descProplay": "Uses pro-league picks/winrates. Reflects the competitive meta. Sync from ⚙.",
     "descSoloq": "Master+ SoloQ. Massive data but SoloQ meta (not pro).",
@@ -1333,7 +1357,8 @@
     "lastMustBeUser": "The last message must be from the user",
     "aiKeyNeeded": "You need a {{provider}} API key. Set it in Prefs.",
     "proxyRateLimit": "Too many requests, wait 1 min",
-    "proxyRiotDown": "Draftboard's server can't reach Riot right now. You don't need to do anything: try again in a while."
+    "proxyRiotDown": "Draftboard's server can't reach Riot right now. You don't need to do anything: try again in a while.",
+    "serverUnreachable": "Can't reach the Draftboard server. Check your internet and try again."
   },
   "engine": {
     "betterMetaTier": "Your team has the better meta tier",
@@ -1359,7 +1384,7 @@
     "namePlaceholder": "Summoner name",
     "tagTitle": "Riot ID tag — any value the player set (3-5 characters)",
     "search": "Search",
-    "needApiKey": "You need to set your Riot API Key in ⚙ to look up other players (or a proxy).",
+    "needApiKey": "Looking up other players needs Draftboard's server (Preferences) or your own Riot key in ⚙.",
     "emptyPrompt": "Search any player by their Riot ID",
     "emptyHint": "You need a Riot API key set in ⚙",
     "unranked": "Unranked",
@@ -1380,7 +1405,8 @@
     "copyPuuid": "Copy PUUID to clipboard",
     "notOnServer": "No data for this player on {{server}}. Pick their server in the dropdown and search again.",
     "serverTitle": "Player's server",
-    "serverAuto": "Auto"
+    "serverAuto": "Auto",
+    "emptyHintProxy": "Type name#tag"
   },
   "about": {
     "title": "About Draftboard",
@@ -1431,7 +1457,8 @@
       "lcuClosed": "Client closed. Open LoL to use all features.",
       "lcuNoActive": "No active LCU",
       "versionUnknown": "Unknown",
-      "versionBrowser": "Browser mode (dev)"
+      "versionBrowser": "Browser mode (dev)",
+      "riotProxyDown": "Draftboard's server can't query Riot right now. Not your fault; it usually fixes itself."
     }
   },
   "errors": {
@@ -1742,9 +1769,9 @@
     "footer": "{{count}} pro players · public data via Riot API"
   },
   "sync": {
-    "riotFailed": "Riot API failed ({{error}}), trying the client...",
-    "noSource": "No data source available",
-    "connecting": "Connecting to the client...",
+    "riotFailed": "Couldn't get your games from the server ({{error}}). Trying the LoL client...",
+    "noSource": "We couldn't read your games. Open LoL and try again.",
+    "connecting": "Connecting to the LoL client...",
     "saving": "Saving {{done}}/{{total}}",
     "listing": "Listing matches...",
     "downloading": "Downloading {{done}}/{{total}}"
@@ -1789,7 +1816,8 @@
       "hardMatchup": "⚠ tough lane opponent",
       "synergy": "works well with your team",
       "strongMeta": "very strong right now",
-      "fillsGap": "gives the team what it lacks"
+      "fillsGap": "gives the team what it lacks",
+      "winRate": "you win {{pct}} of every 100 with it"
     },
     "prepareTitle": "Get ready",
     "chance": "{{pct}} out of 100",
@@ -1890,7 +1918,10 @@
     "blind": "You don't know your lane opponent yet: this is general advice for now.",
     "markOpponent": "Mark {{name}} as your lane opponent",
     "opponentIs": "Your lane opponent: {{name}} (tap another if wrong)",
-    "opponentPick": "Tap the enemy who's in your lane"
+    "opponentPick": "Tap the enemy who's in your lane",
+    "buyUnavailable": "No buy data for this champion right now. Try again in a bit.",
+    "prepDoneSpells": "✓ Spells set. We found no runes for this champion",
+    "prepDoneRunes": "✓ Runes set"
   },
   "simpleLive": {
     "nowStep": "Right now",
@@ -1933,7 +1964,7 @@
       "baronEnemy": "The enemy has Baron ({{sec}} s). Don't fight far from your towers.",
       "baronMine": "You have Baron ({{sec}} s). Push the lanes together.",
       "spikeStrong": "You are strong right now. Look for fights and objectives.",
-      "spikeWeak": "You are weak right now: {{summary}}. Play safe a bit longer.",
+      "spikeWeak": "You are weak right now. Play safe a bit longer.",
       "recall": "You have {{gold}} unspent gold. Go back to base once your lane is pushed."
     },
     "lanesTitle": "How each lane is doing",
@@ -1947,7 +1978,18 @@
     },
     "laneEven": "Even",
     "laneAhead": "+{{k}}k gold",
-    "laneBehind": "−{{k}}k gold"
+    "laneBehind": "−{{k}}k gold",
+    "buy": {
+      "gwAd": "{{healers}} enemies heal a lot: this item cuts their healing.",
+      "gwAp": "{{healers}} enemies heal a lot: this item cuts their healing.",
+      "gwTank": "{{healers}} enemies heal a lot: this item cuts their healing.",
+      "armpenCrit": "They have a lot of armor: this item cuts through it.",
+      "armpenBruiser": "They are very tanky: this item cuts through their armor and slows them.",
+      "magpen": "They have a lot of magic defence: this item cuts through it.",
+      "sorcs": "Boots that make your magic hurt them more.",
+      "antiCrit": "{{crits}} enemies deal critical hits: this item reduces that damage.",
+      "antiShield": "{{shielders}} enemies have shields: this item breaks them."
+    }
   },
   "simpleHome": {
     "lastStep": "Your last game",
@@ -1981,6 +2023,22 @@
     "autoIntro": "The app switches screens by itself:",
     "autoDraft": "Champion select → what to ban, pick and buy.",
     "autoGame": "In game → what to do now.",
-    "autoAfter": "After the game → what to improve."
+    "autoAfter": "After the game → what to improve.",
+    "tiers": {
+      "IRON": "Iron",
+      "BRONZE": "Bronze",
+      "SILVER": "Silver",
+      "GOLD": "Gold",
+      "PLATINUM": "Platinum",
+      "EMERALD": "Emerald",
+      "DIAMOND": "Diamond",
+      "MASTER": "Master",
+      "GRANDMASTER": "Grandmaster",
+      "CHALLENGER": "Challenger"
+    }
+  },
+  "systemToast": {
+    "fetchFailedTitle": "Couldn't get fresh data",
+    "fetchFailedDetail": "Using saved data. You don't need to do anything."
   }
 }

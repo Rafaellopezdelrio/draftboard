@@ -14,6 +14,7 @@ import {
 } from "../services/riotApi";
 import { recentMatches } from "../services/matchRepo";
 import { loadSettings } from "../services/settingsRepo";
+import { resolveAccount } from "../services/accountResolve";
 import type { ChampionDb } from "../types/champion";
 import { GpiRadar } from "./GpiRadar";
 import { usePrefsStore } from "../state/prefsStore";
@@ -103,11 +104,15 @@ export function CoachView({ db, onClose }: Props) {
     setAiErr(null);
     (async () => {
       try {
-        const cfg = await loadSettings();
+        let cfg = await loadSettings();
+        // Clean install: nothing saved yet, so read the account from the LoL client.
+        if (!cfg?.puuid) cfg = await resolveAccount().catch(() => null);
         if (!cfg || !cfg.puuid) throw new Error(i18n.t("coach.needRiotId"));
+        // Games saved from the LoL client are "LCU_<id>"; Riot wants "<PLATFORM>_<id>".
+        const riotId = matchId.startsWith("LCU_") ? `${cfg.region.toUpperCase()}_${matchId.slice(4)}` : matchId;
         const [full, timeline, rank] = await Promise.all([
-          getMatchFull(cfg, matchId),
-          getMatchTimeline(cfg, matchId),
+          getMatchFull(cfg, riotId),
+          getMatchTimeline(cfg, riotId),
           lcuRank().catch(() => null),
         ]);
         setMatchFull(full);

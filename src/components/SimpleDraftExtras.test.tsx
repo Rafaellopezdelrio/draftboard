@@ -60,7 +60,7 @@ describe("SimpleTopStrip", () => {
     render(
       <SimpleTopStrip
         db={db}
-        prediction={{ winrate: 0.55, reasons: ["Tienes mejor meta tier"] }}
+        prediction={{ winrate: 0.55, reasons: [], reasonKeys: ["compGaps", "betterMetaTier"] }}
         allyKeys={[]}
         enemyKeys={[]}
         bannedKeys={[]}

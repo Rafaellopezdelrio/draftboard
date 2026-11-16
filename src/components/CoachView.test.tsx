@@ -229,7 +229,7 @@ describe("CoachView — errors", () => {
     vi.mocked(loadSettings).mockResolvedValue({ ...CFG, puuid: "" } as never);
     await renderView();
     expect(
-      screen.getByText("Error: Configura primero tu Riot ID en ⚙")
+      screen.getByText("Error: Abre el LoL para que podamos reconocer tu cuenta, y vuelve a probar.")
     ).toBeInTheDocument();
     expect(getMatchFull).not.toHaveBeenCalled();
   });
@@ -238,7 +238,7 @@ describe("CoachView — errors", () => {
     vi.mocked(loadSettings).mockResolvedValue(null);
     await renderView();
     expect(
-      screen.getByText("Error: Configura primero tu Riot ID en ⚙")
+      screen.getByText("Error: Abre el LoL para que podamos reconocer tu cuenta, y vuelve a probar.")
     ).toBeInTheDocument();
   });
 
@@ -320,6 +320,7 @@ describe("CoachView — AI Coach", () => {
   const aiButton = () => screen.getByRole("button", { name: /Analizar con AI|Analizando/ });
 
   it("is hidden when the AI coach pref is off", async () => {
+    setPrefs({ aiCoachEnabled: false });
     await renderView();
     expect(screen.queryByText("AI Coach")).not.toBeInTheDocument();
   });

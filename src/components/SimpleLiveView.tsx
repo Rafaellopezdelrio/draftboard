@@ -251,7 +251,9 @@ export function SimpleLiveView({ db, buildChampionKey, buildRole, enemyKeys, noL
               <ItemIcon patch={db.patch} id={s.itemId} />
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-white leading-tight">{s.itemName}</p>
-                <p className="text-xs text-white/60 leading-snug">{s.reason}</p>
+                <p className="text-xs text-white/60 leading-snug">
+                  {t((s.reasonKey ?? "").replace("inGameAdapt.", "simpleLive.buy."), { ...s.reasonParams, defaultValue: s.reason })}
+                </p>
               </div>
             </div>
           ))}

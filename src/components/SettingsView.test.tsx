@@ -92,7 +92,7 @@ const tagInput = () => screen.getByPlaceholderText("KR1") as HTMLInputElement;
 const regionSelect = () =>
   screen.getAllByRole("combobox").find((el) => within(el).queryByText("EU West")) as HTMLSelectElement;
 const btn = (name: string | RegExp) => screen.getByRole("button", { name });
-const saveBtn = () => screen.getByTitle(/Valida tu cuenta|Completa Riot ID|Necesita API key Riot o proxy$/);
+const saveBtn = () => screen.getByTitle(/Valida tu cuenta|Completa Riot ID|Hace falta el servidor de Draftboard o tu clave de Riot$/);
 
 async function renderView(onClose = vi.fn()) {
   const utils = render(<SettingsView onClose={onClose} />);
@@ -107,7 +107,7 @@ async function click(el: HTMLElement) {
 }
 
 async function confirmResync() {
-  fireEvent.click(btn("Re-sync"));
+  fireEvent.click(btn("Volver a descargar mis partidas"));
   await click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Resincronizar" }));
 }
 
@@ -137,7 +137,6 @@ describe("SettingsView — hydration + fields", () => {
     expect(regionSelect().value).toBe("na1");
     expect(nameInput().value).toBe("Faker");
     expect(tagInput().value).toBe("KR1");
-    expect(screen.getByText("PUUID: puuid-old")).toBeInTheDocument();
     expect(screen.getByText("⚠️ Esta clave caduca en 24 horas")).toBeInTheDocument();
   });
 
@@ -219,21 +218,21 @@ describe("SettingsView — proxy banner + pickers", () => {
 describe("SettingsView — button gating", () => {
   it("without key or proxy, Riot-API syncs are disabled but pro meta + resync are not", async () => {
     await renderView();
-    expect(btn("Sync meta SoloQ")).toBeDisabled();
-    expect(btn("Sync meta SoloQ")).toHaveAttribute("title", "Necesita API key Riot o proxy configurado");
-    expect(btn("🌍 Multi-región")).toBeDisabled();
+    expect(btn("Actualizar datos de clasificatorias")).toBeDisabled();
+    expect(btn("Actualizar datos de clasificatorias")).toHaveAttribute("title", "Hace falta el servidor de Draftboard (Preferencias) o tu propia clave de Riot");
+    expect(btn("🌍 Actualizar todas las regiones (~30 min)")).toBeDisabled();
     expect(saveBtn()).toBeDisabled();
-    expect(saveBtn()).toHaveAttribute("title", "Necesita API key Riot o proxy");
-    expect(btn("🏆 Sync meta PRO")).toBeEnabled();
-    expect(btn("Re-sync")).toBeEnabled();
+    expect(saveBtn()).toHaveAttribute("title", "Hace falta el servidor de Draftboard o tu clave de Riot");
+    expect(btn("🏆 Actualizar datos de profesionales")).toBeEnabled();
+    expect(btn("Volver a descargar mis partidas")).toBeEnabled();
   });
 
   it("a proxy alone unlocks Riot-API syncs; save still needs a full Riot ID", async () => {
     vi.mocked(getRiotProxyUrl).mockReturnValue("https://proxy.test");
     await renderView();
-    expect(btn("Sync meta SoloQ")).toBeEnabled();
-    expect(btn("Sync meta SoloQ")).toHaveAttribute("title", "Agrega Master+ SoloQ a la base de datos meta");
-    expect(btn("🌍 Multi-región")).toBeEnabled();
+    expect(btn("Actualizar datos de clasificatorias")).toBeEnabled();
+    expect(btn("Actualizar datos de clasificatorias")).toHaveAttribute("title", "Agrega Master+ SoloQ a la base de datos meta");
+    expect(btn("🌍 Actualizar todas las regiones (~30 min)")).toBeEnabled();
     expect(saveBtn()).toBeDisabled();
     expect(saveBtn()).toHaveAttribute("title", "Completa Riot ID + tag arriba");
 
@@ -260,18 +259,17 @@ describe("SettingsView — save & sync", () => {
     const cfg = { apiKey: "RGAPI-saved", region: "kr", riotIdName: "Faker", riotIdTag: "KR1" };
     expect(getAccount).toHaveBeenCalledWith(cfg);
     expect(saveSettings).toHaveBeenCalledWith({ ...cfg, puuid: "puuid-new" });
-    expect(screen.getByText("PUUID: puuid-new")).toBeInTheDocument();
     // Busy: every action is disabled and the save button shows an ellipsis.
     expect(btn("...")).toBeDisabled();
-    expect(btn("Re-sync")).toBeDisabled();
+    expect(btn("Volver a descargar mis partidas")).toBeDisabled();
 
     act(() => progress({ source: "LCU", done: 3, total: 10 }));
-    expect(screen.getByText("LCU: 3/10")).toHaveClass("text-white/70");
+    expect(screen.getByText("3/10")).toHaveClass("text-white/70");
     act(() => progress({ source: "Riot API", done: 0, total: 0, message: "rate limited" }));
-    expect(screen.getByText("Riot API: rate limited")).toBeInTheDocument();
+    expect(screen.getByText("rate limited")).toBeInTheDocument();
 
     await act(async () => sync.resolve(syncResult({ matches: 12, source: "LCU" })));
-    expect(screen.getByText("Listo ✓ (12 partidas vía LCU)")).toHaveClass("text-good");
+    expect(screen.getByText("Listo ✓ (12 partidas)")).toHaveClass("text-good");
     expect(btn("Guardar y sincronizar")).toBeEnabled();
   });
 
@@ -288,10 +286,9 @@ describe("SettingsView — save & sync", () => {
     vi.mocked(getAccount).mockRejectedValue(new Error("404 not found"));
     await renderView();
     await click(btn("Guardar y sincronizar"));
-    expect(screen.getByText("Error: Error: 404 not found")).toHaveClass("text-bad");
+    expect(screen.getByText("Error: 404 not found")).toHaveClass("text-bad");
     expect(saveSettings).not.toHaveBeenCalled();
     expect(syncPersonalData).not.toHaveBeenCalled();
-    expect(screen.getByText("PUUID: puuid-old")).toBeInTheDocument();
   });
 });
 
@@ -299,7 +296,7 @@ describe("SettingsView — resync", () => {
   it("asks for confirmation and does nothing on cancel", async () => {
     vi.mocked(loadSettings).mockResolvedValue(SAVED);
     await renderView();
-    fireEvent.click(btn("Re-sync"));
+    fireEvent.click(btn("Volver a descargar mis partidas"));
     const dialog = screen.getByRole("alertdialog");
     expect(dialog).toHaveTextContent("¿Resincronizar todo?");
     fireEvent.click(within(dialog).getAllByRole("button", { name: "Cancelar" })[1]);
@@ -327,7 +324,7 @@ describe("SettingsView — resync", () => {
     const syncOrder = vi.mocked(syncPersonalData).mock.invocationCallOrder[0];
     expect(saveOrder).toBeLessThan(clearOrder);
     expect(clearOrder).toBeLessThan(syncOrder);
-    expect(screen.getByText("Resincronizado ✓ (5 partidas vía Riot API)")).toHaveClass("text-good");
+    expect(screen.getByText("Descargado de nuevo ✓ (5 partidas)")).toHaveClass("text-good");
   });
 
   it("never wipes matches when the Riot ID fails to validate", async () => {
@@ -338,7 +335,7 @@ describe("SettingsView — resync", () => {
     expect(screen.getByText("No pudimos comprobar tu Riot ID. bad id")).toHaveClass("text-bad");
     expect(clearAllMatches).not.toHaveBeenCalled();
     expect(syncPersonalData).not.toHaveBeenCalled();
-    expect(btn("Re-sync")).toBeEnabled();
+    expect(btn("Volver a descargar mis partidas")).toBeEnabled();
   });
 
   it("with a key but no Riot ID, saves the current settings without validating", async () => {
@@ -365,7 +362,7 @@ describe("SettingsView — resync", () => {
     expect(getRecentMatchIds).not.toHaveBeenCalled();
     expect(saveSettings).not.toHaveBeenCalled();
     expect(clearAllMatches).toHaveBeenCalledTimes(1);
-    expect(screen.getByText("Error: Error: LCU down")).toHaveClass("text-bad");
+    expect(screen.getByText("Error: LCU down")).toHaveClass("text-bad");
   });
 
   it("checks the new PUUID's match list before wiping", async () => {
@@ -398,7 +395,7 @@ describe("SettingsView — resync", () => {
     expect(clearAllMatches).not.toHaveBeenCalled();
     expect(syncPersonalData).not.toHaveBeenCalled();
     expect(screen.queryByText(/Resincronizado ✓/)).toBeNull();
-    expect(btn("Re-sync")).toBeEnabled();
+    expect(btn("Volver a descargar mis partidas")).toBeEnabled();
   });
 
   it("wipes when Riot is down but the LoL client answers", async () => {
@@ -408,7 +405,7 @@ describe("SettingsView — resync", () => {
     await renderView();
     await confirmResync();
     expect(clearAllMatches).toHaveBeenCalledTimes(1);
-    expect(screen.getByText("Resincronizado ✓ (12 partidas vía LCU)")).toBeInTheDocument();
+    expect(screen.getByText("Descargado de nuevo ✓ (12 partidas)")).toBeInTheDocument();
   });
 
   it.each([
@@ -443,7 +440,6 @@ describe("SettingsView — auto-detect", () => {
     expect(nameInput().value).toBe("Caps");
     expect(tagInput().value).toBe("EUW");
     expect(regionSelect().value).toBe("kr");
-    expect(screen.getByText("PUUID: lcu-puuid")).toBeInTheDocument();
     expect(screen.getByText("Detectado: Caps#EUW")).toBeInTheDocument();
   });
 
@@ -472,7 +468,7 @@ describe("SettingsView — meta syncs", () => {
       return done.promise;
     });
     await renderView();
-    await click(btn("🏆 Sync meta PRO"));
+    await click(btn("🏆 Actualizar datos de profesionales"));
     expect(loadChampionDb).toHaveBeenCalledWith(true);
     expect(aggregateFromProPlay).toHaveBeenCalledWith(DB, "16.10.1", 14, expect.any(Function));
     act(() => progress({ phase: "leaguepedia", done: 1, total: 2 }));
@@ -486,7 +482,7 @@ describe("SettingsView — meta syncs", () => {
   it("pro meta with nothing downloaded is reported as a failure, not as done", async () => {
     vi.mocked(aggregateFromProPlay).mockResolvedValue({ games: 0, rows: 0 });
     await renderView();
-    await click(btn("🏆 Sync meta PRO"));
+    await click(btn("🏆 Actualizar datos de profesionales"));
     expect(screen.queryByText(/Pro meta sincronizado/)).toBeNull();
     expect(screen.getByText("Error pro meta: Leaguepedia no devolvió partidas; se mantienen los datos anteriores. Reintenta en 1-2 min.")).toHaveClass("text-bad");
   });
@@ -494,8 +490,8 @@ describe("SettingsView — meta syncs", () => {
   it("pro meta errors are reported", async () => {
     vi.mocked(fetchLatestPatch).mockRejectedValue(new Error("ddragon down"));
     await renderView();
-    await click(btn("🏆 Sync meta PRO"));
-    expect(screen.getByText("Error pro meta: Error: ddragon down")).toHaveClass("text-bad");
+    await click(btn("🏆 Actualizar datos de profesionales"));
+    expect(screen.getByText("Error pro meta: ddragon down")).toHaveClass("text-bad");
     expect(aggregateFromProPlay).not.toHaveBeenCalled();
   });
 
@@ -508,7 +504,7 @@ describe("SettingsView — meta syncs", () => {
       return done.promise;
     });
     await renderView();
-    await click(btn("Sync meta SoloQ"));
+    await click(btn("Actualizar datos de clasificatorias"));
     expect(aggregateFromMaster).toHaveBeenCalledWith(
       { apiKey: "RGAPI-saved", region: "na1", riotIdName: "Faker", riotIdTag: "KR1" },
       "16.10.1",
@@ -525,8 +521,8 @@ describe("SettingsView — meta syncs", () => {
     vi.mocked(loadSettings).mockResolvedValue(SAVED);
     vi.mocked(aggregateFromMaster).mockRejectedValue(new Error("429"));
     await renderView();
-    await click(btn("Sync meta SoloQ"));
-    expect(screen.getByText("Error: Error: 429")).toHaveClass("text-bad");
+    await click(btn("Actualizar datos de clasificatorias"));
+    expect(screen.getByText("Error: 429")).toHaveClass("text-bad");
   });
 
   it("multi-region works through the proxy without a local key", async () => {
@@ -538,7 +534,7 @@ describe("SettingsView — meta syncs", () => {
       return done.promise;
     });
     await renderView();
-    await click(btn("🌍 Multi-región"));
+    await click(btn("🌍 Actualizar todas las regiones (~30 min)"));
     expect(aggregateMultiRegion).toHaveBeenCalledWith(
       { apiKey: "", region: "euw1", riotIdName: "", riotIdTag: "" },
       "16.10.1",
@@ -554,8 +550,8 @@ describe("SettingsView — meta syncs", () => {
     vi.mocked(getRiotProxyUrl).mockReturnValue("https://proxy.test");
     vi.mocked(aggregateMultiRegion).mockRejectedValue(new Error("timeout"));
     await renderView();
-    await click(btn("🌍 Multi-región"));
-    expect(screen.getByText("Error multi-región: Error: timeout")).toHaveClass("text-bad");
+    await click(btn("🌍 Actualizar todas las regiones (~30 min)"));
+    expect(screen.getByText("Error multi-región: timeout")).toHaveClass("text-bad");
   });
 });
 

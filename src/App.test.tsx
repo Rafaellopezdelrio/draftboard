@@ -299,7 +299,7 @@ describe("App — header", () => {
   it("offline: waiting chip, patch label, draft board shown, no tracking bar", async () => {
     await renderApp();
     expect(screen.getByText("Esperando cliente")).toBeInTheDocument();
-    expect(screen.getByText("Patch 26.21")).toBeInTheDocument();
+    expect(screen.getByText("Parche 26.21")).toBeInTheDocument();
     expect(screen.getByTestId("DraftBoard")).toBeInTheDocument();
     expect(h.props.DraftBoard.lcuConnected).toBe(false);
     expect(screen.queryByTestId("TrackingStatusBar")).not.toBeInTheDocument();
@@ -623,7 +623,7 @@ describe("App — simple view (default)", () => {
   it("the moved entries still open their views from the menus", async () => {
     await renderApp();
     fireEvent.click(screen.getByRole("button", { name: "Ajustes" }));
-    fireEvent.click(await screen.findByText("Tier List"));
+    fireEvent.click(await screen.findByText("Mejores campeones"));
     expect(await screen.findByTestId("TierListView")).toBeInTheDocument();
     fireEvent.click(screen.getByText("close-TierListView"));
     fireEvent.click(screen.getByRole("button", { name: "Coach" }));

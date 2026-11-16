@@ -11,6 +11,7 @@ import {
   type CurrentGameParticipant,
 } from "../services/riotApi";
 import { loadSettings } from "../services/settingsRepo";
+import { resolveAccount } from "../services/accountResolve";
 import { useEscape } from "../hooks/useKeyboardShortcuts";
 import { Panel, PanelHeader } from "./ui/Panel";
 import { Radio, Swords, Clock, RefreshCw } from "lucide-react";
@@ -32,12 +33,14 @@ export function LiveGameView({ db, onClose }: Props) {
     setLoading(true);
     setErr(null);
     try {
-      const cfg = await loadSettings();
+      let cfg = await loadSettings();
+      // Clean install: nothing saved yet, so read the account from the LoL client.
+      if (!cfg?.puuid) cfg = (await resolveAccount().catch(() => null)) ?? cfg;
       const usingProxy = !!getRiotProxyUrl();
       // PUUID always required (identifies WHICH user to query). API key
       // only needed in direct mode — proxy injects it server-side.
       if (!cfg?.puuid) {
-        setErr(t("liveView.needRiotId"));
+        setErr(usingProxy ? t("liveView.openClient") : t("liveView.needRiotId"));
         setLoading(false);
         return;
       }
@@ -50,7 +53,7 @@ export function LiveGameView({ db, onClose }: Props) {
       setGame(g);
       setLastRefresh(Date.now());
     } catch (e) {
-      setErr(String(e));
+      setErr(e instanceof Error ? e.message : String(e));
     } finally {
       setLoading(false);
     }

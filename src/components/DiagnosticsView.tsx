@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { invoke } from "@tauri-apps/api/core";
 import { fetchLatestPatch } from "../services/dataDragon";
 import { loadSettings } from "../services/settingsRepo";
-import { getAccount, getRiotProxyUrl } from "../services/riotApi";
+import { getAccount, getRiotProxyUrl, RiotNotFoundError } from "../services/riotApi";
 import { Copy, RefreshCw } from "lucide-react";
 import { NETWORK_TIMEOUTS_MS, UI_FEEDBACK_MS, WORKER_HEALTH_URL } from "../config";
 import { useFocusTrap } from "../hooks/useFocusTrap";
@@ -150,7 +150,12 @@ export function DiagnosticsView({ onClose }: Props) {
             detail: t(viaProxy ? "diagnostics.detail.riotKeyProxy" : "diagnostics.detail.riotKeyValid"),
           };
         } catch (e) {
-          return { name: "Riot API Key", status: "fail", detail: t("diagnostics.detail.riotKeyInvalid", { detail: String(e).slice(0, 80) }) };
+          const msg = e instanceof Error ? e.message : String(e);
+          // A mistyped Riot ID is not a key problem (either mode).
+          if (e instanceof RiotNotFoundError) return { name: "Riot API Key", status: "warn", detail: msg };
+          // Draftboard's server: the key is ours, never call it invalid/expired.
+          if (viaProxy) return { name: "Riot API Key", status: "warn", detail: t("diagnostics.detail.riotProxyDown") };
+          return { name: "Riot API Key", status: "fail", detail: t("diagnostics.detail.riotKeyInvalid", { detail: msg.slice(0, 80) }) };
         }
       })(),
 
