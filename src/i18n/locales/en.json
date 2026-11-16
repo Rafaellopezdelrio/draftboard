@@ -550,6 +550,11 @@
     "backendDown": "Server not responding",
     "backendDownDetail": "Draftboard's server isn't responding. Some things won't work until it's back."
   },
+  "dataSync": {
+    "running": "Updating data",
+    "done": "Data updated ✓",
+    "failed": "The data could not be updated"
+  },
   "onboarding": {
     "welcomeTitle": "Welcome to Draftboard",
     "helpYou": "I help you:",
@@ -985,12 +990,12 @@
     "resyncDone": "Downloaded again ✓ ({{matches}} games)",
     "error": "Error: {{error}}",
     "syncingMetaSoloq": "Syncing SoloQ meta...",
-    "metaSoloqDone": "SoloQ meta synced ✓ (reload the app to use it)",
+    "metaSoloqDone": "Ranked data updated ✓",
     "syncingMultiRegion": "Downloading games of the top 100 in Korea and in Europe (takes ~25 min)...",
-    "multiRegionDone": "Best players' data updated ✓ (reload the app)",
+    "multiRegionDone": "Best players' data updated ✓",
     "errorMultiRegion": "Error updating with the best players: {{error}}",
     "downloadingPro": "Downloading pro matches (LCK/LEC/LCS/LPL)...",
-    "proMetaDone": "Pro meta synced ✓ {{games}} pro matches · {{rows}} champ/role entries. Reload.",
+    "proMetaDone": "Pro data updated ✓ {{games}} games · {{rows}} champions per position",
     "errorProMeta": "Pro meta error: {{error}}",
     "proMetaNoGames": "Leaguepedia returned no matches; previous data kept. Retry in 1-2 min.",
     "detectingAccount": "Detecting client account...",

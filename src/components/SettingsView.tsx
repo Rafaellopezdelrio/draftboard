@@ -14,6 +14,7 @@ import { aggregateFromProPlay } from "../services/proPlayAggregator";
 import { loadChampionDb } from "../services/championDb";
 import { usePrefsStore } from "../state/prefsStore";
 import { aggregateFromMaster, aggregateMultiRegion } from "../services/metaAggregator";
+import { runDataSync, useDataSyncStore } from "../state/dataSyncStore";
 import { fetchLatestPatch } from "../services/dataDragon";
 import { ConfirmDialog } from "./ui/ConfirmDialog";
 import { LOCALE_LABELS, SUPPORTED_LOCALES, type UiLocale } from "../i18n";
@@ -45,7 +46,13 @@ export function SettingsView({ onClose }: Props) {
   const [riotIdTag, setRiotIdTag] = useState("");
   const [puuid, setPuuid] = useState<string | undefined>();
   const [status, setStatus] = useState<string>("");
-  const [busy, setBusy] = useState(false);
+  const [localBusy, setBusy] = useState(false);
+  // The long downloads live in a shared store: they keep running, and keep
+  // their progress line, when this dialog is closed and opened again.
+  const syncRunning = useDataSyncStore((s) => s.running !== null);
+  const syncStatus = useDataSyncStore((s) => s.status);
+  const busy = localBusy || syncRunning;
+  const shownStatus = status || syncStatus;
   const [confirmResync, setConfirmResync] = useState(false);
   // Riot API access available — either local apiKey OR the Cloudflare
   // Worker proxy is configured. Previously the sync buttons were gated
@@ -130,21 +137,21 @@ export function SettingsView({ onClose }: Props) {
     }
   }
 
+  const errorMessage = (e: unknown) => (e instanceof Error ? e.message : String(e));
+
   async function syncMeta() {
-    setBusy(true);
-    setStatus(t("settings.syncingMetaSoloq"));
-    try {
-      const cfg = { apiKey, region, riotIdName, riotIdTag };
-      const patch = await fetchLatestPatch();
-      await aggregateFromMaster(cfg, patch, (p) =>
-        setStatus(`${p.phase}: ${p.done}/${p.total}`)
-      );
-      setStatus(t("settings.metaSoloqDone"));
-    } catch (e) {
-      setStatus(t("settings.error", { error: e instanceof Error ? e.message : String(e) }));
-    } finally {
-      setBusy(false);
-    }
+    setStatus("");
+    await runDataSync(
+      "soloq",
+      t("settings.syncingMetaSoloq"),
+      async (onProgress) => {
+        const cfg = { apiKey, region, riotIdName, riotIdTag };
+        const patch = await fetchLatestPatch();
+        await aggregateFromMaster(cfg, patch, onProgress);
+        return t("settings.metaSoloqDone");
+      },
+      (e) => t("settings.error", { error: errorMessage(e) })
+    );
   }
 
   const proPlayDays = usePrefsStore((s) => s.prefs.proPlayDaysWindow);
@@ -153,41 +160,34 @@ export function SettingsView({ onClose }: Props) {
     // Allow either a local apiKey OR proxy — proxy injects the key
     // server-side so the local store stays empty for proxy users.
     if (!hasRiotAccess) return;
-    setBusy(true);
-    setStatus(t("settings.syncingMultiRegion"));
-    try {
-      const cfg = { apiKey, region, riotIdName, riotIdTag };
-      const patch = await fetchLatestPatch();
-      await aggregateMultiRegion(cfg, patch, (p) =>
-        setStatus(`${p.phase}: ${p.done}/${p.total}`)
-      );
-      setStatus(t("settings.multiRegionDone"));
-    } catch (e) {
-      setStatus(t("settings.errorMultiRegion", { error: e instanceof Error ? e.message : String(e) }));
-    } finally {
-      setBusy(false);
-    }
+    setStatus("");
+    await runDataSync(
+      "top",
+      t("settings.syncingMultiRegion"),
+      async (onProgress) => {
+        const cfg = { apiKey, region, riotIdName, riotIdTag };
+        const patch = await fetchLatestPatch();
+        await aggregateMultiRegion(cfg, patch, onProgress);
+        return t("settings.multiRegionDone");
+      },
+      (e) => t("settings.errorMultiRegion", { error: errorMessage(e) })
+    );
   }
 
   async function syncProMeta() {
-    setBusy(true);
-    setStatus(t("settings.downloadingPro"));
-    try {
-      const db = await loadChampionDb(true);
-      const patch = await fetchLatestPatch();
-      const result = await aggregateFromProPlay(db, patch, proPlayDays, (p) =>
-        setStatus(`${p.phase}: ${p.done}/${p.total}`)
-      );
-      setStatus(
-        result.games === 0
-          ? t("settings.errorProMeta", { error: t("settings.proMetaNoGames") })
-          : t("settings.proMetaDone", { games: result.games, rows: result.rows })
-      );
-    } catch (e) {
-      setStatus(t("settings.errorProMeta", { error: e instanceof Error ? e.message : String(e) }));
-    } finally {
-      setBusy(false);
-    }
+    setStatus("");
+    await runDataSync(
+      "pro",
+      t("settings.downloadingPro"),
+      async (onProgress) => {
+        const db = await loadChampionDb(true);
+        const patch = await fetchLatestPatch();
+        const result = await aggregateFromProPlay(db, patch, proPlayDays, onProgress);
+        if (result.games === 0) throw new Error(t("settings.proMetaNoGames"));
+        return t("settings.proMetaDone", { games: result.games, rows: result.rows });
+      },
+      (e) => t("settings.errorProMeta", { error: errorMessage(e) })
+    );
   }
 
   async function autoDetect() {
@@ -387,11 +387,11 @@ export function SettingsView({ onClose }: Props) {
           </button>
         </Field>
 
-        {status && (
+        {shownStatus && (
           <p
-            className={`text-sm ${/rror|No pudimos|couldn.t/.test(status) ? "text-bad" : status.includes("✓") ? "text-good" : "text-white/70"}`}
+            className={`text-sm ${/rror|No pudimos|couldn.t/.test(shownStatus) ? "text-bad" : shownStatus.includes("✓") ? "text-good" : "text-white/70"}`}
           >
-            {status}
+            {shownStatus}
           </p>
         )}
 
@@ -453,7 +453,7 @@ export function SettingsView({ onClose }: Props) {
             {t("common.cancel")}
           </button>
           <button
-            disabled={busy || !hasRiotAccess || !riotIdName || !riotIdTag}
+            disabled={localBusy || !hasRiotAccess || !riotIdName || !riotIdTag}
             onClick={handleSaveAndSync}
             className="px-4 py-2 bg-accent text-black font-medium rounded disabled:opacity-50"
             title={
@@ -464,7 +464,7 @@ export function SettingsView({ onClose }: Props) {
                   : t("settings.saveSyncTooltip")
             }
           >
-            {busy ? "..." : t("settings.saveAndSync")}
+            {localBusy ? "..." : t("settings.saveAndSync")}
           </button>
         </div>
       </div>

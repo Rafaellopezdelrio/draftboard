@@ -110,6 +110,12 @@ export async function aggregateMultiRegion(
           },
           true
         );
+        lines[i] = {
+          phase: i18n.t("metaSync.regionPhase", { region: region.toUpperCase(), phase: "✓" }),
+          done: lines[i].total,
+          total: lines[i].total,
+        };
+        report();
       } catch (e) {
         // The other regions carry on if one fails (likely rate limit).
         lines[i] = {

@@ -550,6 +550,11 @@
     "backendDown": "Servidor sin respuesta",
     "backendDownDetail": "El servidor de Draftboard no responde. Algunas cosas no funcionarán hasta que vuelva."
   },
+  "dataSync": {
+    "running": "Actualizando datos",
+    "done": "Datos actualizados ✓",
+    "failed": "No se pudieron actualizar los datos"
+  },
   "onboarding": {
     "welcomeTitle": "Bienvenido a Draftboard",
     "helpYou": "Te ayudo a:",
@@ -985,12 +990,12 @@
     "resyncDone": "Descargado de nuevo ✓ ({{matches}} partidas)",
     "error": "Error: {{error}}",
     "syncingMetaSoloq": "Sincronizando meta SoloQ...",
-    "metaSoloqDone": "Meta SoloQ sincronizado ✓ (recarga la app para usarlo)",
+    "metaSoloqDone": "Datos de clasificatorias actualizados ✓",
     "syncingMultiRegion": "Bajando partidas de los 100 mejores de Corea y de Europa (tarda ~25 min)...",
-    "multiRegionDone": "Datos de los mejores jugadores actualizados ✓ (recarga la app)",
+    "multiRegionDone": "Datos de los mejores jugadores actualizados ✓",
     "errorMultiRegion": "Error al actualizar con los mejores jugadores: {{error}}",
     "downloadingPro": "Descargando partidas pro (LCK/LEC/LCS/LPL)...",
-    "proMetaDone": "Pro meta sincronizado ✓ {{games}} partidas pro · {{rows}} entradas champ/rol. Recarga.",
+    "proMetaDone": "Datos de profesionales actualizados ✓ {{games}} partidas · {{rows}} campeones por posición",
     "errorProMeta": "Error pro meta: {{error}}",
     "proMetaNoGames": "Leaguepedia no devolvió partidas; se mantienen los datos anteriores. Reintenta en 1-2 min.",
     "detectingAccount": "Detectando cuenta del cliente...",

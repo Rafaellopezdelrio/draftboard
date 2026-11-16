@@ -5,7 +5,8 @@
 //     with label + detail) and opens Diagnostics on click.
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { act, render, screen, fireEvent } from "@testing-library/react";
+import { useDataSyncStore } from "../state/dataSyncStore";
 import { AppFooter } from "./AppFooter";
 import type { HealthStatus } from "../hooks/useHealthStatus";
 
@@ -21,6 +22,57 @@ const versionBtn = () => screen.getByTitle("Ver novedades de esta versión");
 beforeEach(() => {
   h.health = { level: "ok", label: "OK", detail: "Todo en orden" };
   h.getVersion.mockReset();
+  useDataSyncStore.setState({ running: null, status: "", done: 0, total: 0, result: null });
+});
+
+describe("AppFooter — data download indicator", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("shows nothing when no download ran", () => {
+    render(<AppFooter />);
+    expect(screen.queryByRole("status")).toBeNull();
+    expect(screen.queryByText(/Datos actualizados/)).toBeNull();
+  });
+
+  it("shows the percentage while a download runs, with the full line as tooltip", () => {
+    useDataSyncStore.setState({ running: "top", status: "KR: Descargando partidas 45/100", done: 45, total: 100 });
+    render(<AppFooter />);
+    const pill = screen.getByRole("status");
+    expect(pill).toHaveTextContent("Actualizando datos · 45%");
+    expect(pill).toHaveAttribute("title", "KR: Descargando partidas 45/100");
+  });
+
+  it("shows no percentage before the first count arrives", () => {
+    useDataSyncStore.setState({ running: "pro", status: "Bajando", done: 0, total: 0 });
+    render(<AppFooter />);
+    expect(screen.getByRole("status").textContent).toBe("⟳Actualizando datos");
+  });
+
+  it("says it finished and clears itself after a while", () => {
+    vi.useFakeTimers();
+    useDataSyncStore.setState({ running: null, status: "Hecho ✓", result: "ok" });
+    render(<AppFooter />);
+    expect(screen.getByText("Datos actualizados ✓")).toBeInTheDocument();
+    act(() => {
+      vi.advanceTimersByTime(15_000);
+    });
+    expect(screen.queryByText("Datos actualizados ✓")).toBeNull();
+  });
+
+  it("keeps a failure until the user clicks it away", () => {
+    vi.useFakeTimers();
+    useDataSyncStore.setState({ running: null, status: "Error: timeout", result: "error" });
+    render(<AppFooter />);
+    act(() => {
+      vi.advanceTimersByTime(60_000);
+    });
+    const pill = screen.getByText("No se pudieron actualizar los datos");
+    expect(pill).toHaveAttribute("title", "Error: timeout");
+    fireEvent.click(pill);
+    expect(screen.queryByText("No se pudieron actualizar los datos")).toBeNull();
+  });
 });
 
 describe("AppFooter", () => {

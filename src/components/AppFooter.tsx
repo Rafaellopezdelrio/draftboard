@@ -10,6 +10,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useHealthStatus, type HealthLevel } from "../hooks/useHealthStatus";
+import { useDataSyncStore } from "../state/dataSyncStore";
 
 interface Props {
   onShowChangelog?: () => void;
@@ -59,9 +60,52 @@ export function AppFooter({ onShowChangelog, onShowDiagnostics }: Props) {
           detail={health.detail}
           onClick={onShowDiagnostics}
         />
+        <DataSyncPill />
       </div>
       <span className="text-white/30">{t("footer.disclaimer")}</span>
     </footer>
+  );
+}
+
+/** How long the "data updated" note stays before it clears itself. */
+const SYNC_DONE_VISIBLE_MS = 15_000;
+
+/** Shows a long data download started in Settings: progress while it runs,
+ * then how it ended. The full progress line is in the tooltip. */
+function DataSyncPill() {
+  const { t } = useTranslation();
+  const running = useDataSyncStore((s) => s.running !== null);
+  const result = useDataSyncStore((s) => s.result);
+  const status = useDataSyncStore((s) => s.status);
+  const done = useDataSyncStore((s) => s.done);
+  const total = useDataSyncStore((s) => s.total);
+  const dismiss = useDataSyncStore((s) => s.dismiss);
+
+  useEffect(() => {
+    if (result !== "ok") return;
+    const timer = setTimeout(dismiss, SYNC_DONE_VISIBLE_MS);
+    return () => clearTimeout(timer);
+  }, [result, dismiss]);
+
+  if (running) {
+    const pct = total > 0 ? ` · ${Math.floor((done / total) * 100)}%` : "";
+    return (
+      <span role="status" title={status} className="inline-flex items-center gap-1 px-1.5 py-0.5 text-accent/80">
+        <span aria-hidden="true" className="inline-block animate-spin">⟳</span>
+        {t("dataSync.running")}
+        {pct}
+      </span>
+    );
+  }
+  if (!result) return null;
+  return (
+    <button
+      onClick={dismiss}
+      title={status}
+      className={`px-1.5 py-0.5 rounded hover:bg-white/5 transition ${result === "ok" ? "text-good" : "text-bad"}`}
+    >
+      {t(result === "ok" ? "dataSync.done" : "dataSync.failed")}
+    </button>
   );
 }
 

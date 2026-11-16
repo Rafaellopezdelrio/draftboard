@@ -532,5 +532,8 @@ describe("aggregateMultiRegion", () => {
     expect(phases[0]).toBe("KR: Buscando a los mejores jugadores 0/1");
     expect(phases.some((p) => p.includes("KR: ") && p.includes(" · Región euw1 falló: Error: 429 rate limited"))).toBe(true);
     expect(progress[progress.length - 1]).toEqual({ phase: "Mejores jugadores: completado", done: 1, total: 1 });
+    // A region that finished counts as complete, so the summed progress never drops.
+    const finished = progress.find((p) => p.phase.startsWith("KR: ✓"));
+    expect(finished && finished.done).toBe(finished && finished.total);
   });
 });

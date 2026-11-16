@@ -14,6 +14,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, act, within } from "@testing-library/react";
 import { SettingsView } from "./SettingsView";
+import { useDataSyncStore } from "../state/dataSyncStore";
 import { usePrefsStore, DEFAULT_PREFS, type Preferences } from "../state/prefsStore";
 import type { StoredSettings } from "../services/settingsRepo";
 import type { SyncProgress, SyncResult } from "../services/personalDataSync";
@@ -113,6 +114,7 @@ async function confirmResync() {
 
 beforeEach(() => {
   setPrefs();
+  useDataSyncStore.setState({ running: null, status: "", done: 0, total: 0, result: null });
   vi.mocked(getRiotProxyUrl).mockReset().mockReturnValue(null);
   vi.mocked(getAccount).mockReset().mockResolvedValue({ puuid: "puuid-new", gameName: "Faker", tagLine: "KR1" });
   vi.mocked(getRecentMatchIds).mockReset().mockResolvedValue(["NA1_1"]);
@@ -475,7 +477,7 @@ describe("SettingsView — meta syncs", () => {
     expect(screen.getByText("leaguepedia: 1/2")).toBeInTheDocument();
     await act(async () => done.resolve({ games: 40, rows: 120 }));
     expect(
-      screen.getByText("Pro meta sincronizado ✓ 40 partidas pro · 120 entradas champ/rol. Recarga.")
+      screen.getByText("Datos de profesionales actualizados ✓ 40 partidas · 120 campeones por posición")
     ).toHaveClass("text-good");
   });
 
@@ -514,7 +516,7 @@ describe("SettingsView — meta syncs", () => {
     act(() => progress({ phase: "ladder", done: 5, total: 50 }));
     expect(screen.getByText("ladder: 5/50")).toBeInTheDocument();
     await act(async () => done.resolve());
-    expect(screen.getByText("Meta SoloQ sincronizado ✓ (recarga la app para usarlo)")).toBeInTheDocument();
+    expect(screen.getByText("Datos de clasificatorias actualizados ✓")).toBeInTheDocument();
   });
 
   it("SoloQ meta errors are reported", async () => {
@@ -543,7 +545,35 @@ describe("SettingsView — meta syncs", () => {
     act(() => progress({ phase: "KR", done: 1, total: 3 }));
     expect(screen.getByText("KR: 1/3")).toBeInTheDocument();
     await act(async () => done.resolve());
-    expect(screen.getByText("Datos de los mejores jugadores actualizados ✓ (recarga la app)")).toBeInTheDocument();
+    expect(screen.getByText("Datos de los mejores jugadores actualizados ✓")).toBeInTheDocument();
+  });
+
+  it("a download keeps running and keeps its progress when Settings is closed and reopened", async () => {
+    vi.mocked(getRiotProxyUrl).mockReturnValue("https://proxy.test");
+    const done = deferred<void>();
+    let progress!: (p: { phase: string; done: number; total: number }) => void;
+    vi.mocked(aggregateMultiRegion).mockImplementation((_cfg, _patch, onProgress) => {
+      progress = onProgress;
+      return done.promise;
+    });
+    const first = await renderView();
+    await click(btn("🏆 Actualizar con los mejores jugadores (~25 min)"));
+    first.unmount();
+
+    // Closed: progress still arrives. Reopened: it shows, and nothing can be started on top.
+    act(() => progress({ phase: "KR", done: 2, total: 3 }));
+    await renderView();
+    expect(screen.getByText("KR: 2/3")).toBeInTheDocument();
+    expect(btn("🏆 Actualizar con los mejores jugadores (~25 min)")).toBeDisabled();
+    expect(btn("🏆 Actualizar datos de profesionales")).toBeDisabled();
+    // Saving the account is not a download: it keeps its label.
+    expect(btn("Guardar y sincronizar")).toBeInTheDocument();
+    await click(btn("🏆 Actualizar con los mejores jugadores (~25 min)"));
+    expect(aggregateMultiRegion).toHaveBeenCalledTimes(1);
+
+    await act(async () => done.resolve());
+    expect(screen.getByText("Datos de los mejores jugadores actualizados ✓")).toBeInTheDocument();
+    expect(btn("🏆 Actualizar con los mejores jugadores (~25 min)")).toBeEnabled();
   });
 
   it("multi-region errors are reported", async () => {

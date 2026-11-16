@@ -22,6 +22,7 @@ vi.mock("../services/perf", () => ({ mark: m.mark, measure: m.measure, warnIfSlo
 vi.mock("../services/autoProSync", () => ({ startAutoProSync: m.startAutoProSync }));
 
 import { useChampionDbBoot } from "./useChampionDbBoot";
+import { DATA_UPDATED_EVENT } from "../state/dataSyncStore";
 
 const NOW = new Date("2026-11-01T12:00:00Z").getTime();
 
@@ -201,6 +202,30 @@ describe("useChampionDbBoot", () => {
     expect(m.loadChampionDb).toHaveBeenCalledTimes(2);
     expect(result.current.error).toBeNull();
     expect(result.current.db).toBe(db);
+  });
+
+  it("loads the data again in place when a download announces new data", async () => {
+    const boot = makeDb("16.1.1");
+    const fresh = makeDb("16.1.1", NOW + 1);
+    m.loadChampionDb.mockResolvedValueOnce(boot).mockResolvedValueOnce(fresh);
+    const { result, unmount } = renderHook(() => useChampionDbBoot(true, pushToast));
+    await flush();
+    expect(result.current.db).toBe(boot);
+
+    window.dispatchEvent(new CustomEvent(DATA_UPDATED_EVENT));
+    await flush();
+    expect(m.loadChampionDb).toHaveBeenLastCalledWith(true);
+    expect(result.current.db).toBe(fresh);
+
+    // A failed reload keeps what is on screen; after unmount nobody listens.
+    m.loadChampionDb.mockRejectedValueOnce(new Error("offline"));
+    window.dispatchEvent(new CustomEvent(DATA_UPDATED_EVENT));
+    await flush();
+    expect(result.current.db).toBe(fresh);
+    unmount();
+    const calls = m.loadChampionDb.mock.calls.length;
+    window.dispatchEvent(new CustomEvent(DATA_UPDATED_EVENT));
+    expect(m.loadChampionDb).toHaveBeenCalledTimes(calls);
   });
 
   it("setDb lets callers replace the DB externally", async () => {

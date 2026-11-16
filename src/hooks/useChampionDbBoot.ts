@@ -21,6 +21,7 @@ import { mark, measure, warnIfSlow } from "../services/perf";
 import type { ChampionDb } from "../types/champion";
 import type { Toast } from "../components/ui/ToastContainer";
 import { startAutoProSync } from "../services/autoProSync";
+import { DATA_UPDATED_EVENT } from "../state/dataSyncStore";
 
 type PushToast = (toast: Omit<Toast, "id">) => number;
 
@@ -48,6 +49,17 @@ export function useChampionDbBoot(
   useEffect(() => {
     if (db) registerChampionIds(db);
   }, [db]);
+  // A download from Settings wrote new data: load it again in place, so the
+  // user does not have to restart the app. On failure the current data stays.
+  useEffect(() => {
+    const onUpdated = () => {
+      loadChampionDb(true)
+        .then(setDb)
+        .catch(() => {});
+    };
+    window.addEventListener(DATA_UPDATED_EVENT, onUpdated);
+    return () => window.removeEventListener(DATA_UPDATED_EVENT, onUpdated);
+  }, []);
   const [error, setError] = useState<string | null>(null);
   const [usingStaleCache, setUsingStaleCache] = useState(false);
   const [bootAttempt, setBootAttempt] = useState(0);
