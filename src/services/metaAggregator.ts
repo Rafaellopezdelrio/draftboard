@@ -2,6 +2,7 @@ import { getDb, isTauri } from "../db/client";
 import { buildBatchInserts } from "../db/batchInsert";
 import { i18n } from "../i18n";
 import {
+  getChallengerLeague,
   getMasterLeague,
   getMatchFull,
   getMatchTimeline,
@@ -14,9 +15,9 @@ import {
   type LeagueListEntryDto,
 } from "./riotApi";
 
-// Regions to pull from when "multi-region" mode is enabled. Combines KR, EUW, NA
-// for a balanced global meta sample (KR=tactical, EUW=micro, NA=mixed).
-export const MULTI_REGIONS: Region[] = ["kr", "euw1", "na1"];
+// Regions of the "best players" run: the two strongest ladders Riot's API
+// covers. Each one contributes its top Challenger players.
+export const MULTI_REGIONS: Region[] = ["kr", "euw1"];
 
 export interface AggregateProgress {
   phase: string;
@@ -31,10 +32,13 @@ export interface AggregateProgress {
 // data points per sync (with dedup ~3-5k after Riot's overlap cleaning).
 const SAMPLE_SUMMONERS = 150;
 const MATCHES_PER_SUMMONER = 10;
-// The timeline (a second request per match) is only read for skill orders.
-// Three regions together have plenty of matches, so the multi-region run
-// takes it for one match in four.
-const MULTI_TIMELINE_EVERY = 4;
+// "Best players" run: the Challenger players with the most LP in each region,
+// ranked solo games only.
+const TOP_PLAYERS = 100;
+const RANKED_SOLO = 420;
+// The timeline (a second request per match) is only read for skill orders, so
+// that run takes it for every other match.
+const TOP_TIMELINE_EVERY = 2;
 
 /** Running counts for one aggregation run (one or several regions). */
 interface AggregateCounts {
@@ -64,8 +68,9 @@ function newCounts(): AggregateCounts {
 }
 
 /**
- * Multi-region aggregation: pulls Master+ matches from KR + EUW + NA at the
- * same time (Riot's rate limit is per region, and so is riotApi's limiter),
+ * Best-players aggregation: pulls the ranked games of the top Challenger
+ * players of KR and EUW at the same time (Riot's rate limit is per region,
+ * and so is riotApi's limiter),
  * merges the counts in memory and writes them once under the bare `patch` —
  * the label every reader queries.
  */
@@ -103,7 +108,7 @@ export async function aggregateMultiRegion(
             };
             report();
           },
-          MULTI_TIMELINE_EVERY
+          true
         );
       } catch (e) {
         // The other regions carry on if one fails (likely rate limit).
@@ -149,18 +154,22 @@ export async function aggregateFromMaster(
 }
 
 /**
- * Fetches one region's Master+ sample and adds its matches to `counts`. No DB
- * access. The timeline is downloaded for one match in `timelineEvery`.
+ * Fetches one region's sample and adds its matches to `counts`. No DB access.
+ * Default: the first Master entries, every queue listed, every timeline.
+ * `top`: the highest-LP Challenger players, ranked solo only, half the timelines.
  */
 async function collectRegion(
   cfg: RiotConfig,
   counts: AggregateCounts,
   onProgress: (p: AggregateProgress) => void,
-  timelineEvery = 1
+  top = false
 ): Promise<void> {
-  onProgress({ phase: i18n.t("metaSync.listingMaster"), done: 0, total: 1 });
-  const league = await getMasterLeague(cfg);
-  const sample = league.entries.slice(0, SAMPLE_SUMMONERS);
+  const timelineEvery = top ? TOP_TIMELINE_EVERY : 1;
+  onProgress({ phase: i18n.t(top ? "metaSync.listingTop" : "metaSync.listingMaster"), done: 0, total: 1 });
+  const league = top ? await getChallengerLeague(cfg) : await getMasterLeague(cfg);
+  const sample = top
+    ? [...league.entries].sort((a, b) => b.leaguePoints - a.leaguePoints).slice(0, TOP_PLAYERS)
+    : league.entries.slice(0, SAMPLE_SUMMONERS);
 
   // Resolve PUUIDs
   onProgress({ phase: i18n.t("metaSync.resolvingAccounts"), done: 0, total: sample.length });
@@ -182,7 +191,9 @@ async function collectRegion(
   onProgress({ phase: i18n.t("metaSync.listingMatches"), done: 0, total: puuids.length });
   for (let i = 0; i < puuids.length; i++) {
     try {
-      const ids = await getRecentMatchIds(cfg, puuids[i], MATCHES_PER_SUMMONER);
+      const ids = top
+        ? await getRecentMatchIds(cfg, puuids[i], MATCHES_PER_SUMMONER, RANKED_SOLO)
+        : await getRecentMatchIds(cfg, puuids[i], MATCHES_PER_SUMMONER);
       ids.forEach((id) => matchIds.add(id));
     } catch {
       // skip

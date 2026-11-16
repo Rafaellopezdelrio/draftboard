@@ -17,12 +17,14 @@ vi.mock("../db/client", () => ({
 }));
 
 const getMasterLeagueMock = vi.fn();
+const getChallengerLeagueMock = vi.fn();
 const getPuuidMock = vi.fn();
 const getRecentMatchIdsMock = vi.fn();
 const getMatchFullMock = vi.fn();
 const getMatchTimelineMock = vi.fn();
 vi.mock("./riotApi", () => ({
   getMasterLeague: (...a: unknown[]) => getMasterLeagueMock(...a),
+  getChallengerLeague: (...a: unknown[]) => getChallengerLeagueMock(...a),
   getPuuidBySummonerId: (...a: unknown[]) => getPuuidMock(...a),
   getRecentMatchIds: (...a: unknown[]) => getRecentMatchIdsMock(...a),
   getMatchFull: (...a: unknown[]) => getMatchFullMock(...a),
@@ -196,6 +198,7 @@ beforeEach(() => {
   tauri = true;
   executeMock.mockReset().mockResolvedValue({ rowsAffected: 0 });
   getMasterLeagueMock.mockReset();
+  getChallengerLeagueMock.mockReset();
   getPuuidMock.mockReset();
   getRecentMatchIdsMock.mockReset();
   getMatchFullMock.mockReset();
@@ -413,12 +416,12 @@ describe("computeMaxOrder", () => {
 describe("aggregateMultiRegion", () => {
   it("merges every region into one write under the bare patch and stamps last_run once", async () => {
     const fixtures = matchFixtures();
-    getMasterLeagueMock.mockImplementation(async (cfg: RiotConfig) => ({
-      tier: "MASTER",
-      entries: [{ summonerId: `s-${cfg.region}` }],
+    getChallengerLeagueMock.mockImplementation(async (cfg: RiotConfig) => ({
+      tier: "CHALLENGER",
+      entries: [{ summonerId: `s-${cfg.region}`, leaguePoints: 1000 }],
     }));
     getPuuidMock.mockImplementation(async (cfg: RiotConfig) => `p-${cfg.region}`);
-    const idsByRegion: Record<string, string[]> = { kr: ["M1"], euw1: ["M2"], na1: ["M3"] };
+    const idsByRegion: Record<string, string[]> = { kr: ["M1", "M3"], euw1: ["M2"] };
     getRecentMatchIdsMock.mockImplementation(async (cfg: RiotConfig) => idsByRegion[cfg.region]);
     getMatchFullMock.mockImplementation(async (_c: RiotConfig, id: string) => fixtures[id].full);
     getMatchTimelineMock.mockImplementation(async (_c: RiotConfig, id: string) => fixtures[id].tl);
@@ -437,23 +440,48 @@ describe("aggregateMultiRegion", () => {
       .filter(([sql]) => String(sql).startsWith("DELETE FROM"))
       .map(([, p]) => p);
     expect(patchParams.every((p) => JSON.stringify(p) === JSON.stringify([PATCH]))).toBe(true);
-    // Ahri played one game in each region: the three are summed, pick rate 3/3.
+    // Ahri played in every match of both regions: the three are summed, pick rate 3/3.
     const ahri = insertedRows("meta_aggregate", 9).find((r) => r[0] === AHRI);
     expect(ahri).toEqual([AHRI, "MIDDLE", 3, 2, 2 / 3, 1, 0, PATCH, NOW]);
     expect(statementKinds().filter((k) => k === "INSERT INTO aggregation_meta")).toHaveLength(1);
   });
 
   it("fails without touching the DB when no region yields a match", async () => {
-    getMasterLeagueMock.mockResolvedValue({ tier: "MASTER", entries: [] });
+    getChallengerLeagueMock.mockResolvedValue({ tier: "CHALLENGER", entries: [] });
     await expect(aggregateMultiRegion(CFG, PATCH, () => {})).rejects.toThrow();
     expect(executeMock).not.toHaveBeenCalled();
   });
 
-  it("takes the timeline for one match in four (skill orders need no more)", async () => {
+  it("takes the best players only: highest LP first, ranked solo games", async () => {
     const fixtures = matchFixtures();
-    getMasterLeagueMock.mockImplementation(async (cfg: RiotConfig) => ({
-      tier: "MASTER",
-      entries: cfg.region === "kr" ? [{ summonerId: "s1" }] : [],
+    getChallengerLeagueMock.mockImplementation(async (cfg: RiotConfig) => ({
+      tier: "CHALLENGER",
+      entries:
+        cfg.region === "kr"
+          ? Array.from({ length: 130 }, (_, n) => ({ puuid: `pu-${n}`, leaguePoints: n }))
+          : [],
+    }));
+    getRecentMatchIdsMock.mockResolvedValue(["M1"]);
+    getMatchFullMock.mockResolvedValue(fixtures.M1.full);
+    getMatchTimelineMock.mockResolvedValue(fixtures.M1.tl);
+
+    await aggregateMultiRegion(CFG, PATCH, () => {});
+
+    expect(getMasterLeagueMock).not.toHaveBeenCalled();
+    // 130 on the ladder: the 100 with the most LP, best first.
+    const asked = getRecentMatchIdsMock.mock.calls;
+    expect(asked).toHaveLength(100);
+    expect(asked[0][1]).toBe("pu-129");
+    expect(asked[99][1]).toBe("pu-30");
+    // 10 recent games each, queue 420 (ranked solo) only.
+    expect(asked.every((c) => c[2] === 10 && c[3] === 420)).toBe(true);
+  });
+
+  it("takes the timeline for every other match (skill orders need no more)", async () => {
+    const fixtures = matchFixtures();
+    getChallengerLeagueMock.mockImplementation(async (cfg: RiotConfig) => ({
+      tier: "CHALLENGER",
+      entries: cfg.region === "kr" ? [{ summonerId: "s1", leaguePoints: 900 }] : [],
     }));
     getPuuidMock.mockResolvedValue("p1");
     const ids = ["A0", "A1", "A2", "A3", "A4", "A5"];
@@ -467,17 +495,17 @@ describe("aggregateMultiRegion", () => {
     await aggregateMultiRegion(CFG, PATCH, () => {});
 
     expect(getMatchFullMock).toHaveBeenCalledTimes(6);
-    expect(getMatchTimelineMock.mock.calls.map((c) => c[1])).toEqual(["A0", "A4"]);
+    expect(getMatchTimelineMock.mock.calls.map((c) => c[1])).toEqual(["A0", "A2", "A4"]);
     // Every match still counts for the tier list.
     const ahri = insertedRows("meta_aggregate", 9).find((r) => r[0] === AHRI);
     expect(ahri?.[2]).toBe(6);
   });
 
-  it("runs KR, EUW and NA together and survives a failing region", async () => {
+  it("runs KR and EUW together and survives a failing region", async () => {
     const fixtures = matchFixtures();
-    getMasterLeagueMock.mockImplementation(async (cfg: RiotConfig) => {
+    getChallengerLeagueMock.mockImplementation(async (cfg: RiotConfig) => {
       if (cfg.region === "euw1") throw new Error("429 rate limited");
-      return { tier: "MASTER", entries: cfg.region === "kr" ? [{ summonerId: "s1" }] : [] };
+      return { tier: "CHALLENGER", entries: [{ summonerId: "s1", leaguePoints: 900 }] };
     });
     getPuuidMock.mockResolvedValue("p1");
     getRecentMatchIdsMock.mockResolvedValue(["M1"]);
@@ -488,8 +516,8 @@ describe("aggregateMultiRegion", () => {
 
     await aggregateMultiRegion(base, PATCH, (p) => progress.push(p));
 
-    const calledCfgs = getMasterLeagueMock.mock.calls.map((c) => c[0] as RiotConfig);
-    expect(calledCfgs.map((c) => c.region)).toEqual(["kr", "euw1", "na1"]);
+    const calledCfgs = getChallengerLeagueMock.mock.calls.map((c) => c[0] as RiotConfig);
+    expect(calledCfgs.map((c) => c.region)).toEqual(["kr", "euw1"]);
     expect(calledCfgs.every((c) => c.apiKey === "RGAPI-test")).toBe(true);
     expect(base.region).toBe("br1");
 
@@ -501,9 +529,8 @@ describe("aggregateMultiRegion", () => {
 
     // One line for the three regions, each with its own step and count.
     const phases = progress.map((p) => p.phase);
-    expect(phases[0]).toBe("KR: Listando Master league 0/1");
-    expect(phases.some((p) => p.includes("Región euw1 falló: Error: 429 rate limited"))).toBe(true);
-    expect(phases.some((p) => p.includes("KR: ") && p.includes(" · ") && p.includes("NA1: "))).toBe(true);
-    expect(progress[progress.length - 1]).toEqual({ phase: "Multi-región completado", done: 1, total: 1 });
+    expect(phases[0]).toBe("KR: Buscando a los mejores jugadores 0/1");
+    expect(phases.some((p) => p.includes("KR: ") && p.includes(" · Región euw1 falló: Error: 429 rate limited"))).toBe(true);
+    expect(progress[progress.length - 1]).toEqual({ phase: "Mejores jugadores: completado", done: 1, total: 1 });
   });
 });

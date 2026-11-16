@@ -191,11 +191,13 @@ export async function getAccount(cfg: RiotConfig): Promise<AccountDto> {
 export async function getRecentMatchIds(
   cfg: RiotConfig,
   puuid: string,
-  count = 20
+  count = 20,
+  /** Riot queue id to keep (420 = ranked solo); all queues when omitted. */
+  queue?: number
 ): Promise<string[]> {
   const cluster = REGION_TO_CLUSTER[cfg.region];
   return api(
-    `https://${cluster}.api.riotgames.com/lol/match/v5/matches/by-puuid/${puuid}/ids?start=0&count=${count}`,
+    `https://${cluster}.api.riotgames.com/lol/match/v5/matches/by-puuid/${puuid}/ids?start=0&count=${count}${queue ? `&queue=${queue}` : ""}`,
     cfg.apiKey
   );
 }
@@ -343,6 +345,14 @@ export interface LeagueListDto {
 export async function getMasterLeague(cfg: RiotConfig): Promise<LeagueListDto> {
   return api(
     `https://${cfg.region}.api.riotgames.com/lol/league/v4/masterleagues/by-queue/RANKED_SOLO_5x5`,
+    cfg.apiKey
+  );
+}
+
+/** The region's Challenger ladder: its best few hundred players. */
+export async function getChallengerLeague(cfg: RiotConfig): Promise<LeagueListDto> {
+  return api(
+    `https://${cfg.region}.api.riotgames.com/lol/league/v4/challengerleagues/by-queue/RANKED_SOLO_5x5`,
     cfg.apiKey
   );
 }

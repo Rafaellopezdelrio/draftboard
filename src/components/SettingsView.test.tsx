@@ -220,7 +220,7 @@ describe("SettingsView — button gating", () => {
     await renderView();
     expect(btn("Actualizar datos de clasificatorias")).toBeDisabled();
     expect(btn("Actualizar datos de clasificatorias")).toHaveAttribute("title", "Hace falta el servidor de Draftboard (Preferencias) o tu propia clave de Riot");
-    expect(btn("🌍 Actualizar todas las regiones (~40 min)")).toBeDisabled();
+    expect(btn("🏆 Actualizar con los mejores jugadores (~25 min)")).toBeDisabled();
     expect(saveBtn()).toBeDisabled();
     expect(saveBtn()).toHaveAttribute("title", "Hace falta el servidor de Draftboard o tu clave de Riot");
     expect(btn("🏆 Actualizar datos de profesionales")).toBeEnabled();
@@ -232,7 +232,7 @@ describe("SettingsView — button gating", () => {
     await renderView();
     expect(btn("Actualizar datos de clasificatorias")).toBeEnabled();
     expect(btn("Actualizar datos de clasificatorias")).toHaveAttribute("title", "Agrega Master+ SoloQ a la base de datos meta");
-    expect(btn("🌍 Actualizar todas las regiones (~40 min)")).toBeEnabled();
+    expect(btn("🏆 Actualizar con los mejores jugadores (~25 min)")).toBeEnabled();
     expect(saveBtn()).toBeDisabled();
     expect(saveBtn()).toHaveAttribute("title", "Completa Riot ID + tag arriba");
 
@@ -534,7 +534,7 @@ describe("SettingsView — meta syncs", () => {
       return done.promise;
     });
     await renderView();
-    await click(btn("🌍 Actualizar todas las regiones (~40 min)"));
+    await click(btn("🏆 Actualizar con los mejores jugadores (~25 min)"));
     expect(aggregateMultiRegion).toHaveBeenCalledWith(
       { apiKey: "", region: "euw1", riotIdName: "", riotIdTag: "" },
       "16.10.1",
@@ -543,15 +543,15 @@ describe("SettingsView — meta syncs", () => {
     act(() => progress({ phase: "KR", done: 1, total: 3 }));
     expect(screen.getByText("KR: 1/3")).toBeInTheDocument();
     await act(async () => done.resolve());
-    expect(screen.getByText("Meta multi-región sincronizado ✓ (recarga la app)")).toBeInTheDocument();
+    expect(screen.getByText("Datos de los mejores jugadores actualizados ✓ (recarga la app)")).toBeInTheDocument();
   });
 
   it("multi-region errors are reported", async () => {
     vi.mocked(getRiotProxyUrl).mockReturnValue("https://proxy.test");
     vi.mocked(aggregateMultiRegion).mockRejectedValue(new Error("timeout"));
     await renderView();
-    await click(btn("🌍 Actualizar todas las regiones (~40 min)"));
-    expect(screen.getByText("Error multi-región: timeout")).toHaveClass("text-bad");
+    await click(btn("🏆 Actualizar con los mejores jugadores (~25 min)"));
+    expect(screen.getByText("Error al actualizar con los mejores jugadores: timeout")).toHaveClass("text-bad");
   });
 });
 
