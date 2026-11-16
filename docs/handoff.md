@@ -1,10 +1,88 @@
-# Draftboard — Session Handoff (2026-11-12)
+# Draftboard — Session Handoff (2026-11-16)
 
 Internal working notes: where the repo stands, what's verified, what's still
 open. Not user documentation — see [`../README.md`](../README.md) for that.
 
 ## Status
 
+- **2026-11-16 — v0.5.5 published; "best players" sync + updater recheck on
+  main, NOT released (0.5.6 waits for the owner's OK).**
+  - **Working rule from the owner (2026-11-16): never start something new
+    until the previous thing is finished** — done, checked in the real app
+    and released if it applies. Open items go first, one at a time.
+  - **v0.5.5 (released, manifest live):** pro games from GRID Open Access
+    with Leaguepedia as fallback (`services/gridProPlay.ts`,
+    `proPlayAggregator.ts`; GRID has no lanes → roles from
+    `inferEnemyRoles`; ban rate only with GRID), clean-install audit
+    (features work with no saved account; scout uses the client's region
+    through the proxy), AI on by default, plain texts. GRID is
+    non-commercial: fine while the app is free.
+  - **On main, unreleased:**
+    - Updater: an open app re-checks every 30 min until an update is found
+      (`UPDATE_RECHECK_MS`, `useUpdateCheck`).
+    - Settings → "🏆 Actualizar con los mejores jugadores"
+      (`aggregateMultiRegion`): top 100 Challenger by LP in KR and in EUW,
+      ranked solo only (`queue=420`), both regions in parallel, timeline for
+      every other match. The old button took the first 150 entries of the
+      unsorted 10,000-entry Master list in KR/EUW/NA (≈2 h 50 min, not the
+      "~30 min" it claimed). `riotApi.ts` keeps one rate limiter per
+      regional cluster (Riot limits are per region).
+    - The single-region sync (`aggregateFromMaster`, automatic job with a
+      personal key) is unchanged: still the first 150 Master entries.
+  - **Worker 2026-11-16.6 (deployed):** allow-list takes
+    `challengerleagues` and the `queue` param on match ids; per-IP Riot
+    limit 300/min; a refused Riot call forwards `Retry-After` and
+    `X-Rate-Limit-Type` so the app waits what Riot asks. **The unreleased
+    app needs this worker** (0.5.5 does not).
+  - **Measured through the worker (2026-11-16, ~22:45 CET):** KR 689 unique
+    matches ≈ 24 min, EUW ≈ 700 ≈ 25 min at ~47 requests/min per region.
+    Europe's match service answers 429 `x-rate-limit-type: server` in bursts
+    (≈9 calls pass, then ≈25 s refused) even at one call per 10 s; KR never
+    did. Peak-hour EUW can stretch the run to 30–35 min.
+  - **Real-app run:** done 2026-11-16 23:02→23:27 (24.5 min) in the dev app,
+    through the worker, no saved key. 100 + 100 players listed in 2 min, 689 KR
+    + 708 EUW matches, none lost, no region failed. Stored for patch 16.22.1:
+    312 meta rows (130 with ≥30 games, 106 with <10), 1528 counter rows (196
+    with ≥10 games), 1782 rune rows, 662 build rows.
+    **Weak spot found:** a build row is one exact item set, so no build has
+    more than 8 games and `loadAggregatedBuilds` sorts by win rate first →
+    one-game 100 % builds on top. This data is only the backup: op.gg is the
+    default for meta, builds and runes (`resolveMeta`, `BuildPanel`,
+    `autoActions`), ours shows when op.gg fails or the user picks it.
+    A first run was cut by me: editing any repo file while the dev app runs
+    makes Vite reload the page (Tailwind scans `docs/*.md` too) and the sync
+    dies with it. Don't touch the repo during a long run in `tauri dev`.
+  - **Driving the dev app headless:** computer-use cannot target the dev
+    exe. Launch with
+    `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port=9222 npm run tauri dev`
+    and talk CDP to `http://127.0.0.1:9222/json/list` (main page = the one
+    without `?overlay=1`): `Runtime.evaluate` to click by text,
+    `Page.captureScreenshot` to look.
+  - **Shared-key risk:** the proxy's Riot allowance is one per region for
+    every user; one person running the 25-min sync uses nearly all of it.
+    Next improvement (designed, not started): compute the aggregate once a
+    night outside the app (GitHub scheduled job calling the worker, result
+    served as a file) so installs only download it.
+  - **Owner rules (2026-11-16):** a change that makes things worse is not
+    done — keep what there is; only build what improves, and say which with
+    numbers. An own tier list from Riot data was dropped for that reason
+    (≈1,400 matches vs hundreds of thousands per champion at op.gg).
+  - **Pending, high value for users ("what do I play"): a reliable tier
+    list per rank.** dpm.lol answers 403 (bot challenge) to the worker;
+    op.gg's list tool has no rank. Verified 2026-11-16 from a PC: op.gg MCP
+    `lol_get_champion_analysis` takes `tier` and returns
+    `data.summary.average_stats.{play,win_rate,pick_rate,ban_rate,kda,tier,rank}`
+    (Ahri mid: gold_plus 731,945 games, diamond_plus 117,132, challenger 904;
+    rates rounded to whole percents). Plan: the worker asks it per champion
+    and role (≈250 calls per rank), caches for hours, the app gets the list
+    ready. Not checked from the worker, call limits unknown. Done when 10
+    random champions match op.gg's site at the same rank.
+  - **Next, agreed:** long syncs keep running with a visible footer
+    indicator after leaving Settings (shared store, no double runs, data
+    reloaded when done). Then 0.5.6, then the tier list.
+  - **Still open from before:** real-game pass of the simple screens and
+    the list below; Spanish item names in in-game/build advice; matchup tip
+    text in Spanish.
 - **2026-11-12 — simple view complete + v0.5.0 tagged.**
   - `prefs.simpleView` (default on) picks one screen per moment in
     `App.tsx` (`mainView`): `SimpleHomeView` (no draft, no game),
