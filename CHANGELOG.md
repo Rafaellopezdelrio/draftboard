@@ -4,6 +4,29 @@ All notable changes to Draftboard are documented here.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/);
 versions match the Tauri app version + the `vX.Y.Z` git tags.
 
+## [0.5.6] — 2026-11-17
+
+### Added
+- An app left open looks for a new version every 30 minutes (it only
+  checked at start).
+- Long downloads from Settings (pro games, ranked, best players) keep
+  running after the dialog is closed: the footer shows the progress and how
+  it ended, Settings shows it again when reopened, and a second download
+  cannot be started on top.
+
+### Changed
+- "Update with the best players" replaces the multi-region sync: the 100
+  Challenger players with the most LP in Korea and in Europe, ranked solo
+  games only, both regions at once. About 25 minutes (the old one took the
+  first 150 entries of the unsorted Master list in three regions, close to
+  three hours).
+- When a download ends the champion data is loaded again in place; the
+  "reload the app" hints are gone.
+
+### Fixed
+- A refused Riot call now waits the time Riot asks for instead of a fixed
+  5 seconds, so a busy region no longer drops players from a download.
+
 ## [0.5.5] — 2026-11-16
 
 ### Added

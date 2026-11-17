@@ -15,6 +15,17 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "0.5.6",
+    date: "2026-11-17",
+    highlights: [
+      "🔔 La app avisa de versiones nuevas aunque la tengas abierta: mira cada 30 minutos",
+      "🏆 «Actualizar con los mejores jugadores»: baja las partidas de los 100 mejores de Corea y de Europa, solo clasificatorias, en unos 25 minutos",
+      "⏳ Las descargas largas siguen aunque cierres Ajustes: abajo ves por dónde van y avisan al terminar",
+      "✨ Al terminar una descarga, los datos nuevos entran solos: ya no hay que recargar la app",
+      "🛑 Ya no se pueden lanzar dos descargas a la vez por error",
+    ],
+  },
+  {
     version: "0.5.5",
     date: "2026-11-16",
     highlights: [
