@@ -10,6 +10,19 @@ open. Not user documentation — see [`../README.md`](../README.md) for that.
   back, Trends in plain words, builds most-played first, more tests.
   Installer answers 200, `/updater/latest.json` serves 0.5.8. Not verified:
   the in-app update 0.5.7 → 0.5.8 and a live champ select.
+- **2026-11-17 — cleanup + security pass.** Dead code out (2 modules,
+  25 exports, legacy op.gg parser; −1028 lines); aiMemory now capped at 200
+  rows on every save (the trim existed but was never called). Security
+  review: npm audit 0; no secrets in git; CSP strict (`script-src 'self'`);
+  ability HTML goes through an allowlist sanitizer; SQL is parameterised
+  (table/column names are constants); Riot relay is path+query allow-listed;
+  BYO AI keys encrypted with DPAPI. **Found and fixed (HIGH):** `/groq/*`
+  forwarded ANY Groq endpoint with our key (audio, files, batches, unlimited
+  tokens). Worker 2026-11-17.13 allows only POST chat completions, body ≤
+  64 KB, max_tokens ≤ 2048, n = 1, no stream (`groqProxy.test.js`).
+  **Committed, NOT deployed yet** (deploy needs the owner's yes).
+  Left as LOW: http/CSP allow `*.workers.dev` (could be our subdomain only);
+  per-IP limit lives in each Cloudflare datacenter's cache.
 - **2026-11-17 — worker 2026-11-17.12:** every S wins ≥ 51 %, in every list.
   The general (fallback) list now uses `rankLaneRows` like the per-rank one
   (old 0-2 → S + crutch blacklist gone: S 74 → 20, Lee Sin 48 % was S);
