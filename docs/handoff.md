@@ -160,6 +160,16 @@ open. Not user documentation — see [`../README.md`](../README.md) for that.
     The "compute the aggregate once a night" idea is parked under the
     owner's rule: our aggregate is only the backup behind op.gg, so making
     it faster to get improves little.
+  - **Per-rank S needs a real win rate (worker 2026-11-17.8, live, no app
+    release needed):** owner saw Lee Sin S in Challenger. op.gg's grade
+    leans on pick rate (Lee 50 % WR, 19 % pick → S; Nidalee 56 % → B).
+    `rankLaneRows`: op.gg S/S+ under 51 % → A; a lane with < 3 S is filled
+    by shrunk win rate (K 400 games) among picks ≥ 2 %; S rows move to the
+    top. Cache key v5. 25 rank×lane lists vs lolalytics: S under 50 % 9 → 0,
+    avg S win rate 51.2 → 52.1 %, S also S on lolalytics 53 → 55 % (Master+
+    and Challenger 35 → 50 %), recall same 42 %. Capping S at 5/6/8 per lane
+    was worse on both (not done). Challenger jungle now: Qiyana, Nidalee,
+    Nunu S; Lee Sin A. op.gg gives win rate in whole percents only.
   - **Fixed after 0.5.7 (not released yet):** best-players button is 🌍
     (pro stays 🏆); ranked tooltip in plain words; `loadAggregatedBuilds`
     sorts most-played first, then win rate. Measured on the owner's DB
