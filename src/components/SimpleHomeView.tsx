@@ -101,6 +101,7 @@ export function SimpleHomeView({ db, rank, refreshKey, onOpenReview, onOpenChat,
   const rift = ranked.slice(0, RECENT);
   const wins = rift.filter((m) => m.win).length;
   const solo = rank && rank !== "unranked" ? rank : null;
+  const seasonGames = solo ? solo.wins + solo.losses : 0;
   const tierName = solo
     ? t(`simpleHome.tiers.${solo.tier.toUpperCase()}`, { defaultValue: solo.tier })
     : null;
@@ -221,13 +222,29 @@ export function SimpleHomeView({ db, rank, refreshKey, onOpenReview, onOpenChat,
                 );
               })}
             </ol>
-            {rift.length > 0 && (
+            {/* The squares already show the last ten: below goes the whole
+                season, so the player sees the long-run picture too. */}
+            {seasonGames > 0 ? (
               <div>
                 <p className="text-3xl font-bold text-white tabular-nums">
-                  {wins} – {rift.length - wins}
+                  {t("simpleHome.seasonRecord", { wins: solo!.wins, losses: solo!.losses })}
                 </p>
-                <p className="text-xs text-white/50">{t("simpleHome.winsLosses")}</p>
+                <p className="text-xs text-white/50 tabular-nums">
+                  {t("simpleHome.seasonDetail", {
+                    count: seasonGames,
+                    pct: Math.round((solo!.wins / seasonGames) * 100),
+                  })}
+                </p>
               </div>
+            ) : (
+              rift.length > 0 && (
+                <div>
+                  <p className="text-3xl font-bold text-white tabular-nums">
+                    {wins} – {rift.length - wins}
+                  </p>
+                  <p className="text-xs text-white/50">{t("simpleHome.winsLosses")}</p>
+                </div>
+              )
             )}
             {best && bestChamp && (
               <p className="text-sm text-white/65">

@@ -25,6 +25,9 @@ export interface SoloRank {
   tier: string;
   division: string;
   lp: number;
+  /** Season totals in Ranked Solo/Duo. */
+  wins: number;
+  losses: number;
 }
 
 /** null = not known (client closed, never seen); "unranked" = known to have
@@ -55,7 +58,13 @@ function loadLastRank(): RankState {
     if (v === "unranked") return v;
     if (v && typeof v === "object" && typeof (v as SoloRank).tier === "string") {
       const r = v as SoloRank;
-      return { tier: r.tier, division: String(r.division ?? ""), lp: Number(r.lp) || 0 };
+      return {
+        tier: r.tier,
+        division: String(r.division ?? ""),
+        lp: Number(r.lp) || 0,
+        wins: Number(r.wins) || 0,
+        losses: Number(r.losses) || 0,
+      };
     }
   } catch {
     // unreadable: treat as unknown
@@ -104,7 +113,13 @@ export function useLcuPersonalData(lcuConnected: boolean, refreshKey: string | n
       let next: RankState = null;
       if (fromClient)
         next = isRanked(fromClient.tier)
-          ? { tier: fromClient.tier, division: fromClient.division, lp: fromClient.leaguePoints }
+          ? {
+              tier: fromClient.tier,
+              division: fromClient.division,
+              lp: fromClient.leaguePoints,
+              wins: fromClient.wins,
+              losses: fromClient.losses,
+            }
           : "unranked";
       if (cancelled) return;
       if (!next && hasRiotAccess) {
@@ -112,7 +127,7 @@ export function useLcuPersonalData(lcuConnected: boolean, refreshKey: string | n
           const entries = await getLeagueEntriesByPuuid(cfg!, cfg!.puuid!);
           if (cancelled) return;
           const solo = entries.find((e) => e.queueType === "RANKED_SOLO_5x5");
-          next = solo && isRanked(solo.tier) ? { tier: solo.tier, division: solo.rank, lp: solo.leaguePoints } : "unranked";
+          next = solo && isRanked(solo.tier) ? { tier: solo.tier, division: solo.rank, lp: solo.leaguePoints, wins: solo.wins, losses: solo.losses } : "unranked";
         } catch {
           // no rank available — fall through to the last one seen
         }

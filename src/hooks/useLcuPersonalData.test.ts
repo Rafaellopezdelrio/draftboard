@@ -189,14 +189,14 @@ describe("useLcuPersonalData", () => {
   });
 
   it("client closed and no Riot access: shows the last rank seen", async () => {
-    m.lcuRank.mockResolvedValueOnce({ tier: "GOLD", division: "II", leaguePoints: 45 });
+    m.lcuRank.mockResolvedValueOnce({ tier: "GOLD", division: "II", leaguePoints: 45, wins: 26, losses: 27 });
     const first = renderHook(() => useLcuPersonalData(true));
-    await waitFor(() => expect(first.result.current.rank).toEqual({ tier: "GOLD", division: "II", lp: 45 }));
+    await waitFor(() => expect(first.result.current.rank).toEqual({ tier: "GOLD", division: "II", lp: 45, wins: 26, losses: 27 }));
     first.unmount();
 
     // Later session: client closed (lcuRank null), no saved account.
     const { result } = renderHook(() => useLcuPersonalData(false));
-    await waitFor(() => expect(result.current.rank).toEqual({ tier: "GOLD", division: "II", lp: 45 }));
+    await waitFor(() => expect(result.current.rank).toEqual({ tier: "GOLD", division: "II", lp: 45, wins: 26, losses: 27 }));
     expect(result.current.rankTier).toBe("GOLD");
   });
 

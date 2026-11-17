@@ -38,7 +38,7 @@ const match = (over: Partial<MatchRow> = {}): MatchRow => ({
 
 const base = {
   db,
-  rank: { tier: "GOLD", division: "II", lp: 45 },
+  rank: { tier: "GOLD", division: "II", lp: 45, wins: 26, losses: 27 },
   refreshKey: null,
   onOpenReview: () => {},
   onOpenChat: () => {},
@@ -94,9 +94,12 @@ describe("SimpleHomeView", () => {
     expect(screen.getByText(/31 minutos · hace 20 min/)).toBeInTheDocument();
     expect(screen.getByText(/Moriste 9 veces/)).toBeInTheDocument();
     expect(screen.getByText("Últimas 4 clasificatorias")).toBeInTheDocument();
-    expect(screen.getByText("2 – 2")).toBeInTheDocument();
     expect(screen.getByText("Oro II")).toBeInTheDocument();
     expect(screen.getByText("45 LP")).toBeInTheDocument();
+    // Below the squares: the whole Solo/Duo season, not the last ten again.
+    expect(screen.getByText("26V 27D")).toBeInTheDocument();
+    expect(screen.getByText("53 partidas en Solo/Dúo · 49% victorias")).toBeInTheDocument();
+    expect(screen.queryByText("2 – 2")).toBeNull();
     expect(screen.getByText("Tu mejor campeón reciente: Lee Sin (2 de 3 ganadas).")).toBeInTheDocument();
   });
 
@@ -110,7 +113,6 @@ describe("SimpleHomeView", () => {
     ]);
     render(<SimpleHomeView {...base} />);
     expect(await screen.findByText("Últimas 2 clasificatorias")).toBeInTheDocument();
-    expect(screen.getByText("1 – 1")).toBeInTheDocument();
     const row = screen.getByRole("list", { name: "Más reciente a la izquierda" });
     expect(Array.from(row.querySelectorAll("li"), (li) => li.textContent)).toEqual(["D", "V"]);
     expect(screen.getByLabelText("Zed · derrota")).toBeInTheDocument();
@@ -118,9 +120,17 @@ describe("SimpleHomeView", () => {
 
   it("Master and above show no division", async () => {
     vi.mocked(recentMatches).mockResolvedValue([match()]);
-    render(<SimpleHomeView {...base} rank={{ tier: "MASTER", division: "I", lp: 120 }} />);
+    render(<SimpleHomeView {...base} rank={{ tier: "MASTER", division: "I", lp: 120, wins: 1, losses: 0 }} />);
     expect(await screen.findByText("Maestro")).toBeInTheDocument();
     expect(screen.getByText("120 LP")).toBeInTheDocument();
+    expect(screen.getByText("1 partida en Solo/Dúo · 100% victorias")).toBeInTheDocument();
+  });
+
+  it("rank known but no season totals yet: falls back to the last ten record", async () => {
+    vi.mocked(recentMatches).mockResolvedValue([match(), match({ win: false })]);
+    render(<SimpleHomeView {...base} rank={{ tier: "GOLD", division: "II", lp: 0, wins: 0, losses: 0 }} />);
+    expect(await screen.findByText("1 – 1")).toBeInTheDocument();
+    expect(screen.queryByText(/partidas en Solo\/Dúo/)).toBeNull();
   });
 
   it("ranked but no ranked games stored: shows the rank and says so", async () => {
