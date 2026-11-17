@@ -22,9 +22,10 @@ export interface ChampionLine {
   visionGames: number;
 }
 
-/** Queues this table covers: ranked and Clash. */
+/** Queues this table covers. Ranked first (the default); Clash is an extra
+ * for tournament players, never mixed into the default view. */
 export const QUEUE_GROUPS = {
-  ranked: [420, 440, 700],
+  ranked: [420, 440],
   solo: [420],
   flex: [440],
   clash: [700],

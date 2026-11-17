@@ -79,12 +79,12 @@ describe("pickGames / seasonsIn", () => {
     match({ queueId: 450, gameEndTimestampMs: at(2026) }), // ARAM: never counted
     match({ queueId: 1750, gameEndTimestampMs: at(2024) }), // Arena: never counted
   ];
-  it("ranked group = Solo/Duo + Flex + Clash", () => {
-    expect(pickGames(games, QUEUE_GROUPS.ranked, null).map((m) => m.queueId)).toEqual([420, 440, 700]);
+  it("ranked group = Solo/Duo + Flex (Clash only on its own)", () => {
+    expect(pickGames(games, QUEUE_GROUPS.ranked, null).map((m) => m.queueId)).toEqual([420, 440]);
     expect(pickGames(games, QUEUE_GROUPS.clash, null).map((m) => m.queueId)).toEqual([700]);
   });
   it("season = calendar year of the game", () => {
-    expect(pickGames(games, QUEUE_GROUPS.ranked, 2026).map((m) => m.queueId)).toEqual([420, 700]);
+    expect(pickGames(games, QUEUE_GROUPS.ranked, 2026).map((m) => m.queueId)).toEqual([420]);
     expect(seasonsIn(games, QUEUE_GROUPS.ranked)).toEqual([2026, 2025]);
     expect(seasonsIn(games, QUEUE_GROUPS.flex)).toEqual([2025]);
   });

@@ -141,6 +141,28 @@ describe("suggestBans", () => {
     expect(hit?.reason).toMatch(/Faker/);
   });
 
+  it("an enemy main from another lane is not suggested (jungler is not told to ban a top laner)", () => {
+    const withTop: ChampionDb = {
+      ...db,
+      champions: { ...db.champions, "75": ch("75", "Nasus"), "64": ch("64", "LeeSin") },
+      meta: [...db.meta, meta("75", "TOP", 0.53, "A"), meta("64", "JUNGLE", 0.5, "A")],
+    };
+    const result = suggestBans({
+      db: withTop,
+      role: "JUNGLE",
+      matchups: [],
+      bannedKeys: [],
+      pickedKeys: [],
+      enemyMains: [
+        { championId: 75, points: 500_000 },
+        { championId: 64, points: 200_000 },
+      ],
+    });
+    const keys = result.map((s) => s.championKey);
+    expect(keys).not.toContain("75");
+    expect(keys).toContain("64");
+  });
+
   it("ignores low-mastery enemy picks (not a real main)", () => {
     const result = suggestBans({
       db,

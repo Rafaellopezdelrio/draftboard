@@ -1811,7 +1811,8 @@
     "connecting": "Connecting to the LoL client...",
     "saving": "Saving {{done}}/{{total}}",
     "listing": "Listing matches...",
-    "downloading": "Downloading {{done}}/{{total}}"
+    "downloading": "Downloading {{done}}/{{total}}",
+    "season": "Season: {{done}} new games downloaded"
   },
   "lcuToast": {
     "connectedTitle": "LoL client connected",
@@ -2040,7 +2041,7 @@
     "seasonYear": "Season {{year}}",
     "allSeasons": "All seasons",
     "queues": {
-      "ranked": "Ranked and Clash",
+      "ranked": "Ranked (Solo/Duo and Flex)",
       "solo": "Solo/Duo",
       "flex": "Flex",
       "clash": "Clash"
@@ -2065,7 +2066,7 @@
     "record": "{{wins}} wins, {{losses}} losses",
     "perfect": "Perfect",
     "perMin": "{{v}}/min",
-    "note": "Counts the games the app has stored. Click a champion to see it against each lane opponent. Damage and wards are not stored."
+    "note": "Counts all your ranked games this season (and Clash, on its own): the app downloads them on its own (the first time takes a few minutes). Click a champion to see it against each lane opponent. Damage and wards are not stored."
   },
   "simpleHome": {
     "lastStep": "Your last game",

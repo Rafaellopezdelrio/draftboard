@@ -8,6 +8,7 @@ import type { ChampionDb } from "../types/champion";
 import { recentMatches, type MatchRow } from "../services/matchRepo";
 
 vi.mock("../services/matchRepo", () => ({ recentMatches: vi.fn(async () => []) }));
+vi.mock("../services/personalDataSync", () => ({ MATCHES_SYNCED_EVENT: "draftboard:matches-synced" }));
 
 const db = {
   patch: "16.1.1",

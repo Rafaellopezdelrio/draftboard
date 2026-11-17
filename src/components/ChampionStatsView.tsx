@@ -18,6 +18,7 @@ import {
   type QueueGroup,
 } from "../engine/championStats";
 import { useEscape } from "../hooks/useKeyboardShortcuts";
+import { MATCHES_SYNCED_EVENT } from "../services/personalDataSync";
 
 interface Props {
   db: ChampionDb;
@@ -43,6 +44,13 @@ export function ChampionStatsView({ db, onClose }: Props) {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState<number | null>(null);
 
+  // The season download can finish while this is open: read again then.
+  const [syncTick, setSyncTick] = useState(0);
+  useEffect(() => {
+    const onSynced = () => setSyncTick((n) => n + 1);
+    window.addEventListener(MATCHES_SYNCED_EVENT, onSynced);
+    return () => window.removeEventListener(MATCHES_SYNCED_EVENT, onSynced);
+  }, []);
   useEffect(() => {
     let stale = false;
     recentMatches(READ_LIMIT)
@@ -51,7 +59,7 @@ export function ChampionStatsView({ db, onClose }: Props) {
     return () => {
       stale = true;
     };
-  }, []);
+  }, [syncTick]);
 
   const queues = QUEUE_GROUPS[queue];
   const seasons = useMemo(() => seasonsIn(matches ?? [], queues), [matches, queues]);

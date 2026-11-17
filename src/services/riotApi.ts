@@ -193,11 +193,13 @@ export async function getRecentMatchIds(
   puuid: string,
   count = 20,
   /** Riot queue id to keep (420 = ranked solo); all queues when omitted. */
-  queue?: number
+  queue?: number,
+  /** Index of the first id (newest = 0), to page back through history. */
+  start = 0
 ): Promise<string[]> {
   const cluster = REGION_TO_CLUSTER[cfg.region];
   return api(
-    `https://${cluster}.api.riotgames.com/lol/match/v5/matches/by-puuid/${puuid}/ids?start=0&count=${count}${queue ? `&queue=${queue}` : ""}`,
+    `https://${cluster}.api.riotgames.com/lol/match/v5/matches/by-puuid/${puuid}/ids?start=${start}&count=${count}${queue ? `&queue=${queue}` : ""}`,
     cfg.apiKey
   );
 }

@@ -133,7 +133,8 @@ describe("BanSuggestionsPanel", () => {
     enemyMains = [{ championId: 222, points: 120_000, summonerName: "Foo" }];
     render(
       <BanSuggestionsPanel
-        db={mkDb()}
+        // Jinx is a bot laner, like the player: a lane-relevant ban.
+        db={mkDb([{ championKey: "222", role: "BOTTOM", tier: "B", winRate: 0.5, pickRate: 0.1, banRate: 0 }])}
         role="BOTTOM"
         bannedKeys={[]}
         pickedKeys={[]}

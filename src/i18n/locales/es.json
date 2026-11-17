@@ -1811,7 +1811,8 @@
     "connecting": "Conectando con el cliente de LoL...",
     "saving": "Guardando {{done}}/{{total}}",
     "listing": "Listando partidas...",
-    "downloading": "Descargando {{done}}/{{total}}"
+    "downloading": "Descargando {{done}}/{{total}}",
+    "season": "Temporada: {{done}} partidas nuevas descargadas"
   },
   "lcuToast": {
     "connectedTitle": "Cliente de LoL conectado",
@@ -2040,7 +2041,7 @@
     "seasonYear": "Temporada {{year}}",
     "allSeasons": "Todas las temporadas",
     "queues": {
-      "ranked": "Clasificatorias y Clash",
+      "ranked": "Clasificatorias (Solo/Dúo y Flexible)",
       "solo": "Solo/Dúo",
       "flex": "Flexible",
       "clash": "Clash"
@@ -2065,7 +2066,7 @@
     "record": "{{wins}} victorias, {{losses}} derrotas",
     "perfect": "Perfecto",
     "perMin": "{{v}}/min",
-    "note": "Cuenta las partidas que la app tiene guardadas. Pulsa un campeón para verlo contra cada rival de línea. El daño y los guardianes no se guardan."
+    "note": "Cuenta todas tus clasificatorias de la temporada (y Clash, aparte): la app las descarga sola (la primera vez tarda unos minutos). Pulsa un campeón para verlo contra cada rival de línea. El daño y los guardianes no se guardan."
   },
   "simpleHome": {
     "lastStep": "Tu última partida",

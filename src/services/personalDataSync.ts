@@ -1,7 +1,7 @@
 // Hybrid sync: prefers LCU (no key needed) for personal data,
 // falls back to Riot API only when key is configured AND LCU lacks data.
 
-import { saveMatch, existingMatchIds, dropLcuTwins, gameIdOf } from "./matchRepo";
+import { saveMatch, existingMatchIds, dropLcuTwins, gameIdOf, storedMatchEnds } from "./matchRepo";
 import { linkDraftToMatch } from "./draftsRepo";
 import {
   lcuMasteries,
@@ -183,6 +183,13 @@ async function riotApiSync(
       messageParams: { done: i + 1, total: todo.length },
     });
   }
+  // The whole season of ranked and Clash games, so "Mis campeones" and the
+  // personal pick/ban data count every game played, not only the last 50.
+  try {
+    saved += await backfillSeason(cfg, onProgress);
+  } catch {
+    // keep what was saved; the next sync carries on from there
+  }
   // Games saved earlier through the LCU fallback now have a Riot twin: keep
   // only the Riot row so personal stats don't count them twice. Best-effort.
   try {
@@ -197,4 +204,67 @@ async function riotApiSync(
     // skip
   }
   return { matches: saved, masteries: masteries.length, rank: null, source: "Riot API" };
+}
+
+/** Queues whose whole season is downloaded: Solo/Duo, Flex, Clash. */
+export const SEASON_QUEUES = [420, 440, 700] as const;
+const PAGE = 100;
+/** The proxy accepts start ≤ 1000: up to 1100 games per queue. */
+const MAX_START = 1000;
+
+/** Season = calendar year, as in "Mis campeones". */
+export function seasonStartMs(now = Date.now()): number {
+  return new Date(new Date(now).getFullYear(), 0, 1).getTime();
+}
+
+/**
+ * Downloads every game of the current season in the season queues that isn't
+ * stored yet. Riot lists ids newest first, so each queue is read page by page
+ * until a game older than the season start. Stored games cost no download
+ * (their end time comes from the database), so later syncs only list pages.
+ * Returns how many games were saved.
+ */
+export async function backfillSeason(
+  cfg: RiotConfig & { puuid?: string },
+  onProgress: (p: SyncProgress) => void,
+  now = Date.now()
+): Promise<number> {
+  const since = seasonStartMs(now);
+  const ends = await storedMatchEnds();
+  let saved = 0;
+  for (const queue of SEASON_QUEUES) {
+    for (let start = 0; start <= MAX_START; start += PAGE) {
+      const ids = await getRecentMatchIds(cfg, cfg.puuid!, PAGE, queue, start);
+      let reachedOlder = false;
+      for (const id of ids) {
+        let end = ends.get(id);
+        if (end === undefined) {
+          const m = await getMatch(cfg, cfg.puuid!, id).catch(() => null);
+          if (!m) continue;
+          end = m.gameEndTimestampMs;
+          if (end < since) {
+            reachedOlder = true;
+            break;
+          }
+          await saveMatch(m);
+          await linkDraftToMatch(m.matchId, m.championId, m.gameEndTimestampMs).catch(() => {});
+          ends.set(id, end);
+          saved++;
+          onProgress({
+            source: "Riot API",
+            done: saved,
+            total: 0,
+            message: `Temporada: ${saved} partidas nuevas`,
+            messageKey: "sync.season",
+            messageParams: { done: saved },
+          });
+        } else if (end < since) {
+          reachedOlder = true;
+          break;
+        }
+      }
+      if (reachedOlder || ids.length < PAGE) break;
+    }
+  }
+  return saved;
 }

@@ -17,6 +17,16 @@ export async function existingMatchIds(): Promise<Set<string>> {
   return new Set(rows.map((r) => r.match_id));
 }
 
+/** End time of every stored game, by match id. */
+export async function storedMatchEnds(): Promise<Map<string, number>> {
+  if (!isTauri()) return new Map();
+  const db = await getDb();
+  const rows = await db.select<Array<{ match_id: string; end_ts_ms: number }>>(
+    "SELECT match_id, end_ts_ms FROM matches"
+  );
+  return new Map(rows.map((r) => [r.match_id, Number(r.end_ts_ms)]));
+}
+
 /** Numeric game id shared by both id forms: "LCU_7412" and "EUW1_7412" → "7412". */
 export function gameIdOf(matchId: string): string {
   return matchId.slice(matchId.lastIndexOf("_") + 1);

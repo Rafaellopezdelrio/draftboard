@@ -11,11 +11,15 @@ vi.mock("./settingsRepo", () => ({
 
 const getRiotProxyUrlMock = vi.fn();
 const getRecentMatchIdsMock = vi.fn();
+// Season backfill lists by queue (4th arg); kept apart so the recent-games
+// tests see only their own call.
+const seasonIdsMock = vi.fn(async (..._a: unknown[]) => [] as string[]);
 const getMatchMock = vi.fn();
 const getTopMasteriesMock = vi.fn();
 vi.mock("./riotApi", () => ({
   getRiotProxyUrl: () => getRiotProxyUrlMock(),
-  getRecentMatchIds: (...a: unknown[]) => getRecentMatchIdsMock(...a),
+  getRecentMatchIds: (...a: unknown[]) =>
+    a[3] === undefined ? getRecentMatchIdsMock(...a) : seasonIdsMock(...a),
   getMatch: (...a: unknown[]) => getMatchMock(...a),
   getTopMasteries: (...a: unknown[]) => getTopMasteriesMock(...a),
 }));
@@ -23,10 +27,12 @@ vi.mock("./riotApi", () => ({
 const existingMatchIdsMock = vi.fn();
 const saveMatchMock = vi.fn();
 const dropLcuTwinsMock = vi.fn();
+const storedMatchEndsMock = vi.fn(async () => new Map<string, number>());
 vi.mock("./matchRepo", () => ({
   existingMatchIds: () => existingMatchIdsMock(),
   saveMatch: (...a: unknown[]) => saveMatchMock(...a),
   dropLcuTwins: () => dropLcuTwinsMock(),
+  storedMatchEnds: () => storedMatchEndsMock(),
   gameIdOf: (id: string) => id.slice(id.lastIndexOf("_") + 1),
 }));
 
@@ -44,7 +50,7 @@ vi.mock("./lcuPersonalData", () => ({
   lcuRank: () => lcuRankMock(),
 }));
 
-import { syncPersonalData, type SyncProgress } from "./personalDataSync";
+import { syncPersonalData, backfillSeason, seasonStartMs, type SyncProgress } from "./personalDataSync";
 
 const SETTINGS = {
   apiKey: "RGAPI-test",
@@ -308,5 +314,68 @@ describe("syncPersonalData — concurrency", () => {
 
     loadSettingsMock.mockResolvedValue(null);
     await expect(syncPersonalData()).resolves.toMatchObject({ source: "none" });
+  });
+});
+
+describe("backfillSeason", () => {
+  const CFG = SETTINGS as Parameters<typeof backfillSeason>[0];
+  const NOW = new Date(2026, 10, 18, 12, 0).getTime();
+  const inSeason = (day: number) => new Date(2026, 0, day, 20, 0).getTime();
+  const lastYear = new Date(2025, 11, 20, 20, 0).getTime();
+  const game = (id: string, end: number, queueId = 420): MatchSummary => ({ ...summary(id), gameEndTimestampMs: end, queueId });
+  const page = (from: number, n: number) => Array.from({ length: n }, (_, i) => `EUW1_${from + i}`);
+
+  beforeEach(() => {
+    seasonIdsMock.mockReset();
+    storedMatchEndsMock.mockReset().mockResolvedValue(new Map());
+    getMatchMock.mockReset();
+    saveMatchMock.mockReset().mockResolvedValue(undefined);
+    linkDraftToMatchMock.mockReset().mockResolvedValue(undefined);
+  });
+
+  it("season starts on 1 January of the current year", () => {
+    expect(seasonStartMs(NOW)).toBe(new Date(2026, 0, 1).getTime());
+  });
+
+  it("pages back through every queue until a game from before the season, saving only new ones", async () => {
+    // Solo/Duo: 150 games this season, then last year's. Flex: 1. Clash: none.
+    seasonIdsMock.mockImplementation(async (...a: unknown[]) => {
+      const [, , , queue, start] = a as [unknown, unknown, number, number, number];
+      if (queue === 420) return start === 0 ? page(0, 100) : start === 100 ? page(100, 100) : [];
+      if (queue === 440) return ["EUW1_900"];
+      return [];
+    });
+    getMatchMock.mockImplementation(async (...a: unknown[]) => {
+      const id = a[2] as string;
+      const n = Number(id.slice(5));
+      if (id === "EUW1_900") return game(id, inSeason(3), 440);
+      return game(id, n < 150 ? inSeason(10) : lastYear);
+    });
+    // Ten of them are already stored: no download for those.
+    storedMatchEndsMock.mockResolvedValue(new Map(page(0, 10).map((id) => [id, inSeason(10)])));
+
+    const saved = await backfillSeason(CFG, () => {}, NOW);
+
+    expect(saved).toBe(141); // 140 new Solo/Duo + 1 Flex
+    expect(getMatchMock).toHaveBeenCalledTimes(141 + 1); // + the first last-year game that stops the queue
+    expect(seasonIdsMock).toHaveBeenCalledWith(CFG, "me", 100, 420, 100);
+    expect(seasonIdsMock).toHaveBeenCalledWith(CFG, "me", 100, 700, 0);
+    expect(saveMatchMock).not.toHaveBeenCalledWith(expect.objectContaining({ gameEndTimestampMs: lastYear }));
+  });
+
+  it("a stored game from before the season also stops the queue (no extra listing)", async () => {
+    seasonIdsMock.mockImplementation(async (...a: unknown[]) => ((a[3] as number) === 420 ? page(0, 100) : []));
+    storedMatchEndsMock.mockResolvedValue(new Map([["EUW1_0", lastYear]]));
+    expect(await backfillSeason(CFG, () => {}, NOW)).toBe(0);
+    expect(getMatchMock).not.toHaveBeenCalled();
+    expect(seasonIdsMock).toHaveBeenCalledTimes(3); // one page per queue
+  });
+
+  it("a game that fails to download is skipped, the rest still saved", async () => {
+    seasonIdsMock.mockImplementation(async (...a: unknown[]) => ((a[3] as number) === 420 ? ["EUW1_1", "EUW1_2"] : []));
+    getMatchMock.mockRejectedValueOnce(new Error("500")).mockResolvedValueOnce(game("EUW1_2", inSeason(5)));
+    const progress: SyncProgress[] = [];
+    expect(await backfillSeason(CFG, (p) => progress.push(p), NOW)).toBe(1);
+    expect(progress[progress.length - 1]).toMatchObject({ messageKey: "sync.season", messageParams: { done: 1 } });
   });
 });

@@ -48,12 +48,19 @@ export function suggestBans({
 
   const suggestions: BanSuggestion[] = [];
 
+  // Champions that are played in the player's lane: bans must be about the
+  // lane they play (a jungler is not told to ban a top laner like Nasus).
+  const inMyLane = (key: string) =>
+    !role || db.meta.some((m) => m.role === role && m.championKey === key);
+
   // 0. Enemy comfort picks — deny a high-mastery main a scouted enemy is
-  // likely to play. Strongest signal when it lands, so it leads.
+  // likely to play, when it is a champion of the player's lane. Strongest
+  // signal when it lands, so it leads.
   for (const m of [...enemyMains].sort((a, b) => b.points - a.points)) {
     if (m.points < MAIN_MIN_POINTS) continue;
     const key = String(m.championId);
     if (taken.has(key)) continue;
+    if (!inMyLane(key)) continue;
     if (suggestions.some((s) => s.championKey === key)) continue;
     const champ = db.champions[key];
     if (!champ) continue;
