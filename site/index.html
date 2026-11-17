@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Draftboard — draft and post-game coach for League of Legends</title>
+<meta name="description" content="Draftboard is a free, open-source Windows app that helps League of Legends players draft better and learn from their own games.">
+<link rel="icon" type="image/svg+xml" href="img/logo.svg">
+<style>
+  :root {
+    --bg: #07090f; --elev: #11151f; --card: #181d2a; --line: #252b3b;
+    --text: #e8ecf3; --muted: #9aa3b5; --accent: #4ecdc4; --good: #22c55e;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.6 "Segoe UI", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  }
+  a { color: var(--accent); }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 20px; }
+  header { padding: 28px 0; display: flex; align-items: center; gap: 12px; }
+  header img { width: 40px; height: 40px; }
+  header b { font-size: 20px; }
+  header nav { margin-left: auto; display: flex; gap: 18px; font-size: 14px; }
+  header nav a { color: var(--muted); text-decoration: none; }
+  header nav a:hover { color: var(--text); }
+  .hero { padding: 48px 0 32px; max-width: 720px; }
+  .badge {
+    display: inline-block; font-size: 12px; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--accent); border: 1px solid #2c5d5a; border-radius: 999px; padding: 4px 12px;
+  }
+  h1 { font-size: clamp(32px, 5vw, 48px); line-height: 1.15; margin: 18px 0 14px; }
+  .lead { color: var(--muted); font-size: 18px; margin: 0 0 26px; }
+  .btn {
+    display: inline-block; padding: 11px 20px; border-radius: 10px; font-weight: 600;
+    text-decoration: none; margin: 0 10px 10px 0;
+  }
+  .btn.primary { background: var(--accent); color: #062321; }
+  .btn.ghost { border: 1px solid var(--line); color: var(--text); }
+  .shot { margin: 18px 0 56px; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+  .shot img { display: block; width: 100%; height: auto; }
+  h2 { font-size: 26px; margin: 0 0 18px; }
+  section { padding: 8px 0 48px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+  .card { background: var(--elev); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; }
+  .card h3 { margin: 0 0 6px; font-size: 17px; }
+  .card p { margin: 0; color: var(--muted); font-size: 15px; }
+  .pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+  .pair figure { margin: 0; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--elev); }
+  .pair img { display: block; width: 100%; height: auto; }
+  .pair figcaption { padding: 10px 14px; color: var(--muted); font-size: 14px; }
+  ul.check { list-style: none; padding: 0; margin: 0; }
+  ul.check li { padding: 6px 0 6px 26px; position: relative; color: var(--muted); }
+  ul.check li::before { content: "✓"; position: absolute; left: 0; color: var(--good); font-weight: 700; }
+  ul.check b { color: var(--text); font-weight: 600; }
+  footer { border-top: 1px solid var(--line); padding: 28px 0 40px; color: var(--muted); font-size: 13px; }
+  footer p { margin: 0 0 8px; }
+  @media (max-width: 600px) { header nav { display: none; } .hero { padding-top: 24px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <img src="img/logo.svg" alt="">
+    <b>Draftboard</b>
+    <nav>
+      <a href="#features">Features</a>
+      <a href="#fair-play">Fair play</a>
+      <a href="#privacy">Privacy</a>
+      <a href="https://github.com/Rafaellopezdelrio/draftboard">GitHub</a>
+    </nav>
+  </header>
+
+  <div class="hero">
+    <span class="badge">Closed beta · Windows</span>
+    <h1>Draft better. Learn from your own games.</h1>
+    <p class="lead">Draftboard is a free, open-source desktop app for League of Legends. It suggests picks and bans in champion select, gives light tips in game, and explains each of your games afterwards in plain words.</p>
+    <a class="btn primary" href="https://github.com/Rafaellopezdelrio/draftboard">View the project on GitHub</a>
+    <a class="btn ghost" href="#privacy">What data it uses</a>
+  </div>
+
+  <div class="shot"><img src="img/simple-view.png" alt="Draftboard during champion select: what to ban, what to pick and what to buy" width="2160" height="1050"></div>
+
+  <section id="features">
+    <h2>What it does</h2>
+    <div class="grid">
+      <div class="card"><h3>Champion select advisor</h3><p>Picks and bans from your own pool, mastery, matchups and team composition (engage, frontline, damage split).</p></div>
+      <div class="card"><h3>Team and lane info</h3><p>Rank and recent form of your teammates. Enemy info only from the loading screen, when names are visible to everyone.</p></div>
+      <div class="card"><h3>Runes, spells and items</h3><p>Optional one-click import into the client after you lock in. It can be turned off.</p></div>
+      <div class="card"><h3>In-game tips</h3><p>Optional overlay and voice tips, built only on information already on your screen.</p></div>
+      <div class="card"><h3>Post-game coach</h3><p>Your laning and game summary, with an AI-written plan that only explains numbers from your own match.</p></div>
+      <div class="card"><h3>Tier lists by rank</h3><p>Lane tier lists for your rank, with a clear rule: an S tier champion must win at least 51% of its games.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="pair">
+      <figure><img src="img/ai-coach.png" alt="Post-game AI coach screen" loading="lazy"><figcaption>Post-game coach: what to fix next game, from your own numbers.</figcaption></figure>
+      <figure><img src="img/champ-select.png" alt="Detailed view: both teams, build, runes, composition and matchup tips" loading="lazy"><figcaption>Detailed view: build, runes, team composition and matchup tips.</figcaption></figure>
+    </div>
+  </section>
+
+  <section id="fair-play">
+    <h2>Fair play</h2>
+    <ul class="check">
+      <li><b>Official APIs only:</b> the Riot Games API, the League Client API and the Live Client Data API.</li>
+      <li><b>No memory reading,</b> no automation of gameplay, no enemy cooldown or ultimate timers.</li>
+      <li><b>Never reveals hidden players:</b> enemy info starts at the loading screen.</li>
+      <li><b>No MMR or ELO calculators,</b> no shaming of other players.</li>
+      <li><b>The Riot API key never ships in the app:</b> it stays on our server, which only forwards the app's own requests.</li>
+    </ul>
+  </section>
+
+  <section id="privacy">
+    <h2>Your data</h2>
+    <ul class="check">
+      <li><b>Your games and settings stay on your PC.</b> Our server keeps only a short cache (up to 24 h).</li>
+      <li><b>AI review:</b> a summary of your own match is sent to the AI provider (Groq) to write the advice. It is not sold or used for anything else.</li>
+      <li><b>Optional and off by default:</b> anonymous error reports and a daily usage count, with a random install id. No Riot ID, no IP address.</li>
+      <li><b>Suggestions and bug reports</b> are sent only when you write them.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Status</h2>
+    <p style="color:var(--muted);max-width:720px;margin:0">Draftboard is in a small closed beta with a few players. It is free, has no ads and nothing to buy. The source code is MIT licensed. Questions or feedback: <a href="https://github.com/Rafaellopezdelrio/draftboard/issues">GitHub issues</a>.</p>
+  </section>
+
+  <footer>
+    <p>Draftboard isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties. Riot Games, and all associated properties are trademarks or registered trademarks of Riot Games, Inc.</p>
+    <p>© 2026 Draftboard · MIT license</p>
+  </footer>
+</div>
+</body>
+</html>
