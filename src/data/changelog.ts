@@ -15,11 +15,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
-    // 0.6.0 was built but never offered by the updater: users go 0.5.9 → 0.6.1.
-    version: "0.6.1",
+    // 0.6.0 and 0.6.1 were built but never offered by the updater: users go
+    // 0.5.9 → 0.6.2.
+    version: "0.6.2",
     date: "2026-11-18",
     highlights: [
       "🏆 Mis campeones (menú Mi juego): todas tus clasificatorias de la temporada, con % de victorias, KDA, súbditos, oro y visión, y cada campeón contra cada rival (Clash aparte)",
+      "👥 Tu cuenta se detecta sola: si entras con una smurf, la app cambia a ella y sus partidas no se mezclan con la main",
       "🚫 Baneos de tu línea: si vas a la jungla ya no te propone banear a un main de otra línea",
       "📊 Tu ELO en la portada: liga, división y LP, tus últimas 10 clasificatorias y tu temporada en Solo/Dúo con % de victorias",
       "💬 Botón «Sugerencia / Error» arriba: nos llega de verdad y te avisa si falla",

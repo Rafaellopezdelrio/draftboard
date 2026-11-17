@@ -4,9 +4,29 @@ All notable changes to Draftboard are documented here.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/);
 versions match the Tauri app version + the `vX.Y.Z` git tags.
 
+## [0.6.2] — 2026-11-18
+
+First version offered by the updater after 0.5.9 (0.6.0 and 0.6.1 were
+built only).
+
+### Added
+- The app follows the account logged into the LoL client (a smurf included);
+  each stored game carries its account (migration 011) and personal stats
+  only read the current account's games. Older games belong to the account
+  saved at the time.
+- Sync runs as soon as the client connects.
+
+### Changed
+- Settings: the "Auto-detectar" button is replaced by a note (the account is
+  detected on its own). The resync wipe only clears the current account.
+
+### Fixed
+- Client games are no longer stored under an account the client isn't
+  logged into; the remembered rank is per account.
+
 ## [0.6.1] — 2026-11-18
 
-First version offered by the updater after 0.5.9 (0.6.0 was built only).
+Built only (superseded by 0.6.2).
 
 ### Added
 - Sync downloads the whole season (since 1 January) of Ranked Solo/Duo, Flex
