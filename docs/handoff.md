@@ -160,6 +160,16 @@ open. Not user documentation — see [`../README.md`](../README.md) for that.
     The "compute the aggregate once a night" idea is parked under the
     owner's rule: our aggregate is only the backup behind op.gg, so making
     it faster to get improves little.
+  - **dpm.lol-style grade tested, NOT adopted (2026-11-17):** from the
+    owner's capture of dpm's Emerald+ list (202 rows) its grade fits
+    `WR% + 0.45 × pick%` (Spearman 0.93; cuts S+ 56.9 / S 55.05 / A 53.8 /
+    B 52.8 / C 51.35 reproduce 151/202 grades). dpm's FAQ/tier pages do not
+    explain the method. On our op.gg data (5 ranks × 5 lanes) vs the current
+    rule: S also S on lolalytics 55 → 39 %, recall 42 → 26 %, S that lose
+    (< 50 %) 0 → 6, 2 lanes left without S; better only against dpm itself
+    (circular). Variants with the 51 % rule or shrunk WR also worse. Kept the
+    current rule. op.gg and dpm win/pick rates match (median pick ratio
+    1.00, WR within 0.3 pts), so the data is fine; only the formula differs.
   - **Test quality pass (2026-11-17, not released):** mutation testing with
     Stryker (`npx stryker run`, ~12 min; narrow set in
     `vitest.stryker.config.ts`): pick engine 41 → 90 %, op.gg tier grading
