@@ -38,6 +38,16 @@ interface Props {
 }
 
 type SortKey = "tier" | "winRate" | "pickRate" | "banRate" | "name";
+
+/** Below this many games a win rate moves ±1.5 points by chance alone: the
+ * row is shown, flagged, so nobody reads its grade as settled. */
+const FEW_GAMES = 1000;
+
+/** Rows with a game count come from op.gg per rank, whose rates are rounded
+ * to whole percents: one decimal there would show a precision that isn't there. */
+function pct(rate: number, games?: number): string {
+  return `${(rate * 100).toFixed(games === undefined ? 1 : 0)}%`;
+}
 type SortDir = "asc" | "desc";
 
 const ROLE_TABS: Array<{ value: Role | "ALL"; labelKey: string }> = [
@@ -70,6 +80,7 @@ export function TierListView({ db, onClose, onSelectChampion, onDbUpdate }: Prop
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [search, setSearch] = useState("");
   const [refreshing, setRefreshing] = useState(false);
+  const rankLabel = (tier: DpmTier) => t(`tierList.ranks.${tier}`, { defaultValue: DPM_TIER_LABELS[tier] });
 
   const prefs = usePrefsStore((s) => s.prefs);
   const setPref = usePrefsStore((s) => s.set);
@@ -79,8 +90,12 @@ export function TierListView({ db, onClose, onSelectChampion, onDbUpdate }: Prop
   // there changed nothing and looked broken.
   const isDpm =
     prefs.metaSource === "dpm" && isDpmEnabled() && (db.metaSourceUsed ?? "dpm") === "dpm";
+  // Same "by rank" choice, served by op.gg's numbers for that bracket (only the
+  // rank applies: op.gg has no region or period filter).
+  const isOpggRank = prefs.metaSource === "dpm" && db.metaSourceUsed === "opggRank";
+  const byRank = isDpm || isOpggRank;
   const allRanksNote =
-    prefs.metaSource === "dpm" && !isDpm && (db.metaSourceRequested ?? "dpm") === "dpm";
+    prefs.metaSource === "dpm" && !byRank && (db.metaSourceRequested ?? "dpm") === "dpm";
 
   // Any source/filter change (1) persists the new pref, (2) force-reloads the
   // championDb, and (3) hands the new db back up to the parent. Force is
@@ -110,7 +125,7 @@ export function TierListView({ db, onClose, onSelectChampion, onDbUpdate }: Prop
     setRefreshing(true);
     try {
       for (const [key, value] of changes) if (value) await setPref(key, value);
-      const fresh = await loadChampionDb(true);
+      const fresh = await loadChampionDb(true, { waitForRankList: true });
       onDbUpdate?.(fresh);
     } catch (e) {
       // loadChampionDb reads the prefs, so they're saved before the reload; on
@@ -218,7 +233,12 @@ export function TierListView({ db, onClose, onSelectChampion, onDbUpdate }: Prop
                 Tier List
                 {isDpm && (
                   <span className="ml-2 text-[10px] uppercase tracking-widest text-white/40 align-middle">
-                    dpm.lol · {DPM_TIER_LABELS[prefs.dpmTier]} · {DPM_PLATFORM_LABELS[prefs.dpmPlatform]}
+                    dpm.lol · {rankLabel(prefs.dpmTier)} · {DPM_PLATFORM_LABELS[prefs.dpmPlatform]}
+                  </span>
+                )}
+                {isOpggRank && (
+                  <span className="ml-2 text-[10px] uppercase tracking-widest text-white/40 align-middle">
+                    op.gg · {rankLabel(prefs.dpmTier)}
                   </span>
                 )}
               </h2>
@@ -279,7 +299,7 @@ export function TierListView({ db, onClose, onSelectChampion, onDbUpdate }: Prop
                 {t("tierList.allRanksNote")}
               </span>
             )}
-            {!allRanksNote && db.metaSourceUsed && db.metaSourceRequested && db.metaSourceUsed !== db.metaSourceRequested && (
+            {!allRanksNote && !isOpggRank && db.metaSourceUsed && db.metaSourceRequested && db.metaSourceUsed !== db.metaSourceRequested && (
               <span
                 className="text-[10px] uppercase tracking-widest text-yellow-300/80"
                 title={t("tierList.fallbackTip", {
@@ -290,7 +310,9 @@ export function TierListView({ db, onClose, onSelectChampion, onDbUpdate }: Prop
                 {t("tierList.usingFallback", { used: db.metaSourceUsed })}
               </span>
             )}
-            {isDpm && (
+            {/* The rank select stays when the list fell back to the general one:
+                picking a rank loads that rank's list again, so it is not a dead control. */}
+            {prefs.metaSource === "dpm" && (
               <>
                 <select
                   value={prefs.dpmTier}
@@ -300,9 +322,11 @@ export function TierListView({ db, onClose, onSelectChampion, onDbUpdate }: Prop
                   title={t("tierList.rankTitle")}
                 >
                   {DPM_TIER_ORDER.map((tier) => (
-                    <option key={tier} value={tier}>{DPM_TIER_LABELS[tier]}</option>
+                    <option key={tier} value={tier}>{rankLabel(tier)}</option>
                   ))}
                 </select>
+                {isDpm && (
+                <>
                 <select
                   value={prefs.dpmPlatform}
                   disabled={refreshing}
@@ -324,6 +348,8 @@ export function TierListView({ db, onClose, onSelectChampion, onDbUpdate }: Prop
                   <option value="7days">{t("tierList.days7")}</option>
                   <option value="30days">{t("tierList.days30")}</option>
                 </select>
+                </>
+                )}
                 {refreshing && (
                   <span className="text-[10px] uppercase tracking-widest text-white/45">
                     {t("tierList.refreshing")}
@@ -418,6 +444,14 @@ export function TierListView({ db, onClose, onSelectChampion, onDbUpdate }: Prop
                               loading="lazy"
                             />
                             <span className="text-white font-medium">{c.name}</span>
+                            {m.games !== undefined && m.games < FEW_GAMES && (
+                              <span
+                                className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-white/45"
+                                title={t("tierList.fewGamesTip", { games: m.games })}
+                              >
+                                {t("tierList.fewGames")}
+                              </span>
+                            )}
                           </div>
                         </td>
                         <td className="px-2 py-2 text-[11px] uppercase text-white/55 tracking-wide">
@@ -427,13 +461,13 @@ export function TierListView({ db, onClose, onSelectChampion, onDbUpdate }: Prop
                           <TierBadge tier={m.tier} />
                         </td>
                         <td className={`px-2 py-2 text-center tabular-nums font-medium ${wrColor}`}>
-                          {(m.winRate * 100).toFixed(1)}%
+                          {pct(m.winRate, m.games)}
                         </td>
                         <td className="px-2 py-2 text-center tabular-nums text-white/70">
-                          {(m.pickRate * 100).toFixed(1)}%
+                          {pct(m.pickRate, m.games)}
                         </td>
                         <td className="px-2 py-2 text-center tabular-nums text-white/70">
-                          {(m.banRate * 100).toFixed(1)}%
+                          {pct(m.banRate, m.games)}
                         </td>
                       </tr>
                     </Fragment>

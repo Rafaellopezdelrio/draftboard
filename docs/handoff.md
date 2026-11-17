@@ -75,16 +75,32 @@ open. Not user documentation — see [`../README.md`](../README.md) for that.
     done — keep what there is; only build what improves, and say which with
     numbers. An own tier list from Riot data was dropped for that reason
     (≈1,400 matches vs hundreds of thousands per champion at op.gg).
-  - **Pending, high value for users ("what do I play"): a reliable tier
-    list per rank.** dpm.lol answers 403 (bot challenge) to the worker;
-    op.gg's list tool has no rank. Verified 2026-11-16 from a PC: op.gg MCP
-    `lol_get_champion_analysis` takes `tier` and returns
-    `data.summary.average_stats.{play,win_rate,pick_rate,ban_rate,kda,tier,rank}`
-    (Ahri mid: gold_plus 731,945 games, diamond_plus 117,132, challenger 904;
-    rates rounded to whole percents). Plan: the worker asks it per champion
-    and role (≈250 calls per rank), caches for hours, the app gets the list
-    ready. Not checked from the worker, call limits unknown. Done when 10
-    random champions match op.gg's site at the same rank.
+  - **Tier list per rank (on main, NOT released; worker 2026-11-17.5 live).**
+    Worker `/opgg/tierlist-rank?tier=&lane=`: the lane's champions from the
+    default op.gg list, each asked `lol_get_champion_analysis` with `tier`
+    and the lane's own `positions[].stats` (NOT `average_stats`, which mixes
+    every lane — first version read that and matched op.gg 4/10). One retry
+    pass for dropped calls within the 50-subrequest budget; a stored copy is
+    served at once and rebuilt behind (fresh 3h, 10 min with gaps); a cold
+    build keeps running after the client leaves (`waitUntil`). Cold rank:
+    ~9 s for the five lanes, 0-2 gaps; stored: ~0.1 s.
+    Checked: 10 random champions/lanes/ranks match op.gg's own pages 10/10.
+    App: `fetchOpggMetaForRank` (all five lanes or nothing, 25 s cap),
+    `resolveMeta` source `opggRank` behind dpm for the "by rank" choice
+    (pref `dpmTier`). Boot waits at most `RANK_LIST_WAIT_MS` (2.5 s), then
+    shows the general list and reloads via `DATA_UPDATED_EVENT` when the rank
+    arrives; picking a rank in the list waits for it ("Actualizando…").
+    A missed rank list is not cached for the hour, and the rank select stays
+    with the note so the user can retry. Rows flag "pocos datos" under 1000
+    games; op.gg rates are whole percents, shown without a decimal.
+    Checked in the dev app: Grandmaster, Gold, Diamond+, Silver, Iron.
+    Not released: goes out with the next version.
+  - **Installed app showed 0.5.1 (2026-11-17):** the desktop icon
+    `Draftboard.lnk` points at an old local build
+    (`src-tauri/target/release/…`, 0.5.1 from 2026-11-12); the updater
+    updates `C:\Program Files\Draftboard` (0.5.6). Not an app bug.
+    Also: the installed app and `tauri dev` cannot run at once (WebView2
+    0x8007139F on the shared data folder) — close the installed one first.
   - **Background downloads (0.5.6, 1953bd7):** the pro, ranked
     and best-players downloads live in `state/dataSyncStore.ts`
     (`runDataSync`): footer pill "Actualizando datos · N%" then the result
@@ -94,7 +110,7 @@ open. Not user documentation — see [`../README.md`](../README.md) for that.
     data in place (the "reload the app" hints are gone). Checked in the dev
     app with the pro download: 1 % → 99 % with Settings closed, 613 games,
     data reloaded the same second. Closing the app still stops a download.
-  - **Next:** the tier list per rank.
+  - **Next:** release the tier list per rank.
     The "compute the aggregate once a night" idea is parked under the
     owner's rule: our aggregate is only the backup behind op.gg, so making
     it faster to get improves little.

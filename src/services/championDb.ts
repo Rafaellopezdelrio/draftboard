@@ -2,7 +2,7 @@ import type { ChampionDb, MetaTier } from "../types/champion";
 import { fetchChampions, fetchLatestPatch } from "./dataDragon";
 import { buildMetaList } from "../data/metaTierList";
 import { loadAggregatedCounters, loadAggregatedMeta } from "./aggregateRepo";
-import { fetchOpggMetaAllRoles } from "./opggMeta";
+import { fetchOpggMetaAllRoles, fetchOpggMetaForRank } from "./opggMeta";
 import {
   fetchDpmMeta,
   type DpmTier,
@@ -11,6 +11,36 @@ import {
 } from "./dpmTierlist";
 import { CHAMPION_ROLES } from "../data/championRoles";
 import { usePrefsStore } from "../state/prefsStore";
+import { DATA_UPDATED_EVENT } from "../state/dataSyncStore";
+
+/** How long a load waits for the per-rank list before going on with the
+ * general one. The server builds a rank it has not stored in 5-8 s; the app
+ * must not open that much slower for it. */
+export const RANK_LIST_WAIT_MS = 2500;
+
+/**
+ * The per-rank list if it arrives within RANK_LIST_WAIT_MS, else [] (the
+ * general list is used). When a late one does arrive, the server has it
+ * stored by then: announce new data once, so the app loads again, fast, with
+ * the list for the rank.
+ */
+function rankListWithoutHoldingBoot(pending: Promise<MetaTier[]>): Promise<MetaTier[]> {
+  let late = false;
+  pending.then((rows) => {
+    if (late && rows.length > 0 && typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent(DATA_UPDATED_EVENT));
+    }
+  });
+  return Promise.race([
+    pending,
+    new Promise<MetaTier[]>((resolve) =>
+      setTimeout(() => {
+        late = true;
+        resolve([]);
+      }, RANK_LIST_WAIT_MS)
+    ),
+  ]);
+}
 
 // v16: add dpm.lol per-bracket tier list as a meta source. New "S+" tier
 // added to the type union. Bump key so users with v15 cache pick up the new
@@ -20,10 +50,21 @@ const STORAGE_KEY = "lol-draft-advisor:championDb:v16";
 // caused stale-cache headaches when worker logic changes.
 const STALE_AFTER_MS = 1000 * 60 * 60 * 1;
 
-export async function loadChampionDb(force = false): Promise<ChampionDb> {
+/** `waitForRankList`: the user just picked a rank and is watching "Actualizando…":
+ * wait for that rank's list instead of showing the general one meanwhile. */
+export async function loadChampionDb(
+  force = false,
+  { waitForRankList = false }: { waitForRankList?: boolean } = {}
+): Promise<ChampionDb> {
   if (!force) {
     const cached = readCache();
-    if (cached && Date.now() - cached.fetchedAt < STALE_AFTER_MS) return cached;
+    // A by-rank list that fell back to the general one is not kept for an
+    // hour: the next load tries the rank again.
+    const missedRank =
+      cached?.metaSourceRequested === "dpm" &&
+      cached.metaSourceUsed !== "dpm" &&
+      cached.metaSourceUsed !== "opggRank";
+    if (cached && !missedRank && Date.now() - cached.fetchedAt < STALE_AFTER_MS) return cached;
   }
   const patch = await fetchLatestPatch();
   const proPatch = `proplay-${patch}`;
@@ -66,13 +107,23 @@ export async function loadChampionDb(force = false): Promise<ChampionDb> {
       ? fetchDpmMeta(dpmTier, dpmPlatform, dpmTimeframe, nameToKey)
       : Promise.resolve([]);
 
-  const [opggMeta, soloqMeta, proplayMeta, aggCounters, dpmMeta] =
+  // The "by rank" source while dpm.lol is paused: op.gg's own numbers for the
+  // chosen bracket. Same pref (dpmTier): both use the same bracket names.
+  const opggRankPromise: Promise<MetaTier[]> =
+    source !== "dpm"
+      ? Promise.resolve([])
+      : waitForRankList
+        ? fetchOpggMetaForRank(dpmTier, nameToKey)
+        : rankListWithoutHoldingBoot(fetchOpggMetaForRank(dpmTier, nameToKey));
+
+  const [opggMeta, soloqMeta, proplayMeta, aggCounters, dpmMeta, opggRankMeta] =
     await Promise.all([
       fetchOpggMetaAllRoles(nameToKey), // op.gg MCP — 170 champs with real games data
       loadAggregatedMeta(patch), // SoloQ Master+ (our own sync)
       loadAggregatedMeta(proPatch), // Pro play (our own sync)
       loadAggregatedCounters(patch),
       dpmPromise,
+      opggRankPromise,
     ]);
 
   // op.gg is the default and most accurate source (live data, millions of
@@ -80,7 +131,7 @@ export async function loadChampionDb(force = false): Promise<ChampionDb> {
   // The full fallback matrix lives in resolveMeta (pure + unit-tested).
   const { meta, used: metaSourceUsed } = resolveMeta(
     source,
-    { opgg: opggMeta, soloq: soloqMeta, proplay: proplayMeta, dpm: dpmMeta },
+    { opgg: opggMeta, soloq: soloqMeta, proplay: proplayMeta, dpm: dpmMeta, opggRank: opggRankMeta },
     () => buildMetaList(champions)
   );
 
@@ -201,6 +252,8 @@ export interface MetaSourceArrays {
   soloq: MetaTier[];
   proplay: MetaTier[];
   dpm: MetaTier[];
+  /** op.gg for the chosen rank bracket; only fetched for the "dpm" source. */
+  opggRank: MetaTier[];
 }
 
 /**
@@ -216,6 +269,7 @@ export function resolveMeta(
   staticFallback: () => MetaTier[]
 ): { meta: MetaTier[]; used: NonNullable<ChampionDb["metaSourceUsed"]> } {
   if (source === "dpm" && s.dpm.length > 0) return { meta: s.dpm, used: "dpm" };
+  if (source === "dpm" && s.opggRank.length > 0) return { meta: s.opggRank, used: "opggRank" };
   if (source === "opgg" && s.opgg.length > 0) return { meta: s.opgg, used: "opgg" };
   if (source === "proplay" && s.proplay.length > 0) return { meta: s.proplay, used: "proplay" };
   if (source === "soloq" && s.soloq.length > 0) return { meta: s.soloq, used: "soloq" };

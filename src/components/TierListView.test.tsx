@@ -248,26 +248,86 @@ describe("TierListView — empty state", () => {
 });
 
 describe("TierListView — source selector", () => {
-  it("dpm paused: no rank/region selects, a note says it's one list for all ranks", () => {
+  it("rank list missed: a note says it's one list for all ranks, the rank select stays to try again", () => {
     dpmOn = false;
     setPrefs({ metaSource: "dpm" });
     render(<TierListView db={mkDb({ metaSourceRequested: "dpm", metaSourceUsed: "opgg" })} onClose={() => {}} />);
     expect(screen.getByTestId("tierlist-all-ranks")).toHaveTextContent("todos los rangos juntos");
-    expect(screen.queryByTitle("Rango (Iron → Challenger)")).toBeNull();
+    expect(screen.getByTitle("Tu rango: la lista cambia según el nivel")).toBeInTheDocument();
+    expect(screen.queryByTitle("Región")).toBeNull();
     expect(screen.queryByText(/dpm\.lol · /)).toBeNull();
   });
 
-  it("dpm on but this list fell back to op.gg: same note, no fake rank selector", () => {
+  it("dpm on but this list fell back to op.gg: same note, rank select only (no region or period)", () => {
     setPrefs({ metaSource: "dpm" });
     render(<TierListView db={mkDb({ metaSourceRequested: "dpm", metaSourceUsed: "opgg" })} onClose={() => {}} />);
     expect(screen.getByTestId("tierlist-all-ranks")).toBeInTheDocument();
-    expect(screen.queryByTitle("Rango (Iron → Challenger)")).toBeNull();
+    expect(screen.getByTitle("Tu rango: la lista cambia según el nivel")).toBeInTheDocument();
+    expect(screen.queryByTitle("Ventana de tiempo")).toBeNull();
+  });
+
+  it("op.gg by rank: rank selector in Spanish and the rank in the title, no region or period, no fallback badge", () => {
+    dpmOn = false;
+    setPrefs({ metaSource: "dpm", dpmTier: "gold" });
+    render(<TierListView db={mkDb({ metaSourceRequested: "dpm", metaSourceUsed: "opggRank" })} onClose={() => {}} />);
+    expect(screen.getByText("op.gg · Oro")).toBeInTheDocument();
+    const rank = screen.getByTitle("Tu rango: la lista cambia según el nivel");
+    expect(rank).toHaveValue("gold");
+    expect(within(rank).getByRole("option", { name: "Diamante o más" })).toBeInTheDocument();
+    expect(screen.queryByTitle("Región")).toBeNull();
+    expect(screen.queryByTitle("Ventana de tiempo")).toBeNull();
+    expect(screen.queryByTestId("tierlist-all-ranks")).toBeNull();
+    expect(screen.queryByText(/usando/)).toBeNull();
+  });
+
+  it("op.gg by rank: picking another rank saves it and reloads", async () => {
+    dpmOn = false;
+    setPrefs({ metaSource: "dpm", dpmTier: "gold" });
+    const fresh = mkDb({ metaSourceRequested: "dpm", metaSourceUsed: "opggRank" });
+    vi.mocked(loadChampionDb).mockResolvedValue(fresh);
+    const onDbUpdate = vi.fn();
+    render(
+      <TierListView
+        db={mkDb({ metaSourceRequested: "dpm", metaSourceUsed: "opggRank" })}
+        onClose={() => {}}
+        onDbUpdate={onDbUpdate}
+      />
+    );
+    await act(async () => {
+      fireEvent.change(screen.getByTitle("Tu rango: la lista cambia según el nivel"), { target: { value: "diamond_plus" } });
+    });
+    expect(usePrefsStore.getState().prefs.dpmTier).toBe("diamond_plus");
+    expect(loadChampionDb).toHaveBeenCalledWith(true, { waitForRankList: true });
+    expect(onDbUpdate).toHaveBeenCalledWith(fresh);
+  });
+
+  it("flags a row with few games and leaves the others alone", () => {
+    dpmOn = false;
+    setPrefs({ metaSource: "dpm", dpmTier: "challenger" });
+    const metaRows = [
+      { ...meta("266", "TOP", "S", 0.52, 0.08, 0.05), games: 800 },
+      { ...meta("122", "TOP", "S", 0.545, 0.06, 0.12), games: 1000 },
+      meta("86", "TOP", "A", 0.48, 0.15, 0.01),
+    ];
+    render(
+      <TierListView
+        db={mkDb({ meta: metaRows, metaSourceRequested: "dpm", metaSourceUsed: "opggRank" })}
+        onClose={() => {}}
+      />
+    );
+    // op.gg's per-rank rates are whole percents: no fake decimal on those rows.
+    expect(screen.getByText("Aatrox").closest("tr")).toHaveTextContent("52%");
+    expect(screen.getByText("Garen").closest("tr")).toHaveTextContent("48.0%");
+    const flags = screen.getAllByText("pocos datos");
+    expect(flags).toHaveLength(1);
+    expect(flags[0]).toHaveAttribute("title", "Solo 800 partidas: su nota puede cambiar mucho.");
+    expect(flags[0].closest("tr")).toHaveTextContent("Aatrox");
   });
 
   it("dpm source shows the bracket label in the title and the rank/region/time selects", () => {
     render(<TierListView db={mkDb()} onClose={() => {}} />);
-    expect(screen.getByText("dpm.lol · Emerald+ · EUW")).toBeInTheDocument();
-    expect(screen.getByTitle("Rango (Iron → Challenger)")).toHaveValue("emerald_plus");
+    expect(screen.getByText("dpm.lol · Esmeralda o más · EUW")).toBeInTheDocument();
+    expect(screen.getByTitle("Tu rango: la lista cambia según el nivel")).toHaveValue("emerald_plus");
     expect(screen.getByTitle("Región")).toHaveValue("euw1");
     expect(screen.getByTitle("Ventana de tiempo")).toHaveValue("7days");
   });
@@ -347,7 +407,7 @@ describe("TierListView — source selector", () => {
     });
 
     expect(usePrefsStore.getState().prefs.metaSource).toBe("proplay");
-    expect(loadChampionDb).toHaveBeenCalledWith(true);
+    expect(loadChampionDb).toHaveBeenCalledWith(true, { waitForRankList: true });
     expect(sourceAtReload).toBe("proplay");
     expect(onDbUpdate).toHaveBeenCalledWith(fresh);
   });
@@ -358,7 +418,7 @@ describe("TierListView — source selector", () => {
     render(<TierListView db={mkDb()} onClose={() => {}} />);
 
     await act(async () => {
-      fireEvent.change(screen.getByTitle("Rango (Iron → Challenger)"), {
+      fireEvent.change(screen.getByTitle("Tu rango: la lista cambia según el nivel"), {
         target: { value: "gold" },
       });
     });
@@ -371,7 +431,7 @@ describe("TierListView — source selector", () => {
     expect(screen.queryByText("Actualizando…")).toBeNull();
     for (const s of screen.getAllByRole("combobox")) expect(s).toBeEnabled();
     // Title reflects the new bracket from prefs.
-    expect(screen.getByText("dpm.lol · Gold · EUW")).toBeInTheDocument();
+    expect(screen.getByText("dpm.lol · Oro · EUW")).toBeInTheDocument();
   });
 
   it("region and timeframe selects persist their prefs and reload", async () => {
@@ -389,7 +449,7 @@ describe("TierListView — source selector", () => {
     expect(prefs.dpmPlatform).toBe("kr");
     expect(prefs.dpmTimeframe).toBe("30days");
     expect(loadChampionDb).toHaveBeenCalledTimes(2);
-    expect(screen.getByText("dpm.lol · Emerald+ · Korea")).toBeInTheDocument();
+    expect(screen.getByText("dpm.lol · Esmeralda o más · Korea")).toBeInTheDocument();
   });
 
   // onChange drops applyFilter's promise, so a rejected reload (offline: DDragon
@@ -427,7 +487,7 @@ describe("TierListView — source selector", () => {
       fireEvent.change(screen.getByTitle("Región"), { target: { value: "kr" } });
     });
     expect(usePrefsStore.getState().prefs.dpmPlatform).toBe(DEFAULT_PREFS.dpmPlatform);
-    expect(screen.getByText("dpm.lol · Emerald+ · EUW")).toBeInTheDocument();
+    expect(screen.getByText("dpm.lol · Esmeralda o más · EUW")).toBeInTheDocument();
     expect((screen.getByTitle("Región") as HTMLSelectElement).value).toBe(DEFAULT_PREFS.dpmPlatform);
 
     await act(async () => {

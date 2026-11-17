@@ -13,15 +13,17 @@ vi.mock("./aggregateRepo", () => ({
 }));
 vi.mock("./opggMeta", () => ({
   fetchOpggMetaAllRoles: vi.fn(),
+  fetchOpggMetaForRank: vi.fn(),
 }));
 vi.mock("./dpmTierlist", () => ({
   fetchDpmMeta: vi.fn(),
 }));
 
-import { loadChampionDb, readChampionDbCacheUnsafe } from "./championDb";
+import { loadChampionDb, readChampionDbCacheUnsafe, RANK_LIST_WAIT_MS } from "./championDb";
+import { DATA_UPDATED_EVENT } from "../state/dataSyncStore";
 import { fetchChampions, fetchLatestPatch } from "./dataDragon";
 import { loadAggregatedCounters, loadAggregatedMeta } from "./aggregateRepo";
-import { fetchOpggMetaAllRoles } from "./opggMeta";
+import { fetchOpggMetaAllRoles, fetchOpggMetaForRank } from "./opggMeta";
 import { fetchDpmMeta } from "./dpmTierlist";
 import { usePrefsStore } from "../state/prefsStore";
 
@@ -30,6 +32,7 @@ const mChampions = vi.mocked(fetchChampions);
 const mAggMeta = vi.mocked(loadAggregatedMeta);
 const mAggCounters = vi.mocked(loadAggregatedCounters);
 const mOpgg = vi.mocked(fetchOpggMetaAllRoles);
+const mOpggRank = vi.mocked(fetchOpggMetaForRank);
 const mDpm = vi.mocked(fetchDpmMeta);
 
 const CACHE_KEY = "lol-draft-advisor:championDb:v16";
@@ -76,6 +79,7 @@ function sources(over: {
   soloq?: MetaTier[];
   proplay?: MetaTier[];
   dpm?: MetaTier[];
+  opggRank?: MetaTier[];
   champions?: Record<string, Champion>;
 } = {}) {
   mPatch.mockResolvedValue(PATCH);
@@ -86,6 +90,7 @@ function sources(over: {
   );
   mAggCounters.mockResolvedValue(COUNTERS);
   mDpm.mockResolvedValue(over.dpm ?? []);
+  mOpggRank.mockResolvedValue(over.opggRank ?? []);
 }
 
 let storage: MemStorage;
@@ -241,6 +246,102 @@ describe("loadChampionDb — meta source preference", () => {
     expect(db.metaSourceCounts?.dpm).toBe(3);
   });
 
+  it("by-rank source with dpm empty: op.gg's list for that rank is used, S picks not pro-demoted", async () => {
+    usePrefsStore.setState({
+      loaded: true,
+      prefs: { ...usePrefsStore.getState().prefs, metaSource: "dpm", dpmTier: "gold" },
+    });
+    sources({
+      opgg: [tier("266", "TOP", "A")],
+      opggRank: [{ ...tier("222", "BOTTOM", "S"), games: 334206 }],
+      proplay: [tier("266", "TOP", "A")],
+    });
+
+    const db = await loadChampionDb();
+
+    expect(mOpggRank).toHaveBeenCalledOnce();
+    expect(mOpggRank.mock.calls[0][0]).toBe("gold");
+    expect(db.metaSourceRequested).toBe("dpm");
+    expect(db.metaSourceUsed).toBe("opggRank");
+    expect(db.meta).toEqual([{ ...tier("222", "BOTTOM", "S"), games: 334206 }]);
+  });
+
+  it("a slow per-rank list does not hold the load: general list now, new data announced when it lands", async () => {
+    vi.useFakeTimers({ toFake: ["Date", "setTimeout", "clearTimeout"] });
+    usePrefsStore.setState({
+      loaded: true,
+      prefs: { ...usePrefsStore.getState().prefs, metaSource: "dpm", dpmTier: "gold" },
+    });
+    sources({ opgg: [tier("266", "TOP", "A")] });
+    let arrive!: (rows: MetaTier[]) => void;
+    mOpggRank.mockReturnValue(new Promise((res) => (arrive = res)));
+    const updated = vi.fn();
+    window.addEventListener(DATA_UPDATED_EVENT, updated);
+
+    const loading = loadChampionDb();
+    await vi.advanceTimersByTimeAsync(RANK_LIST_WAIT_MS);
+    const db = await loading;
+    expect(db.metaSourceUsed).toBe("opgg");
+    expect(updated).not.toHaveBeenCalled();
+
+    arrive([tier("222", "BOTTOM", "S")]);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(updated).toHaveBeenCalledTimes(1);
+    window.removeEventListener(DATA_UPDATED_EVENT, updated);
+  });
+
+  it("a rank the user just picked is waited for, however long it takes", async () => {
+    vi.useFakeTimers({ toFake: ["Date", "setTimeout", "clearTimeout"] });
+    usePrefsStore.setState({
+      loaded: true,
+      prefs: { ...usePrefsStore.getState().prefs, metaSource: "dpm", dpmTier: "silver" },
+    });
+    sources({ opgg: [tier("266", "TOP", "A")] });
+    let arrive!: (rows: MetaTier[]) => void;
+    mOpggRank.mockReturnValue(new Promise((res) => (arrive = res)));
+    let done = false;
+    const loading = loadChampionDb(true, { waitForRankList: true }).then((db) => ((done = true), db));
+    await vi.advanceTimersByTimeAsync(RANK_LIST_WAIT_MS * 3);
+    expect(done).toBe(false);
+    arrive([tier("222", "BOTTOM", "S")]);
+    expect((await loading).metaSourceUsed).toBe("opggRank");
+  });
+
+  it("a per-rank list in time is used and announces nothing", async () => {
+    usePrefsStore.setState({
+      loaded: true,
+      prefs: { ...usePrefsStore.getState().prefs, metaSource: "dpm", dpmTier: "gold" },
+    });
+    sources({ opggRank: [tier("222", "BOTTOM", "S")] });
+    const updated = vi.fn();
+    window.addEventListener(DATA_UPDATED_EVENT, updated);
+    const db = await loadChampionDb();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(db.metaSourceUsed).toBe("opggRank");
+    expect(updated).not.toHaveBeenCalled();
+    window.removeEventListener(DATA_UPDATED_EVENT, updated);
+  });
+
+  it("by-rank source with no rank data at all: the general op.gg list takes over", async () => {
+    usePrefsStore.setState({
+      loaded: true,
+      prefs: { ...usePrefsStore.getState().prefs, metaSource: "dpm", dpmTier: "gold" },
+    });
+    sources({ opgg: [tier("266", "TOP", "A")] });
+    const db = await loadChampionDb();
+    expect(db.metaSourceUsed).toBe("opgg");
+  });
+
+  it("another source never asks for the per-rank list", async () => {
+    usePrefsStore.setState({
+      loaded: true,
+      prefs: { ...usePrefsStore.getState().prefs, metaSource: "proplay" },
+    });
+    sources({ proplay: [tier("266", "TOP", "A")] });
+    await loadChampionDb();
+    expect(mOpggRank).not.toHaveBeenCalled();
+  });
+
   it("falls back to localStorage prefs before the store hydrates", async () => {
     storage.setItem("lol-draft-prefs", JSON.stringify({ metaSource: "soloq" }));
     sources({ soloq: [tier("950", "MIDDLE", "B")] });
@@ -290,6 +391,23 @@ describe("loadChampionDb — localStorage cache", () => {
     const third = await loadChampionDb();
     expect(mPatch).toHaveBeenCalledTimes(2);
     expect(third.fetchedAt).toBe(NOW + 61 * 60_000);
+  });
+
+  it("a by-rank list that fell back to the general one is not kept: the next load tries the rank again", async () => {
+    usePrefsStore.setState({
+      loaded: true,
+      prefs: { ...usePrefsStore.getState().prefs, metaSource: "dpm", dpmTier: "gold" },
+    });
+    sources({ opgg: [tier("266", "TOP", "A")] });
+    const missed = await loadChampionDb();
+    expect(missed.metaSourceUsed).toBe("opgg");
+
+    mOpggRank.mockResolvedValue([tier("222", "BOTTOM", "S")]);
+    const next = await loadChampionDb();
+    expect(next.metaSourceUsed).toBe("opggRank");
+    // That one is kept as usual.
+    expect(await loadChampionDb()).toEqual(next);
+    expect(mOpggRank).toHaveBeenCalledTimes(2);
   });
 
   it("force=true bypasses a fresh cache", async () => {

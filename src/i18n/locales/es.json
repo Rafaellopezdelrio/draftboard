@@ -1518,7 +1518,7 @@
     "dpmByRank": "dpm.lol (por rango)",
     "fallbackTip": "Pediste \"{{requested}}\" pero no hay datos; mostrando \"{{used}}\" como fallback.",
     "usingFallback": "⚠ usando {{used}}",
-    "rankTitle": "Rango (Iron → Challenger)",
+    "rankTitle": "Tu rango: la lista cambia según el nivel",
     "regionTitle": "Región",
     "timeframeTitle": "Ventana de tiempo",
     "days7": "7 días",
@@ -1536,7 +1536,28 @@
     "champOne": "campeón",
     "champMany": "campeones",
     "sortHint": "Ordenar: click en cabecera",
-    "allRanksNote": "Lista de todos los rangos juntos (op.gg). Ahora mismo no hay datos separados por rango."
+    "allRanksNote": "Lista de todos los rangos juntos (op.gg): la de tu rango no ha llegado. Elige tu rango para volver a intentarlo.",
+    "fewGames": "pocos datos",
+    "fewGamesTip": "Solo {{games}} partidas: su nota puede cambiar mucho.",
+    "ranks": {
+      "challenger": "Challenger",
+      "grandmaster": "Grandmaster",
+      "master_plus": "Maestro o más",
+      "master": "Maestro",
+      "diamond_plus": "Diamante o más",
+      "diamond": "Diamante",
+      "emerald_plus": "Esmeralda o más",
+      "emerald": "Esmeralda",
+      "platinum_plus": "Platino o más",
+      "platinum": "Platino",
+      "gold_plus": "Oro o más",
+      "gold": "Oro",
+      "silver_plus": "Plata o más",
+      "silver": "Plata",
+      "bronze": "Bronce",
+      "iron": "Hierro",
+      "all": "Todos los rangos"
+    }
   },
   "history": {
     "title": "Historial",

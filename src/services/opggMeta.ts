@@ -102,6 +102,70 @@ export async function fetchOpggMetaAllRoles(
   }
 }
 
+/** Longest wait for the per-rank list. A rank the server has not stored yet
+ * takes it 12-20 s to build (op.gg slows down under the burst); after that it
+ * answers at once. */
+export const OPGG_RANK_TIMEOUT_MS = 25_000;
+
+interface OpggRankLaneResponse {
+  champions?: Array<OpggLaneEntry & { games: number }>;
+}
+
+/**
+ * Tier list for ONE rank bracket (op.gg tier names: "gold", "emerald_plus"…).
+ * One request per lane — the worker asks op.gg champion by champion, a lane
+ * at a time. All five lanes or nothing: a list with a lane missing would look
+ * complete and be wrong, so on any gap, failure or timeout this returns []
+ * and the caller falls back to the general list.
+ */
+export async function fetchOpggMetaForRank(
+  tier: string,
+  nameToKey: Map<string, string>
+): Promise<MetaTier[]> {
+  const proxyUrl = getRiotProxyUrl();
+  if (!proxyUrl) return [];
+  const lanes = Object.keys(LANE_TO_ROLE) as Array<keyof OpggTierListResponse>;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const all = Promise.all(
+      lanes.map((lane) =>
+        fetchProxyJson<OpggRankLaneResponse>(
+          `${proxyUrl}/opgg/tierlist-rank?tier=${encodeURIComponent(tier)}&lane=${lane}`
+        )
+      )
+    );
+    const timeout = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new Error("timeout")), OPGG_RANK_TIMEOUT_MS);
+    });
+    const data = await Promise.race([all, timeout]);
+    const result: MetaTier[] = [];
+    for (let i = 0; i < lanes.length; i++) {
+      const rows = data[i].champions ?? [];
+      if (rows.length === 0) return [];
+      for (const e of rows) {
+        const key = nameToKey.get(e.name);
+        if (!key) continue;
+        result.push({
+          championKey: key,
+          role: LANE_TO_ROLE[lanes[i]],
+          tier: e.tier,
+          winRate: e.winRate,
+          pickRate: e.pickRate,
+          banRate: e.banRate,
+          games: e.games,
+        });
+      }
+    }
+    return result;
+  } catch (e) {
+    // Quiet: the general list takes over and the screen says so.
+    trackFetch("opgg rank meta", "fail", String(e).slice(0, 120));
+    return [];
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 // Keep the parser exported for tests (still used in test suite to validate
 // the worker's parser logic locally).
 // NOTE: this is now legacy — the production code path doesn't use it.

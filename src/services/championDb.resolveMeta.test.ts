@@ -11,7 +11,7 @@ const STATIC = [tier("static-1")];
 const staticFallback = () => STATIC;
 
 function arrays(over: Partial<MetaSourceArrays> = {}): MetaSourceArrays {
-  return { opgg: [], soloq: [], proplay: [], dpm: [], ...over };
+  return { opgg: [], soloq: [], proplay: [], dpm: [], opggRank: [], ...over };
 }
 
 describe("resolveMeta — meta-source fallback matrix (data-moat resilience)", () => {
@@ -20,6 +20,17 @@ describe("resolveMeta — meta-source fallback matrix (data-moat resilience)", (
     expect(resolveMeta("opgg", arrays({ opgg: [tier("o")] }), staticFallback).used).toBe("opgg");
     expect(resolveMeta("proplay", arrays({ proplay: [tier("p")] }), staticFallback).used).toBe("proplay");
     expect(resolveMeta("soloq", arrays({ soloq: [tier("s")] }), staticFallback).used).toBe("soloq");
+  });
+
+  it("by-rank source: dpm first, then op.gg for that rank, then the general list", () => {
+    const both = arrays({ dpm: [tier("d")], opggRank: [tier("r")], opgg: [tier("o")] });
+    expect(resolveMeta("dpm", both, staticFallback).used).toBe("dpm");
+    const rank = resolveMeta("dpm", arrays({ opggRank: [tier("r")], opgg: [tier("o")] }), staticFallback);
+    expect(rank.used).toBe("opggRank");
+    expect(rank.meta[0].championKey).toBe("r");
+    expect(resolveMeta("dpm", arrays({ opgg: [tier("o")] }), staticFallback).used).toBe("opgg");
+    // The per-rank list belongs to the by-rank source only.
+    expect(resolveMeta("proplay", arrays({ opggRank: [tier("r")], opgg: [tier("o")] }), staticFallback).used).toBe("opgg");
   });
 
   it("blends pro + soloq when source is blend and either has data", () => {

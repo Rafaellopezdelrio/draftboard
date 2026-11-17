@@ -38,6 +38,8 @@ export interface MetaTier {
   winRate: number;
   pickRate: number;
   banRate: number;
+  /** Games behind the row, when the source says (op.gg per rank). */
+  games?: number;
 }
 
 export interface ChampionDb {
@@ -58,6 +60,7 @@ export interface ChampionDb {
     | "soloq"
     | "blend"
     | "dpm"
+    | "opggRank" // op.gg for one rank bracket (stands in for dpm while it is paused)
     | "static"; // hard-coded list, when even opgg failed
   /** What the user asked for in prefs. */
   metaSourceRequested?: "opgg" | "proplay" | "soloq" | "blend" | "dpm";

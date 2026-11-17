@@ -1518,7 +1518,7 @@
     "dpmByRank": "dpm.lol (by rank)",
     "fallbackTip": "You asked for \"{{requested}}\" but there's no data; showing \"{{used}}\" as fallback.",
     "usingFallback": "⚠ using {{used}}",
-    "rankTitle": "Rank (Iron → Challenger)",
+    "rankTitle": "Your rank: the list changes with the level",
     "regionTitle": "Region",
     "timeframeTitle": "Timeframe",
     "days7": "7 days",
@@ -1536,7 +1536,28 @@
     "champOne": "champion",
     "champMany": "champions",
     "sortHint": "Sort: click a header",
-    "allRanksNote": "One list for all ranks (op.gg). Per-rank data isn't available right now."
+    "allRanksNote": "One list for all ranks together (op.gg): your rank's list did not arrive. Pick your rank to try again.",
+    "fewGames": "few games",
+    "fewGamesTip": "Only {{games}} games: its grade can change a lot.",
+    "ranks": {
+      "challenger": "Challenger",
+      "grandmaster": "Grandmaster",
+      "master_plus": "Master+",
+      "master": "Master",
+      "diamond_plus": "Diamond+",
+      "diamond": "Diamond",
+      "emerald_plus": "Emerald+",
+      "emerald": "Emerald",
+      "platinum_plus": "Platinum+",
+      "platinum": "Platinum",
+      "gold_plus": "Gold+",
+      "gold": "Gold",
+      "silver_plus": "Silver+",
+      "silver": "Silver",
+      "bronze": "Bronze",
+      "iron": "Iron",
+      "all": "All ranks"
+    }
   },
   "history": {
     "title": "History",
