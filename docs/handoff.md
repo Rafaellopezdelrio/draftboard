@@ -1,12 +1,20 @@
-# Draftboard — Session Handoff (2026-11-16)
+# Draftboard — Session Handoff (2026-11-17)
 
 Internal working notes: where the repo stands, what's verified, what's still
 open. Not user documentation — see [`../README.md`](../README.md) for that.
 
 ## Status
 
-- **2026-11-16 — v0.5.5 published; "best players" sync + updater recheck on
-  main, NOT released (0.5.6 waits for the owner's OK).**
+- **2026-11-17 — v0.5.6 published** (tag v0.5.6, manifest live on worker
+  2026-11-17.1): updater recheck, "best players" sync, background downloads.
+  Installer answers 200, `/updater/latest.json` serves 0.5.6. Not verified:
+  the in-app update from an installed 0.5.5, and a real game on 0.5.6.
+  CI was red since before 0.5.5 for two stale reasons, fixed in 20fa4d5:
+  e2e smoke looked for English labels ("Patch", "TOP", "Tier List") and
+  RUSTSEC-2026-0538 (quinn-udp → 0.5.16, lockfile only; landed after the
+  0.5.6 tag, so the 0.5.6 binary still has 0.5.14).
+- **2026-11-16 — v0.5.5 published; "best players" sync + updater recheck
+  built (released in 0.5.6).**
   - **Working rule from the owner (2026-11-16): never start something new
     until the previous thing is finished** — done, checked in the real app
     and released if it applies. Open items go first, one at a time.
@@ -17,7 +25,7 @@ open. Not user documentation — see [`../README.md`](../README.md) for that.
     (features work with no saved account; scout uses the client's region
     through the proxy), AI on by default, plain texts. GRID is
     non-commercial: fine while the app is free.
-  - **On main, unreleased:**
+  - **Released in 0.5.6:**
     - Updater: an open app re-checks every 30 min until an update is found
       (`UPDATE_RECHECK_MS`, `useUpdateCheck`).
     - Settings → "🏆 Actualizar con los mejores jugadores"
@@ -32,8 +40,8 @@ open. Not user documentation — see [`../README.md`](../README.md) for that.
   - **Worker 2026-11-16.6 (deployed):** allow-list takes
     `challengerleagues` and the `queue` param on match ids; per-IP Riot
     limit 300/min; a refused Riot call forwards `Retry-After` and
-    `X-Rate-Limit-Type` so the app waits what Riot asks. **The unreleased
-    app needs this worker** (0.5.5 does not).
+    `X-Rate-Limit-Type` so the app waits what Riot asks. 0.5.6 needs this
+    worker (0.5.5 does not).
   - **Measured through the worker (2026-11-16, ~22:45 CET):** KR 689 unique
     matches ≈ 24 min, EUW ≈ 700 ≈ 25 min at ~47 requests/min per region.
     Europe's match service answers 429 `x-rate-limit-type: server` in bursts
@@ -77,7 +85,7 @@ open. Not user documentation — see [`../README.md`](../README.md) for that.
     and role (≈250 calls per rank), caches for hours, the app gets the list
     ready. Not checked from the worker, call limits unknown. Done when 10
     random champions match op.gg's site at the same rank.
-  - **Background downloads (on main, unreleased, 1953bd7):** the pro, ranked
+  - **Background downloads (0.5.6, 1953bd7):** the pro, ranked
     and best-players downloads live in `state/dataSyncStore.ts`
     (`runDataSync`): footer pill "Actualizando datos · N%" then the result
     (`AppFooter` → `DataSyncPill`), Settings shows the progress again when
@@ -86,7 +94,7 @@ open. Not user documentation — see [`../README.md`](../README.md) for that.
     data in place (the "reload the app" hints are gone). Checked in the dev
     app with the pro download: 1 % → 99 % with Settings closed, 613 games,
     data reloaded the same second. Closing the app still stops a download.
-  - **Next:** release 0.5.6 (owner's OK), then the tier list per rank.
+  - **Next:** the tier list per rank.
     The "compute the aggregate once a night" idea is parked under the
     owner's rule: our aggregate is only the backup behind op.gg, so making
     it faster to get improves little.
