@@ -10,6 +10,9 @@ open. Not user documentation — see [`../README.md`](../README.md) for that.
   back, Trends in plain words, builds most-played first, more tests.
   Installer answers 200, `/updater/latest.json` serves 0.5.8. Not verified:
   the in-app update 0.5.7 → 0.5.8 and a live champ select.
+- **2026-11-17 — worker 2026-11-17.10:** removed the public `/dpm/tierlist`
+  route (scraped dpm.lol against its terms; the app stopped calling it on
+  2026-10-29). The app's paused dpm code stays until dpm.lol answers.
 - **2026-11-17 — v0.5.7 published** (tag v0.5.7, manifest live on worker
   2026-11-17.7): per-rank champion list from op.gg, op.gg grades per rank,
   pick advice where the draft decides inside your pool, "best for this
