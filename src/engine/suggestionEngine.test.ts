@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { suggest } from "./suggestionEngine";
+import { suggest, masteryRecency } from "./suggestionEngine";
 import { useDraftStore } from "../state/draftStore";
 import type { Champion, ChampionDb, MetaTier, Role } from "../types/champion";
 import type { ChampionMasteryDto } from "../services/riotApi";
@@ -213,6 +213,39 @@ describe("suggestionEngine", () => {
     });
     // Yasuo one-trick (B-tier) should outrank generic S-tier Zed thanks to mastery + bonus
     expect(result[0].champion.key).toBe(YASUO_KEY);
+  });
+
+  it("an old main not played for months no longer outranks the champion played now", () => {
+    // The owner's case: Lee Sin-style old main (max mastery, last played half a
+    // year ago, 1 recent game) against the champion of most recent games.
+    const DAY = 86_400_000;
+    const db = mkDb([
+      meta(ZED_KEY, "MIDDLE", 0.1, "A"),
+      meta(YASUO_KEY, "MIDDLE", 0.1, "A"),
+    ]);
+    const oldMain = { ...masteryEntry(Number(YASUO_KEY), 11, 300000), lastPlayTime: Date.now() - 180 * DAY };
+    const playedNow = { ...masteryEntry(Number(ZED_KEY), 6, 40000), lastPlayTime: Date.now() - 2 * DAY };
+    const result = suggest({
+      db,
+      role: "MIDDLE",
+      allyKeys: [],
+      enemyKeys: [],
+      bannedKeys: [],
+      masteries: [oldMain, playedNow],
+      personalStats: [personalEntry(Number(ZED_KEY), 0.57, 14), personalEntry(Number(YASUO_KEY), 1, 1)],
+    });
+    expect(result[0].champion.key).toBe(ZED_KEY);
+    // The old main gets no "your main" / "perfect pick" label either.
+    const yasuo = result.find((s) => s.champion.key === YASUO_KEY);
+    expect(yasuo?.reasons).not.toContain("suggestions.reason.main");
+    expect(yasuo?.reasons).not.toContain("suggestions.reason.perfectPick");
+  });
+
+  it("masteryRecency: full within 30 days, then 85% / 60% / 40%; no date counts in full", () => {
+    const now = Date.UTC(2026, 10, 17);
+    const ago = (d: number) => now - d * 86_400_000;
+    expect([10, 31, 200, 400].map((d) => masteryRecency(ago(d), now))).toEqual([1, 0.85, 0.6, 0.4]);
+    expect(masteryRecency(0, now)).toBe(1);
   });
 
   it("role=null returns top picks across all roles", () => {

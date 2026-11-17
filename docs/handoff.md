@@ -105,6 +105,16 @@ open. Not user documentation — see [`../README.md`](../README.md) for that.
     Owner's rating of the per-rank list: 7/10 before this, target 8.
     Ideas above 8 (owner agreed order): order by reliability (games),
     trend arrows (op.gg rank_prev_patch), a personal list.
+  - **Pick advice: stale mains (on main, NOT released, 2026-11-17).** The
+    owner (jungle; recent games J4 14, Viego/Vi/Wukong a few) got Lee Sin
+    every draft: M11 128k points, last played 2026-05-25, 1 stored game.
+    Mastery is lifetime and the one-trick boost (+0.12) ignored recency, so
+    mastery alone gave him +0.32 out of 1. `masteryRecency(lastPlayTime)`
+    now scales the mastery score (full ≤30 d, 85 % ≤90 d, 60 % ≤1 y, 40 %
+    beyond; no date = full); the one-trick boost needs ≤30 d and the
+    comfort / "perfect pick" label ≤90 d. His Lee Sin: 0.320 → 0.136.
+    Still weak: recent games only enter as win rate (`personalScore`), not
+    as how much a champion is played — that is the personal-list idea.
   - **Installed app showed 0.5.1 (2026-11-17):** the desktop icon
     `Draftboard.lnk` points at an old local build
     (`src-tauri/target/release/…`, 0.5.1 from 2026-11-12); the updater

@@ -218,9 +218,11 @@ function scoreChampion(c: Champion, ctx: ScoreCtx): ScoredSuggestion {
   // gets a flat +12% bump so it ranks above generic S-tier meta picks. This reflects
   // what the user expects: "if I main this champion, suggest it first".
   const masteryEntry = ctx.masteryById.get(Number(c.key));
+  // Only a CURRENT main: played in the last 30 days.
   const isOneTrick = !!(masteryEntry &&
     masteryEntry.championLevel >= 10 &&
-    masteryEntry.championPoints >= 100000);
+    masteryEntry.championPoints >= 100000 &&
+    masteryRecency(masteryEntry.lastPlayTime) === 1);
   const personalEntry = ctx.personalById.get(Number(c.key));
   const personalNotBad = !personalEntry || personalEntry.winRate >= 0.45;
   if (isOneTrick && personalNotBad) {
@@ -233,8 +235,10 @@ function scoreChampion(c: Champion, ctx: ScoreCtx): ScoredSuggestion {
   // "Comfort pick" — lower threshold than one-trick. Covers champs the
   // user is familiar with: mastery level 5+ OR 30k+ points. Used both
   // for UI labelling and the "pick perfecto" detection below.
+  // "You know it" only if also played in the last 90 days.
   const isComfort = !!(masteryEntry &&
-    (masteryEntry.championLevel >= 5 || masteryEntry.championPoints >= 30000));
+    (masteryEntry.championLevel >= 5 || masteryEntry.championPoints >= 30000) &&
+    masteryRecency(masteryEntry.lastPlayTime) >= 0.85);
   // "Pick perfecto" — comfort AND meta-strong. We read the MetaTier label
   // directly because the meta score is already 0-1 normalised and we lose
   // the original S+/S/A distinction. Anything from A-tier upwards counts.
@@ -338,7 +342,23 @@ function masteryScore(
   // Bonus for high points (one-trick)
   if (m.championPoints >= 200000) score = Math.min(1.0, score + 0.1);
   else if (m.championPoints >= 100000) score = Math.min(1.0, score + 0.05);
-  return score;
+  // Mastery is lifetime: a champion mained two years ago and not touched since
+  // kept topping every draft. What counts is what the player plays now.
+  return 0.2 + (score - 0.2) * masteryRecency(m.lastPlayTime);
+}
+
+/**
+ * Share of a champion's mastery that still counts, by how long ago it was
+ * last played: full within 30 days, 85% within 90, 60% within a year, 40%
+ * beyond. No date (0 or missing) → full, as before.
+ */
+export function masteryRecency(lastPlayTime: number | undefined, now = Date.now()): number {
+  if (!lastPlayTime) return 1;
+  const days = (now - lastPlayTime) / 86_400_000;
+  if (days <= 30) return 1;
+  if (days <= 90) return 0.85;
+  if (days <= 365) return 0.6;
+  return 0.4;
 }
 
 // Complementary archetype pairings — established comp synergies where one side
