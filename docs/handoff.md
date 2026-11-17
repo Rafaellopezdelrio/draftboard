@@ -5,6 +5,11 @@ open. Not user documentation — see [`../README.md`](../README.md) for that.
 
 ## Status
 
+- **2026-11-17 — v0.5.7 published** (tag v0.5.7, manifest live on worker
+  2026-11-17.7): per-rank champion list from op.gg, op.gg grades per rank,
+  pick advice where the draft decides inside your pool, "best for this
+  game". Installer answers 200, `/updater/latest.json` serves 0.5.7. Not
+  verified: the in-app update 0.5.6 → 0.5.7 and a live champ select.
 - **2026-11-17 — v0.5.6 published** (tag v0.5.6, manifest live on worker
   2026-11-17.1): updater recheck, "best players" sync, background downloads.
   Installer answers 200, `/updater/latest.json` serves 0.5.6. Not verified:
