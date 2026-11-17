@@ -200,7 +200,9 @@ export function suggest({
     const best = scored.reduce((a, b) => (b.breakdown.fit > a.breakdown.fit ? b : a));
     if (best !== top[0] && !best.breakdown.isComfort && best.breakdown.fit - top[0].breakdown.fit >= BEST_FOR_DRAFT_MARGIN) {
       best.reasons.unshift("suggestions.reason.bestForDraft");
-      if (!top.includes(best)) top[top.length - 1] = best;
+      // Takes the last slot, never your #1 (with a one-pick list there is
+      // no slot to spare: the label shows only if it is already listed).
+      if (!top.includes(best) && top.length >= 2) top[top.length - 1] = best;
     }
   }
   return top;
