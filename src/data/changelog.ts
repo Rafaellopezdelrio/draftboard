@@ -15,6 +15,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "0.6.0",
+    date: "2026-11-18",
+    highlights: [
+      "🏆 Mis campeones (menú Mi juego): todos tus campeones en clasificatorias y Clash, con % de victorias, KDA, súbditos, oro y visión, y cada uno contra cada rival",
+      "📊 Tu ELO en la portada: liga, división y LP, tus últimas 10 clasificatorias y tu temporada en Solo/Dúo con % de victorias",
+      "💬 Botón «Sugerencia / Error» arriba: nos llega de verdad y te avisa si falla",
+      "🧠 Coach IA: habla del tema que más pesó en tu partida y no te dice «te costó la partida» cuando ganas",
+      "🛒 Objetos: nombres en tu idioma y fuera los que ya no existen en el juego",
+      "📡 Si op.gg o la IA se caen, te lo dice claro en vez de fallar callado",
+    ],
+  },
+  {
     version: "0.5.9",
     date: "2026-11-17",
     highlights: [

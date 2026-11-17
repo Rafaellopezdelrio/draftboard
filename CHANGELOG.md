@@ -4,6 +4,29 @@ All notable changes to Draftboard are documented here.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/);
 versions match the Tauri app version + the `vX.Y.Z` git tags.
 
+## [0.6.0] — 2026-11-18
+
+### Added
+- "Mis campeones" view (Mi juego menu, Ctrl+K): every champion in the stored
+  ranked/Clash games with record, win rate, KDA, CS, gold and vision, a total
+  row and a per-lane-opponent breakdown; queue, season and search filters.
+- Home rank card: solo-queue tier, division and LP (re-read after each game,
+  last one remembered when the client is closed), last 10 Ranked Solo/Duo
+  games and the season record with win rate.
+- "Sugerencia / Error" header button: reports go to our worker (D1) and a
+  failure is shown. Opt-in anonymous usage counter (unticked by default).
+
+### Changed
+- AI coach: data-picked main topic, role targets given, no "cost you the
+  game" on wins.
+- Item names in the UI language; build tips and the AI guide only use items
+  in today's Rift shop.
+- Plain messages when op.gg or the AI are down.
+
+### Fixed
+- Home record counted Arena games read from the client as Rift games.
+- Error reports were never sent by published builds (no Sentry DSN).
+
 ## [0.5.9] — 2026-11-17
 
 ### Changed
