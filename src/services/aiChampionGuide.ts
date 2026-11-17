@@ -19,7 +19,9 @@ export interface AiChampionGuide {
  * Exported for unit tests.
  */
 export function guideCacheKey(patch: string, role?: string, language?: "es" | "en"): string {
-  return role ? `${patch}|${role}|${language ?? "es"}` : patch;
+  // "items" marks guides written from the live item list: older ones could
+  // name removed items (Crown of the Shattered Queen) and are regenerated.
+  return role ? `${patch}|${role}|${language ?? "es"}|items` : patch;
 }
 
 export async function getCachedGuide(
@@ -74,6 +76,9 @@ export interface GenerateGuideInput {
   patch: string;
   language?: "es" | "en";
   force?: boolean;
+  /** Finished items sold on the Rift this patch, in `language`
+   * (itemMeta.riftItemNames). The guide may only name these. */
+  itemNames?: string[];
 }
 
 export async function generateChampionGuide(
@@ -95,14 +100,18 @@ FORMATO OBLIGATORIO (markdown plano):
 - Headers con ## (ej: "## Power spikes")
 - **Negrita** para nombres de habilidades, items y conceptos clave
 - NO uses _underscores_ ni *asteriscos sueltos* para énfasis — solo **dobles asteriscos**
-- Nombres de items en su forma canónica con mayúsculas y apóstrofes: "Doran's Shield", "Ninja Tabi", "Trinity Force"
+- Objetos: SOLO los de la lista que te paso, escritos exactamente igual (es la tienda de este parche; cualquier otro ya no existe)
 - Habilidades en formato "Q (Nombre)" o solo el nombre con su tecla entre paréntesis al final: "Ground Slam (E)"
 - Nada de _ITEM_, _NOMBRE_ o cosas así
 ${input.language === "en" ? "Respond in English." : "Responde en español."}`;
 
+  const items = input.itemNames ?? [];
+  const itemBlock = items.length
+    ? `\n\nOBJETOS QUE EXISTEN EN ESTE PARCHE (usa solo estos, con este nombre exacto):\n${items.join("; ")}`
+    : "";
   const userPrompt = `Guía de ${input.championName} ${input.role} para el parche ${input.patch}.
 
-Sé concreto y meta-aware: combos exactos, breakpoints reales, builds del parche actual. Nada de generalidades.`;
+Sé concreto y meta-aware: combos exactos, breakpoints reales, builds del parche actual. Nada de generalidades.${itemBlock}`;
 
   const raw = await callAi({
     provider: input.provider,
@@ -116,7 +125,7 @@ Sé concreto y meta-aware: combos exactos, breakpoints reales, builds del parche
   // highlight even when the model emits plain text. Llama tends to keep
   // ability names in ALL CAPS like "GROUND SLAM (E)" but skips the
   // **bold** wrapping we asked for — wrap them ourselves.
-  const text = enrichGuideMarkdown(raw);
+  const text = enrichGuideMarkdown(raw, items);
 
   await saveGuide(
     {
@@ -141,12 +150,13 @@ Sé concreto y meta-aware: combos exactos, breakpoints reales, builds del parche
  * Transformations:
  *   1. Ability names like `GROUND SLAM (E)` → `**Ground Slam (E)**`
  *      (also Title-Cases the words for readability)
- *   2. Known item names (Doran's Shield, Trinity Force, etc.) → bolded
+ *   2. Item names from this patch's shop (`itemNames`, in the guide's
+ *      language) → bolded with their exact shop spelling
  *   3. Numbered top-level lists `1. Foo:` → `## Foo`
  *
  * Exported for unit tests.
  */
-export function enrichGuideMarkdown(raw: string): string {
+export function enrichGuideMarkdown(raw: string, itemNames: string[] = []): string {
   let out = raw;
 
   // 1. Ability names: ALL CAPS phrase ending in (Q|W|E|R|P).
@@ -161,53 +171,24 @@ export function enrichGuideMarkdown(raw: string): string {
     }
   );
 
-  // 2. Item names — a hand-curated list of the most-mentioned items in
-  //    coaching prompts. Casing in the raw text varies (ALL CAPS,
-  //    Title Case, missing apostrophes). We match case-insensitively and
-  //    keep the canonical form when replacing.
-  const KNOWN_ITEMS = [
-    "Doran's Shield", "Doran's Blade", "Doran's Ring",
-    "Health Potion", "Control Ward", "Stealth Ward",
-    "Boots of Swiftness", "Sorcerer's Shoes", "Plated Steelcaps",
-    "Mercury's Treads", "Ionian Boots of Lucidity", "Berserker's Greaves",
-    "Mobility Boots", "Ninja Tabi",
-    "Trinity Force", "Spirit Visage", "Sundered Sky", "Death's Dance",
-    "Spear of Shojin", "Rabadon's Deathcap", "Nashor's Tooth",
-    "Liandry's Torment", "Riftmaker", "Stridebreaker", "Sterak's Gage",
-    "Black Cleaver", "Eclipse", "Goredrinker", "Heartsteel",
-    "Iceborn Gauntlet", "Frozen Heart", "Thornmail", "Randuin's Omen",
-    "Force of Nature", "Warmog's Armor", "Dead Man's Plate",
-    "Kraken Slayer", "Galeforce", "Immortal Shieldbow", "Bloodthirster",
-    "Infinity Edge", "Lord Dominik's Regards", "Mortal Reminder",
-    "Mercurial Scimitar", "Phantom Dancer", "Rapid Firecannon",
-    "Runaan's Hurricane", "Statikk Shiv", "Stormrazor",
-    "Locket of the Iron Solari", "Redemption", "Mikael's Blessing",
-    "Knight's Vow", "Zeke's Convergence", "Imperial Mandate",
-    "Shurelya's Battlesong", "Moonstone Renewer", "Echoes of Helia",
-    "Crown of the Shattered Queen", "Cosmic Drive", "Horizon Focus",
-    "Luden's Companion", "Malignance", "Stormsurge", "Shadowflame",
-    "Void Staff", "Banshee's Veil", "Zhonya's Hourglass",
-    "Dusk and Dawn", "Dawn-shroud", "Ardent Censer",
-    "Hubris", "Opportunity", "Profane Hydra", "Voltaic Cyclosword",
-    "Yoremaster's Razor", "Spectral Sickle", "Edge of Night",
-  ];
-  // Use a single regex for performance; escape apostrophes for the alternation.
-  const escaped = KNOWN_ITEMS.map((n) =>
-    n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-  );
-  // Sort by length desc so longer names win ("Doran's Shield" before "Doran").
-  escaped.sort((a, b) => b.length - a.length);
-  const itemRe = new RegExp(
-    `\\b(${escaped.join("|")})\\b`,
-    "gi"
-  );
-  out = out.replace(itemRe, (match) => {
-    // Find the canonical form preserving the original casing for unknowns
-    const canon = KNOWN_ITEMS.find(
-      (n) => n.toLowerCase() === match.toLowerCase()
+  // 2. Item names from this patch's shop. Casing in the raw text varies
+  //    (ALL CAPS, Title Case), so match case-insensitively and write the
+  //    shop spelling. Letter-aware edges instead of \b so Spanish names with
+  //    accents ("Égida…") match; names the model already bolded are skipped.
+  if (itemNames.length) {
+    const escaped = itemNames
+      .map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+      // Longer names first ("Doran's Shield" before "Doran's").
+      .sort((a, b) => b.length - a.length);
+    const itemRe = new RegExp(
+      `(?<![\\p{L}\\p{N}*])(${escaped.join("|")})(?![\\p{L}\\p{N}*])`,
+      "giu"
     );
-    return `**${canon ?? match}**`;
-  });
+    out = out.replace(itemRe, (match) => {
+      const canon = itemNames.find((n) => n.toLowerCase() === match.toLowerCase());
+      return `**${canon ?? match}**`;
+    });
+  }
 
   // 3. Numbered top-level sections: `1. Win condition:` → `## Win condition`
   //    Only matches at start of line + ends with `:` so we don't break

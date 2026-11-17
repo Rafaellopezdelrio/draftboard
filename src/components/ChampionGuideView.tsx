@@ -20,6 +20,7 @@ import { PowerSpikesBars } from "./PowerSpikesBars";
 import { BuildPanel } from "./BuildPanel";
 import { getMatchupTips } from "../data/matchupTips";
 import { generateChampionGuide, getCachedGuide } from "../services/aiChampionGuide";
+import { riftItemNames } from "../services/itemMeta";
 import { aiReady } from "../services/aiProvider";
 import { usePrefsStore } from "../state/prefsStore";
 import {
@@ -489,6 +490,9 @@ function AiGuideTab({
         patch,
         language: lang,
         force,
+        // Today's shop in the guide's language: no removed items, no English
+        // names in a Spanish guide.
+        itemNames: await riftItemNames(patch, lang),
       });
       if (shownKeyRef.current === key) {
         setText(guideText);

@@ -23,6 +23,11 @@ vi.mock("../services/aiChampionGuide", () => ({
   getCachedGuide: vi.fn(),
   generateChampionGuide: vi.fn(),
 }));
+vi.mock("../services/itemMeta", () => ({
+  riftItemNames: vi.fn(async (_patch: string, lang?: string) =>
+    lang === "en" ? ["Sundered Sky"] : ["Cielo partido"]
+  ),
+}));
 
 // BuildPanel pulls live-game hooks, SQLite aggregates and op.gg fetches;
 // a stub that echoes its props is enough to observe what the guide passes.
@@ -459,6 +464,8 @@ describe("ChampionGuideView — AI guide tab", () => {
       patch: "16.10.1",
       language: "en",
       force: false,
+      // Today's shop, in the guide's language.
+      itemNames: ["Sundered Sky"],
     });
     expect(screen.getByText("Generando guía profesional...")).toBeInTheDocument();
 

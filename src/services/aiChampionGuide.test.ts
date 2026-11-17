@@ -45,19 +45,43 @@ describe("enrichGuideMarkdown — ability names", () => {
 });
 
 describe("enrichGuideMarkdown — item names", () => {
-  it("bolds known items case-insensitively and canonicalises casing", () => {
-    const out = enrichGuideMarkdown(
-      "Compra DORAN'S SHIELD y luego trinity force al final."
-    );
-    expect(out).toContain("**Doran's Shield**");
-    expect(out).toContain("**Trinity Force**");
+  const shop = ["Escudo de Doran", "Fuerza de la Trinidad", "Égida de la Legión", "Doran's Shield", "Doran's"];
+
+  it("bolds the shop's items case-insensitively with the shop spelling", () => {
+    const out = enrichGuideMarkdown("Compra ESCUDO DE DORAN y luego fuerza de la trinidad al final.", shop);
+    expect(out).toContain("**Escudo de Doran**");
+    expect(out).toContain("**Fuerza de la Trinidad**");
   });
 
-  it("matches longest item names first (Doran's Shield, not Doran's)", () => {
-    const out = enrichGuideMarkdown("Get a Doran's Shield in lane.");
-    // Should bold the full 'Doran's Shield', not split.
+  it("matches accented Spanish names and longest names first", () => {
+    const out = enrichGuideMarkdown("Get a Doran's Shield, then Égida de la Legión.", shop);
     expect(out).toContain("**Doran's Shield**");
     expect(out).not.toContain("**Doran's** Shield");
+    expect(out).toContain("**Égida de la Legión**");
+  });
+
+  it("does not bold an item twice and leaves removed items plain", () => {
+    expect(enrichGuideMarkdown("**Escudo de Doran** primero.", shop)).toBe("**Escudo de Doran** primero.");
+    expect(enrichGuideMarkdown("Crown of the Shattered Queen", shop)).toBe("Crown of the Shattered Queen");
+  });
+});
+
+describe("generateChampionGuide — today's shop only", () => {
+  beforeEach(() => {
+    callAi.mockReset().mockResolvedValue("Compra cielo partido.");
+    getDbMock.mockReset().mockResolvedValue({ select: async () => [], execute: async () => {} });
+  });
+
+  it("gives the AI the shop list in the guide's language and drops the English-names rule", async () => {
+    const out = await generateChampionGuide({
+      provider: "groq", apiKey: "k", championId: 1, championName: "Garen", role: "TOP",
+      patch: "16.23.1", language: "es", itemNames: ["Cielo partido", "Fuerza de la naturaleza"],
+    });
+    const { systemPrompt, userPrompt } = callAi.mock.calls[0][0] as { systemPrompt: string; userPrompt: string };
+    expect(userPrompt).toContain("OBJETOS QUE EXISTEN EN ESTE PARCHE");
+    expect(userPrompt).toContain("Cielo partido; Fuerza de la naturaleza");
+    expect(systemPrompt).not.toContain("Doran's Shield");
+    expect(out).toBe("Compra **Cielo partido**.");
   });
 });
 
