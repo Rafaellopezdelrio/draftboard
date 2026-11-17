@@ -10,6 +10,13 @@ open. Not user documentation — see [`../README.md`](../README.md) for that.
   back, Trends in plain words, builds most-played first, more tests.
   Installer answers 200, `/updater/latest.json` serves 0.5.8. Not verified:
   the in-app update 0.5.7 → 0.5.8 and a live champ select.
+- **2026-11-17 — worker 2026-11-17.12:** every S wins ≥ 51 %, in every list.
+  The general (fallback) list now uses `rankLaneRows` like the per-rank one
+  (old 0-2 → S + crutch blacklist gone: S 74 → 20, Lee Sin 48 % was S);
+  fill-ins also need 51 %, so a lane may have fewer than 3 S (Iron mid/ADC
+  have 1). Stored rank lanes are regraded when served, so a rule change
+  applies at once without cold rebuilds. Live scan: 50 rank×lane lists +
+  general, 0 S under 51 %. Owner's rule: criteria over number of S.
 - **2026-11-17 — worker 2026-11-17.10:** removed the public `/dpm/tierlist`
   route (scraped dpm.lol against its terms; the app stopped calling it on
   2026-10-29). The app's paused dpm code stays until dpm.lol answers.
