@@ -143,7 +143,13 @@ export async function loadChampionDb(
   const keyToDDId = new Map<string, string>();
   for (const c of Object.values(champions)) keyToDDId.set(c.key, c.id);
 
+  // op.gg's per-lane lists are already lane-curated by op.gg's own data; the
+  // hand map only guards our small self-synced samples. On op.gg it hid real
+  // picks it had not caught up with (Cho'Gath jungle, S at Emerald+, 5 % pick;
+  // Qiyana jungle, 8-14 % pick) and hid nothing else.
+  const trustLaneLists = metaSourceUsed === "opgg" || metaSourceUsed === "opggRank";
   const roleFilteredMeta = meta.filter((m) => {
+    if (trustLaneLists) return true;
     const ddId = keyToDDId.get(m.championKey);
     if (!ddId) return true; // unknown — keep
     const allowedRoles = CHAMPION_ROLES[ddId];

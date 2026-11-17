@@ -111,11 +111,11 @@ afterEach(() => {
 });
 
 describe("loadChampionDb — pipeline (op.gg default source)", () => {
-  it("builds the db: off-meta filter, pro-play demotion, counts, counters", async () => {
+  it("builds the db: op.gg lane lists trusted, pro-play demotion, counts, counters", async () => {
     sources({
       opgg: [
         tier("266", "TOP", "S"), // has pro presence → stays S
-        tier("266", "MIDDLE", "B"), // Aatrox mid is off-meta → dropped
+        tier("266", "MIDDLE", "B"), // off the hand map, but op.gg lists it for mid → kept
         tier("222", "BOTTOM", "S"), // S with zero pro presence → demoted to A
         tier("950", "JUNGLE", "B"), // not in CHAMPION_ROLES → kept
         tier("9999", "TOP", "A"), // unknown champion key → kept
@@ -130,6 +130,7 @@ describe("loadChampionDb — pipeline (op.gg default source)", () => {
     expect(db.counters).toBe(COUNTERS);
     expect(db.meta).toEqual([
       tier("266", "TOP", "S"),
+      tier("266", "MIDDLE", "B"),
       tier("222", "BOTTOM", "A"),
       tier("950", "JUNGLE", "B"),
       tier("9999", "TOP", "A"),
@@ -146,6 +147,23 @@ describe("loadChampionDb — pipeline (op.gg default source)", () => {
     expect(mChampions).toHaveBeenCalledWith(PATCH);
     // dpm.lol is only hit when it's the selected source.
     expect(mDpm).not.toHaveBeenCalled();
+  });
+
+  it("our own small SoloQ sample still goes through the hand role map", async () => {
+    usePrefsStore.setState({
+      loaded: true,
+      prefs: { ...usePrefsStore.getState().prefs, metaSource: "soloq" },
+    });
+    sources({
+      soloq: [
+        tier("266", "TOP", "A"),
+        tier("266", "MIDDLE", "B"), // Aatrox mid is off the map → dropped
+        tier("950", "JUNGLE", "B"), // not in the map → kept
+      ],
+    });
+    const db = await loadChampionDb();
+    expect(db.metaSourceUsed).toBe("soloq");
+    expect(db.meta).toEqual([tier("266", "TOP", "A"), tier("950", "JUNGLE", "B")]);
   });
 
   it("keeps S-tier picks when no pro data has been synced yet", async () => {
