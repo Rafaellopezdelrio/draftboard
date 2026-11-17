@@ -146,8 +146,10 @@ If any of these is a problem for Riot, we will remove it.
 
 ### Data storage
 ```
-Player data is stored locally on the user's PC (SQLite). The worker only keeps
-a short edge cache (max 24 h) and stores nothing else. For the AI review, a
+Player data is stored locally on the user's PC (SQLite). The worker keeps a
+short edge cache (max 24 h). Users can opt in (unticked by default) to
+anonymous error reports and a daily usage counter (random install id, no Riot
+ID, no IP stored); suggestions they type are stored too. For the AI review, a
 summary of the user's own match is sent to Groq to write the advice; it is not
 sold or shared for any other purpose.
 ```

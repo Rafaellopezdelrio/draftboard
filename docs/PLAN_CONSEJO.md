@@ -63,11 +63,18 @@ marca cada punto cuando esté hecho **y comprobado**.
 - [x] Poner al día `docs/RIOT_KEY_APPLICATION.md` con lo que hace la app hoy
       (17/11: límites reales, IA por el servidor, descarga de mejores
       jugadores, tier list por rango, lista de fuentes externas).
-- [ ] Página web sencilla (GitHub Pages) con capturas y botón de descarga:
-      Riot avisa de que con una web incompleta es poco probable que aprueben.
-      Capturas actuales en `docs/screenshots/` (del 12/11, 4 imágenes).
-- [ ] Rafael envía la solicitud de clave de producción en el portal
-      (developer.riotgames.com → Register Product → Production).
+- [x] Página web sencilla (GitHub Pages) con capturas:
+      **https://rafaellopezdelrio.github.io/draftboard** (17/11). Fuente en
+      `site/`, publicada en la rama `gh-pages` (`git subtree split --prefix
+      site`). "Beta cerrada", sin botón de descarga (clave personal). Lleva el
+      `riot.txt` de verificación: no borrarlo.
+- [x] Rafael envía la solicitud de clave de producción en el portal.
+      17/11: **enviada desde Firefox** (Brave/Chrome/Opera fallan: error del
+      portal, github.com/RiotGames/developer-relations/issues/1194). App
+      **909160**, web verificada con riot.txt, estado **Pending Review**. La
+      caja de descripción admite 1500 caracteres: versión corta en
+      `D:\Claude\draftboard\riot-descripcion-corta.txt`. Riot puede tardar
+      meses y contesta en la pestaña "Messages" de la solicitud.
 - [ ] Decidir cómo cerrar la descarga pública mientras llega la clave (p. ej.
       no difundir el enlace; estudiar si el instalador puede servirse sin
       repositorio público sin romper las actualizaciones).
@@ -163,6 +170,38 @@ otro nombre); seguir este plan y antes de invitar a nadie:
 | **IA gratis de Groq** (límite o cierre) | Ya prueba otro modelo si uno está saturado (0.5.9) | Segundo proveedor gratis en el servidor (p. ej. Gemini); guardar análisis ya hechos; el usuario puede poner su propia clave (ya existe) |
 | **Servidor Cloudflare gratis** (límite diario) | La app avisa y usa lo guardado | Plan de pago de 5 $/mes si hay usuarios de verdad |
 | **Actualización mala** | Llega a todos en minutos | Durante la prueba, una versión por semana y solo con pruebas en verde; poder volver a la anterior |
+
+## A futuro: IA para miles de usuarios (pedido por Rafael, 17/11)
+
+Hoy la IA gratis de Groq es **una sola cuenta para todos**: unas 1 000
+peticiones al día y ~2 análisis por minuto por modelo. Con 10 probadores
+sobra; con miles se acaba antes de comer. Solo tiene sentido mirarlo si el
+día 21 sale "seguir". Opciones, de más barata a más cara:
+
+1. **Guardar lo ya hecho:** el análisis de una partida no cambia; si se pide
+   otra vez, sale de lo guardado (no gasta).
+2. **Tope por persona y día** (p. ej. 5 análisis), contado en nuestro servidor.
+3. **Clave propia del usuario** (ya existe en Ajustes) para quien quiera más.
+4. **Segundo proveedor gratis** en el servidor (p. ej. Gemini) cuando Groq
+   esté lleno.
+5. **Plan de pago** de Groq u otro: se paga por uso; precio por mirar el día
+   que haga falta (un análisis son ~5 000 fichas). Con ingresos o sin ellos
+   decide si es viable (ver normas de Riot sobre cobrar).
+
+## A futuro: cobrar (pedido por Rafael, 17/11)
+
+También solo si el día 21 sale "seguir". Para cobrar hace falta:
+- **Clave de producción** de Riot y cumplir sus normas de cobro (lo gratis
+  tiene que seguir gratis, nada de pagar por ventaja injusta; ver memoria
+  `draftboard-monetizacion-riot`).
+- **Quitar lo que no deja cobrar:** GRID (solo uso no comercial) y revisar las
+  condiciones de op.gg, u.gg, lolvvv y Leaguepedia.
+- **Datos propios** en su lugar. Así lo hacen op.gg o u.gg: con una clave de
+  producción descargan millones de partidas de la API oficial de Riot
+  (Match-V5), las suman y sacan porcentajes de victoria, builds y tier list
+  por rango. Nosotros ya lo hacemos en pequeño ("descarga de mejores
+  jugadores", Máster+); a lo grande necesita la clave de producción y un
+  servidor que guarde y sume (coste mensual).
 
 ## Ya hecho este día (contexto)
 
