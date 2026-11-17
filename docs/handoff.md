@@ -160,6 +160,18 @@ open. Not user documentation — see [`../README.md`](../README.md) for that.
     The "compute the aggregate once a night" idea is parked under the
     owner's rule: our aggregate is only the backup behind op.gg, so making
     it faster to get improves little.
+  - **Test quality pass (2026-11-17, not released):** mutation testing with
+    Stryker (`npx stryker run`, ~12 min; narrow set in
+    `vitest.stryker.config.ts`): pick engine 41 → 90 %, op.gg tier grading
+    72 → 92 % after edge tests (`suggestionEngine.edges.test.ts`,
+    `opggTier.parse.test.js`). Property tests with a new seed every run
+    (`src/test/random.ts`, replay `PROP_SEED=<seed>`):
+    `suggestionEngine.props.test.ts`, `opggTier.props.test.js`. They caught
+    "best for this game" overwriting #1 on a one-pick list (fixed). Also:
+    the hand role map hid Qiyana/Cho'Gath jungle in the tier list and in the
+    pick engine — op.gg lane lists now count too; Trends window in plain
+    words. Owner rules: re-run Stryker on changed brain files before a
+    release; clean-up pass after each release.
   - **Per-rank S needs a real win rate (worker 2026-11-17.8, live, no app
     release needed):** owner saw Lee Sin S in Challenger. op.gg's grade
     leans on pick rate (Lee 50 % WR, 19 % pick → S; Nidalee 56 % → B).
