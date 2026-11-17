@@ -15,6 +15,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "0.5.8",
+    date: "2026-11-17",
+    highlights: [
+      "🏅 Tier list más fiable: para ser S hay que ganar de verdad, no solo ser popular (Lee Sin deja de ser S en Challenger)",
+      "🌲 Cho'Gath y Qiyana en la jungla vuelven a salir en la lista y en las recomendaciones",
+      "📈 Tendencias en palabras claras («X cuando ganas · Y cuando pierdes») y ya no se sale de la ventana",
+      "🛠️ Builds: primero la más jugada, no una de 2 partidas con «100 %»",
+      "🌍 Ajustes: icono propio para «mejores jugadores» y textos sin jerga",
+      "🧪 Más fiable por dentro: pruebas nuevas que ya han cazado un fallo",
+    ],
+  },
+  {
     version: "0.5.7",
     date: "2026-11-17",
     highlights: [

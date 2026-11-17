@@ -4,6 +4,27 @@ All notable changes to Draftboard are documented here.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/);
 versions match the Tauri app version + the `vX.Y.Z` git tags.
 
+## [0.5.8] — 2026-11-17
+
+### Changed
+- Per-rank tier list: an op.gg S needs a 51 % win rate (else A); thin lanes
+  are filled up to 3 S by win rate among real picks (live on the worker since
+  2026-11-17.8). Lee Sin is A in Challenger jungle.
+- Trends window in plain words: no effect sizes, "cuando ganas / cuando
+  pierdes", ✓/✗ marks, Spanish rank and lane names.
+- Builds from our own data: most-played build first.
+- Settings: best-players download uses 🌍; ranked tooltip in plain words.
+
+### Fixed
+- Cho'Gath and Qiyana jungle were hidden by the old hand role map, in the
+  tier list and in pick advice; op.gg lane lists now count.
+- Trends: everything under the filters scrolls inside the window.
+- "Best for this game" could replace your #1 on a one-pick list.
+
+### Internal
+- Mutation testing (Stryker) and seeded property tests: pick engine catches
+  90 % of injected faults (was 41 %), tier grading 92 % (was 72 %).
+
 ## [0.5.7] — 2026-11-17
 
 ### Added
