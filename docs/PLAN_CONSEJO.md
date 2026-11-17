@@ -79,6 +79,28 @@ marca cada punto cuando esté hecho **y comprobado**.
       a los probadores.
 - [ ] Probar 5 partidas la selección de campeones en directo con la lógica nueva.
 
+#### Añadido por el segundo consejo (17/11/2026: ¿auditoría completa o seguir?)
+Veredicto unánime: **no hacer auditoría completa** (sería pulir en bucle con
+otro nombre); seguir este plan y antes de invitar a nadie:
+- [ ] **Instalación desde cero** en un usuario de Windows limpio, sin nuestras
+      claves ni historial, hasta la primera partida. Arreglar solo lo que
+      bloquee. Si salen 3-4 fallos que bloquean o más: revisión corta solo de
+      ese recorrido (no auditoría completa).
+- [ ] **Qué pasa si op.gg o la IA fallan** (cortarlos y mirar la app).
+- [ ] **Una partida en otra posición** que no sea jungla.
+- [ ] **Cerrar la descarga pública** mientras no haya clave de producción.
+- [ ] **Límites con 10 personas:** calcular si la clave personal (100 cada
+      2 min por región) y la IA gratis aguantan a 10 probadores a la vez.
+- [ ] **De dónde salen los 5-10 probadores** (lista de nombres antes de empezar).
+- [ ] **Qué es éxito el día 21, fijado ANTES de empezar** (p. ej. cuántos la
+      abren 3 o más días por semana; qué uso cuenta).
+- [ ] **Canal para avisar de fallos** (un grupo o un formulario) y que la app
+      pueda guardar un informe de error para enviarlo.
+- [ ] **Excepción pactada:** solo se saca versión nueva si un fallo impide usar
+      la app. Nada más.
+- [ ] **Contador anónimo:** consentimiento claro (RGPD) y que cumpla las
+      normas de Riot, revisado antes de activarlo.
+
 ### Fase 1 — Prueba cerrada (3 semanas, sin versiones nuevas salvo fallos graves)
 - [ ] 5-10 amigos o conocidos, grupo cerrado (nada de Reddit ni Discord abiertos).
 - [ ] Avisar de que el coach solo está medido en jungla.
