@@ -215,7 +215,7 @@ describe("TrendsView — empty", () => {
     expect(screen.getByText("Tendencias")).toBeInTheDocument();
     expect(screen.getByText("0 partidas")).toBeInTheDocument();
     expect(screen.getByText("Aún no hay tendencias")).toBeInTheDocument();
-    expect(screen.queryByText(/vs tu rango/)).toBeNull();
+    expect(screen.queryByText(/Comparado con tu rango/)).toBeNull();
     expect(screen.queryByText(/Evolución/)).toBeNull();
     expect(screen.queryByRole("img", { name: "Tendencia de winrate" })).toBeNull();
     expect(recordLeak).not.toHaveBeenCalled();
@@ -226,10 +226,10 @@ describe("TrendsView — real engines on 6 games", () => {
   it("renders trend insights with severity styling", async () => {
     await renderWith(sixTop());
     expect(screen.getByText("6 partidas")).toBeInTheDocument();
-    const wr = screen.getByText("Winrate ↑ 100% — mejorando");
+    const wr = screen.getByText("Victorias ↑ 100% — mejorando");
     expect(wr).toHaveClass("text-good");
     expect(screen.getByText("KDA: 1.33 (antes 1.33)")).toHaveClass("text-white/80");
-    expect(screen.getByText("CS/min: 6.5 (antes 6.5)")).toBeInTheDocument();
+    expect(screen.getByText("Súbditos por minuto: 6.5 (antes 6.5)")).toBeInTheDocument();
     expect(screen.queryByText("Aún no hay tendencias")).toBeNull();
   });
 
@@ -237,20 +237,20 @@ describe("TrendsView — real engines on 6 games", () => {
     await renderWith(sixTop());
     const scroll = screen.getByTestId("trends-scroll");
     expect(scroll).toHaveClass("overflow-y-auto", "min-h-0", "flex-1");
-    expect(scroll).toContainElement(screen.getByText("Winrate ↑ 100% — mejorando"));
-    expect(scroll).toContainElement(screen.getByText("AI Coach (tendencias)"));
+    expect(scroll).toContainElement(screen.getByText("Victorias ↑ 100% — mejorando"));
+    expect(scroll).toContainElement(screen.getByText("Consejos del coach"));
     expect(scroll).not.toContainElement(screen.getByText("Tendencias"));
   });
 
   it("dropping winrate renders as a warn insight", async () => {
     const ms = sixTop().map((m, i) => ({ ...m, win: i >= 3 }));
     await renderWith(ms);
-    expect(screen.getByText("Winrate ↓ 0% — empeorando")).toHaveClass("text-meh");
+    expect(screen.getByText("Victorias ↓ 0% — empeorando")).toHaveClass("text-meh");
   });
 
   it("falls back to the weakest-area box when there is no leak report", async () => {
     await renderWith(sixTop());
-    expect(screen.queryByText(/Patrón cruzado/)).toBeNull();
+    expect(screen.queryByText(/Qué cambia cuando ganas/)).toBeNull();
     expect(screen.getByText("Tu mayor problema esta semana")).toBeInTheDocument();
     expect(screen.getByText("Muertes")).toBeInTheDocument();
     expect(screen.getByText("KDA medio de 1.33 — mueres demasiado.")).toBeInTheDocument();
@@ -258,38 +258,38 @@ describe("TrendsView — real engines on 6 games", () => {
 
   it("benchmarks per-minute stats vs the default Gold–Plat bracket for the dominant role", async () => {
     await renderWith(sixTop());
-    const header = screen.getByText(/vs tu rango · Gold–Plat · TOP/);
-    expect(within(header).getByText("(estimado)")).toBeInTheDocument();
+    const header = screen.getByText(/Comparado con tu rango · Oro–Platino · Top/);
+    expect(within(header).getByText("(aproximado)")).toBeInTheDocument();
     const box = header.parentElement!;
     const row = (label: string) => within(box).getByText(label).parentElement!;
 
-    expect(row("CS/min")).toHaveTextContent("6.5vs 6.5≈");
-    expect(within(row("CS/min")).getByText("≈")).toHaveClass("text-white/40");
-    expect(row("Visión/min")).toHaveTextContent("1.00vs 0.60↑");
-    expect(within(row("Visión/min")).getByText("↑")).toHaveClass("text-good");
-    expect(row("Muertes/min")).toHaveTextContent("0.30vs 0.27↓");
-    expect(within(row("Muertes/min")).getByText("↓")).toHaveClass("text-bad");
-    expect(row("KDA")).toHaveTextContent("1.33vs 2.20↓");
+    expect(row("Súbditos por minuto")).toHaveTextContent("6.5vs 6.5≈");
+    expect(within(row("Súbditos por minuto")).getByText("≈")).toHaveClass("text-white/40");
+    expect(row("Visión por minuto")).toHaveTextContent("1.00vs 0.60✓");
+    expect(within(row("Visión por minuto")).getByText("✓")).toHaveClass("text-good");
+    expect(row("Muertes por minuto")).toHaveTextContent("0.30vs 0.27✗");
+    expect(within(row("Muertes por minuto")).getByText("✗")).toHaveClass("text-bad");
+    expect(row("KDA")).toHaveTextContent("1.33vs 2.20✗");
   });
 
   it("uses the player's rank bracket when rankTier is provided", async () => {
     await renderWith(sixTop(), { rankTier: "diamond" });
-    const box = screen.getByText(/vs tu rango · Emerald–Diamond · TOP/).parentElement!;
-    expect(within(box).getByText("CS/min").parentElement).toHaveTextContent("6.5vs 7.2↓");
+    const box = screen.getByText(/Comparado con tu rango · Esmeralda–Diamante · Top/).parentElement!;
+    expect(within(box).getByText("Súbditos por minuto").parentElement).toHaveTextContent("6.5vs 7.2✗");
   });
 
   it("omits vision benchmark when no match has a vision score", async () => {
     await renderWith(sixTop().map((m) => ({ ...m, visionScore: null })));
-    const box = screen.getByText(/vs tu rango/).parentElement!;
-    expect(within(box).queryByText("Visión/min")).toBeNull();
-    expect(within(box).getByText("CS/min")).toBeInTheDocument();
+    const box = screen.getByText(/Comparado con tu rango/).parentElement!;
+    expect(within(box).queryByText("Visión por minuto")).toBeNull();
+    expect(within(box).getByText("Súbditos por minuto")).toBeInTheDocument();
   });
 
   it("vision/min only counts minutes from games that recorded vision", async () => {
     // 3 of 6 games have no vision score: 90 vision / 90 min = 1.00, not 0.50.
     await renderWith(sixTop().map((m, i) => (i % 2 === 0 ? m : { ...m, visionScore: null })));
-    const box = screen.getByText(/vs tu rango/).parentElement!;
-    expect(within(box).getByText("Visión/min").parentElement).toHaveTextContent("1.00vs 0.60↑");
+    const box = screen.getByText(/Comparado con tu rango/).parentElement!;
+    expect(within(box).getByText("Visión por minuto").parentElement).toHaveTextContent("1.00vs 0.60✓");
   });
 
   it("picks the most-played lane as benchmark role when filtering ALL", async () => {
@@ -300,7 +300,7 @@ describe("TrendsView — real engines on 6 games", () => {
       mk({ position: "" }),
     ];
     await renderWith(ms);
-    expect(screen.getByText(/vs tu rango · Gold–Plat · JUNGLE/)).toBeInTheDocument();
+    expect(screen.getByText(/Comparado con tu rango · Oro–Platino · Jungla/)).toBeInTheDocument();
   });
 
   it("benchmarks only count games in the benchmarked role, without remakes", async () => {
@@ -313,19 +313,19 @@ describe("TrendsView — real engines on 6 games", () => {
       mk({ durationSec: 180, visionScore: 0, cs: 0 }),
     ];
     await renderWith(ms);
-    const box = screen.getByText(/vs tu rango · Gold–Plat · TOP/).parentElement!;
-    expect(within(box).getByText("Visión/min").parentElement).toHaveTextContent("1.00vs 0.60↑");
-    expect(within(box).getByText("CS/min").parentElement).toHaveTextContent("6.5vs 6.5≈");
+    const box = screen.getByText(/Comparado con tu rango · Oro–Platino · Top/).parentElement!;
+    expect(within(box).getByText("Visión por minuto").parentElement).toHaveTextContent("1.00vs 0.60✓");
+    expect(within(box).getByText("Súbditos por minuto").parentElement).toHaveTextContent("6.5vs 6.5≈");
   });
 
   it("no benchmarks without any lane position (e.g. ARAM)", async () => {
     await renderWith(sixTop().map((m) => ({ ...m, position: "", queueId: 450 })));
-    expect(screen.queryByText(/vs tu rango/)).toBeNull();
+    expect(screen.queryByText(/Comparado con tu rango/)).toBeNull();
   });
 
   it("no benchmarks under 5 games", async () => {
     await renderWith(sixTop().slice(0, 4));
-    expect(screen.queryByText(/vs tu rango/)).toBeNull();
+    expect(screen.queryByText(/Comparado con tu rango/)).toBeNull();
   });
 
   it("renders the three spark charts once there are >=3 games", async () => {
@@ -352,9 +352,9 @@ describe("TrendsView — role + queue filters", () => {
     expect(screen.getByText("11 partidas")).toBeInTheDocument();
     fireEvent.change(screen.getAllByRole("combobox")[0], { target: { value: "JUNGLE" } });
     expect(screen.getByText("5 partidas")).toBeInTheDocument();
-    expect(screen.getByText("Tu mayor problema en JUNGLE")).toBeInTheDocument();
+    expect(screen.getByText("Tu mayor problema en Jungla")).toBeInTheDocument();
     expect(screen.getByText("Farming")).toBeInTheDocument();
-    expect(screen.getByText(/vs tu rango · Gold–Plat · JUNGLE/)).toBeInTheDocument();
+    expect(screen.getByText(/Comparado con tu rango · Oro–Platino · Jungla/)).toBeInTheDocument();
   });
 
   it("queue select filters by numeric queue id and back to all", async () => {
@@ -375,29 +375,30 @@ describe("TrendsView — leak box", () => {
     vi.mocked(analyzeLeaks).mockReturnValue(report);
     await renderWith(sixTop());
 
-    expect(screen.getByText("Patrón cruzado · victorias vs derrotas")).toBeInTheDocument();
+    expect(screen.getByText("Qué cambia cuando ganas y cuando pierdes")).toBeInTheDocument();
     expect(
-      screen.getByText("Tu mayor diferencia entre ganar y perder: Muertes. (40% WR en 10)")
+      screen.getByText("Lo que más cambia cuando pierdes: Muertes por partida. Ganas 40 de cada 100 (10 partidas).")
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        "Antes de cada pelea evalúa si la trade vale. Revisa el minimapa tras cada recall."
+        "Antes de cada pelea piensa si te sale a cuenta. Mira el minimapa cada vez que vuelvas de la base."
       )
     ).toBeInTheDocument();
 
     const insight = (text: string) => screen.getByText(text).closest("div")!.parentElement!;
-    const deaths = insight("Muertes: derrotas 8.0 vs victorias 4.0");
-    expect(deaths).toHaveTextContent("d2.00");
+    const deaths = insight("Muertes por partida: 4.0 cuando ganas · 8.0 cuando pierdes");
+    // The bar shows the size of the gap; no "d2.00" statistic for people to decode.
+    expect(deaths).not.toHaveTextContent("d2.00");
     // effect*60 capped at 100%
     const deathsBar = deaths.querySelector(".h-full") as HTMLElement;
     expect(deathsBar).toHaveClass("bg-bad/70");
     expect(deathsBar.style.width).toBe("100%");
 
-    const cs = insight("Farm (CS/min): derrotas 5.1 vs victorias 6.4");
+    const cs = insight("Súbditos por minuto: 6.4 cuando ganas · 5.1 cuando pierdes");
     expect(cs.querySelector(".h-full")).toHaveClass("bg-meh/70");
     expect((cs.querySelector(".h-full") as HTMLElement).style.width).toBe("36%");
 
-    const vis = insight("Visión (score/min): derrotas 0.80 vs victorias 0.95");
+    const vis = insight("Visión por minuto: 0.95 cuando ganas · 0.80 cuando pierdes");
     expect(vis.querySelector(".h-full")).toHaveClass("bg-white/30");
 
     // Leak supersedes the weakest-area box.
@@ -419,7 +420,7 @@ describe("TrendsView — leak box", () => {
     await renderWith(sixTop());
     expect(
       screen.getByText(
-        "Tus stats mecánicas no distinguen tus victorias de tus derrotas — el leak está en macro/draft, no en mecánica. (50% WR en 12)"
+        "Juegas tu campeón igual de bien cuando ganas que cuando pierdes: lo que falla son las decisiones de la partida o el campeón que eliges. Ganas 50 de cada 100 (12 partidas)."
       )
     ).toBeInTheDocument();
     expect(screen.queryByText(/Antes de cada pelea/)).toBeNull();
@@ -431,8 +432,8 @@ describe("TrendsView — leak box", () => {
       ...[8, 9, 8, 9, 8, 9].map((d) => mk({ win: false, deaths: d })),
     ];
     await renderWith(ms);
-    expect(screen.getByText(/^Tu mayor diferencia entre ganar y perder: /)).toBeInTheDocument();
-    expect(screen.getByText(/^Muertes: derrotas 8\.5 vs victorias 2\.5$/)).toBeInTheDocument();
+    expect(screen.getByText(/^Lo que más cambia cuando pierdes: /)).toBeInTheDocument();
+    expect(screen.getByText(/^Muertes por partida: 2\.5 cuando ganas · 8\.5 cuando pierdes$/)).toBeInTheDocument();
     expect(recordLeak).toHaveBeenCalledTimes(1);
   });
 });
@@ -442,27 +443,27 @@ describe("TrendsView — progress box", () => {
     vi.mocked(analyzeProgress).mockReturnValue(progressReport());
     await renderWith(sixTop());
 
-    const label = screen.getByText("en subida");
+    const label = screen.getByText("vas a mejor");
     expect(label).toHaveClass("text-good");
-    expect(label.parentElement).toHaveTextContent("Evolución · en subida");
+    expect(label.parentElement).toHaveTextContent("Evolución · vas a mejor");
     expect(
       screen.getByText("Vas en subida (últimas 5 vs 5 previas): mejora clara en Winrate.")
     ).toBeInTheDocument();
 
     const grid = label.parentElement!.parentElement!;
     const value = (name: string) => within(grid).getByText(name).nextElementSibling!;
-    expect(value("Winrate")).toHaveTextContent("↑ +20%");
+    expect(value("Winrate")).toHaveTextContent("+20% ✓");
     expect(value("Winrate")).toHaveClass("text-good");
-    expect(value("Muertes")).toHaveTextContent("↓ -15%");
+    expect(value("Muertes")).toHaveTextContent("-15% ✗");
     expect(value("Muertes")).toHaveClass("text-bad");
-    expect(value("CS/min")).toHaveTextContent("≈ +1%");
+    expect(value("CS/min")).toHaveTextContent("+1% ≈");
     expect(value("CS/min")).toHaveClass("text-white/40");
   });
 
   it.each([
-    ["declining", "bajón", "text-bad"],
-    ["mixed", "mixto", "text-white/60"],
-    ["stable", "estable", "text-white/60"],
+    ["declining", "vas a peor", "text-bad"],
+    ["mixed", "unas cosas mejor y otras peor", "text-white/60"],
+    ["stable", "sin cambios", "text-white/60"],
   ] as const)("trend %s renders as '%s'", async (trend, text, cls) => {
     vi.mocked(analyzeProgress).mockReturnValue(progressReport({ trend }));
     await renderWith(sixTop());
@@ -473,7 +474,7 @@ describe("TrendsView — progress box", () => {
     const ms = Array.from({ length: 10 }, (_, i) => mk({ win: i < 5, kills: i < 5 ? 10 : 2 }));
     await renderWith(ms);
     expect(screen.getByText(/^Evolución/)).toBeInTheDocument();
-    expect(screen.getByText("en subida")).toBeInTheDocument();
+    expect(screen.getByText("vas a mejor")).toBeInTheDocument();
   });
 });
 
@@ -481,13 +482,13 @@ describe("TrendsView — AI coach", () => {
   it("is hidden when the AI coach is disabled", async () => {
     setPrefs({ aiCoachEnabled: false });
     await renderWith(sixTop());
-    expect(screen.queryByText("AI Coach (tendencias)")).toBeNull();
+    expect(screen.queryByText("Consejos del coach")).toBeNull();
   });
 
   it("is hidden under 5 games even when enabled", async () => {
     setPrefs({ aiCoachEnabled: true, groqApiKey: "test-key" });
     await renderWith(sixTop().slice(0, 4));
-    expect(screen.queryByText("AI Coach (tendencias)")).toBeNull();
+    expect(screen.queryByText("Consejos del coach")).toBeNull();
   });
 
   it("button is disabled without an API key for the active provider", async () => {
@@ -522,7 +523,7 @@ describe("TrendsView — AI coach", () => {
     });
     expect(input.matches[2].championName).toBe("#9999");
     expect(input.benchmarkSummary).toBe(
-      "Rango Gold–Plat (TOP): CS/min 6.5 vs 6.5 (at); Visión/min 1.00 vs 0.60 (above); Muertes/min 0.30 vs 0.27 (below); KDA 1.33 vs 2.20 (below)."
+      "Rango Oro–Platino (TOP): Súbditos por minuto 6.5 vs 6.5 (at); Visión por minuto 1.00 vs 0.60 (above); Muertes por minuto 0.30 vs 0.27 (below); KDA 1.33 vs 2.20 (below)."
     );
     expect(input.playstyleSummary).toMatch(/^Arquetipo: .+KDA 1\.33, CS\/min 6\.5, muertes\/min 0\.30\.$/);
     // Too few games for leak (8) or progress (10) analysis.

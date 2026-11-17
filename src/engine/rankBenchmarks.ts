@@ -13,10 +13,10 @@ export type RankBracket =
   | "master-plus";
 
 const BRACKET_LABEL: Record<RankBracket, string> = {
-  "iron-silver": "Iron–Silver",
-  "gold-plat": "Gold–Plat",
-  "emerald-diamond": "Emerald–Diamond",
-  "master-plus": "Master+",
+  "iron-silver": "Hierro–Plata",
+  "gold-plat": "Oro–Platino",
+  "emerald-diamond": "Esmeralda–Diamante",
+  "master-plus": "Maestro o más",
 };
 
 const TIER_BRACKET: Record<string, RankBracket> = {
@@ -133,9 +133,9 @@ const METRICS: Array<{
   label: string;
   lowerIsBetter: boolean;
 }> = [
-  { key: "cspm", label: "CS/min", lowerIsBetter: false },
-  { key: "vspm", label: "Visión/min", lowerIsBetter: false },
-  { key: "dpm", label: "Muertes/min", lowerIsBetter: true },
+  { key: "cspm", label: "Súbditos por minuto", lowerIsBetter: false },
+  { key: "vspm", label: "Visión por minuto", lowerIsBetter: false },
+  { key: "dpm", label: "Muertes por minuto", lowerIsBetter: true },
   { key: "kda", label: "KDA", lowerIsBetter: false },
 ];
 

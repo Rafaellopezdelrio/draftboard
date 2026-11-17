@@ -58,9 +58,18 @@ function dominantRole(matches: MatchRow[]): Role | null {
 function fmtBench(key: BenchmarkKey, v: number): string {
   return key === "cspm" ? v.toFixed(1) : v.toFixed(2);
 }
+// ✓ / ✗ say "better / worse than your rank" whichever way the number moves
+// (fewer deaths is better), so nobody has to work out what an arrow means.
 function benchArrow(verdict: BenchmarkVerdict): string {
-  return verdict === "above" ? "↑" : verdict === "below" ? "↓" : "≈";
+  return verdict === "above" ? "✓" : verdict === "below" ? "✗" : "≈";
 }
+const ROLE_KEY: Record<string, string> = {
+  TOP: "top",
+  JUNGLE: "jungle",
+  MIDDLE: "mid",
+  BOTTOM: "adc",
+  UTILITY: "support",
+};
 function benchColor(verdict: BenchmarkVerdict): string {
   return verdict === "above"
     ? "text-good"
@@ -352,9 +361,6 @@ export function TrendsView({ db, onClose, rankTier }: Props) {
                         win: l.winFmt,
                       })}
                     </span>
-                    <span className="text-white/40 tabular-nums ml-2">
-                      d{l.effect.toFixed(2)}
-                    </span>
                   </div>
                   <div className="h-1.5 bg-white/5 rounded overflow-hidden mt-0.5">
                     <div
@@ -377,7 +383,9 @@ export function TrendsView({ db, onClose, rankTier }: Props) {
             <div className="mb-3 p-3 rounded border border-bad/60 bg-bad/10">
               <p className="text-xs uppercase text-white/50 tracking-wide">
                 {role !== "ALL"
-                  ? t("trends.weakestIn", { role })
+                  ? t("trends.weakestIn", {
+                      role: ROLE_KEY[role] ? t(`trends.role.${ROLE_KEY[role]}`) : role,
+                    })
                   : t("trends.weakestWeek")}
               </p>
               <p className="font-medium text-white mt-1">{weakest.category}</p>
@@ -389,7 +397,8 @@ export function TrendsView({ db, onClose, rankTier }: Props) {
         {benchmarks && benchmarks.list.length > 0 && (
           <div className="mb-3 p-3 rounded border border-border-subtle bg-bg-card/40">
             <p className="text-xs uppercase text-white/50 tracking-wide">
-              {t("trends.vsRank")} · {bracketLabel(benchmarks.bracket)} · {benchmarks.role}{" "}
+              {t("trends.vsRank")} · {bracketLabel(benchmarks.bracket)} ·{" "}
+              {ROLE_KEY[benchmarks.role] ? t(`trends.role.${ROLE_KEY[benchmarks.role]}`) : benchmarks.role}{" "}
               <span className="text-white/30 normal-case">{t("trends.estimated")}</span>
             </p>
             <div className="mt-2 space-y-1">
@@ -453,9 +462,11 @@ export function TrendsView({ db, onClose, rankTier }: Props) {
                           : "text-white/40"
                     }`}
                   >
-                    {m.direction === "up" ? "↑" : m.direction === "down" ? "↓" : "≈"}{" "}
+                    {/* The number keeps its real sign; the mark says if that
+                      * is good (fewer deaths = −9 % ✓). */}
                     {m.pctChange >= 0 ? "+" : ""}
-                    {Math.round(m.pctChange * 100)}%
+                    {Math.round(m.pctChange * 100)}%{" "}
+                    {m.direction === "up" ? "✓" : m.direction === "down" ? "✗" : "≈"}
                   </span>
                 </div>
               ))}

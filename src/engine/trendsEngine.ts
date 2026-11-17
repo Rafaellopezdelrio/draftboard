@@ -19,7 +19,7 @@ export function computeTrends(matches: MatchRow[]): Trend[] {
 
   // Winrate trend
   out.push(
-    diff("Winrate", winrate(recent), winrate(earlier), {
+    diff("Victorias", winrate(recent), winrate(earlier), {
       goodIfUp: true,
       formatter: (v) => `${(v * 100).toFixed(0)}%`,
       threshold: 0.05,
@@ -37,7 +37,7 @@ export function computeTrends(matches: MatchRow[]): Trend[] {
 
   // Deaths/min
   out.push(
-    diff("Muertes/min", avgDeathsPerMin(recent), avgDeathsPerMin(earlier), {
+    diff("Muertes por minuto", avgDeathsPerMin(recent), avgDeathsPerMin(earlier), {
       goodIfUp: false,
       formatter: (v) => v.toFixed(2),
       threshold: 0.05,
@@ -49,7 +49,7 @@ export function computeTrends(matches: MatchRow[]): Trend[] {
   const earlierDps = earlier.filter((m) => m.position !== "UTILITY");
   if (recentDps.length > 0 && earlierDps.length > 0) {
     out.push(
-      diff("CS/min", avgCspm(recentDps), avgCspm(earlierDps), {
+      diff("Súbditos por minuto", avgCspm(recentDps), avgCspm(earlierDps), {
         goodIfUp: true,
         formatter: (v) => v.toFixed(1),
         threshold: 0.5,

@@ -33,7 +33,7 @@ describe("computeTrends", () => {
       match({ win: false }), match({ win: false }), match({ win: false }),
     ];
     const trends = computeTrends(matches);
-    const wr = trends.find((t) => t.metric === "Winrate");
+    const wr = trends.find((t) => t.metric === "Victorias");
     expect(wr).toBeDefined();
     expect(wr!.direction).toBe("up");
     expect(wr!.severity).toBe("good");
@@ -45,7 +45,7 @@ describe("computeTrends", () => {
       match({ win: true }), match({ win: true }), match({ win: true }),
     ];
     const trends = computeTrends(matches);
-    const wr = trends.find((t) => t.metric === "Winrate");
+    const wr = trends.find((t) => t.metric === "Victorias");
     expect(wr!.direction).toBe("down");
     expect(wr!.severity).toBe("warn");
   });
@@ -75,7 +75,7 @@ describe("computeTrends", () => {
       match({ cs: 30, position: "UTILITY" }), // ignored
     ];
     const trends = computeTrends(matches);
-    const cspm = trends.find((t) => t.metric === "CS/min");
+    const cspm = trends.find((t) => t.metric === "Súbditos por minuto");
     expect(cspm).toBeDefined();
     expect(cspm!.direction).toBe("up"); // recent has the high CS games
   });

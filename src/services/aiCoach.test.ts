@@ -124,8 +124,8 @@ describe("buildTrendsPrompts", () => {
 describe("buildMatchBenchmarkLine", () => {
   it("reads this match's stats vs the player's bracket", () => {
     const line = buildMatchBenchmarkLine(mkMatch(), "me", "GOLD");
-    expect(line).toMatch(/CS\/min below/);
-    expect(line).toMatch(/Gold/);
+    expect(line).toMatch(/Súbditos por minuto below/);
+    expect(line).toMatch(/Oro/);
   });
 
   it("returns empty when the player isn't in the match", () => {
@@ -267,7 +267,7 @@ describe("AI coach orchestration", () => {
       expect(p.systemPrompt).toMatch(
         /MEMORIA DE SESIONES PASADAS[^\n]*\n- \[PATRÓN\/deaths\] Te pillan sin visión$/
       );
-      expect(p.userPrompt).toMatch(/\n\nEsta partida vs tu rango \(Gold[^)]*\): .+\.$/);
+      expect(p.userPrompt).toMatch(/\n\nEsta partida vs tu rango \(Oro[^)]*\): .+\.$/);
     });
 
     it("saves the reply's first sentence as advice memory for this match", async () => {

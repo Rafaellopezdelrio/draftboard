@@ -57,7 +57,7 @@ describe("analyzeProgress", () => {
     );
     const r = analyzeProgress([...older, ...newer])!;
     expect(r.trend).toBe("improving");
-    expect(r.headline).toContain("subida");
+    expect(r.headline).toContain("Vas a mejor");
     expect(r.windowGames).toBe(5);
   });
 
@@ -70,7 +70,7 @@ describe("analyzeProgress", () => {
     );
     const r = analyzeProgress([...older, ...newer])!;
     expect(r.trend).toBe("declining");
-    expect(r.headline).toContain("Bajón");
+    expect(r.headline).toContain("Vas a peor");
   });
 
   it("marks tiny moves as flat / stable", () => {

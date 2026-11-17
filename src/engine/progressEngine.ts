@@ -68,7 +68,7 @@ function cspm(m: MatchRow): number {
 const METRICS: MetricDef[] = [
   {
     key: "winrate",
-    label: "Winrate",
+    label: "Victorias",
     higherIsBetter: true,
     value: (m) => (m.win ? 1 : 0),
     format: (v) => `${Math.round(v * 100)}%`,
@@ -82,7 +82,7 @@ const METRICS: MetricDef[] = [
   },
   {
     key: "cspm",
-    label: "Farm (CS/min)",
+    label: "Súbditos por minuto",
     higherIsBetter: true,
     // CS is meaningless for supports — exclude UTILITY so a support streak
     // doesn't read as a farming regression.
@@ -91,14 +91,14 @@ const METRICS: MetricDef[] = [
   },
   {
     key: "deaths",
-    label: "Muertes",
+    label: "Muertes por partida",
     higherIsBetter: false,
     value: (m) => m.deaths,
     format: (v) => v.toFixed(1),
   },
   {
     key: "vision",
-    label: "Visión (score/min)",
+    label: "Visión por minuto",
     higherIsBetter: true,
     value: (m) =>
       m.visionScore == null ? null : m.visionScore / Math.max(1, m.durationSec / 60),
@@ -106,7 +106,7 @@ const METRICS: MetricDef[] = [
   },
   {
     key: "kp",
-    label: "Implicación (KA/min)",
+    label: "Asesinatos y asistencias por minuto",
     higherIsBetter: true,
     value: (m) => (m.kills + m.assists) / Math.max(1, m.durationSec / 60),
     format: (v) => `${v.toFixed(2)}/min`,
@@ -204,22 +204,22 @@ function buildHeadline(
   regressed: ProgressMetric[],
   half: number
 ): string {
-  const span = `últimas ${half} vs ${half} previas`;
+  const span = `tus últimas ${half} partidas frente a las ${half} anteriores`;
   const best = improved[0];
   const worst = regressed[0];
   switch (trend) {
     case "improving":
       return best
-        ? `Vas en subida (${span}): mejora clara en ${best.label}.`
-        : `Vas en subida (${span}).`;
+        ? `Vas a mejor (${span}), sobre todo en ${best.label}.`
+        : `Vas a mejor (${span}).`;
     case "declining":
       return worst
-        ? `Bajón (${span}): cae ${worst.label}. Recupera ese hábito.`
-        : `Bajón (${span}).`;
+        ? `Vas a peor (${span}), sobre todo en ${worst.label}. Recupera ese hábito.`
+        : `Vas a peor (${span}).`;
     case "mixed":
-      return `Progreso mixto (${span}): sube ${improved[0]?.label ?? "algo"}, baja ${regressed[0]?.label ?? "algo"}.`;
+      return `Unas cosas mejor y otras peor (${span}): mejoras en ${improved[0]?.label ?? "algo"}, empeoras en ${regressed[0]?.label ?? "algo"}.`;
     default:
-      return `Estable (${span}): sin cambios claros. Fuerza una mejora deliberada.`;
+      return `Sin cambios (${span}). Elige una cosa concreta y trabájala.`;
   }
 }
 
