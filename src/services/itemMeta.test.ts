@@ -1,7 +1,7 @@
 // itemMeta: names follow the UI language, and the AI shop list keeps only
 // finished items sold on the Rift this patch (no mode copies, no removed ones).
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { riftItemNames, getItemMeta, ddragonLocale, __testOnly_resetItemMeta } from "./itemMeta";
+import { riftItemNames, getItemMeta, localItemName, ddragonLocale, __testOnly_resetItemMeta } from "./itemMeta";
 
 const items = {
   data: {
@@ -39,6 +39,13 @@ describe("itemMeta", () => {
     await riftItemNames("16.23.1", "es");
     await riftItemNames("16.23.1", "en");
     expect(fetchMock.mock.calls[1][0]).toContain("/en_US/item.json");
+  });
+
+  it("localItemName: the loaded language's name, the engine's English name until then", async () => {
+    expect(localItemName(4401, "Force of Nature")).toBe("Force of Nature");
+    await riftItemNames("16.23.1", "es");
+    expect(localItemName(4401, "Force of Nature")).toBe("Fuerza de la naturaleza");
+    expect(localItemName(999999, "Unknown")).toBe("Unknown");
   });
 
   it("getItemMeta answers after the load, with the Rift flag", async () => {

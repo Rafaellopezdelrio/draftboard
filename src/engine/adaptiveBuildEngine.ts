@@ -168,7 +168,7 @@ export function suggestBuildAdaptations({
   if (comp.apShare >= 0.55) {
     if (!isSquishy)
       out.push({
-        itemId: 4644, // Force of Nature (high MR + magic shield)
+        itemId: 4401, // Force of Nature (high MR + magic shield)
         itemName: "Force of Nature",
         reason: why("needMr", { pct: Math.round(comp.apShare * 100) }),
         priority: "core",
@@ -197,7 +197,7 @@ export function suggestBuildAdaptations({
       );
     if (isMagicScaling)
       out.push({
-        itemId: 3001, // Abyssal Mask (penetración + MR)
+        itemId: 8020, // Abyssal Mask (penetración + MR)
         itemName: "Abyssal Mask",
         reason: why("abyssal"),
         priority: "situational",
@@ -246,8 +246,10 @@ export function suggestBuildAdaptations({
   // QSS / Mercurial vs heavy CC
   if (comp.hardCC >= 3) {
     out.push({
-      itemId: 6035, // Silvermere Dawn
-      itemName: "Silvermere Dawn",
+      // Silvermere Dawn was removed: the full QSS upgrade is Mercurial
+      // Scimitar, an AD item; everyone else gets the Sash itself as core.
+      itemId: isAdScaling ? 3139 : 3140,
+      itemName: isAdScaling ? "Mercurial Scimitar" : "Quicksilver Sash",
       reason: why("cleanse", { count: comp.hardCC }),
       priority: "core",
     });
@@ -260,11 +262,12 @@ export function suggestBuildAdaptations({
     });
   }
 
-  // Anti-engage / Stopwatch
+  // Anti-engage: something that saves you once (Stopwatch no longer gives
+  // stasis; Zhonya's for mages, Guardian Angel for the rest).
   if (comp.divers >= 3 && isSquishy) {
     out.push({
-      itemId: 2420, // Stopwatch
-      itemName: "Stopwatch",
+      itemId: isMagicScaling ? 3157 : 3026,
+      itemName: isMagicScaling ? "Zhonya's Hourglass" : "Guardian Angel",
       reason: why("divers", { count: comp.divers }),
       priority: "situational",
     });

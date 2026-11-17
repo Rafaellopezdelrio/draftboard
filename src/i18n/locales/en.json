@@ -49,7 +49,7 @@
       "dmgAdVsAp": "Enemy team is AD-heavy. Ally tank buys Plated/Randuin. Build situational armor if you're squishy.",
       "trueDmg": "Multiple enemies deal true damage — raw HP won't save you. Mix HP + resistances + escapes.",
       "myHypercarry": "{{name}} is a hypercarry. Your team must peel for you. Ask for peel and stay back in teamfights.",
-      "myLongRangeVsDive": "Their comp has dive — ward the river + buy Stopwatch/QSS. Their main CD = your fight window.",
+      "myLongRangeVsDive": "Their comp has dive: ward the river and buy Zhonya's or Guardian Angel (or Quicksilver Sash). Their main CD = your fight window.",
       "defaultMixed": "Balanced comp. Play objectives: Dragon stack > Baron tempo > close with Soul/Elder.",
       "roleJungleScaling": "Jungle: track their jungler and farm safe — don't force ganks that delay your team's scaling.",
       "roleJungleEarly": "Jungle: their comp fights early — live in the lanes, counter-gank and deny their tempo.",

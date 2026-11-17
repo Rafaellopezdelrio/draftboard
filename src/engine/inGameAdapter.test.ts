@@ -65,7 +65,7 @@ describe("suggestInGameAdaptations", () => {
     const out = suggestInGameAdaptations({
       champion: mageChamp,
       enemyPlayers: [
-        { items: [{ itemID: 4644 }] },          // FoN 70 MR
+        { items: [{ itemID: 4401 }] },          // FoN 70 MR
         { items: [{ itemID: 3065 }] },          // Spirit Visage 50 MR
         { items: [{ itemID: 3102 }] },          // Banshee's 50 MR
         { items: [{ itemID: 3091 }] },          // Wit's End 50 MR (total 220 > 200)
@@ -114,7 +114,7 @@ describe("suggestInGameAdaptations", () => {
     { items: [{ itemID: 3068 }] },
   ];
   const mrStack = [
-    { items: [{ itemID: 4644 }] },
+    { items: [{ itemID: 4401 }] },
     { items: [{ itemID: 3065 }] },
     { items: [{ itemID: 3102 }] },
     { items: [{ itemID: 3091 }] },

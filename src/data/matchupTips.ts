@@ -197,11 +197,11 @@ const TIPS: Record<string, BilingualTips> = {
   Ahri: {
     es: [
       "Esquiva su charm (E) — sin él pierde 60% kill pressure.",
-      "Compra Banshee's después de mythic.",
+      "Compra Velo del hada de la muerte como segundo objeto.",
     ],
     en: [
       "Dodge her Charm (E) — without it she loses 60% of kill pressure.",
-      "Buy Banshee's Veil after your mythic.",
+      "Buy Banshee's Veil as your second item.",
     ],
   },
   Syndra: {

@@ -14,6 +14,7 @@ vi.mock("../../services/proBuilds", () => ({ fetchProBuilds: vi.fn() }));
 vi.mock("../../services/itemMeta", () => ({
   getItemMeta: () => null,
   subscribeToItemMeta: () => () => {},
+  localItemName: (_id: number, fallback: string) => fallback,
 }));
 
 const PATCH = "16.21.1";

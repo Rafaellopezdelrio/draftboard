@@ -12,6 +12,7 @@ vi.mock("../../services/opggMatchupBuild", () => ({ fetchMatchupBuild: vi.fn() }
 vi.mock("../../services/itemMeta", () => ({
   getItemMeta: () => null,
   subscribeToItemMeta: () => () => {},
+  localItemName: (_id: number, fallback: string) => fallback,
 }));
 
 const champ = (key: string, id: string, name = id) => ({ key, id, name });

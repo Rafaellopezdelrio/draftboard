@@ -209,25 +209,25 @@ describe("suggestBuildAdaptations", () => {
     expect(out.some((a) => a.itemName === "Plated Steelcaps")).toBe(true);
   });
 
-  it("3+ hard CC -> Silvermere Dawn (full QSS upgrade) suggested", () => {
+  it("3+ hard CC on a mage -> Quicksilver Sash as core (Silvermere Dawn no longer exists)", () => {
     const db = mkDb([meSquishyMage, leona, morgana, malphite]);
     const out = suggestBuildAdaptations({
       db,
       champion: meSquishyMage,
       enemyKeys: ["89", "25", "54"],
     });
-    expect(out.some((a) => a.itemName === "Silvermere Dawn" && a.priority === "core")).toBe(true);
+    expect(out.some((a) => a.itemId === 3140 && a.priority === "core")).toBe(true);
+    expect(out.some((a) => a.itemId === 6035)).toBe(false);
   });
 
-  it("exactly 2 hard CC -> Quicksilver Sash (not Silvermere)", () => {
+  it("exactly 2 hard CC -> Quicksilver Sash, only situational", () => {
     const db = mkDb([meSquishyMage, leona, morgana]);
     const out = suggestBuildAdaptations({
       db,
       champion: meSquishyMage,
       enemyKeys: ["89", "25"],
     });
-    expect(out.some((a) => a.itemName === "Quicksilver Sash")).toBe(true);
-    expect(out.some((a) => a.itemName === "Silvermere Dawn")).toBe(false);
+    expect(out.some((a) => a.itemName === "Quicksilver Sash" && a.priority === "situational")).toBe(true);
   });
 
   it("AP+CC stacked -> Mercury's Treads as core boot choice", () => {
@@ -240,7 +240,7 @@ describe("suggestBuildAdaptations", () => {
     expect(out.some((a) => a.itemName === "Mercury's Treads" && a.priority === "core")).toBe(true);
   });
 
-  it("3+ divers vs squishy -> Stopwatch suggested", () => {
+  it("3+ divers vs a squishy mage -> Zhonya's (Stopwatch no longer gives stasis)", () => {
     const divers = ["JarvanIV", "Camille", "Wukong"].map((id, i) =>
       mkChamp({ id, key: `5${i}`, tags: ["Fighter"] })
     );
@@ -250,7 +250,8 @@ describe("suggestBuildAdaptations", () => {
       champion: meSquishyMage,
       enemyKeys: divers.map((d) => d.key),
     });
-    expect(out.some((a) => a.itemName === "Stopwatch")).toBe(true);
+    expect(out.some((a) => a.itemId === 3157 && a.reason.length > 0)).toBe(true);
+    expect(out.some((a) => a.itemName === "Stopwatch")).toBe(false);
   });
 
   it("tank champion gets no Death's Dance (only squishies do)", () => {

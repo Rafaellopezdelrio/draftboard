@@ -37,6 +37,7 @@ vi.mock("../../services/lcuService", () => ({
 vi.mock("../../services/itemMeta", () => ({
   getItemMeta: () => null,
   subscribeToItemMeta: () => () => {},
+  localItemName: (_id: number, fallback: string) => fallback,
 }));
 vi.mock("../../services/perkIcons", () => ({
   getPerkIconUrl: (id: number) => `perk-${id}.png`,

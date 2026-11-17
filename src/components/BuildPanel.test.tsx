@@ -49,6 +49,7 @@ vi.mock("../engine/inGameAdapter", () => ({ suggestInGameAdaptations: vi.fn() })
 vi.mock("../services/itemMeta", () => ({
   getItemMeta: () => null,
   subscribeToItemMeta: () => () => {},
+  localItemName: (_id: number, fallback: string) => fallback,
 }));
 // Stub exposes the props BuildPanel derives so we can assert the wiring.
 vi.mock("./build/OpggBuildSection", async () => {

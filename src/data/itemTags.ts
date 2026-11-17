@@ -45,13 +45,13 @@ export const ITEM_TAGS: Record<number, ItemSignal> = {
   3084: { armor: 25, hp: 1000 },             // Heartsteel
 
   // --- MR PIECES (high → low) ---
-  4644: { mr: 70, hp: 350 },                 // Force of Nature
+  4401: { mr: 70, hp: 350 },                 // Force of Nature
   3065: { mr: 50, hp: 450 },                 // Spirit Visage
   3102: { mr: 50, hp: 450 },                 // Banshee's Veil
   3091: { mr: 50, ad: 50 },                  // Wit's End
   3156: { mr: 50, ad: 65, shield: true },    // Maw of Malmortius
   3111: { mr: 25 },                          // Mercury's Treads
-  3001: { mr: 50, hp: 400, ap: 65 },         // Abyssal Mask
+  8020: { mr: 50, hp: 400, ap: 65 },         // Abyssal Mask
   3814: { mr: 35, ad: 60 },                  // Edge of Night
   3139: { mr: 30, ad: 55 },                  // Mercurial Scimitar
   6035: { mr: 30, ad: 50 },                  // Silvermere Dawn
@@ -59,7 +59,6 @@ export const ITEM_TAGS: Record<number, ItemSignal> = {
 
   // --- HP / TANK STACKS ---
   3083: { hp: 850 },                         // Warmog's
-  4401: { hp: 200, armor: 20, mr: 20 },      // Force of Nature components... skip
   3211: { hp: 250, mr: 30 },                 // Spectre's Cowl (also has Hollow Radiance? leave as is)
   3071: { hp: 400, ad: 55 },                 // Black Cleaver — armor shred + rage, no lifesteal
 

@@ -11,6 +11,7 @@ import { inferEnemyRoles } from "../../data/matchupTips";
 import { CHAMPION_ROLES } from "../../data/championRoles";
 import { usePrefsStore } from "../../state/prefsStore";
 import { fetchMatchupBuild, type MatchupBuildResponse } from "../../services/opggMatchupBuild";
+import { localItemName } from "../../services/itemMeta";
 import type { BuildAdaptation } from "../../engine/adaptiveBuildEngine";
 import { buildMatchupPlan } from "../../engine/matchupPlan";
 import { ItemIcon, PerkIcon } from "./icons";
@@ -185,7 +186,7 @@ export function MatchupBuildCard({
           </span>
           <div className="flex gap-1 flex-1 flex-wrap">
             {plan.situational.map((a, i) => (
-              <span key={i} title={`${a.itemName} — ${a.reason}`}>
+              <span key={i} title={`${localItemName(a.itemId, a.itemName)} — ${a.reason}`}>
                 <ItemIcon patch={db.patch} id={a.itemId} />
               </span>
             ))}

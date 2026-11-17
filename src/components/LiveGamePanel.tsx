@@ -28,6 +28,7 @@ import {
 } from "../services/liveTimers";
 import { displayGameMode } from "../data/gameModeNames";
 import { setOverlayVisible } from "../services/overlay";
+import { localItemName } from "../services/itemMeta";
 import { usePrefsStore } from "../state/prefsStore";
 import { suggestInGameAdaptations } from "../engine/inGameAdapter";
 import { getPowerSpikes } from "../data/powerSpikes";
@@ -282,7 +283,7 @@ export function LiveGamePanel({ db }: LiveGamePanelProps = {}) {
                 }}
               />
               <div className="flex-1 min-w-0">
-                <p className="text-white font-medium leading-tight">{s.itemName}</p>
+                <p className="text-white font-medium leading-tight">{localItemName(s.itemId, s.itemName)}</p>
                 <p className="text-white/60 text-[10px] leading-tight mt-0.5">{s.reason}</p>
               </div>
             </div>

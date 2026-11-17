@@ -13,6 +13,7 @@ import {
   type LiveGamePlayer,
 } from "../services/liveClient";
 import { deriveTimers, formatTime, SUMMONERS_RIFT_MAP } from "../services/liveTimers";
+import { localItemName } from "../services/itemMeta";
 import { coachLiveGame, type LiveCoachSeverity } from "../engine/liveCoachEngine";
 import { suggestInGameAdaptations } from "../engine/inGameAdapter";
 import { suggestBuildAdaptations } from "../engine/adaptiveBuildEngine";
@@ -250,7 +251,7 @@ export function SimpleLiveView({ db, buildChampionKey, buildRole, enemyKeys, noL
             >
               <ItemIcon patch={db.patch} id={s.itemId} />
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-white leading-tight">{s.itemName}</p>
+                <p className="text-sm font-semibold text-white leading-tight">{localItemName(s.itemId, s.itemName)}</p>
                 <p className="text-xs text-white/60 leading-snug">
                   {t((s.reasonKey ?? "").replace("inGameAdapt.", "simpleLive.buy."), { ...s.reasonParams, defaultValue: s.reason })}
                 </p>

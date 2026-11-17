@@ -16,6 +16,7 @@ import { useTranslation } from "react-i18next";
 import type { Champion, Role } from "../../types/champion";
 import { pickBestBuild, pickMostPopular, type OpggBuild } from "../../services/opggBuilds";
 import { pickCoherentSpells } from "../../services/spellCoherence";
+import { localItemName } from "../../services/itemMeta";
 import {
   classifyBuild,
   tierFromWinRate,
@@ -264,7 +265,7 @@ export function OpggBuildSection({
                 <ItemIcon patch={patch} id={s.itemId} />
                 <div className="flex-1 min-w-0">
                   <p className="text-white font-medium leading-tight">
-                    {s.itemName}
+                    {localItemName(s.itemId, s.itemName)}
                   </p>
                   <p className="text-white/60 text-[10px] leading-tight mt-0.5">
                     {s.reason}
@@ -297,7 +298,7 @@ export function OpggBuildSection({
                 <ItemIcon patch={patch} id={a.itemId} />
                 <div className="flex-1 min-w-0">
                   <p className="text-white font-medium leading-tight">
-                    {a.itemName}
+                    {localItemName(a.itemId, a.itemName)}
                   </p>
                   <p className="text-white/60 text-[10px] leading-tight mt-0.5">
                     {a.reason}

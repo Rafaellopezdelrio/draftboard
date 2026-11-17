@@ -131,7 +131,7 @@ MICROGAME (lane-level + skill-level):
 
 ECONOMY (build optimization):
 • Gold per stat: items ranked by GP10 efficiency vs alternatives
-• Mythic/Core timing: aim for 1-item < 14:00, 2-item < 22:00 (diamond+)
+• Core item timing: aim for 1-item < 14:00, 2-item < 22:00 (diamond+)
 • Situational: Executioner's vs heal comps, Bramble vs lifesteal, Mortal Reminder for healing carries
 • MR vs Armor: build into damage source (>60% AP = Mercury treads + MR item)
 • Defensive thresholds: Zhonya's at 2400g vs assassin comps mandatory pre-min 14

@@ -11,6 +11,7 @@ import {
 import type { ChampionDb, Role } from "../types/champion";
 import { applyRunesResult } from "../services/lcuService";
 import { isLegalRunePage, runePageName } from "../services/runePages";
+import { localItemName } from "../services/itemMeta";
 import { OpggBuildSection } from "./build/OpggBuildSection";
 import { MatchupBuildCard } from "./build/MatchupBuildCard";
 import { LolvvvProBuild } from "./build/LolvvvProBuild";
@@ -351,7 +352,7 @@ function BuildPanelInner({ db, championKey, role, enemyKeys = [], gameMode }: Pr
               >
                 <ItemIcon patch={db.patch} id={a.itemId} />
                 <div className="flex-1 min-w-0">
-                  <p className="text-white">{a.itemName}</p>
+                  <p className="text-white">{localItemName(a.itemId, a.itemName)}</p>
                   <p className="text-white/60">{a.reason}</p>
                 </div>
               </div>

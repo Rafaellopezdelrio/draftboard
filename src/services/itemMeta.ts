@@ -116,6 +116,16 @@ export function getItemMeta(patch: string, id: number): ItemMeta | null {
 }
 
 /**
+ * Item name in the UI language when the list for that language is loaded,
+ * else `fallback` (the engines write English names). For labels that are
+ * not tied to a patch prop.
+ */
+export function localItemName(id: number, fallback: string): string {
+  if (!cache || !currentKey?.endsWith(`|${ddragonLocale()}`)) return fallback;
+  return cache[id]?.name ?? fallback;
+}
+
+/**
  * Names of the finished items sold on Summoner's Rift this patch (boots,
  * starters and full items; no components, consumables or trinkets), in the
  * given language. Used to keep AI text to items that exist. Empty when the
