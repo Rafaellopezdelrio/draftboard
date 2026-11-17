@@ -5,6 +5,11 @@ open. Not user documentation — see [`../README.md`](../README.md) for that.
 
 ## Status
 
+- **2026-11-17 — v0.5.8 published** (tag v0.5.8, manifest live on worker
+  2026-11-17.9): tier list S needs a 51 % win rate, Cho'Gath/Qiyana jungle
+  back, Trends in plain words, builds most-played first, more tests.
+  Installer answers 200, `/updater/latest.json` serves 0.5.8. Not verified:
+  the in-app update 0.5.7 → 0.5.8 and a live champ select.
 - **2026-11-17 — v0.5.7 published** (tag v0.5.7, manifest live on worker
   2026-11-17.7): per-rank champion list from op.gg, op.gg grades per rank,
   pick advice where the draft decides inside your pool, "best for this
@@ -192,7 +197,7 @@ open. Not user documentation — see [`../README.md`](../README.md) for that.
     and Challenger 35 → 50 %), recall same 42 %. Capping S at 5/6/8 per lane
     was worse on both (not done). Challenger jungle now: Qiyana, Nidalee,
     Nunu S; Lee Sin A. op.gg gives win rate in whole percents only.
-  - **Fixed after 0.5.7 (not released yet):** best-players button is 🌍
+  - **Fixed after 0.5.7 (released in 0.5.8):** best-players button is 🌍
     (pro stays 🏆); ranked tooltip in plain words; `loadAggregatedBuilds`
     sorts most-played first, then win rate. Measured on the owner's DB
     (16.22.1, 108 champion+lane lists): shown build 2.26 → 2.65 games on
