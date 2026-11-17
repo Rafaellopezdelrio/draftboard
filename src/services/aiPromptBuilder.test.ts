@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   professionalCoachSystemPrompt,
   professionalMatchPrompt,
+  pickMainFocus,
 } from "./aiPromptBuilder";
 import type { ProMatchAnalytics } from "../engine/matchAnalytics";
 
@@ -130,6 +131,25 @@ describe("professionalCoachSystemPrompt", () => {
   });
 });
 
+describe("pickMainFocus", () => {
+  const base = { drakesByEnemy: 1, drakesByMyTeam: 2, baronsByEnemy: 0, soloDeaths: 0, deathsBy10: 0, killParticipation: 0.6, controlWardsBought: 3, durationMin: 30, cs10: 80 };
+  it("picks the biggest problem in the numbers", () => {
+    expect(pickMainFocus(mkAnalytics({ ...base, drakesByEnemy: 4, drakesByMyTeam: 0 }), 72).key).toBe("objetivos");
+    expect(pickMainFocus(mkAnalytics({ ...base, soloDeaths: 4, deathsBy10: 3 }), 72).key).toBe("muertes");
+    expect(pickMainFocus(mkAnalytics({ ...base, killParticipation: 0.2 }), 72).key).toBe("participacion");
+    expect(pickMainFocus(mkAnalytics({ ...base, cs10: 40 }), 72).key).toBe("farmeo");
+    expect(pickMainFocus(mkAnalytics({ ...base, position: "JUNGLE", campsPerMinute: 2.5 }), 44).key).toBe("farmeo");
+  });
+  it("is the same every time for the same game", () => {
+    const a = mkAnalytics({ ...base, soloDeaths: 2, drakesByEnemy: 3, drakesByMyTeam: 1 });
+    expect(pickMainFocus(a, 72)).toEqual(pickMainFocus(a, 72));
+  });
+  it("vision only leads when nothing else is wrong (the rule coach flags it almost always)", () => {
+    expect(pickMainFocus(mkAnalytics({ ...base, controlWardsBought: 0 }), 72).key).toBe("vision");
+    expect(pickMainFocus(mkAnalytics({ ...base, controlWardsBought: 0, drakesByEnemy: 3, drakesByMyTeam: 1 }), 72).key).toBe("objetivos");
+  });
+});
+
 describe("professionalMatchPrompt", () => {
   it("includes champion, role, team comps, and CS benchmarks", () => {
     const a = mkAnalytics();
@@ -180,6 +200,25 @@ describe("professionalMatchPrompt", () => {
     expect(p).toContain("5.9min DRAGON lo cogió TU EQUIPO (en ese momento ibas -5 súbditos y -728 de oro frente a Vi)");
     // Miscounted fields are not sent (a jungle pet read as a finished item at 0.1 min).
     expect(p).not.toMatch(/Items completados|Primer ítem completado/);
+  });
+
+  it("on a win, says nothing cost the game; gives the role's targets so none are invented", () => {
+    const win = professionalMatchPrompt(mkAnalytics({ position: "JUNGLE", win: true }), [], "es", { tier: "GOLD", division: "IV", lp: 0 });
+    expect(win).toContain("Ganaste: nada te costó la partida.");
+    expect(win).toContain("Objetivos de tu posición en tu rango (usa estos, no inventes otros): 44 súbditos al minuto 10, ≈ 4.0 campamentos por minuto.");
+    const loss = professionalMatchPrompt(mkAnalytics({ position: "MIDDLE", win: false }), [], "es", { tier: "GOLD", division: "IV", lp: 0 });
+    expect(loss).not.toContain("nada te costó");
+    expect(loss).toContain("72 súbditos al minuto 10.");
+  });
+
+  it("names one main topic picked from the numbers", () => {
+    const p = professionalMatchPrompt(
+      mkAnalytics({ drakesByEnemy: 4, drakesByMyTeam: 0, baronsByEnemy: 0, soloDeaths: 0, deathsBy10: 0, killParticipation: 0.6, controlWardsBought: 3, cs10: 80 }),
+      [],
+      "es"
+    );
+    expect(p).toContain("TEMA PRINCIPAL");
+    expect(p).toContain("Objetivos: el enemigo cogió 4 dragones y tu equipo 0.");
   });
 
   it("filters out 'good' and 'info' insights, keeps only bad/warn", () => {

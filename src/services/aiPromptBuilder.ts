@@ -167,7 +167,9 @@ For EVERY review, follow this:
 • Max 280 words. Prose, not bullet lists for the action
 • Coach voice: assertive, kind, surgical. No fluff
 • If data is ambiguous, say so honestly ("data doesn't show this clearly")
-• FACTS ONLY: every number, minute, event and owner you mention must be in the data. Never invent towers, plates, camp counts, item costs or timings. The "HECHOS CLAVE" block (result, who took each objective) is the truth — never contradict it.
+• If the player WON, never say anything "cost them the game".
+• Build the review around the "TEMA PRINCIPAL" given in the data; do not switch topic.
+• FACTS ONLY: every number, minute, event and owner you mention must be in the data. Targets too: use only the targets given, never invent your own. Never invent towers, plates, camp counts, item costs or timings. The "HECHOS CLAVE" block (result, who took each objective) is the truth — never contradict it.
 • Respond in ${lang}
 
 ═══ ALWAYS FIND IMPROVEMENT ═══
@@ -227,6 +229,54 @@ If the data genuinely doesn't show a clear mistake (very rare), then point at ME
   }
 }
 
+/** The one thing a review should be about, picked from the numbers so two
+ * asks about the same game talk about the same thing (eval 2026-11-17: the
+ * model alone kept its main topic in 10 of 20 games). Highest score wins;
+ * ties keep this order. Pure + exported for tests. */
+export function pickMainFocus(
+  a: ProMatchAnalytics,
+  cs10Target: number
+): { key: "objetivos" | "muertes" | "farmeo" | "participacion" | "vision"; text: string } {
+  const lostDrakes = a.drakesByEnemy - a.drakesByMyTeam;
+  const perTwenty = Math.max(1, a.durationMin / 20);
+  const candidates = [
+    {
+      key: "objetivos" as const,
+      score: Math.max(0, lostDrakes) + a.baronsByEnemy * 1.5,
+      text: `Objetivos: el enemigo cogió ${a.drakesByEnemy} dragones y tu equipo ${a.drakesByMyTeam}${a.baronsByEnemy ? `; barones enemigos: ${a.baronsByEnemy}` : ""}.`,
+    },
+    {
+      key: "muertes" as const,
+      score: Math.max(0, a.soloDeaths - 1) * 0.8 + Math.max(0, a.deathsBy10 - 1) * 0.8,
+      text: `Muertes: ${a.soloDeaths} muertes sin ayuda de tu equipo y ${a.deathsBy10} antes del minuto 10.`,
+    },
+    a.position === "JUNGLE"
+      ? {
+          key: "farmeo" as const,
+          score: Math.max(0, 4.0 - a.campsPerMinute) * 2,
+          text: `Farmeo: ${a.campsPerMinute.toFixed(1)} campamentos por minuto (objetivo ≈ 4.0).`,
+        }
+      : {
+          key: "farmeo" as const,
+          score: Math.max(0, (cs10Target - a.cs10) / Math.max(1, cs10Target)) * 5,
+          text: `Farmeo: ${a.cs10} súbditos al minuto 10 (objetivo ≈ ${cs10Target}).`,
+        },
+    {
+      key: "participacion" as const,
+      score: Math.max(0, 0.45 - a.killParticipation) * 10,
+      text: `Participación: estuviste en el ${(a.killParticipation * 100).toFixed(0)} % de las bajas de tu equipo.`,
+    },
+    {
+      key: "vision" as const,
+      // Weighted low: the rule coach flags control wards in almost every game.
+      score: Math.max(0, 1 - a.controlWardsBought / perTwenty) * 0.8,
+      text: `Visión: ${a.controlWardsBought} guardianes de control en ${a.durationMin.toFixed(0)} min.`,
+    },
+  ];
+  const best = candidates.reduce((x, y) => (y.score > x.score ? y : x));
+  return { key: best.key, text: best.text };
+}
+
 export function professionalMatchPrompt(
   a: ProMatchAnalytics,
   insights: Insight[],
@@ -271,8 +321,14 @@ export function professionalMatchPrompt(
       ? `- Primer ${label} (${(o.timestamp / 60000).toFixed(1)} min): lo cogió ${o.takenByMyTeam ? "TU EQUIPO" : "EL ENEMIGO"}.`
       : `- ${label[0].toUpperCase()}${label.slice(1)}: nadie lo cogió.`;
   };
+  const focus = pickMainFocus(a, cs10Target);
   const facts = [
     `- Resultado: ${a.win ? "GANASTE" : "PERDISTE"} (${a.durationMin.toFixed(0)} min).`,
+    // eval 2026-11-17: 3 of 40 answers on won games said something "te costó la partida".
+    ...(a.win
+      ? [`- Ganaste: nada te costó la partida. Habla de lo que habría hecho la victoria más fácil.`]
+      : []),
+    `- Objetivos de tu posición en tu rango (usa estos, no inventes otros): ${cs10Target} súbditos al minuto 10${isJungle ? ", ≈ 4.0 campamentos por minuto" : ""}.`,
     isJungle
       ? `- Eres el JUNGLA: no tienes calle ni oleada propia. Tu rival directo es el jungla enemigo (${rival}).`
       : `- Juegas ${a.position}; tu rival directo es ${rival}.`,
@@ -292,6 +348,9 @@ export function professionalMatchPrompt(
 HECHOS CLAVE (verdad, no los contradigas):
 ${facts}
 
+TEMA PRINCIPAL (elegido por los datos: centra tu análisis aquí y no cambies de tema):
+${focus.text}
+
 PARTIDA:
 - ${a.win ? "VICTORIA" : "DERROTA"} en ${a.durationMin.toFixed(0)}min · queue ${a.queueId}
 - Yo: ${a.myChampionName} ${a.position}
@@ -301,7 +360,7 @@ PARTIDA:
 - Elo bucket: ${bucket}
 
 ${isJungle ? "FARMEO (súbditos + campamentos)" : "LANE PHASE"} (con benchmarks ${bucket}):
-- CS@5: ${a.cs5} | CS@10: ${a.cs10} (target ${cs10Target}, gap ${a.cs10 - cs10Target}) | CS@14: ${a.cs14} (target ${cs14Target}, gap ${a.cs14 - cs14Target}) | CS@20: ${a.cs20}
+- CS@5: ${a.cs5} | CS@10: ${a.cs10} (target ${cs10Target}: vas ${sign(a.cs10 - cs10Target)}) | CS@14: ${a.cs14} (target ${cs14Target}: vas ${sign(a.cs14 - cs14Target)}) | CS@20: ${a.cs20}
 - Gold@5: ${a.goldAt5} | Gold@10: ${a.goldAt10} | Gold@15: ${a.goldAt15} | Gold@20: ${a.goldAt20}
 - Level@5: ${a.level5} | @10: ${a.level10} | @14: ${a.level14} | @20: ${a.level20}
 
