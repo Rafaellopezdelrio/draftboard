@@ -20,7 +20,7 @@ open. Not user documentation — see [`../README.md`](../README.md) for that.
   forwarded ANY Groq endpoint with our key (audio, files, batches, unlimited
   tokens). Worker 2026-11-17.13 allows only POST chat completions, body ≤
   64 KB, max_tokens ≤ 2048, n = 1, no stream (`groqProxy.test.js`).
-  **Committed, NOT deployed yet** (deploy needs the owner's yes).
+  Deployed and checked live: models/audio/files → 404, chat → 200 "ok".
   Left as LOW: http/CSP allow `*.workers.dev` (could be our subdomain only);
   per-IP limit lives in each Cloudflare datacenter's cache.
 - **2026-11-17 — worker 2026-11-17.12:** every S wins ≥ 51 %, in every list.
