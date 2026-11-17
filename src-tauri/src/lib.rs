@@ -283,6 +283,14 @@ pub fn run() {
                 });
             }
 
+            // The dev build (tauri.dev.conf.json, own data folder) runs next
+            // to the installed app: say which one this is in the title bar.
+            if app.config().identifier.ends_with(".dev") {
+                if let Some(w) = app.get_webview_window("main") {
+                    let _ = w.set_title("Draftboard DEV — LoL Draft Advisor");
+                }
+            }
+
             // Boot-minimized flag: when launched with `--minimized` (from
             // autostart on Windows login), don't pop the window up.
             let argv: Vec<String> = std::env::args().collect();

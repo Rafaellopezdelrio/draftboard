@@ -53,6 +53,8 @@ export function AppFooter({ onShowChangelog, onShowDiagnostics }: Props) {
           title={t("footer.versionTitle")}
         >
           Draftboard v{version}
+          {/* Tells the dev build apart from the installed app next to it. */}
+          {import.meta.env.DEV && <span className="ml-1 text-meh font-bold">DEV</span>}
         </button>
         <HealthPill
           level={health.level}

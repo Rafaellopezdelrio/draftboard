@@ -204,6 +204,9 @@ día 21 sale "seguir". Opciones, de más barata a más cara:
   análisis: 10 000 análisis ≈ 10 €). Orden: 1) guardar análisis hechos,
   2) segundo proveedor = Cloudflare Workers AI, 3) tope por persona,
   4) pago por uso cuando haya usuarios de verdad.
+- **Decisión de Rafael (17/11): nada de pago ni cambios de IA por ahora.**
+  Sin ingresos todavía; la idea es que lo que genere la app pague sus costes.
+  Se retoma con el plan de cobrar.
 
 ## A futuro: cobrar (pedido por Rafael, 17/11)
 

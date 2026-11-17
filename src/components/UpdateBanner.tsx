@@ -10,7 +10,9 @@ import { useUpdateCheck, installUpdate } from "../services/appUpdater";
 
 export function UpdateBanner() {
   const { t } = useTranslation();
-  const info = useUpdateCheck(true);
+  // The dev build runs next to the installed app: never offer it the
+  // published installer.
+  const info = useUpdateCheck(!import.meta.env.DEV);
   const [dismissed, setDismissed] = useState(false);
   const [installing, setInstalling] = useState(false);
   const [progress, setProgress] = useState({ downloaded: 0, total: 0 });
