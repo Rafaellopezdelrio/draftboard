@@ -21,6 +21,9 @@ interface Props {
 const CARD = "rounded-2xl bg-bg-elev/60 border border-border-subtle p-5 flex flex-col gap-3 min-w-0";
 const STEP = "text-[11px] uppercase tracking-[0.14em] text-accent font-bold";
 const RECENT = 10;
+/** Read more than RECENT so the record still has ten Rift games when some
+ * recent ones are Arena/ARAM. */
+const FETCH = 30;
 
 export type NextTip =
   | { key: "deaths"; params: { deaths: number } }
@@ -73,7 +76,7 @@ export function SimpleHomeView({ db, rankTier, refreshKey, onOpenReview, onOpenC
   }, []);
   useEffect(() => {
     let stale = false;
-    void recentMatches(RECENT)
+    void recentMatches(FETCH)
       .then((m) => {
         if (!stale) setMatches(m);
       })
@@ -87,8 +90,10 @@ export function SimpleHomeView({ db, rankTier, refreshKey, onOpenReview, onOpenC
 
   const last = matches?.[0];
   const lastChamp = last ? db.champions[String(last.championId)] : undefined;
-  const wins = matches?.filter((m) => m.win).length ?? 0;
-  const best = matches ? bestChampion(matches) : null;
+  // The record counts Summoner's Rift only (no position = Arena, ARAM…).
+  const rift = matches?.filter((m) => m.position !== "").slice(0, RECENT) ?? [];
+  const wins = rift.filter((m) => m.win).length;
+  const best = rift.length ? bestChampion(rift) : null;
   const bestChamp = best ? db.champions[String(best.championId)] : undefined;
   const tip = last ? nextTip(last) : null;
 
@@ -160,16 +165,36 @@ export function SimpleHomeView({ db, rankTier, refreshKey, onOpenReview, onOpenC
       </section>
 
       <div className="flex flex-col gap-4 min-w-0">
-        {matches && matches.length > 0 && (
+        {rift.length > 0 && (
           <section className={CARD} aria-label={t("simpleHome.recentStep")}>
             <p className={STEP}>{t("simpleHome.recentStep")}</p>
             <h2 className="text-xl font-bold text-white">
-              {t("simpleHome.recentTitle", { count: matches.length })}
+              {t("simpleHome.recentTitle", { count: rift.length })}
             </h2>
+            {/* One square per game, newest on the left, so the card visibly
+                moves after every game even when the totals stay the same. */}
+            <ol className="flex gap-1" aria-label={t("simpleHome.recentRow")}>
+              {rift.map((m) => {
+                const champ = db.champions[String(m.championId)]?.name ?? "—";
+                const result = t(m.win ? "simpleHome.resultWin" : "simpleHome.resultLoss");
+                return (
+                  <li
+                    key={m.matchId}
+                    title={`${champ} · ${result}`}
+                    aria-label={`${champ} · ${result}`}
+                    className={`w-6 h-6 rounded text-[11px] font-bold flex items-center justify-center ${
+                      m.win ? "bg-good/20 text-good" : "bg-bad/20 text-bad"
+                    }`}
+                  >
+                    {t(m.win ? "simpleHome.winShort" : "simpleHome.lossShort")}
+                  </li>
+                );
+              })}
+            </ol>
             <div className="flex gap-8">
               <div>
                 <p className="text-3xl font-bold text-white tabular-nums">
-                  {wins} – {matches.length - wins}
+                  {wins} – {rift.length - wins}
                 </p>
                 <p className="text-xs text-white/50">{t("simpleHome.winsLosses")}</p>
               </div>

@@ -99,6 +99,27 @@ describe("SimpleHomeView", () => {
     expect(screen.getByText("Tu mejor campeón reciente: Lee Sin (2 de 3 ganadas).")).toBeInTheDocument();
   });
 
+  it("the record counts Rift games only and shows one square per game, newest first", async () => {
+    vi.mocked(recentMatches).mockResolvedValue([
+      match({ win: false, championId: 238 }),
+      match({ position: "", queueId: 1750 }), // Arena: shown as last game, not counted
+      match(),
+    ]);
+    render(<SimpleHomeView {...base} />);
+    expect(await screen.findByText("Últimas 2 partidas")).toBeInTheDocument();
+    expect(screen.getByText("1 – 1")).toBeInTheDocument();
+    const row = screen.getByRole("list", { name: "Más reciente a la izquierda" });
+    expect(Array.from(row.querySelectorAll("li"), (li) => li.textContent)).toEqual(["D", "V"]);
+    expect(screen.getByLabelText("Zed · derrota")).toBeInTheDocument();
+  });
+
+  it("only Arena/ARAM games: last game shown, no record card", async () => {
+    vi.mocked(recentMatches).mockResolvedValue([match({ position: "", queueId: 1750 })]);
+    render(<SimpleHomeView {...base} />);
+    expect(await screen.findByText("Victoria con Lee Sin")).toBeInTheDocument();
+    expect(screen.queryByText("Cómo vas")).toBeNull();
+  });
+
   it("a loss says so, and the buttons call back", async () => {
     vi.mocked(recentMatches).mockResolvedValue([match({ win: false, championId: 238 })]);
     const onOpenReview = vi.fn();
