@@ -5,6 +5,15 @@ open. Not user documentation — see [`../README.md`](../README.md) for that.
 
 ## Status
 
+- **Roadmap (2026-11-17): `docs/PLAN_CONSEJO.md`** — council verdict (stop
+  polishing, closed test with 5-10 people for 3 weeks, decide on day 21), Riot
+  key rules (personal key = small private community only; public download is a
+  violation), plan B per dependency. Work through it step by step.
+- **2026-11-17 — v0.5.9 published** (manifest on worker 2026-11-17.14): AI
+  coach by role + facts block + facts-only, model fall-through on Groq 429.
+  Next-version AI fixes committed (cf791bf: data-picked main topic, role
+  targets, no "cost you the game" on wins) — eval running, not released.
+
 - **2026-11-17 — v0.5.8 published** (tag v0.5.8, manifest live on worker
   2026-11-17.9): tier list S needs a 51 % win rate, Cho'Gath/Qiyana jungle
   back, Trends in plain words, builds most-played first, more tests.
