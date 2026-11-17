@@ -12,7 +12,12 @@ open. Not user documentation — see [`../README.md`](../README.md) for that.
 - **2026-11-17 — v0.5.9 published** (manifest on worker 2026-11-17.14): AI
   coach by role + facts block + facts-only, model fall-through on Groq 429.
   Next-version AI fixes committed (cf791bf: data-picked main topic, role
-  targets, no "cost you the game" on wins) — eval running, not released.
+  targets, no "cost you the game" on wins) — not released. Eval on the same
+  20 jungle games (40 answers), before → 0.5.9 → cf791bf: lane-wave advice to
+  a jungler 28 → 2 → 0; "cost you the game" on wins 1 → 3 → 0; first-drake
+  owner wrong 4 → 0 → 0; numbers backed by the data 94 → 91 → 98 %; both
+  answers open on the data-picked topic in 18/20 games. Run it again with
+  `AI_EVAL=<dir with ids.json> npx vitest run src/eval/aiCoach.eval.test.ts`.
 
 - **2026-11-17 — v0.5.8 published** (tag v0.5.8, manifest live on worker
   2026-11-17.9): tier list S needs a 51 % win rate, Cho'Gath/Qiyana jungle
