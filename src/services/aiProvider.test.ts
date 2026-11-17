@@ -155,6 +155,28 @@ describe("callAi — Groq model fallback", () => {
     expect(JSON.parse(httpFetchMock.mock.calls[0][1].body).reasoning_effort).toBe("low");
   });
 
+  it("moves to the next model when Groq's per-model limit is hit (limits are per model)", async () => {
+    httpFetchMock
+      .mockResolvedValueOnce(res(429, { error: { code: "rate_limit_exceeded", message: "Rate limit reached ... tokens per minute (TPM): Limit 8000" } }))
+      .mockResolvedValueOnce(res(200, { choices: [{ message: { content: "second model" } }] }));
+    await expect(callAi({ ...base, provider: "groq" })).resolves.toBe("second model");
+    expect(httpFetchMock.mock.calls.map(modelOf)).toEqual(["openai/gpt-oss-120b", "qwen/qwen3.8-27b"]);
+  });
+
+  it("stops at our proxy's own per-IP limit (another model would not help)", async () => {
+    httpFetchMock.mockResolvedValue(res(429, { error: "Rate limit exceeded. Slow down.", retryAfter: 60 }));
+    await expect(callAi({ ...base, provider: "groq" })).rejects.toThrow();
+    expect(httpFetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("sends a temperature only when asked", async () => {
+    httpFetchMock.mockResolvedValue(res(200, { choices: [{ message: { content: "ok" } }] }));
+    await callAi({ ...base, provider: "groq" });
+    await callAi({ ...base, provider: "groq", temperature: 0.3 });
+    expect(JSON.parse(httpFetchMock.mock.calls[0][1].body).temperature).toBeUndefined();
+    expect(JSON.parse(httpFetchMock.mock.calls[1][1].body).temperature).toBe(0.3);
+  });
+
   it("does not fall through on other 400s and surfaces the error", async () => {
     httpFetchMock.mockResolvedValue(res(400, { error: { code: "context_length_exceeded" } }));
     await expect(callAi({ ...base, provider: "groq" })).rejects.toThrow(/AI Coach \(400\).*context_length_exceeded/);

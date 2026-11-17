@@ -13,6 +13,8 @@ export interface AiCallParams {
   systemPrompt: string;
   userPrompt: string;
   maxTokens?: number;
+  /** Lower = steadier answers (Groq/OpenAI-compatible only). */
+  temperature?: number;
   history?: Array<{ role: "user" | "assistant"; content: string }>;
 }
 
@@ -85,7 +87,8 @@ export async function callAi(p: AiCallParams): Promise<string> {
 
 /**
  * POST a chat completion to a Groq-compatible endpoint, falling through
- * GROQ_MODELS while the answer says the model is gone. Returns the last
+ * GROQ_MODELS while the answer says the model is gone or at its rate
+ * limit. Returns the last
  * response plus its error body when it was already read.
  */
 async function postGroq(
@@ -107,18 +110,23 @@ async function postGroq(
         model,
         max_tokens: p.maxTokens ?? 700,
         messages,
+        ...(p.temperature !== undefined ? { temperature: p.temperature } : {}),
         // Reasoning models: keep the thinking short so the answer fits
         // max_tokens and arrives fast (draft decisions are time-boxed).
         ...(model.startsWith("openai/gpt-oss") ? { reasoning_effort: "low" } : {}),
         ...(model.startsWith("qwen/") ? { reasoning_effort: "none" } : {}),
       }),
     });
-    if (res.status !== 400 && res.status !== 404) return { res };
+    if (res.status !== 400 && res.status !== 404 && res.status !== 429) return { res };
     const errText = await res.text();
     last = { res, errText };
-    if (!/model_not_found|model_decommissioned|does not exist|decommissioned/i.test(errText)) {
-      return last;
-    }
+    // Gone model → next one. Groq's own per-model limit (8000 tokens a
+    // minute on the free tier, ~2 coach reviews) → next model too: limits
+    // are per model. Our proxy's per-IP limit says "Slow down" → stop.
+    const next =
+      /model_not_found|model_decommissioned|does not exist|decommissioned/i.test(errText) ||
+      (res.status === 429 && /rate_limit_exceeded|tokens per minute|TPM/i.test(errText));
+    if (!next) return last;
   }
   return last;
 }

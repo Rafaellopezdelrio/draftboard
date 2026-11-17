@@ -117,6 +117,7 @@ export async function aiCoachAnalysis(input: AiCoachInput): Promise<string> {
   const baseSystem = professionalCoachSystemPrompt({
     language: input.language ?? "es",
     rank: input.rank ?? null,
+    position: analytics.position,
   });
   const systemPrompt = baseSystem + memoryContext;
 
@@ -139,6 +140,9 @@ export async function aiCoachAnalysis(input: AiCoachInput): Promise<string> {
     systemPrompt,
     userPrompt,
     maxTokens: 700,
+    // Same game, same main point: at the default temperature only 10 of 20
+    // games kept the same topic across two asks (eval 2026-11-17).
+    temperature: 0.3,
   });
 
   // Auto-extract and save the main insight as memory for future sessions

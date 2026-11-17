@@ -105,6 +105,20 @@ describe("professionalCoachSystemPrompt", () => {
     expect(p).toMatch(/VISION/);
   });
 
+  it("gives a jungler jungle notes first and forbids wave advice; laners keep the general notes only", () => {
+    const jng = professionalCoachSystemPrompt({ language: "es", rank: null, position: "JUNGLE" });
+    expect(jng).toContain("The user's role this game: JUNGLE");
+    expect(jng.indexOf("JUNGLE (the player is the JUNGLER")).toBeLessThan(jng.indexOf("DOMAIN EXPERTISE"));
+    expect(jng).toMatch(/Never advise the jungler to freeze/);
+    const mid = professionalCoachSystemPrompt({ language: "es", rank: null, position: "MIDDLE" });
+    expect(mid).not.toContain("JUNGLE (the player is the JUNGLER");
+    expect(professionalCoachSystemPrompt({ language: "es", rank: null, position: "UTILITY" })).toContain("SUPPORT:");
+  });
+
+  it("forbids invented facts", () => {
+    expect(professionalCoachSystemPrompt({ language: "es", rank: null })).toMatch(/FACTS ONLY/);
+  });
+
   it("includes specific timing/terminology that pro coaches use", () => {
     const p = professionalCoachSystemPrompt({ language: "es", rank: null });
     // Wave concepts
@@ -141,6 +155,31 @@ describe("professionalMatchPrompt", () => {
     const mid = mkAnalytics({ position: "MIDDLE" });
     const pMid = professionalMatchPrompt(mid, [], "es");
     expect(pMid).not.toContain("JUNGLA");
+  });
+
+  it("opens with plain facts the answer must not contradict: result, role, who took each objective", () => {
+    const a = mkAnalytics({
+      position: "JUNGLE",
+      win: true,
+      laneOpponentChampionName: "Vi",
+      firstTowerByMyTeam: false,
+      objectiveTrades: [
+        { timestamp: 354_000, objective: "DRAGON", takenByMyTeam: true, myCsDeltaAtTime: -5, myGoldDeltaAtTime: -728 },
+        { timestamp: 984_000, objective: "RIFTHERALD", takenByMyTeam: false, myCsDeltaAtTime: -30, myGoldDeltaAtTime: -1535 },
+      ],
+    });
+    const p = professionalMatchPrompt(a, [], "es");
+    expect(p).toContain("HECHOS CLAVE");
+    expect(p).toContain("Resultado: GANASTE");
+    expect(p).toContain("Eres el JUNGLA: no tienes calle ni oleada propia. Tu rival directo es el jungla enemigo (Vi).");
+    expect(p).toContain("Primer dragón (5.9 min): lo cogió TU EQUIPO.");
+    expect(p).toContain("Primer heraldo (16.4 min): lo cogió EL ENEMIGO.");
+    expect(p).toContain("Barón: nadie lo cogió.");
+    expect(p).toContain("Primera torre: la tiró EL ENEMIGO.");
+    // The deltas read as the state at that moment, not the objective's cost.
+    expect(p).toContain("5.9min DRAGON lo cogió TU EQUIPO (en ese momento ibas -5 súbditos y -728 de oro frente a Vi)");
+    // Miscounted fields are not sent (a jungle pet read as a finished item at 0.1 min).
+    expect(p).not.toMatch(/Items completados|Primer ítem completado/);
   });
 
   it("filters out 'good' and 'info' insights, keeps only bad/warn", () => {

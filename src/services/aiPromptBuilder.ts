@@ -52,9 +52,28 @@ function eloBucketFromTier(tier?: string): EloBucket {
   return "diamond";
 }
 
+/** Domain notes for a jungler. The generic block below is about laning (waves,
+ * trades); measured on 20 real jungle games (2026-11-17) it made the model
+ * tell a jungler to freeze or reset "his" wave in about 1 answer in 3. */
+const JUNGLE_EXPERTISE = `JUNGLE (the player is the JUNGLER — no lane, no wave of their own):
+• Pathing & tempo: full clear vs 3-camp start, reset when a clear ends, never stand idle; camps lost while ganking = gold lost.
+• Ganks & counter-ganks: gank lanes that have CC and a pushed-in enemy wave; track where the enemy jungler started and mirror them; cover the side they are on.
+• Objectives: arrive with smite up, vision in the pit 60-90s before spawn, and your LANERS holding wave priority (that is their job — you ask for it, you do not manage it).
+• Trade objectives: if the enemy takes one side, take the other (drake ↔ grubs/herald, invade, tower).
+• Vision: deep wards in the enemy jungle to track their jungler; sweeper/control ward before objectives.
+• Never advise the jungler to freeze, slow push, hard reset or crash "their wave" — they have none.`;
+
+const SUPPORT_EXPERTISE = `SUPPORT:
+• Lane with your ADC: trade when the enemy support's key spell is down; level-2 timing.
+• Roams: after the ADC's wave is pushed in, never while it is crashing under your tower.
+• Vision: control the river and objectives before they spawn; sweeper after first back.
+• Engage/peel: pick fights where your engage hits 2+ targets or protect the carry.`;
+
 export function professionalCoachSystemPrompt(opts: {
   language: "es" | "en";
   rank?: { tier: string; division: string; lp: number } | null;
+  /** The player's role this game; JUNGLE / UTILITY get their own notes. */
+  position?: string;
 }): string {
   const bucket = eloBucketFromTier(opts.rank?.tier);
   const rankStr = opts.rank
@@ -63,15 +82,17 @@ export function professionalCoachSystemPrompt(opts: {
   const lang = opts.language === "en" ? "English" : "Spanish";
 
   const tierPersona = personaForBucket(bucket);
+  const roleExpertise =
+    opts.position === "JUNGLE" ? JUNGLE_EXPERTISE : opts.position === "UTILITY" ? SUPPORT_EXPERTISE : "";
 
   return `${tierPersona}
 
-The user's current rank: ${rankStr}.
-
+The user's current rank: ${rankStr}.${opts.position ? `\nThe user's role this game: ${opts.position}.` : ""}
+${roleExpertise ? `\n═══ ROLE (read first — it overrides the general notes below) ═══\n\n${roleExpertise}\n` : ""}
 ═══ DOMAIN EXPERTISE (pro-coach level) ═══
 
 MACROGAME (map-level decisions):
-• Wave states & timing:
+• Wave states & timing (laners only):
   - Slow push: 3+ caster minions ahead → crash wave at minute X for plate / dive / objective setup
   - Fast push: kill all minions instantly → for back tempo / roam / objective rotation
   - Freeze: enemy wave > yours by ~4 melee minions held outside your tower → starves opponent
@@ -146,20 +167,12 @@ For EVERY review, follow this:
 • Max 280 words. Prose, not bullet lists for the action
 • Coach voice: assertive, kind, surgical. No fluff
 • If data is ambiguous, say so honestly ("data doesn't show this clearly")
+• FACTS ONLY: every number, minute, event and owner you mention must be in the data. Never invent towers, plates, camp counts, item costs or timings. The "HECHOS CLAVE" block (result, who took each objective) is the truth — never contradict it.
 • Respond in ${lang}
 
 ═══ ALWAYS FIND IMPROVEMENT ═══
 
-Never end with "perfect game, nothing to improve". If in-game metrics look clean, escalate to:
-• Champion pool depth for current meta (vs 4 specific counter picks)
-• Build path optimization (which 1 item swap = +5% WR vs this comp)
-• Vision tempo (proactive 90s pre-objective vs reactive)
-• Mental/tilt patterns across session
-• Patch-specific adjustments missed
-• Off-meta studies to expand toolkit
-• Recall-back-shop micro (could you shave 5s?)
-
-Even Challenger players have refinement points — find them.
+Never end with "perfect game, nothing to improve". If in-game metrics look clean, pick the weakest number in the data and work on that — still facts only.
 
 ═══ DO NOT FABRICATE ═══
 
@@ -239,19 +252,45 @@ export function professionalMatchPrompt(
     .map((p) => `${p.championName}(${p.position})`)
     .join(", ");
 
+  const isJungle = a.position === "JUNGLE";
+  const rival = a.laneOpponentChampionName ?? "tu rival directo";
+  const sign = (n: number) => `${n > 0 ? "+" : ""}${n}`;
+  // The deltas are the state at that moment, not what the objective cost:
+  // worded so the model stops reading "-728 gold" as the price of a drake.
   const objTrades = a.objectiveTrades
     .map((o) => {
       const min = (o.timestamp / 1000 / 60).toFixed(1);
-      return `${min}min ${o.objective} ${o.takenByMyTeam ? "MIO" : "ENEMIGO"} (state: csΔ ${o.myCsDeltaAtTime > 0 ? "+" : ""}${o.myCsDeltaAtTime}, goldΔ ${o.myGoldDeltaAtTime > 0 ? "+" : ""}${o.myGoldDeltaAtTime})`;
+      return `${min}min ${o.objective} lo cogió ${o.takenByMyTeam ? "TU EQUIPO" : "EL ENEMIGO"} (en ese momento ibas ${sign(o.myCsDeltaAtTime)} súbditos y ${sign(o.myGoldDeltaAtTime)} de oro frente a ${rival})`;
     })
     .join("\n");
 
-  const jungleBlock =
-    a.position === "JUNGLE"
-      ? `\nJUNGLA:\n- Camps clear @10: ${a.jungleCs10}\n- Camps clear @15: ${a.jungleCs15}\n- Camps/min: ${a.campsPerMinute.toFixed(1)} (target ${bucket}: ~4.0+)`
-      : "";
+  const firstOf = (kind: string) => a.objectiveTrades.find((o) => o.objective === kind);
+  const ownerLine = (kind: string, label: string) => {
+    const o = firstOf(kind);
+    return o
+      ? `- Primer ${label} (${(o.timestamp / 60000).toFixed(1)} min): lo cogió ${o.takenByMyTeam ? "TU EQUIPO" : "EL ENEMIGO"}.`
+      : `- ${label[0].toUpperCase()}${label.slice(1)}: nadie lo cogió.`;
+  };
+  const facts = [
+    `- Resultado: ${a.win ? "GANASTE" : "PERDISTE"} (${a.durationMin.toFixed(0)} min).`,
+    isJungle
+      ? `- Eres el JUNGLA: no tienes calle ni oleada propia. Tu rival directo es el jungla enemigo (${rival}).`
+      : `- Juegas ${a.position}; tu rival directo es ${rival}.`,
+    `- Dragones: tu equipo ${a.drakesByMyTeam}, el enemigo ${a.drakesByEnemy}.`,
+    ownerLine("DRAGON", "dragón"),
+    ownerLine("RIFTHERALD", "heraldo"),
+    ownerLine("BARON", "barón"),
+    `- Primera torre: la tiró ${a.firstTowerByMyTeam ? "TU EQUIPO" : "EL ENEMIGO"}.`,
+  ].join("\n");
+
+  const jungleBlock = isJungle
+    ? `\nJUNGLA:\n- Camps clear @10: ${a.jungleCs10}\n- Camps clear @15: ${a.jungleCs15}\n- Camps/min: ${a.campsPerMinute.toFixed(1)} (target ${bucket}: ~4.0+)`
+    : "";
 
   return `Analiza esta partida con tu framework. ROOT CAUSE → WHY → 2 ACCIONES ESPECÍFICAS.
+
+HECHOS CLAVE (verdad, no los contradigas):
+${facts}
 
 PARTIDA:
 - ${a.win ? "VICTORIA" : "DERROTA"} en ${a.durationMin.toFixed(0)}min · queue ${a.queueId}
@@ -261,12 +300,12 @@ PARTIDA:
 - Equipo enemigo: ${enemyComp}
 - Elo bucket: ${bucket}
 
-LANE PHASE (con benchmarks ${bucket}):
+${isJungle ? "FARMEO (súbditos + campamentos)" : "LANE PHASE"} (con benchmarks ${bucket}):
 - CS@5: ${a.cs5} | CS@10: ${a.cs10} (target ${cs10Target}, gap ${a.cs10 - cs10Target}) | CS@14: ${a.cs14} (target ${cs14Target}, gap ${a.cs14 - cs14Target}) | CS@20: ${a.cs20}
 - Gold@5: ${a.goldAt5} | Gold@10: ${a.goldAt10} | Gold@15: ${a.goldAt15} | Gold@20: ${a.goldAt20}
 - Level@5: ${a.level5} | @10: ${a.level10} | @14: ${a.level14} | @20: ${a.level20}
 
-DIFFS VS RIVAL DE LANE (clave para análisis de alto elo):
+DIFFS VS ${isJungle ? `JUNGLA ENEMIGO (${rival})` : "RIVAL DE LANE"} (clave para análisis de alto elo):
 - CS diff @10: ${a.csDiffAt10 > 0 ? "+" : ""}${a.csDiffAt10}
 - CS diff @14: ${a.csDiffAt14 > 0 ? "+" : ""}${a.csDiffAt14}
 - CS diff @20: ${a.csDiffAt20 > 0 ? "+" : ""}${a.csDiffAt20}
@@ -299,8 +338,6 @@ COMBATE:
 - Damage share: ${(a.damageShare * 100).toFixed(0)}%
 - Damage taken share: ${(a.damageTakenShare * 100).toFixed(0)}%
 - Tuvo Stopwatch/Zhonya: ${a.hadStopwatch} | QSS: ${a.hadQss}
-- Items completados: ${a.itemsPurchasedCount}
-- Primer ítem completado: ${fmtTime(a.firstItemTime)}
 ${jungleBlock}
 
 REGLAS HEURÍSTICAS DETECTADAS:
@@ -308,5 +345,5 @@ ${insightsBlock || "ninguna relevante"}
 
 Aplica el framework. Si soy ${bucket}, NO me digas obviedades — busca el patrón real.
 
-OBLIGATORIO: dame al menos UN insight de mejora, sin importar si la partida fue limpia. Si las métricas in-game son perfectas, sube a meta-game (pool de campeones, build optimization, vision tempo, mental, parche). Quiero seguir mejorando — no me digas "perfect game". ${language === "en" ? "Respond in English." : "Responde en español."}`;
+OBLIGATORIO: dame al menos UN insight de mejora, sin importar si la partida fue limpia — sacado de estos datos, sin inventar nada que no esté aquí. Quiero seguir mejorando — no me digas "perfect game". ${language === "en" ? "Respond in English." : "Responde en español."}`;
 }

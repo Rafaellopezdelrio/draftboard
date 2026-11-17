@@ -15,6 +15,17 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "0.5.9",
+    date: "2026-11-17",
+    highlights: [
+      "🧠 Coach IA: consejos según tu posición (al jungla le habla de jungla), solo con datos de tu partida y respuestas más estables",
+      "⚡ Coach IA: si un modelo está saturado, prueba con otro en vez de fallar",
+      "🏅 Tier list: ningún S que pierda, en ninguna lista ni rango",
+      "🔒 Más seguro: la IA compartida solo responde a lo que usa la app",
+      "🧹 Más ligera: unas 1000 líneas sin uso fuera y memoria de la IA con tope",
+    ],
+  },
+  {
     version: "0.5.8",
     date: "2026-11-17",
     highlights: [

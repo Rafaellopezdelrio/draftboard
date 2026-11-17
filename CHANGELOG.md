@@ -4,6 +4,31 @@ All notable changes to Draftboard are documented here.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/);
 versions match the Tauri app version + the `vX.Y.Z` git tags.
 
+## [0.5.9] — 2026-11-17
+
+### Changed
+- AI coach: role-aware instructions (jungle/support notes, no lane-wave advice
+  for junglers), a plain "HECHOS CLAVE" block (result, who took each
+  objective) it must not contradict, facts-only rule, temperature 0.3.
+  Measured on 20 real jungle games before the change: 28/40 answers told the
+  jungler to manage "his" wave, 10/20 games changed topic between two asks.
+- AI: on Groq's per-model rate limit, fall through to the next model.
+- Tier list (worker): every S wins >= 51 %, fill-ins included; general list
+  graded like the per-rank one.
+
+### Fixed
+- Coach prompt no longer sends "items completed"/"first item" (a jungle pet
+  read as a finished item at 0.1 min).
+- AI memory capped at 200 rows on every save.
+
+### Security
+- Worker Groq proxy only forwards chat completions (POST, <= 64 KB,
+  max_tokens <= 2048, n = 1); /dpm/tierlist scraping route removed.
+
+### Internal
+- Dead code removed (~1000 lines). AI coach eval harness on real games
+  (src/eval, off by default).
+
 ## [0.5.8] — 2026-11-17
 
 ### Changed
