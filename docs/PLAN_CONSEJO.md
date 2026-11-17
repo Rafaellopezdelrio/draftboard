@@ -188,6 +188,23 @@ día 21 sale "seguir". Opciones, de más barata a más cara:
    que haga falta (un análisis son ~5 000 fichas). Con ingresos o sin ellos
    decide si es viable (ver normas de Riot sobre cobrar).
 
+**Mirado el 17/11 (gravity.fast, openrouter.ai, flatkey.ai, apidog.com):**
+- Groq gratis: el tope real son **200 000 fichas al día por modelo** (no las
+  1 000 peticiones): ~40 análisis al día por modelo; con los 2-3 modelos de
+  reserva, ~100-120.
+- Cloudflare Workers AI (nuestra misma cuenta, sin darse de alta en nada):
+  10 000 "neuronas" al día gratis ≈ ~100 análisis con gpt-oss-20b; después,
+  ~0,1 céntimos por análisis.
+- Gemini gratis: límites solo en su consola; **usa lo que se le manda para
+  mejorar sus productos** (habría que avisarlo en privacidad).
+- OpenRouter: 50 al día gratis; 1 000 al día pagando 10 $ una vez.
+- Cerebras y Cohere: pruebas, no gratis para siempre ni para producción.
+- **Conclusión:** gratis, sumando todo, ~300-400 análisis al día. Para miles
+  de jugadores no existe gratis: lo barato es pagar por uso (~0,1 céntimo por
+  análisis: 10 000 análisis ≈ 10 €). Orden: 1) guardar análisis hechos,
+  2) segundo proveedor = Cloudflare Workers AI, 3) tope por persona,
+  4) pago por uso cuando haya usuarios de verdad.
+
 ## A futuro: cobrar (pedido por Rafael, 17/11)
 
 También solo si el día 21 sale "seguir". Para cobrar hace falta:
