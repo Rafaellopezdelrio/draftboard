@@ -95,6 +95,16 @@ open. Not user documentation — see [`../README.md`](../README.md) for that.
     games; op.gg rates are whole percents, shown without a decimal.
     Checked in the dev app: Grandmaster, Gold, Diamond+, Silver, Iron.
     Not released: goes out with the next version.
+    **Grades (worker 2026-11-17.6):** the per-rank list uses op.gg's own
+    grade one to one (`gradeForRankList`: OP,1,2,3,4,5 → S+,S,A,B,C,D). The
+    old mapping (0-2 → S, kept for the general list) put 11-24 champions per
+    lane in S; now 3-11, 5.5 on average. Check vs other sites (2026-11-17):
+    77 % of our S are in lolalytics' top 10 for the same rank and lane (the
+    misses are very popular picks — Malphite, Garen, Lux — op.gg weighs pick
+    rate, lolalytics win rate); u.gg Gold top S+/S holds 5/5 of ours.
+    Owner's rating of the per-rank list: 7/10 before this, target 8.
+    Ideas above 8 (owner agreed order): order by reliability (games),
+    trend arrows (op.gg rank_prev_patch), a personal list.
   - **Installed app showed 0.5.1 (2026-11-17):** the desktop icon
     `Draftboard.lnk` points at an old local build
     (`src-tauri/target/release/…`, 0.5.1 from 2026-11-12); the updater
