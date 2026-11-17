@@ -329,20 +329,23 @@ function scoreChampion(c: Champion, ctx: ScoreCtx): ScoredSuggestion {
  * Fixes the "Zilean appears in MID" and "Lee Sin appears in MID" bugs.
  */
 function isPlayableInRole(c: Champion, role: Role, db: ChampionDb): boolean {
+  // 0) The live lane lists (op.gg, in db.meta) say who really plays a lane
+  //    now. The hand map lags behind: it hid Qiyana and Cho'Gath jungle
+  //    (5-14 % pick). Either one is enough to be a candidate.
+  const inRole = db.meta.find((m) => m.championKey === c.key && m.role === role);
+  if (inRole && (inRole.pickRate ?? 0) >= MIN_ROLE_PICK_RATE) return true;
   // 1) Authoritative hardcoded list (curated per patch)
   const authoritativeRoles = CHAMPION_ROLES[c.id];
   if (authoritativeRoles) {
     return authoritativeRoles.includes(role);
   }
-  // 2) Synced meta data with min playrate
-  const champEntries = db.meta.filter((m) => m.championKey === c.key);
-  if (champEntries.length > 0) {
-    const inRole = champEntries.find((m) => m.role === role);
-    return !!inRole && (inRole.pickRate ?? 0) >= 0.003;
-  }
+  // 2) In the meta data but not (enough) in this lane
+  if (db.meta.some((m) => m.championKey === c.key)) return false;
   // 3) Brand-new champion not yet in our list — loose tag fallback
   return c.roles.includes(role);
 }
+/** Lane pick rate (0.3 %) that makes a lane real for a champion. */
+const MIN_ROLE_PICK_RATE = 0.003;
 
 const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
 
@@ -554,6 +557,24 @@ function archetypeFitScore(c: Champion, missing: Set<Archetype>): number {
 }
 
 const ARCHETYPE_GOALS: Archetype[] = ["engage", "frontline", "peel"];
+
+/** Internal scoring pieces, exported only so tests can pin their edges. */
+export const __test = {
+  isUnranked,
+  isPlayableInRole,
+  laneWeightedCounter,
+  damageKind,
+  damageSplit,
+  countArchetypes,
+  compFitScore,
+  comfortTier,
+  personalScore,
+  masteryScore,
+  synergyScore,
+  metaScore,
+  archetypeFitScore,
+  scoreChampion,
+};
 
 export function detectMissingArchetypes(
   db: ChampionDb,
