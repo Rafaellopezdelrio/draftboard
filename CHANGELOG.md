@@ -4,6 +4,29 @@ All notable changes to Draftboard are documented here.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/);
 versions match the Tauri app version + the `vX.Y.Z` git tags.
 
+## [0.5.7] — 2026-11-17
+
+### Added
+- Champion list per rank again, from op.gg's own numbers for that rank
+  (dpm.lol blocks our server): rank selector in Spanish, op.gg's own grade
+  per rank (about 5 S per lane instead of half the list), "few games" flag
+  under 1000 games, rates without a fake decimal.
+- "Best for this game": the best draft fit outside your champions, shown
+  apart when it is clearly better.
+
+### Changed
+- Pick advice: your champions filter, the game decides. Lane matchup
+  (lane opponent counted double) and the enemy composition (divers,
+  assassins, poke) weigh far more; comfort is a step, so inside your pool
+  the draft picks. On the owner's jungle drafts: losing lanes 12 → 1.
+- Mastery counts by when you last played the champion; the "your main"
+  boost needs this month.
+
+### Fixed
+- Opening the app waits at most 2.5 s for the per-rank list; a missed rank
+  list keeps the rank selector so you can try again.
+- Simple view: "ganas X de cada 100 con él" now shows.
+
 ## [0.5.6] — 2026-11-17
 
 ### Added

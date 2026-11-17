@@ -15,6 +15,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "0.5.7",
+    date: "2026-11-17",
+    highlights: [
+      "📊 La lista de mejores campeones vuelve a ir por rango: elige el tuyo y verás la de tu nivel, con datos de op.gg",
+      "🏅 Notas más claras: unas 5 S por posición en vez de media lista, y aviso de «pocos datos» cuando hay pocas partidas",
+      "🎯 Al elegir campeón manda la partida: entre los que juegas, gana el que mejor encaja contra lo que tienen enfrente",
+      "🧠 Lee al equipo enemigo: si se lanzan, si castigan de lejos, si llevan asesinos; y el daño de tu propio equipo",
+      "✨ «Mejor para esta partida»: si hay un campeón claramente mejor que no juegas, te lo enseña aparte",
+      "🕰️ Un campeón que dejaste hace meses ya no sale el primero solo por tu maestría",
+    ],
+  },
+  {
     version: "0.5.6",
     date: "2026-11-17",
     highlights: [
