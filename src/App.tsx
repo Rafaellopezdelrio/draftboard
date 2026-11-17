@@ -285,7 +285,11 @@ function App() {
   // Personal data from LCU (masteries + rank). Rank feeds the coach
   // engine + suggestion engine — boosts mastery weight for unranked
   // players who lack a rank signal to anchor meta calibration.
-  const { masteries, rankTier } = useLcuPersonalData(lcuStatus.connected);
+  // Read the rank again around the end of each game so the LP stays current.
+  const { masteries, rankTier, rank } = useLcuPersonalData(
+    lcuStatus.connected,
+    gamePhase.phase === "EndOfGame" || gamePhase.phase === "PreEndOfGame" ? "ended" : null
+  );
 
   // Post-game auto-coach + "Partida empezada" voice cue. The full
   // in-match → out-of-match state machine lives in useAutoOpenCoach so
@@ -863,7 +867,7 @@ function App() {
       {mainView === "home" ? (
         <SimpleHomeView
           db={db}
-          rankTier={rankTier}
+          rank={rank}
           refreshKey={gamePhase.phase}
           onOpenReview={() => setShowCoach(true)}
           onOpenChat={() => setShowChat(true)}

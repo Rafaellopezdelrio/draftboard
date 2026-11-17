@@ -84,7 +84,7 @@ vi.mock("./hooks/useNetworkStatus", () => ({
 vi.mock("./hooks/useTrayHealth", () => ({ useTrayHealth: vi.fn() }));
 vi.mock("./state/inGameDetection", () => ({ useGamePhase: () => h.gamePhase }));
 vi.mock("./hooks/useLcuPersonalData", () => ({
-  useLcuPersonalData: () => ({ masteries: [], rankTier: null }),
+  useLcuPersonalData: () => ({ masteries: [], rankTier: null, rank: null }),
 }));
 vi.mock("./hooks/useAutoOpenCoach", () => ({ useAutoOpenCoach: vi.fn() }));
 vi.mock("./state/autoActions", () => ({ useAutoActions: vi.fn() }));

@@ -7,10 +7,11 @@ import { useTranslation } from "react-i18next";
 import type { ChampionDb } from "../types/champion";
 import { recentMatches, type MatchRow } from "../services/matchRepo";
 import { MATCHES_SYNCED_EVENT } from "../services/personalDataSync";
+import type { SoloRank } from "../hooks/useLcuPersonalData";
 
 interface Props {
   db: ChampionDb;
-  rankTier: string | null;
+  rank: SoloRank | null;
   /** Changes when a game ends, so the stored matches are read again. */
   refreshKey: string | null;
   onOpenReview: () => void;
@@ -21,9 +22,13 @@ interface Props {
 const CARD = "rounded-2xl bg-bg-elev/60 border border-border-subtle p-5 flex flex-col gap-3 min-w-0";
 const STEP = "text-[11px] uppercase tracking-[0.14em] text-accent font-bold";
 const RECENT = 10;
-/** Read more than RECENT so the record still has ten Rift games when some
- * recent ones are Arena/ARAM. */
+/** Read more than RECENT so the record still has ten ranked games when some
+ * recent ones are normals, Arena or ARAM. */
 const FETCH = 30;
+/** Ranked Solo/Duo: the queue the shown rank belongs to. */
+const SOLO_QUEUE = 420;
+/** Master and above have no divisions. */
+const NO_DIVISION = new Set(["MASTER", "GRANDMASTER", "CHALLENGER"]);
 
 export type NextTip =
   | { key: "deaths"; params: { deaths: number } }
@@ -64,7 +69,16 @@ export function bestChampion(matches: MatchRow[]): { championId: number; wins: n
   return best;
 }
 
-export function SimpleHomeView({ db, rankTier, refreshKey, onOpenReview, onOpenChat, onShowDetails }: Props) {
+/** Wins and losses among games that ended since local midnight. */
+export function todayRecord(matches: MatchRow[], now = Date.now()): { wins: number; losses: number } {
+  const midnight = new Date(now);
+  midnight.setHours(0, 0, 0, 0);
+  const today = matches.filter((m) => m.gameEndTimestampMs >= midnight.getTime());
+  const wins = today.filter((m) => m.win).length;
+  return { wins, losses: today.length - wins };
+}
+
+export function SimpleHomeView({ db, rank, refreshKey, onOpenReview, onOpenChat, onShowDetails }: Props) {
   const { t } = useTranslation();
   const [matches, setMatches] = useState<MatchRow[] | null>(null);
   // The first sync often finishes after this screen opens: read again then.
@@ -90,9 +104,20 @@ export function SimpleHomeView({ db, rankTier, refreshKey, onOpenReview, onOpenC
 
   const last = matches?.[0];
   const lastChamp = last ? db.champions[String(last.championId)] : undefined;
-  // The record counts Summoner's Rift only (no position = Arena, ARAM…).
-  const rift = matches?.filter((m) => m.position !== "").slice(0, RECENT) ?? [];
+  // The record goes with the rank: Ranked Solo/Duo only. Filtering by queue,
+  // not position: games read from the client carry a position even in Arena.
+  const ranked = matches?.filter((m) => m.queueId === SOLO_QUEUE) ?? [];
+  const rift = ranked.slice(0, RECENT);
   const wins = rift.filter((m) => m.win).length;
+  const today = todayRecord(ranked);
+  const tierName = rank
+    ? t(`simpleHome.tiers.${rank.tier.toUpperCase()}`, { defaultValue: rank.tier.toLowerCase() })
+    : null;
+  const rankLine = rank
+    ? NO_DIVISION.has(rank.tier.toUpperCase())
+      ? tierName
+      : `${tierName} ${rank.division}`
+    : null;
   const best = rift.length ? bestChampion(rift) : null;
   const bestChamp = best ? db.champions[String(best.championId)] : undefined;
   const tip = last ? nextTip(last) : null;
@@ -165,12 +190,20 @@ export function SimpleHomeView({ db, rankTier, refreshKey, onOpenReview, onOpenC
       </section>
 
       <div className="flex flex-col gap-4 min-w-0">
-        {rift.length > 0 && (
+        {(rank || rift.length > 0) && (
           <section className={CARD} aria-label={t("simpleHome.recentStep")}>
             <p className={STEP}>{t("simpleHome.recentStep")}</p>
-            <h2 className="text-xl font-bold text-white">
-              {t("simpleHome.recentTitle", { count: rift.length })}
+            <h2 className="text-2xl font-bold text-white capitalize">
+              {rankLine ?? t("simpleHome.unranked")}
+              {rank && (
+                <span className="ml-2 text-base font-semibold text-white/60 normal-case tabular-nums">
+                  {t("simpleHome.lp", { lp: rank.lp })}
+                </span>
+              )}
             </h2>
+            <p className="text-sm font-semibold text-white/70">
+              {rift.length > 0 ? t("simpleHome.recentTitle", { count: rift.length }) : t("simpleHome.noRanked")}
+            </p>
             {/* One square per game, newest on the left, so the card visibly
                 moves after every game even when the totals stay the same. */}
             <ol className="flex gap-1" aria-label={t("simpleHome.recentRow")}>
@@ -191,22 +224,24 @@ export function SimpleHomeView({ db, rankTier, refreshKey, onOpenReview, onOpenC
                 );
               })}
             </ol>
-            <div className="flex gap-8">
-              <div>
-                <p className="text-3xl font-bold text-white tabular-nums">
-                  {wins} – {rift.length - wins}
-                </p>
-                <p className="text-xs text-white/50">{t("simpleHome.winsLosses")}</p>
-              </div>
-              {rankTier && (
+            {rift.length > 0 && (
+              <div className="flex gap-8">
                 <div>
-                  <p className="text-3xl font-bold text-white capitalize">
-                    {t(`simpleHome.tiers.${rankTier.toUpperCase()}`, { defaultValue: rankTier.toLowerCase() })}
+                  <p className="text-3xl font-bold text-white tabular-nums">
+                    {wins} – {rift.length - wins}
                   </p>
-                  <p className="text-xs text-white/50">{t("simpleHome.rank")}</p>
+                  <p className="text-xs text-white/50">{t("simpleHome.winsLosses")}</p>
                 </div>
-              )}
-            </div>
+                {today.wins + today.losses > 0 && (
+                  <div>
+                    <p className="text-3xl font-bold text-white tabular-nums">
+                      {today.wins} – {today.losses}
+                    </p>
+                    <p className="text-xs text-white/50">{t("simpleHome.today")}</p>
+                  </div>
+                )}
+              </div>
+            )}
             {best && bestChamp && (
               <p className="text-sm text-white/65">
                 {t("simpleHome.best", { name: bestChamp.name, wins: best.wins, games: best.games })}

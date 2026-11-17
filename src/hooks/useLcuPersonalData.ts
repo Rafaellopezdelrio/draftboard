@@ -20,16 +20,25 @@ import {
 } from "../services/riotApi";
 import { setCoachEloBucket } from "../engine/coachEngine";
 
+/** Solo-queue rank as shown to the player. */
+export interface SoloRank {
+  tier: string;
+  division: string;
+  lp: number;
+}
+
 interface LcuPersonalData {
   masteries: ChampionMasteryDto[];
   rankTier: string | null;
+  rank: SoloRank | null;
 }
 
-/** Refetches on every `lcuConnected` transition. Cheap — single LCU call
- * + cached Riot fallback only when LCU misses. */
-export function useLcuPersonalData(lcuConnected: boolean): LcuPersonalData {
+/** Refetches on every `lcuConnected` transition and whenever `refreshKey`
+ * changes (the caller flips it around the end of a game, so the LP shown is
+ * the new one). Cheap — single LCU call + Riot fallback only when LCU misses. */
+export function useLcuPersonalData(lcuConnected: boolean, refreshKey: string | null = null): LcuPersonalData {
   const [masteries, setMasteries] = useState<ChampionMasteryDto[]>([]);
-  const [rankTier, setRankTier] = useState<string | null>(null);
+  const [rank, setRank] = useState<SoloRank | null>(null);
 
   useEffect(() => {
     // Guard against stale writes: if lcuConnected flips again (or the
@@ -61,24 +70,25 @@ export function useLcuPersonalData(lcuConnected: boolean): LcuPersonalData {
       // ── Rank: feeds coach calibration + suggestion engine + benchmarks ──
       // LCU first, Riot API fallback (solo-queue tier) so the rank-dependent
       // features use the real bracket instead of defaults when LoL is closed.
-      let tier: string | null = (await lcuRank())?.tier ?? null;
+      const fromClient = await lcuRank().catch(() => null);
+      let next: SoloRank | null =
+        fromClient && isRanked(fromClient.tier)
+          ? { tier: fromClient.tier, division: fromClient.division, lp: fromClient.leaguePoints }
+          : null;
       if (cancelled) return;
-      if (!tier && hasRiotAccess) {
+      if (!next && hasRiotAccess) {
         try {
           const entries = await getLeagueEntriesByPuuid(cfg!, cfg!.puuid!);
           if (cancelled) return;
-          tier = entries.find((e) => e.queueType === "RANKED_SOLO_5x5")?.tier ?? null;
+          const solo = entries.find((e) => e.queueType === "RANKED_SOLO_5x5");
+          if (solo && isRanked(solo.tier)) next = { tier: solo.tier, division: solo.rank, lp: solo.leaguePoints };
         } catch {
           // no rank available — fall through to null
         }
       }
       if (cancelled) return;
-      if (tier) {
-        setCoachEloBucket(tier);
-        setRankTier(tier);
-      } else {
-        setRankTier(null);
-      }
+      if (next) setCoachEloBucket(next.tier);
+      setRank(next);
 
       // ── Sentry anonymous user grouping ──
       // Tag events with hash(PUUID) so dashboard issues can group
@@ -98,7 +108,12 @@ export function useLcuPersonalData(lcuConnected: boolean): LcuPersonalData {
     return () => {
       cancelled = true;
     };
-  }, [lcuConnected]);
+  }, [lcuConnected, refreshKey]);
 
-  return { masteries, rankTier };
+  return { masteries, rankTier: rank?.tier ?? null, rank };
+}
+
+/** The client reports unranked players with an empty tier or "NONE". */
+function isRanked(tier: string | undefined): tier is string {
+  return !!tier && tier.toUpperCase() !== "NONE";
 }

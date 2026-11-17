@@ -3,7 +3,7 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import { SimpleHomeView, nextTip, bestChampion } from "./SimpleHomeView";
+import { SimpleHomeView, nextTip, bestChampion, todayRecord } from "./SimpleHomeView";
 import type { ChampionDb } from "../types/champion";
 import { recentMatches, type MatchRow } from "../services/matchRepo";
 
@@ -38,7 +38,7 @@ const match = (over: Partial<MatchRow> = {}): MatchRow => ({
 
 const base = {
   db,
-  rankTier: "GOLD",
+  rank: { tier: "GOLD", division: "II", lp: 45 },
   refreshKey: null,
   onOpenReview: () => {},
   onOpenChat: () => {},
@@ -72,6 +72,20 @@ describe("bestChampion", () => {
   });
 });
 
+describe("todayRecord", () => {
+  it("counts only games that ended since local midnight", () => {
+    const now = new Date(2026, 10, 17, 23, 0).getTime();
+    const at = (h: number, day = 17) => new Date(2026, 10, day, h, 0).getTime();
+    const ms = [
+      match({ gameEndTimestampMs: at(20) }),
+      match({ gameEndTimestampMs: at(19), win: false }),
+      match({ gameEndTimestampMs: at(18) }),
+      match({ gameEndTimestampMs: at(23, 16) }),
+    ];
+    expect(todayRecord(ms, now)).toEqual({ wins: 2, losses: 1 });
+  });
+});
+
 describe("SimpleHomeView", () => {
   it("no stored games: plain empty state, no review button, still offers the coach", async () => {
     render(<SimpleHomeView {...base} />);
@@ -93,31 +107,57 @@ describe("SimpleHomeView", () => {
     expect(screen.getByText("7 / 9 / 11")).toBeInTheDocument();
     expect(screen.getByText(/31 minutos · hace 20 min/)).toBeInTheDocument();
     expect(screen.getByText(/Moriste 9 veces/)).toBeInTheDocument();
-    expect(screen.getByText("Últimas 4 partidas")).toBeInTheDocument();
-    expect(screen.getByText("2 – 2")).toBeInTheDocument();
-    expect(screen.getByText("Oro")).toBeInTheDocument();
+    expect(screen.getByText("Últimas 4 clasificatorias")).toBeInTheDocument();
+    expect(screen.getAllByText("2 – 2")).toHaveLength(2); // last ten and today
+    expect(screen.getByText("Oro II")).toBeInTheDocument();
+    expect(screen.getByText("45 LP")).toBeInTheDocument();
+    expect(screen.getByText("Hoy")).toBeInTheDocument();
     expect(screen.getByText("Tu mejor campeón reciente: Lee Sin (2 de 3 ganadas).")).toBeInTheDocument();
   });
 
-  it("the record counts Rift games only and shows one square per game, newest first", async () => {
+  it("the record counts Ranked Solo/Duo only and shows one square per game, newest first", async () => {
     vi.mocked(recentMatches).mockResolvedValue([
       match({ win: false, championId: 238 }),
-      match({ position: "", queueId: 1750 }), // Arena: shown as last game, not counted
+      match({ position: "", queueId: 1750 }), // Arena from match history: not counted
+      match({ position: "UTILITY", queueId: 1750 }), // Arena read from the client still has a position
+      match({ queueId: 400 }), // normal draft: not ranked
       match(),
     ]);
     render(<SimpleHomeView {...base} />);
-    expect(await screen.findByText("Últimas 2 partidas")).toBeInTheDocument();
-    expect(screen.getByText("1 – 1")).toBeInTheDocument();
+    expect(await screen.findByText("Últimas 2 clasificatorias")).toBeInTheDocument();
+    expect(screen.getAllByText("1 – 1")).toHaveLength(2);
     const row = screen.getByRole("list", { name: "Más reciente a la izquierda" });
     expect(Array.from(row.querySelectorAll("li"), (li) => li.textContent)).toEqual(["D", "V"]);
     expect(screen.getByLabelText("Zed · derrota")).toBeInTheDocument();
   });
 
-  it("only Arena/ARAM games: last game shown, no record card", async () => {
-    vi.mocked(recentMatches).mockResolvedValue([match({ position: "", queueId: 1750 })]);
+  it("Master and above show no division", async () => {
+    vi.mocked(recentMatches).mockResolvedValue([match()]);
+    render(<SimpleHomeView {...base} rank={{ tier: "MASTER", division: "I", lp: 120 }} />);
+    expect(await screen.findByText("Maestro")).toBeInTheDocument();
+    expect(screen.getByText("120 LP")).toBeInTheDocument();
+  });
+
+  it("ranked but no ranked games stored: shows the rank and says so", async () => {
+    vi.mocked(recentMatches).mockResolvedValue([match({ queueId: 450, position: "" })]);
     render(<SimpleHomeView {...base} />);
+    expect(await screen.findByText("Oro II")).toBeInTheDocument();
+    expect(screen.getByText("Todavía no hay clasificatorias guardadas.")).toBeInTheDocument();
+    expect(screen.queryByText("Victorias – derrotas")).toBeNull();
+  });
+
+  it("no rank and no ranked games: no rank card", async () => {
+    vi.mocked(recentMatches).mockResolvedValue([match({ position: "", queueId: 1750 })]);
+    render(<SimpleHomeView {...base} rank={null} />);
     expect(await screen.findByText("Victoria con Lee Sin")).toBeInTheDocument();
-    expect(screen.queryByText("Cómo vas")).toBeNull();
+    expect(screen.queryByText("Tu ELO")).toBeNull();
+  });
+
+  it("unranked player with ranked games: says so instead of a tier", async () => {
+    vi.mocked(recentMatches).mockResolvedValue([match()]);
+    render(<SimpleHomeView {...base} rank={null} />);
+    expect(await screen.findByText("Sin clasificar")).toBeInTheDocument();
+    expect(screen.getByText("Última clasificatoria")).toBeInTheDocument();
   });
 
   it("a loss says so, and the buttons call back", async () => {

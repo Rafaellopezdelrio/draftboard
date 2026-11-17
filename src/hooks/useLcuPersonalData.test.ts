@@ -48,9 +48,10 @@ describe("useLcuPersonalData", () => {
   it("uses LCU masteries and rank without touching the Riot API", async () => {
     m.loadSettings.mockResolvedValue(CFG);
     m.lcuMasteries.mockResolvedValue(M_LCU);
-    m.lcuRank.mockResolvedValue({ tier: "GOLD", division: "II" });
+    m.lcuRank.mockResolvedValue({ tier: "GOLD", division: "II", leaguePoints: 45 });
     const { result } = renderHook(() => useLcuPersonalData(true));
     await waitFor(() => expect(result.current.rankTier).toBe("GOLD"));
+    expect(result.current.rank).toEqual({ tier: "GOLD", division: "II", lp: 45 });
     expect(result.current.masteries).toEqual(M_LCU);
     expect(m.setCoachEloBucket).toHaveBeenCalledWith("GOLD");
     expect(m.getTopMasteries).not.toHaveBeenCalled();
@@ -62,11 +63,12 @@ describe("useLcuPersonalData", () => {
     m.getTopMasteries.mockResolvedValue(M_RIOT);
     m.getLeagueEntriesByPuuid.mockResolvedValue([
       { queueType: "RANKED_FLEX_SR", tier: "DIAMOND" },
-      { queueType: "RANKED_SOLO_5x5", tier: "PLATINUM" },
+      { queueType: "RANKED_SOLO_5x5", tier: "PLATINUM", rank: "III", leaguePoints: 12 },
     ]);
     const { result } = renderHook(() => useLcuPersonalData(false));
     await waitFor(() => expect(result.current.masteries).toEqual(M_RIOT));
     await waitFor(() => expect(result.current.rankTier).toBe("PLATINUM"));
+    expect(result.current.rank).toEqual({ tier: "PLATINUM", division: "III", lp: 12 });
     expect(m.getTopMasteries).toHaveBeenCalledWith(CFG, "my-puuid", 20);
     expect(m.getLeagueEntriesByPuuid).toHaveBeenCalledWith(CFG, "my-puuid");
     expect(m.setCoachEloBucket).toHaveBeenCalledWith("PLATINUM");
@@ -92,7 +94,7 @@ describe("useLcuPersonalData", () => {
     });
     await settled();
     expect(m.getTopMasteries).not.toHaveBeenCalled();
-    expect(result.current).toEqual({ masteries: [], rankTier: null });
+    expect(result.current).toEqual({ masteries: [], rankTier: null, rank: null });
 
     m.getCurrentSummoner.mockClear();
     m.loadSettings.mockResolvedValue({ puuid: "p", apiKey: "" }); // no key, no proxy
@@ -108,7 +110,7 @@ describe("useLcuPersonalData", () => {
     m.getLeagueEntriesByPuuid.mockRejectedValue(new Error("403"));
     const { result } = renderHook(() => useLcuPersonalData(false));
     await settled();
-    expect(result.current).toEqual({ masteries: [], rankTier: null });
+    expect(result.current).toEqual({ masteries: [], rankTier: null, rank: null });
   });
 
   it("tags Sentry with the current summoner's PUUID when known", async () => {
@@ -149,6 +151,29 @@ describe("useLcuPersonalData", () => {
     expect(result.current.masteries).toEqual(M_RIOT);
     expect(m.lcuRank).toHaveBeenCalledTimes(1);
     expect(m.lcuMasteries).toHaveBeenCalledTimes(2);
+  });
+
+  it("reads the rank again when the refresh key changes (end of a game), with the new LP", async () => {
+    m.lcuRank
+      .mockResolvedValueOnce({ tier: "GOLD", division: "II", leaguePoints: 45 })
+      .mockResolvedValueOnce({ tier: "GOLD", division: "II", leaguePoints: 66 });
+    const { result, rerender } = renderHook(({ k }) => useLcuPersonalData(true, k), {
+      initialProps: { k: null as string | null },
+    });
+    await waitFor(() => expect(result.current.rank?.lp).toBe(45));
+    rerender({ k: "ended" });
+    await waitFor(() => expect(result.current.rank?.lp).toBe(66));
+  });
+
+  it("an unranked client (tier NONE) gives no rank", async () => {
+    m.lcuRank.mockResolvedValue({ tier: "NONE", division: "NA", leaguePoints: 0 });
+    const { result } = renderHook(() => useLcuPersonalData(true));
+    await waitFor(() => expect(m.lcuRank).toHaveBeenCalled());
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+    expect(result.current.rank).toBeNull();
+    expect(m.setCoachEloBucket).not.toHaveBeenCalled();
   });
 
   it("stops after unmount while settings are loading", async () => {
