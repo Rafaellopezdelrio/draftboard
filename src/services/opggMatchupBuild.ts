@@ -84,8 +84,3 @@ export async function fetchMatchupBuild(
     return null;
   }
 }
-
-/** Test-only: drop the in-memory cache. */
-export function __clearMatchupBuildCache(): void {
-  cache.clear();
-}

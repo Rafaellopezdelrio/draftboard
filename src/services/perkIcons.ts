@@ -111,11 +111,3 @@ export function subscribeToPerkIcons(cb: () => void): () => void {
   subscribers.add(cb);
   return () => subscribers.delete(cb);
 }
-
-/** Test-only: reset module state so vitest cases don't bleed across files. */
-export function __testOnly_resetPerkIcons(): void {
-  cache = null;
-  loadPromise = null;
-  retries = 0;
-  subscribers.clear();
-}

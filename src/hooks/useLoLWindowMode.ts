@@ -59,8 +59,3 @@ export function useLoLWindowMode(enabled: boolean = true): LoLWindowMode {
 
   return mode;
 }
-
-/** Whether the current window mode supports our Win32 overlay technique. */
-export function overlayCompatibleMode(m: LoLWindowMode): boolean {
-  return m === "windowed" || m === "borderless";
-}

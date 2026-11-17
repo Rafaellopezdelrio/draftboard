@@ -196,22 +196,3 @@ function parseChampionsFromNotes(notes: string): PatchChange[] {
   if (current) out.push(current);
   return out;
 }
-
-/**
- * Resolve "championId" (display name normalized) to Data Dragon canonical id.
- * Falls back to fuzzy match.
- */
-export function resolveChampionChange(
-  change: PatchChange,
-  championsById: Record<string, { id: string; name: string }>
-): { id: string; name: string } | null {
-  // Try exact id match first
-  for (const c of Object.values(championsById)) {
-    if (c.id.toLowerCase() === change.championId.toLowerCase()) return c;
-    if (c.name.toLowerCase() === change.championId.toLowerCase()) return c;
-    // Strip non-letters and compare
-    const norm = change.championId.toLowerCase().replace(/[^a-z]/g, "");
-    if (c.id.toLowerCase().replace(/[^a-z]/g, "") === norm) return c;
-  }
-  return null;
-}

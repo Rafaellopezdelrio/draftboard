@@ -3,7 +3,6 @@ import {
   classifyBuild,
   aggregateBuildStats,
   tierFromWinRate,
-  counterSignature,
 } from "./buildClassifier";
 
 describe("aggregateBuildStats", () => {
@@ -55,17 +54,3 @@ describe("tierFromWinRate", () => {
   });
 });
 
-describe("counterSignature", () => {
-  it("flags high-HP enemies as Vs Tanks", () => {
-    expect(counterSignature(2300, 0.5, 0.5)).toBe("Vs Tanks");
-  });
-  it("flags low-HP enemies as Vs Squishies", () => {
-    expect(counterSignature(1800, 0.5, 0.5)).toBe("Vs Squishies");
-  });
-  it("flags AP-heavy as Vs AP", () => {
-    expect(counterSignature(2000, 0.7, 0.3)).toBe("Vs AP");
-  });
-  it("returns null for balanced", () => {
-    expect(counterSignature(2100, 0.5, 0.5)).toBeNull();
-  });
-});

@@ -13,7 +13,6 @@ import {
   saveMemory,
   recentMemories,
   memoriesByCategory,
-  clearOldMemories,
   buildMemoryContext,
 } from "./aiMemory";
 
@@ -49,7 +48,6 @@ describe("aiMemory outside Tauri", () => {
   it("is a no-op: nothing saved, empty reads, empty context, DB never opened", async () => {
     tauri = false;
     await saveMemory({ kind: "advice", content: "x" });
-    await clearOldMemories();
     expect(await recentMemories()).toEqual([]);
     expect(await memoriesByCategory("deaths")).toEqual([]);
     expect(await buildMemoryContext()).toBe("");
@@ -162,12 +160,13 @@ describe("memoriesByCategory", () => {
   });
 });
 
-describe("clearOldMemories", () => {
-  it("keeps only the newest 200 memories", async () => {
-    await clearOldMemories();
-    const [sql] = executeMock.mock.calls[0];
+describe("saveMemory trims the table", () => {
+  it("keeps only the newest 200 memories after each save", async () => {
+    await saveMemory({ kind: "advice", content: "x" });
+    const [sql, params] = executeMock.mock.calls[1];
     expect(sql).toMatch(/DELETE FROM ai_memory/);
-    expect(sql).toMatch(/ORDER BY created_ts_ms DESC LIMIT 200/);
+    expect(sql).toMatch(/ORDER BY created_ts_ms DESC LIMIT \$1/);
+    expect(params).toEqual([200]);
   });
 });
 

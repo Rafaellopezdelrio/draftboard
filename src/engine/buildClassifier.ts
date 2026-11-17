@@ -271,23 +271,6 @@ export function classifyBuild(coreItemIds: number[]): BuildClassification {
 }
 
 /**
- * Tag indicating what enemy comp this build counters best. Lets the UI
- * label a build "Vs Squishies" or "Vs Tank-heavy" so the user picks the
- * right variant for the matchup at hand.
- */
-export function counterSignature(
-  enemyAvgHp: number,
-  enemyApShare: number,
-  enemyAdShare: number
-): "Vs Squishies" | "Vs Tanks" | "Vs AP" | "Vs AD" | null {
-  if (enemyAvgHp >= 2200) return "Vs Tanks";
-  if (enemyAvgHp <= 1900) return "Vs Squishies";
-  if (enemyApShare >= 0.6) return "Vs AP";
-  if (enemyAdShare >= 0.6) return "Vs AD";
-  return null;
-}
-
-/**
  * Tier (S+/S/A/B/C) inferred from a single variant's win rate. Mirrors
  * the cutoffs we use elsewhere in the app so the visual language stays
  * consistent. Sample-size guardrails are the caller's responsibility —

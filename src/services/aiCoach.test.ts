@@ -356,7 +356,8 @@ describe("AI coach orchestration", () => {
       expect(out).toBe("Día 1: ...");
 
       // Saving the plan here too stored every plan twice.
-      expect(executeMock).toHaveBeenCalledTimes(1);
+      // One memory saved (its insert + the table trim), no plan.
+      expect(executeMock.mock.calls.filter(([sql]) => /INSERT/.test(sql))).toHaveLength(1);
       expect(executeMock.mock.calls.some(([sql]) => /lesson_plans/.test(sql))).toBe(false);
 
       const [memSql, memParams] = executeMock.mock.calls[0];

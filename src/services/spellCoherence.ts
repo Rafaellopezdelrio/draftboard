@@ -30,9 +30,6 @@ const TELEPORT = 12;
 const IGNITE = 14;
 const HEAL = 7;
 const EXHAUST = 3;
-const BARRIER = 21;
-const CLEANSE = 1;
-const GHOST = 6;
 
 export interface CoherenceResult {
   ids: [number, number];
@@ -162,16 +159,3 @@ export function pickCoherentSpells(
     overrode: true,
   };
 }
-
-// Re-export the constants for use elsewhere (e.g. tests).
-export const SPELL_IDS = {
-  FLASH,
-  SMITE,
-  TELEPORT,
-  IGNITE,
-  HEAL,
-  EXHAUST,
-  BARRIER,
-  CLEANSE,
-  GHOST,
-};

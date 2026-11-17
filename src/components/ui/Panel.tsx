@@ -136,20 +136,3 @@ export function PanelHeader({ icon, title, subtitle, action }: PanelHeaderProps)
     </div>
   );
 }
-
-interface DividerProps {
-  label?: string;
-}
-
-export function Divider({ label }: DividerProps) {
-  if (!label) return <div className="h-px bg-border-subtle my-2" />;
-  return (
-    <div className="flex items-center gap-2 my-2">
-      <div className="h-px flex-1 bg-border-subtle" />
-      <span className="text-[10px] uppercase tracking-widest text-white/30">
-        {label}
-      </span>
-      <div className="h-px flex-1 bg-border-subtle" />
-    </div>
-  );
-}

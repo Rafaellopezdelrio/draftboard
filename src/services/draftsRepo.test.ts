@@ -14,7 +14,6 @@ import {
   saveDraft,
   linkDraftToMatch,
   draftAdviceStats,
-  recentDrafts,
 } from "./draftsRepo";
 
 // The adherence panel's headline numbers ("WR when you followed the
@@ -77,7 +76,6 @@ describe("drafts persistence (SQLite)", () => {
     ).toBe(0);
     await linkDraftToMatch("EUW1_1", 103, 1000);
     expect(await draftAdviceStats()).toEqual(ZERO);
-    expect(await recentDrafts()).toEqual([]);
     expect(getDbMock).not.toHaveBeenCalled();
   });
 
@@ -138,62 +136,4 @@ describe("drafts persistence (SQLite)", () => {
     expect(s).toEqual({ followedGames: 3, followedWins: 3, notFollowedGames: 2, notFollowedWins: 0 });
   });
 
-  it("recentDrafts parses CSV columns (empty → [], stray commas dropped)", async () => {
-    selectMock.mockResolvedValue([
-      {
-        id: 2,
-        ts_ms: 2000,
-        ally_keys: "103,64",
-        enemy_keys: "157,,238,",
-        banned_keys: "",
-        picked_key: "103",
-        suggested_keys: "103",
-        followed_suggestion: 1,
-        match_id: "EUW1_5",
-      },
-      {
-        id: 1,
-        ts_ms: 1000,
-        ally_keys: "",
-        enemy_keys: "",
-        banned_keys: "",
-        picked_key: null,
-        suggested_keys: "",
-        followed_suggestion: 0,
-        match_id: null,
-      },
-    ]);
-    const out = await recentDrafts(20);
-    expect(selectMock.mock.calls[0][0]).toContain("ORDER BY ts_ms DESC LIMIT $1");
-    expect(selectMock.mock.calls[0][1]).toEqual([20]);
-    expect(out).toEqual([
-      {
-        id: 2,
-        tsMs: 2000,
-        allyKeys: ["103", "64"],
-        enemyKeys: ["157", "238"],
-        bannedKeys: [],
-        pickedKey: "103",
-        suggestedKeys: ["103"],
-        followedSuggestion: true,
-        matchId: "EUW1_5",
-      },
-      {
-        id: 1,
-        tsMs: 1000,
-        allyKeys: [],
-        enemyKeys: [],
-        bannedKeys: [],
-        pickedKey: null,
-        suggestedKeys: [],
-        followedSuggestion: false,
-        matchId: null,
-      },
-    ]);
-  });
-
-  it("recentDrafts defaults to 50 rows", async () => {
-    await recentDrafts();
-    expect(selectMock.mock.calls[0][1]).toEqual([50]);
-  });
 });

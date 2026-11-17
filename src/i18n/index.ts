@@ -103,10 +103,4 @@ export function ensureLocaleLoaded(locale: UiLocale): Promise<void> {
   return loadLocale(locale);
 }
 
-/** Current active locale. Useful for non-component code (e.g. when
- * formatting a server-side message that needs language context). */
-export function getUiLocale(): UiLocale {
-  return (i18n.language as UiLocale) ?? "es";
-}
-
 export { i18n };

@@ -43,11 +43,6 @@ export function trackEvent(
   }
 }
 
-/** Common shortcut for "user clicked X". Standardises the verb. */
-export function trackClick(label: string, data?: Record<string, unknown>): void {
-  trackEvent("ui.click", label, data);
-}
-
 /** Track view open/close so Sentry events show which screens the user
  * navigated through right before a crash. Massive triage value:
  * "crash happened after opening CoachView from HistoryView" is

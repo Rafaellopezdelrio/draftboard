@@ -20,7 +20,6 @@ import {
   recentMatches,
   personalStatsByChampion,
   personalMatchupsByRole,
-  personalStatsByChampionAndRole,
 } from "./matchRepo";
 import type { MatchSummary } from "./riotApi";
 
@@ -60,7 +59,6 @@ describe("matchRepo outside Tauri", () => {
     expect(await recentMatches()).toEqual([]);
     expect(await personalStatsByChampion()).toEqual([]);
     expect(await personalMatchupsByRole("TOP")).toEqual([]);
-    expect(await personalStatsByChampionAndRole()).toEqual([]);
     expect(getDbMock).not.toHaveBeenCalled();
   });
 });
@@ -266,17 +264,3 @@ describe("personalMatchupsByRole", () => {
   });
 });
 
-describe("personalStatsByChampionAndRole", () => {
-  it("groups by champion+role, excluding blank positions, and maps rows", async () => {
-    selectMock.mockResolvedValue([
-      { champion_id: 103, position: "MIDDLE", games: 10, wins: 6 },
-      { champion_id: 103, position: "BOTTOM", games: 0, wins: 0 },
-    ]);
-    const out = await personalStatsByChampionAndRole();
-    expect(selectMock.mock.calls[0][0]).toContain("WHERE position != ''");
-    expect(out).toEqual([
-      { championId: 103, position: "MIDDLE", games: 10, wins: 6, winRate: 0.6 },
-      { championId: 103, position: "BOTTOM", games: 0, wins: 0, winRate: 0 },
-    ]);
-  });
-});

@@ -31,9 +31,6 @@ let _db: Database | null = null;
  *      attaches its handle, so rename can't fail under file-lock)
  * Either path flips this flag. */
 let _recoveredFromCorruption = false;
-/** Set to true at boot when Rust pre-boot quarantine consumed a marker
- * file. Stored separately so the toast can mention it was pre-boot. */
-let _recoveredPreBoot = false;
 
 const DB_URI = "sqlite:lol-draft-advisor.db";
 
@@ -94,18 +91,10 @@ export async function probeRustRecoveryMarker(): Promise<void> {
     const payload = await invoke<string | null>("consume_db_recovery_marker");
     if (payload) {
       _recoveredFromCorruption = true;
-      _recoveredPreBoot = true;
       // eslint-disable-next-line no-console
       console.warn("[db] Rust pre-boot quarantine fired:", payload);
     }
   } catch {
     // Command may not exist in older builds — non-fatal.
   }
-}
-
-/** Whether the recovery happened via Rust's pre-boot path (vs the TS
- * post-load retry). The toast wording differs slightly: pre-boot
- * means "we caught it before the app even tried to use the DB". */
-export function didRecoverPreBoot(): boolean {
-  return _recoveredPreBoot;
 }

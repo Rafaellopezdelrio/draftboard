@@ -96,11 +96,3 @@ export function subscribeToItemMeta(cb: () => void): () => void {
   subscribers.add(cb);
   return () => subscribers.delete(cb);
 }
-
-/** Test-only reset. */
-export function __testOnly_resetItemMeta(): void {
-  currentPatch = null;
-  cache = null;
-  loadPromise = null;
-  subscribers.clear();
-}

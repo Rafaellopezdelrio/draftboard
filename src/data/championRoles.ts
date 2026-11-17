@@ -188,13 +188,3 @@ export const CHAMPION_ROLES: Record<string, Role[]> = {
   Zoe: ["MIDDLE"],
   Zyra: ["UTILITY", "JUNGLE"],
 };
-
-/**
- * Returns true if a champion is regularly played in the given role (per
- * authoritative data). Falls back gracefully for champs not in the map.
- */
-export function isChampionInRole(championId: string, role: Role): boolean {
-  const roles = CHAMPION_ROLES[championId];
-  if (!roles) return false; // unknown champ — don't suggest in any specific role
-  return roles.includes(role);
-}

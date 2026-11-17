@@ -32,7 +32,15 @@ export async function saveMemory(m: Omit<AiMemory, "id" | "createdTsMs"> & { cre
       m.expiresTsMs ?? null,
     ]
   );
+  // Keep the newest MAX_MEMORIES; nothing else ever trimmed this table.
+  await db.execute(
+    `DELETE FROM ai_memory
+     WHERE id NOT IN (SELECT id FROM ai_memory ORDER BY created_ts_ms DESC LIMIT $1)`,
+    [MAX_MEMORIES]
+  );
 }
+
+const MAX_MEMORIES = 200;
 
 export async function recentMemories(limit = 30): Promise<AiMemory[]> {
   if (!isTauri()) return [];
@@ -93,16 +101,6 @@ export async function memoriesByCategory(category: string, limit = 10): Promise<
     content: r.content,
     createdTsMs: r.created_ts_ms,
   }));
-}
-
-export async function clearOldMemories(): Promise<void> {
-  if (!isTauri()) return;
-  const db = await getDb();
-  // Keep only last 200 memories total
-  await db.execute(
-    `DELETE FROM ai_memory
-     WHERE id NOT IN (SELECT id FROM ai_memory ORDER BY created_ts_ms DESC LIMIT 200)`
-  );
 }
 
 /**

@@ -47,14 +47,3 @@ export function SkeletonRow() {
     </div>
   );
 }
-
-/** Champion-card grid placeholder (used during DB cold load). */
-export function SkeletonCard() {
-  return (
-    <div className="rounded-lg border border-border-subtle p-3 space-y-2 animate-pulse">
-      <div className="h-24 w-full bg-white/10 rounded" aria-hidden="true" />
-      <div className="h-3 w-2/3 bg-white/10 rounded" aria-hidden="true" />
-      <div className="h-2 w-1/3 bg-white/10 rounded" aria-hidden="true" />
-    </div>
-  );
-}

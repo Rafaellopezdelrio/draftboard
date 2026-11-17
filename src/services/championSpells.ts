@@ -111,10 +111,3 @@ export function subscribeToChampionSpells(cb: () => void): () => void {
 export function spellIconUrl(patch: string, image: string): string {
   return `https://ddragon.leagueoflegends.com/cdn/${patch}/img/spell/${image}`;
 }
-
-/** Test-only reset. */
-export function __testOnly_resetChampionSpells(): void {
-  cache.clear();
-  inFlight.clear();
-  subscribers.clear();
-}

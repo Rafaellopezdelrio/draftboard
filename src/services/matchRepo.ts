@@ -203,24 +203,3 @@ export async function personalMatchupsByRole(
 export interface PersonalChampionRoleStat extends ChampionPersonalStat {
   position: string;
 }
-
-export async function personalStatsByChampionAndRole(): Promise<PersonalChampionRoleStat[]> {
-  if (!isTauri()) return [];
-  const db = await getDb();
-  const rows = await db.select<
-    Array<{ champion_id: number; position: string; games: number; wins: number }>
-  >(
-    `SELECT champion_id, position, COUNT(*) as games, SUM(win) as wins
-     FROM matches
-     WHERE position != ''
-     GROUP BY champion_id, position
-     ORDER BY games DESC`
-  );
-  return rows.map((r) => ({
-    championId: r.champion_id,
-    position: r.position,
-    games: r.games,
-    wins: r.wins,
-    winRate: r.games > 0 ? r.wins / r.games : 0,
-  }));
-}

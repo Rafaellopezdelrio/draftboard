@@ -123,33 +123,3 @@ export async function draftAdviceStats(): Promise<AdviceStats> {
   );
   return aggregateAdviceRows(rows);
 }
-
-export async function recentDrafts(limit = 50): Promise<DraftRecord[]> {
-  if (!isTauri()) return [];
-  const db = await getDb();
-  const rows = await db.select<
-    Array<{
-      id: number;
-      ts_ms: number;
-      ally_keys: string;
-      enemy_keys: string;
-      banned_keys: string;
-      picked_key: string | null;
-      suggested_keys: string;
-      followed_suggestion: number;
-      match_id: string | null;
-    }>
-  >(`SELECT * FROM drafts ORDER BY ts_ms DESC LIMIT $1`, [limit]);
-  const split = (s: string) => (s ? s.split(",").filter(Boolean) : []);
-  return rows.map((r) => ({
-    id: r.id,
-    tsMs: r.ts_ms,
-    allyKeys: split(r.ally_keys),
-    enemyKeys: split(r.enemy_keys),
-    bannedKeys: split(r.banned_keys),
-    pickedKey: r.picked_key,
-    suggestedKeys: split(r.suggested_keys),
-    followedSuggestion: r.followed_suggestion === 1,
-    matchId: r.match_id,
-  }));
-}

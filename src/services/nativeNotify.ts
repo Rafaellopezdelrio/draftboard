@@ -19,12 +19,6 @@ function isSupported(): boolean {
   return typeof window !== "undefined" && "Notification" in window;
 }
 
-/** Detect current permission without prompting. Cheap; safe in renders. */
-export function getNotificationPermission(): NotificationPermission | "unsupported" {
-  if (!isSupported()) return "unsupported";
-  return Notification.permission;
-}
-
 /** Prompt the user for notification permission (idempotent — only fires once
  *  per session). Returns the resulting state. */
 export async function ensureNotificationPermission(): Promise<NotificationPermission | "unsupported"> {

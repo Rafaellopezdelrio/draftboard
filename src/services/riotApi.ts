@@ -357,13 +357,6 @@ export async function getChallengerLeague(cfg: RiotConfig): Promise<LeagueListDt
   );
 }
 
-export async function getSummonerByPuuidPlatform(
-  cfg: RiotConfig,
-  puuid: string
-): Promise<SummonerDto> {
-  return getSummonerByPuuid(cfg, puuid);
-}
-
 export async function getPuuidBySummonerId(
   cfg: RiotConfig,
   summonerId: string
