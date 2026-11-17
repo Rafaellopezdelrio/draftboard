@@ -233,6 +233,15 @@ describe("TrendsView — real engines on 6 games", () => {
     expect(screen.queryByText("Aún no hay tendencias")).toBeNull();
   });
 
+  it("everything under the filters sits in one scroll area so nothing spills out of the box", async () => {
+    await renderWith(sixTop());
+    const scroll = screen.getByTestId("trends-scroll");
+    expect(scroll).toHaveClass("overflow-y-auto", "min-h-0", "flex-1");
+    expect(scroll).toContainElement(screen.getByText("Winrate ↑ 100% — mejorando"));
+    expect(scroll).toContainElement(screen.getByText("AI Coach (tendencias)"));
+    expect(scroll).not.toContainElement(screen.getByText("Tendencias"));
+  });
+
   it("dropping winrate renders as a warn insight", async () => {
     const ms = sixTop().map((m, i) => ({ ...m, win: i >= 3 }));
     await renderWith(ms);

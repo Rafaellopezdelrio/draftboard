@@ -320,6 +320,9 @@ export function TrendsView({ db, onClose, rankTier }: Props) {
           </select>
         </div>
 
+        {/* Everything under the filters scrolls as one: the box is capped at
+          * 85vh and the sections above the trend list used to spill out of it. */}
+        <div className="min-h-0 flex-1 overflow-y-auto pr-1" data-testid="trends-scroll">
         {leak ? (
           <div className="mb-3 p-3 rounded border border-accent/40 bg-accent/5">
             <p className="text-xs uppercase text-white/50 tracking-wide">
@@ -539,7 +542,7 @@ export function TrendsView({ db, onClose, rankTier }: Props) {
             detail={t("trends.emptyDetail")}
           />
         ) : (
-          <div className="space-y-2 overflow-y-auto">
+          <div className="space-y-2">
             {trends.map((tr, i) => (
               <div
                 key={i}
@@ -558,6 +561,7 @@ export function TrendsView({ db, onClose, rankTier }: Props) {
             ))}
           </div>
         )}
+        </div>
       </div>
     </div>
   );
