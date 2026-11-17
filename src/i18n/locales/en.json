@@ -13,6 +13,7 @@
     "postGameCoach": "Post-game coach",
     "trends": "Trends",
     "history": "History",
+    "champions": "My champions",
     "lessonPlan": "7-day plan",
     "settings": "Settings",
     "preferences": "Preferences",
@@ -761,6 +762,7 @@
     "chat": "Talk to AI Coach",
     "trends": "View trends",
     "history": "History",
+    "champions": "My champions",
     "prefs": "Preferences",
     "diag": "Connection diagnostics",
     "privacy": "My data / privacy",
@@ -2028,6 +2030,42 @@
       "antiCrit": "{{crits}} enemies deal critical hits: this item reduces that damage.",
       "antiShield": "{{shielders}} enemies have shields: this item breaks them."
     }
+  },
+  "championStats": {
+    "title": "My champions",
+    "gameCount_one": "{{count}} game",
+    "gameCount_other": "{{count}} games",
+    "queue": "Queue",
+    "season": "Season",
+    "seasonYear": "Season {{year}}",
+    "allSeasons": "All seasons",
+    "queues": {
+      "ranked": "Ranked and Clash",
+      "solo": "Solo/Duo",
+      "flex": "Flex",
+      "clash": "Clash"
+    },
+    "search": "Search a champion",
+    "loading": "Loading your games…",
+    "empty": "No stored games in this queue this season.",
+    "col": {
+      "champion": "Champion",
+      "played": "Played",
+      "kda": "KDA",
+      "cs": "CS",
+      "gold": "Gold",
+      "vision": "Vision"
+    },
+    "allChampions": "All champions",
+    "vs": "vs",
+    "vsToggle": "See {{name}} against each opponent",
+    "noRivals": "These games have no lane opponent stored.",
+    "winsShort": "{{n}}W",
+    "lossesShort": "{{n}}L",
+    "record": "{{wins}} wins, {{losses}} losses",
+    "perfect": "Perfect",
+    "perMin": "{{v}}/min",
+    "note": "Counts the games the app has stored. Click a champion to see it against each lane opponent. Damage and wards are not stored."
   },
   "simpleHome": {
     "lastStep": "Your last game",

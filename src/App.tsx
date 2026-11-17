@@ -25,6 +25,7 @@ import {
   GraduationCap,
   TrendingUp,
   History,
+  Swords,
   Activity,
   SlidersHorizontal,
   Wifi,
@@ -49,6 +50,9 @@ const CoachView = lazy(() =>
 );
 const TrendsView = lazy(() =>
   import("./components/TrendsView").then((m) => ({ default: m.TrendsView }))
+);
+const ChampionStatsView = lazy(() =>
+  import("./components/ChampionStatsView").then((m) => ({ default: m.ChampionStatsView }))
 );
 const PreferencesView = lazy(() =>
   import("./components/PreferencesView").then((m) => ({
@@ -243,6 +247,7 @@ function App() {
   const [showHistory, setShowHistory] = useState(false);
   const [showCoach, setShowCoach] = useState(false);
   const [showTrends, setShowTrends] = useState(false);
+  const [showChampions, setShowChampions] = useState(false);
   const [showPrefs, setShowPrefs] = useState(false);
   const [showDiag, setShowDiag] = useState(false);
   const [showChat, setShowChat] = useState(false);
@@ -339,6 +344,7 @@ function App() {
     setShowChat,
     setShowTrends,
     setShowHistory,
+    setShowChampions,
     setShowPrefs,
     setShowDiag,
     setShowPrivacy,
@@ -396,6 +402,7 @@ function App() {
   useViewBreadcrumb("SettingsView", showSettings);
   useViewBreadcrumb("HistoryView", showHistory);
   useViewBreadcrumb("CoachView", showCoach);
+  useViewBreadcrumb("ChampionStatsView", showChampions);
   useViewBreadcrumb("PreferencesView", showPrefs);
   useViewBreadcrumb("DiagnosticsView", showDiag);
   useViewBreadcrumb("AiChatView", showChat);
@@ -773,6 +780,7 @@ function App() {
                   { label: t("nav.postGameCoach"), icon: <GraduationCap className="w-3.5 h-3.5" />, onClick: () => setShowCoach(true) },
                   { label: t("nav.trends"), icon: <TrendingUp className="w-3.5 h-3.5" />, onClick: () => setShowTrends(true) },
                   { label: t("nav.history"), icon: <History className="w-3.5 h-3.5" />, onClick: () => setShowHistory(true) },
+                  { label: t("nav.champions"), icon: <Swords className="w-3.5 h-3.5" />, onClick: () => setShowChampions(true) },
                   { label: t("nav.lessonPlan"), icon: <Calendar className="w-3.5 h-3.5" />, onClick: () => setShowLessonPlan(true) },
                 ]}
               />
@@ -802,6 +810,7 @@ function App() {
               { label: t("nav.postGameCoach"), icon: <GraduationCap className="w-3.5 h-3.5" />, onClick: () => setShowCoach(true) },
               { label: t("nav.trends"), icon: <TrendingUp className="w-3.5 h-3.5" />, onClick: () => setShowTrends(true) },
               { label: t("nav.history"), icon: <History className="w-3.5 h-3.5" />, onClick: () => setShowHistory(true) },
+              { label: t("nav.champions"), icon: <Swords className="w-3.5 h-3.5" />, onClick: () => setShowChampions(true) },
               { label: t("nav.lessonPlan"), icon: <Calendar className="w-3.5 h-3.5" />, onClick: () => setShowLessonPlan(true) },
             ]}
           />
@@ -1144,6 +1153,11 @@ function App() {
         {showTrends && (
           <ViewBoundary viewName="TrendsView" onClose={() => setShowTrends(false)}>
             <TrendsView db={db} onClose={() => setShowTrends(false)} rankTier={rankTier} />
+          </ViewBoundary>
+        )}
+        {showChampions && (
+          <ViewBoundary viewName="ChampionStatsView" onClose={() => setShowChampions(false)}>
+            <ChampionStatsView db={db} onClose={() => setShowChampions(false)} />
           </ViewBoundary>
         )}
         {showPrefs && (

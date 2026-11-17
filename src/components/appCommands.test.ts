@@ -22,6 +22,7 @@ function mockSetters() {
     setShowChat: vi.fn(),
     setShowTrends: vi.fn(),
     setShowHistory: vi.fn(),
+    setShowChampions: vi.fn(),
     setShowPrefs: vi.fn(),
     setShowDiag: vi.fn(),
     setShowPrivacy: vi.fn(),
@@ -53,6 +54,9 @@ describe("buildAppCommands", () => {
 
     cmds.find((c) => c.id === "coach")!.action();
     expect(s.setShowCoach).toHaveBeenCalledWith(true);
+
+    cmds.find((c) => c.id === "champions")!.action();
+    expect(s.setShowChampions).toHaveBeenCalledWith(true);
 
     cmds.find((c) => c.id === "settings")!.action();
     expect(s.setShowSettings).toHaveBeenCalledWith(true);

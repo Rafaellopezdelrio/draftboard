@@ -13,6 +13,7 @@
     "postGameCoach": "Coach post-partida",
     "trends": "Tendencias",
     "history": "Historial",
+    "champions": "Mis campeones",
     "lessonPlan": "Plan 7 días",
     "settings": "Ajustes",
     "preferences": "Preferencias",
@@ -761,6 +762,7 @@
     "chat": "Hablar con AI Coach",
     "trends": "Ver tendencias",
     "history": "Historial",
+    "champions": "Mis campeones",
     "prefs": "Preferencias",
     "diag": "Diagnóstico de conexión",
     "privacy": "Mis datos / privacidad",
@@ -2028,6 +2030,42 @@
       "antiCrit": "{{crits}} rivales pegan golpes críticos: este objeto reduce ese daño.",
       "antiShield": "{{shielders}} rivales llevan escudos: este objeto los rompe."
     }
+  },
+  "championStats": {
+    "title": "Mis campeones",
+    "gameCount_one": "{{count}} partida",
+    "gameCount_other": "{{count}} partidas",
+    "queue": "Cola",
+    "season": "Temporada",
+    "seasonYear": "Temporada {{year}}",
+    "allSeasons": "Todas las temporadas",
+    "queues": {
+      "ranked": "Clasificatorias y Clash",
+      "solo": "Solo/Dúo",
+      "flex": "Flexible",
+      "clash": "Clash"
+    },
+    "search": "Busca un campeón",
+    "loading": "Cargando tus partidas…",
+    "empty": "No hay partidas guardadas de esta cola en esta temporada.",
+    "col": {
+      "champion": "Campeón",
+      "played": "Jugadas",
+      "kda": "KDA",
+      "cs": "Súbditos",
+      "gold": "Oro",
+      "vision": "Visión"
+    },
+    "allChampions": "Todos los campeones",
+    "vs": "vs",
+    "vsToggle": "Ver {{name}} contra cada rival",
+    "noRivals": "Estas partidas no tienen guardado el rival de línea.",
+    "winsShort": "{{n}}V",
+    "lossesShort": "{{n}}D",
+    "record": "{{wins}} victorias, {{losses}} derrotas",
+    "perfect": "Perfecto",
+    "perMin": "{{v}}/min",
+    "note": "Cuenta las partidas que la app tiene guardadas. Pulsa un campeón para verlo contra cada rival de línea. El daño y los guardianes no se guardan."
   },
   "simpleHome": {
     "lastStep": "Tu última partida",

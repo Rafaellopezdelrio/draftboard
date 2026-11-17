@@ -19,6 +19,7 @@ export interface AppCommandSetters {
   setShowChat: (open: boolean) => void;
   setShowTrends: (open: boolean) => void;
   setShowHistory: (open: boolean) => void;
+  setShowChampions: (open: boolean) => void;
   setShowPrefs: (open: boolean) => void;
   setShowDiag: (open: boolean) => void;
   setShowPrivacy: (open: boolean) => void;
@@ -41,6 +42,7 @@ export function buildAppCommands(s: AppCommandSetters, t: CmdT): Command[] {
     { id: "chat", label: t("commands.chat"), action: () => s.setShowChat(true) },
     { id: "trends", label: t("commands.trends"), action: () => s.setShowTrends(true) },
     { id: "history", label: t("commands.history"), action: () => s.setShowHistory(true) },
+    { id: "champions", label: t("commands.champions"), action: () => s.setShowChampions(true) },
     { id: "prefs", label: t("commands.prefs"), action: () => s.setShowPrefs(true) },
     { id: "diag", label: t("commands.diag"), action: () => s.setShowDiag(true) },
     { id: "privacy", label: t("commands.privacy"), action: () => s.setShowPrivacy(true) },
