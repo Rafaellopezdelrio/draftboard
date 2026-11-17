@@ -180,6 +180,8 @@ describe("aggregate loaders (SQLite)", () => {
     ]);
     const out = await loadAggregatedBuilds("14.20", 103, "MIDDLE");
     expect(selectMock.mock.calls[0][1]).toEqual(["14.20", 103, "MIDDLE"]);
+    // Most-played build first: a 2/2 build must not outrank a 30/40 one.
+    expect(selectMock.mock.calls[0][0]).toMatch(/ORDER BY games DESC, \(CAST\(wins AS REAL\) \/ games\) DESC/);
     expect(out).toEqual([
       { championId: 103, position: "MIDDLE", itemIds: [6655, 3020, 4645], games: 40, wins: 24 },
     ]);

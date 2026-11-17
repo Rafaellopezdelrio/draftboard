@@ -142,6 +142,9 @@ open. Not user documentation — see [`../README.md`](../README.md) for that.
     `Draftboard.lnk` points at an old local build
     (`src-tauri/target/release/…`, 0.5.1 from 2026-11-12); the updater
     updates `C:\Program Files\Draftboard` (0.5.6). Not an app bug.
+    Fixed with the owner's yes: the icon now opens
+    `C:\Program Files\Draftboard\lol-draft-advisor-app.exe` (0.5.7, updated
+    in-app); old icon kept at `D:\Claude\Draftboard.lnk.backup-2026-11-17`.
     Also: the installed app and `tauri dev` cannot run at once (WebView2
     0x8007139F on the shared data folder) — close the installed one first.
   - **Background downloads (0.5.6, 1953bd7):** the pro, ranked
@@ -157,9 +160,12 @@ open. Not user documentation — see [`../README.md`](../README.md) for that.
     The "compute the aggregate once a night" idea is parked under the
     owner's rule: our aggregate is only the backup behind op.gg, so making
     it faster to get improves little.
-  - **Seen, not touched:** two Settings buttons share the 🏆 icon; the
-    ranked button's tooltip is jargon ("Agrega Master+ SoloQ a la base de
-    datos meta"); `loadAggregatedBuilds` ranks one-game builds first.
+  - **Fixed after 0.5.7 (not released yet):** best-players button is 🌍
+    (pro stays 🏆); ranked tooltip in plain words; `loadAggregatedBuilds`
+    sorts most-played first, then win rate. Measured on the owner's DB
+    (16.22.1, 108 champion+lane lists): shown build 2.26 → 2.65 games on
+    average, "100 % on ≤3 games" shown 61 → 42. Per-build data is thin
+    (512 of 662 rows have 2 games); op.gg stays the main build source.
   - **Still open from before:** real-game pass of the simple screens and
     the list below; Spanish item names in in-game/build advice; matchup tip
     text in Spanish.

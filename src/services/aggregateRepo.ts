@@ -81,7 +81,7 @@ export async function loadAggregatedBuilds(
   >(
     `SELECT * FROM build_aggregate
      WHERE patch = $1 AND champion_id = $2 AND position = $3
-     ORDER BY (CAST(wins AS REAL) / games) DESC, games DESC LIMIT 5`,
+     ORDER BY games DESC, (CAST(wins AS REAL) / games) DESC LIMIT 5`,
     [patch, championId, position]
   );
   return rows.map((r) => ({
