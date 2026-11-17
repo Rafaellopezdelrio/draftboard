@@ -4,6 +4,22 @@ All notable changes to Draftboard are documented here.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/);
 versions match the Tauri app version + the `vX.Y.Z` git tags.
 
+## [0.6.1] — 2026-11-18
+
+First version offered by the updater after 0.5.9 (0.6.0 was built only).
+
+### Added
+- Sync downloads the whole season (since 1 January) of Ranked Solo/Duo, Flex
+  and Clash games, page by page; stored games are not downloaded again.
+
+### Changed
+- Mis campeones: default view is ranked only (Solo/Duo + Flex); Clash is its
+  own option. Reads again when a sync finishes.
+
+### Fixed
+- Bans: a scouted enemy main is only suggested when that champion is played
+  in the player's lane.
+
 ## [0.6.0] — 2026-11-18
 
 ### Added
