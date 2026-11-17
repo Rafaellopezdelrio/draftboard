@@ -5,10 +5,12 @@ import type {
   CounterEntry,
   Role,
 } from "../types/champion";
-import { counterScore } from "../services/murderBridge";
+import { MIN_COUNTER_SAMPLE } from "../services/murderBridge";
 import type { ChampionPersonalStat } from "../services/matchRepo";
 import type { ChampionMasteryDto } from "../services/riotApi";
 import { CHAMPION_ROLES } from "../data/championRoles";
+import { inferEnemyRoles } from "../data/matchupTips";
+import { AP_ASSASSINS, profileEnemyComp, type CompProfile } from "./adaptiveBuildEngine";
 import { useDraftStore } from "../state/draftStore";
 
 export interface ScoredSuggestion {
@@ -46,6 +48,9 @@ export interface ScoredSuggestion {
      * the player has never played this champ.
      */
     masteryLevel: number;
+    /** How well the pick fits this game (matchups, enemy comp, own team,
+     * meta), comfort aside. 0-1. Picks the "best for this game" entry. */
+    fit: number;
   };
   reasons: string[];
   color: "good" | "meh" | "bad";
@@ -83,29 +88,34 @@ interface SuggestParams {
   selfKey?: string | null;
 }
 
-// Engine weights — re-balanced so champion mastery + personal winrate
-// have real impact (was 0.05/0.15 → too weak to surface mains).
-const RANKED_WEIGHTS = {
-  counter: 0.20,
-  synergy: 0.10,
-  meta: 0.20,
-  archetype: 0.10,
-  personal: 0.20,
-  mastery: 0.20,
+// How a pick is chosen (owner, 2026-11-17): the champions you play filter,
+// the game in front of you decides. "Your most played" is not "the right
+// pick for this draft". Before, comfort was a weighted dimension like the
+// rest and in practice swamped the draft: mastery could move a pick by 0.28,
+// a 45% vs 55% matchup by 0.02.
+//
+//   score = draft fit (matchups, enemy comp, own team) + meta + comfort step
+//
+// Comfort is a STEP, not a slope: inside your pool comfort differences do not
+// decide, the draft does. A pick outside it needs a clearly better game.
+const DRAFT_WEIGHTS = {
+  ranked: { context: 0.5, meta: 0.25 },
+  // Meta is calibrated on ranked play; unranked leans on the draft instead.
+  unranked: { context: 0.6, meta: 0.15 },
 } as const;
-
-// For unranked players we lean harder on mastery and lighter on
-// personal winrate (often 0 entries) and meta (which is calibrated to
-// emerald+ play patterns the unranked player might not match yet).
-// Mastery is the most reliable "what champ this person actually knows".
-const UNRANKED_WEIGHTS = {
-  counter: 0.20,
-  synergy: 0.10,
-  meta: 0.15,
-  archetype: 0.10,
-  personal: 0.10,
-  mastery: 0.35,
-} as const;
+const POOL_BONUS = 0.25; // a champion you play now
+const KNOWN_BONUS = 0.12; // one you have played some, or a while ago
+// Inside the draft fit: the lane matchup first, then what the enemy team
+// does, then your own team.
+const CONTEXT_PARTS = { counter: 0.55, comp: 0.2, synergy: 0.1, archetype: 0.15 } as const;
+/** Matchup win rates sit around 45-55%: stretch so ±10 points spans 0..1. */
+const COUNTER_STRETCH = 5;
+/** The lane opponent counts double against the other enemies. */
+const LANE_OPPONENT_WEIGHT = 2;
+/** "Best for this game" only when it fits clearly better than your #1
+ * (about a 2-point better matchup plus a grade, or more). In a check on the
+ * owner's jungle drafts it showed in 8 of 56. */
+const BEST_FOR_DRAFT_MARGIN = 0.05;
 
 function isUnranked(rankTier?: string | null): boolean {
   if (!rankTier) return true;
@@ -136,9 +146,18 @@ export function suggest({
   const allyKeys = self
     ? allyKeysWithSelf.filter((k) => k !== self)
     : allyKeysWithSelf;
-  const weights = isUnranked(rankTier) ? UNRANKED_WEIGHTS : RANKED_WEIGHTS;
+  const weights = isUnranked(rankTier) ? DRAFT_WEIGHTS.unranked : DRAFT_WEIGHTS.ranked;
   const taken = new Set([...allyKeys, ...enemyKeys, ...bannedKeys]);
-  const missingArchetypes = detectMissingArchetypes(db, allyKeys);
+  // Who plays the same lane on the other side (guessed from the champions in
+  // champ select), and what their team as a whole does.
+  const enemyRoles = role ? inferEnemyRoles(enemyKeys.map((k) => db.champions[k]?.id)) : [];
+  const laneOpponent = role ? (enemyKeys[enemyRoles.indexOf(role)] ?? null) : null;
+  const enemyComp = enemyKeys.length > 0 ? profileEnemyComp(db, enemyKeys) : null;
+  const enemyArchetypes = countArchetypes(db, enemyKeys);
+  const allyDamage = damageSplit(db, allyKeys);
+  // With fewer than 2 teammates picked nothing is "missing" yet: every gap
+  // would count and reward any tank or peeler regardless of the team.
+  const missingArchetypes = allyKeys.length >= 2 ? detectMissingArchetypes(db, allyKeys) : new Set<Archetype>();
   const personalById = new Map<number, ChampionPersonalStat>();
   for (const p of personalStats) personalById.set(p.championId, p);
   const masteryById = new Map<number, ChampionMasteryDto>();
@@ -164,10 +183,27 @@ export function suggest({
     masteryById,
     weights,
     counters,
+    laneOpponent,
+    enemyComp,
+    enemyArchetypes,
+    allyDamage,
   }));
 
   scored.sort((a, b) => b.score - a.score);
-  return scored.slice(0, limit);
+  const top = scored.slice(0, limit);
+
+  // "Best for this game": the strongest draft fit when it is not one of your
+  // champions, shown (and labelled) even if your pool fills the list — the
+  // ideal pick next to what you play. Only with enemies on the board, where
+  // "this game" means something.
+  if (enemyKeys.length > 0 && top.length > 0) {
+    const best = scored.reduce((a, b) => (b.breakdown.fit > a.breakdown.fit ? b : a));
+    if (best !== top[0] && !best.breakdown.isComfort && best.breakdown.fit - top[0].breakdown.fit >= BEST_FOR_DRAFT_MARGIN) {
+      best.reasons.unshift("suggestions.reason.bestForDraft");
+      if (!top.includes(best)) top[top.length - 1] = best;
+    }
+  }
+  return top;
 }
 
 /** Average matchup win rate that counts as "good against them" / "hard lane". */
@@ -175,12 +211,8 @@ const COUNTER_GOOD = 0.52;
 const COUNTER_BAD = 0.48;
 
 interface EngineWeights {
-  counter: number;
-  synergy: number;
+  context: number;
   meta: number;
-  archetype: number;
-  personal: number;
-  mastery: number;
 }
 
 interface ScoreCtx {
@@ -193,52 +225,44 @@ interface ScoreCtx {
   masteryById: Map<number, ChampionMasteryDto>;
   weights: EngineWeights;
   counters: CounterEntry[];
+  laneOpponent: string | null;
+  enemyComp: CompProfile | null;
+  enemyArchetypes: Map<Archetype, number>;
+  allyDamage: { magic: number; physical: number };
 }
 
 function scoreChampion(c: Champion, ctx: ScoreCtx): ScoredSuggestion {
   const role = ctx.role ?? c.roles[0];
-  const counter = counterScore(c.key, ctx.enemyKeys, role, ctx.counters);
+  // Raw matchup win rate (lane opponent counted double) for labels and the
+  // UI bar; stretched for the score so a 45% vs 55% lane actually matters.
+  const counter = laneWeightedCounter(c.key, ctx.enemyKeys, ctx.laneOpponent, role, ctx.counters);
+  const counterEdge = clamp01(0.5 + (counter - 0.5) * COUNTER_STRETCH);
   const synergy = synergyScore(c, ctx.allyKeys, ctx.db);
   const meta = metaScore(c.key, role, ctx.db);
   const archetype = archetypeFitScore(c, ctx.missingArchetypes);
+  const comp = compFitScore(c, ctx);
   const champIdNum = Number(c.key);
   const personal = personalScore(champIdNum, ctx.personalById);
   const mastery = masteryScore(champIdNum, ctx.masteryById);
+  const masteryEntry = ctx.masteryById.get(champIdNum);
 
+  const context =
+    CONTEXT_PARTS.counter * counterEdge +
+    CONTEXT_PARTS.comp * comp +
+    CONTEXT_PARTS.synergy * synergy +
+    CONTEXT_PARTS.archetype * archetype;
   const w = ctx.weights;
-  let score =
-    w.counter * counter +
-    w.synergy * synergy +
-    w.meta * meta +
-    w.archetype * archetype +
-    w.personal * personal +
-    w.mastery * mastery;
+  // How well the pick fits THIS game, comfort aside (0-1).
+  const fit = (w.context * context + w.meta * meta) / (w.context + w.meta);
+  const tier = comfortTier(mastery, ctx.personalById.get(champIdNum));
+  const score = Math.min(
+    1,
+    w.context * context + w.meta * meta + (tier === "pool" ? POOL_BONUS : tier === "known" ? KNOWN_BONUS : 0)
+  );
 
-  // "Main dominance" boost: a true one-trick (M10+ AND 100k+ pts AND personal WR≥50% if known)
-  // gets a flat +12% bump so it ranks above generic S-tier meta picks. This reflects
-  // what the user expects: "if I main this champion, suggest it first".
-  const masteryEntry = ctx.masteryById.get(Number(c.key));
-  // Only a CURRENT main: played in the last 30 days.
-  const isOneTrick = !!(masteryEntry &&
-    masteryEntry.championLevel >= 10 &&
-    masteryEntry.championPoints >= 100000 &&
-    masteryRecency(masteryEntry.lastPlayTime) === 1);
-  const personalEntry = ctx.personalById.get(Number(c.key));
-  const personalNotBad = !personalEntry || personalEntry.winRate >= 0.45;
-  if (isOneTrick && personalNotBad) {
-    score += 0.12;
-  }
-  // The boost can push a perfect-dimension one-trick past 1.0; the UI renders
-  // score*100 as a 0-100 number (and GradeBadge assumes 0-1), so clamp.
-  score = Math.min(1, score);
-
-  // "Comfort pick" — lower threshold than one-trick. Covers champs the
-  // user is familiar with: mastery level 5+ OR 30k+ points. Used both
-  // for UI labelling and the "pick perfecto" detection below.
-  // "You know it" only if also played in the last 90 days.
-  const isComfort = !!(masteryEntry &&
-    (masteryEntry.championLevel >= 5 || masteryEntry.championPoints >= 30000) &&
-    masteryRecency(masteryEntry.lastPlayTime) >= 0.85);
+  // "Comfort pick" = a champion of your current pool (played now: recent
+  // mastery or several games). Used for UI labelling and "pick perfecto".
+  const isComfort = tier === "pool";
   // "Pick perfecto" — comfort AND meta-strong. We read the MetaTier label
   // directly because the meta score is already 0-1 normalised and we lose
   // the original S+/S/A distinction. Anything from A-tier upwards counts.
@@ -268,6 +292,7 @@ function scoreChampion(c: Champion, ctx: ScoreCtx): ScoredSuggestion {
   // losing lane. Flag it so "best overall" doesn't read as "best matchup".
   else if (counter <= COUNTER_BAD) reasons.push("suggestions.reason.hardMatchup");
   if (synergy > 0.55) reasons.push("suggestions.reason.synergy");
+  if (comp >= 0.65) reasons.push("suggestions.reason.answersComp");
   if (meta > 0.55) reasons.push("suggestions.reason.strongMeta");
   if (archetype > 0) reasons.push("suggestions.reason.fillsGap");
 
@@ -282,6 +307,7 @@ function scoreChampion(c: Champion, ctx: ScoreCtx): ScoredSuggestion {
       synergy,
       meta,
       archetype,
+      fit,
       hasEnemyData: ctx.enemyKeys.length > 0,
       hasAllyData: ctx.allyKeys.length > 0,
       isComfort,
@@ -316,6 +342,104 @@ function isPlayableInRole(c: Champion, role: Role, db: ChampionDb): boolean {
   }
   // 3) Brand-new champion not yet in our list — loose tag fallback
   return c.roles.includes(role);
+}
+
+const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
+
+/**
+ * Average matchup win rate of `key` against the enemies with real data
+ * (op.gg pairs under MIN_COUNTER_SAMPLE games are noise), the lane opponent
+ * counted LANE_OPPONENT_WEIGHT times. 0.5 with no data.
+ */
+function laneWeightedCounter(
+  key: string,
+  enemyKeys: string[],
+  laneOpponent: string | null,
+  role: Role,
+  counters: CounterEntry[]
+): number {
+  let total = 0;
+  let weight = 0;
+  for (const enemy of enemyKeys) {
+    const entry = counters.find(
+      (c) => c.championKey === key && c.vsChampionKey === enemy && c.role === role && c.sampleSize >= MIN_COUNTER_SAMPLE
+    );
+    if (!entry) continue;
+    const w = enemy === laneOpponent ? LANE_OPPONENT_WEIGHT : 1;
+    total += entry.winRate * w;
+    weight += w;
+  }
+  return weight === 0 ? 0.5 : total / weight;
+}
+
+type DamageKind = "magic" | "physical" | null;
+/** Main damage of a champion, from its class tags (same reading as builds). */
+function damageKind(c: Champion): DamageKind {
+  const t = new Set(c.tags);
+  if (t.has("Assassin")) return AP_ASSASSINS.has(c.id) || t.has("Mage") ? "magic" : "physical";
+  if (t.has("Mage")) return "magic";
+  if (t.has("Marksman") || t.has("Fighter")) return "physical";
+  return null; // tanks and enchanters: not a damage source to balance
+}
+
+function damageSplit(db: ChampionDb, keys: string[]): { magic: number; physical: number } {
+  const out = { magic: 0, physical: 0 };
+  for (const k of keys) {
+    const c = db.champions[k];
+    const kind = c ? damageKind(c) : null;
+    if (kind) out[kind]++;
+  }
+  return out;
+}
+
+function countArchetypes(db: ChampionDb, keys: string[]): Map<Archetype, number> {
+  const out = new Map<Archetype, number>();
+  for (const k of keys) for (const a of db.champions[k]?.archetypes ?? []) out.set(a, (out.get(a) ?? 0) + 1);
+  return out;
+}
+
+/**
+ * Does the pick answer what the enemy team does, and balance your own
+ * damage? 0.5 = nothing to say. Kept to plain draft rules:
+ *  - enemy dives / engages a lot (3+) → peel or frontline helps
+ *  - enemy pokes (2+) → engage closes the gap
+ *  - enemy has 2+ assassins → frontline or peel helps survive them
+ *  - your team already deals mostly one damage type (3+ sources, ≥75%) →
+ *    the other type helps, more of the same hurts (one resist item counters it)
+ */
+function compFitScore(c: Champion, ctx: ScoreCtx): number {
+  let s = 0.5;
+  const mine = new Set(c.archetypes);
+  const e = ctx.enemyComp;
+  const enemyEngage = (ctx.enemyArchetypes.get("engage") ?? 0) + (e?.divers ?? 0);
+  if (enemyEngage >= 3 && (mine.has("peel") || mine.has("frontline"))) s += 0.15;
+  if ((ctx.enemyArchetypes.get("poke") ?? 0) >= 2 && mine.has("engage")) s += 0.15;
+  if ((e?.burstThreats ?? 0) >= 2 && (mine.has("frontline") || mine.has("peel"))) s += 0.1;
+  const { magic, physical } = ctx.allyDamage;
+  const sources = magic + physical;
+  const kind = damageKind(c);
+  if (sources >= 3 && kind) {
+    const heavy = magic / sources >= 0.75 ? "magic" : physical / sources >= 0.75 ? "physical" : null;
+    if (heavy) s += kind === heavy ? -0.15 : 0.2;
+  }
+  return clamp01(s);
+}
+
+type ComfortTier = "pool" | "known" | null;
+/**
+ * Whether you play a champion NOW. Pool: recent mastery (score ≥ 0.7, e.g.
+ * M5 played this month, M7 within 90 days) or 3+ games in this role. Known:
+ * some mastery or a game. Losing a lot on it (shrunk win rate under 42%
+ * over 5+ games) drops a pool pick to known.
+ */
+function comfortTier(mastery: number, p: ChampionPersonalStat | undefined): ComfortTier {
+  const games = p?.games ?? 0;
+  const shrunk = p ? (p.wins + 2.5) / (p.games + 5) : 0.5;
+  let tier: ComfortTier = null;
+  if (games >= 3 || mastery >= 0.7) tier = "pool";
+  else if (games >= 1 || mastery >= 0.5) tier = "known";
+  if (tier === "pool" && games >= 5 && shrunk < 0.42) tier = "known";
+  return tier;
 }
 
 function personalScore(

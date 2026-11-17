@@ -71,7 +71,7 @@ export function profileEnemyComp(
   };
 }
 
-const AP_ASSASSINS = new Set([
+export const AP_ASSASSINS = new Set([
   "Akali",
   "Diana",
   "Ekko",

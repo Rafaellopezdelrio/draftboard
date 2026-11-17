@@ -96,6 +96,26 @@ describe("SimpleDraftView", () => {
     expect(within(pick).getByText("tu main")).toBeInTheDocument();
   });
 
+  it("pick step: the ideal pick for this game takes the last slot, labelled, even when your champions fill it", () => {
+    const bestForGame = sug("238", false, ["suggestions.reason.bestForDraft", "suggestions.reason.counters"]);
+    render(
+      <SimpleDraftView
+        {...base}
+        suggestions={[sug("64", true), sug("254", true), sug("59", true), bestForGame]}
+      />
+    );
+    const pick = screen.getByRole("region", { name: "Elige" });
+    const names = [...pick.querySelectorAll("p.font-semibold")].map((n) => n.textContent);
+    expect(names).toEqual(["Lee Sin", "Vi", "Zed"]);
+    expect(within(pick).getByText("Mejor para esta partida")).toBeInTheDocument();
+    expect(within(pick).getByText(/encaja mejor en esta partida, aunque no lo juegas/)).toBeInTheDocument();
+  });
+
+  it("pick step: your win rate on a champion reads in plain words", () => {
+    render(<SimpleDraftView {...base} suggestions={[sug("64", true, ["WR 63%"])]} />);
+    expect(within(screen.getByRole("region", { name: "Elige" })).getByText(/ganas 63 de cada 100 con él/)).toBeInTheDocument();
+  });
+
   it("ban step: shows up to three bans with their reason, and asks for a role without one", () => {
     vi.mocked(suggestBans).mockReturnValue([
       { championKey: "238", championName: "Zed", iconUrl: "icon/Zed.png", reason: "Pierdes mucho contra él", severity: "high", source: "personal" },

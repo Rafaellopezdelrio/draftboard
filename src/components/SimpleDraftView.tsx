@@ -36,6 +36,8 @@ interface Props {
 }
 
 const TOUR_KEY = "draftboard.simpleTourSeen";
+/** Engine reason for the ideal pick of this game outside your champions. */
+const BEST_FOR_DRAFT = "suggestions.reason.bestForDraft";
 
 function tourSeen(): boolean {
   try {
@@ -183,7 +185,15 @@ export function SimpleDraftView({
   const picks = useMemo(() => {
     const comfort = suggestions.filter((s) => s.breakdown.isComfort);
     const rest = suggestions.filter((s) => !s.breakdown.isComfort);
-    return [...comfort, ...rest].slice(0, 3);
+    const three = [...comfort, ...rest].slice(0, 3);
+    // The ideal pick for this game, when it is not one of yours, takes the
+    // last slot so the player sees it next to what they play.
+    const ideal = suggestions.find((s) => s.reasons.includes(BEST_FOR_DRAFT));
+    if (ideal && !three.includes(ideal)) {
+      if (three.length < 3) three.push(ideal);
+      else three[2] = ideal;
+    }
+    return three;
   }, [suggestions]);
 
   const bans = useMemo(
@@ -217,7 +227,7 @@ export function SimpleDraftView({
       .slice(0, 2)
       .map((r) => {
         // The engine's personal win rate is a literal ("WR 63%"), not a key.
-        const wr = /^WR (d+)%$/.exec(r);
+        const wr = /^WR (\d+)%$/.exec(r);
         if (wr) return t("simple.why.winRate", { pct: wr[1] });
         return t(`simple.why.${r.split(".").pop()}`, { defaultValue: t(r) });
       })
@@ -237,7 +247,9 @@ export function SimpleDraftView({
   const tagOf = (s: ScoredSuggestion, i: number) =>
     i === 0
       ? { label: t("simple.tagBest"), tone: "good" as const }
-      : s.breakdown.isComfort
+      : s.reasons.includes(BEST_FOR_DRAFT)
+        ? { label: t("simple.tagBestForGame"), tone: "info" as const }
+        : s.breakdown.isComfort
         ? { label: t("simple.tagKnown"), tone: "info" as const }
         : { label: t("simple.tagNew"), tone: "meh" as const };
 

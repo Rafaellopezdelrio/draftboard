@@ -489,3 +489,112 @@ describe("suggestionEngine — own hovered champion", () => {
     expect(keys).not.toContain(ZED_KEY);
   });
 });
+
+describe("suggestionEngine — your champions filter, the game decides", () => {
+  // Real DDragon ids so the curated role map applies.
+  const K = { zed: "238", yasuo: "157", ori: "61", syndra: "134", malph: "54", leona: "89", j4: "59", lulu: "117", darius: "122", jinx: "222", garen: "86" };
+  function db(): ChampionDb {
+    return {
+      patch: "16.22",
+      champions: {
+        [K.zed]: champ(K.zed, "Zed", ["MIDDLE"], { tags: ["Assassin"], archetypes: ["burst", "pick"] }),
+        [K.yasuo]: champ(K.yasuo, "Yasuo", ["MIDDLE"], { tags: ["Fighter", "Assassin"], archetypes: ["sustain-dps"] }),
+        [K.ori]: champ(K.ori, "Orianna", ["MIDDLE"], { tags: ["Mage", "Support"], archetypes: ["peel", "wave-clear"] }),
+        [K.syndra]: champ(K.syndra, "Syndra", ["MIDDLE"], { tags: ["Mage"], archetypes: ["burst"] }),
+        [K.malph]: champ(K.malph, "Malphite", ["TOP"], { tags: ["Tank"], archetypes: ["engage", "frontline"] }),
+        [K.leona]: champ(K.leona, "Leona", ["UTILITY"], { tags: ["Tank", "Support"], archetypes: ["engage", "frontline"] }),
+        [K.j4]: champ(K.j4, "Jarvan IV", ["JUNGLE"], { tags: ["Tank", "Fighter"], archetypes: ["engage"] }),
+        [K.lulu]: champ(K.lulu, "Lulu", ["UTILITY"], { tags: ["Support", "Mage"], archetypes: ["peel"] }),
+        [K.darius]: champ(K.darius, "Darius", ["TOP"], { tags: ["Fighter", "Tank"], archetypes: ["frontline"] }),
+        [K.jinx]: champ(K.jinx, "Jinx", ["BOTTOM"], { tags: ["Marksman"], archetypes: ["sustain-dps"] }),
+        [K.garen]: champ(K.garen, "Garen", ["TOP"], { tags: ["Fighter", "Tank"], archetypes: ["frontline"] }),
+      },
+      counters: [],
+      meta: [meta(K.zed, "MIDDLE", 0.08, "A"), meta(K.yasuo, "MIDDLE", 0.08, "A"), meta(K.ori, "MIDDLE", 0.05, "A")],
+      fetchedAt: Date.now(),
+    };
+  }
+  const vs = (key: string, enemy: string, winRate: number) => ({ championKey: key, vsChampionKey: enemy, role: "MIDDLE" as Role, winRate, sampleSize: 2000 });
+  const base = { role: "MIDDLE" as Role, bannedKeys: [], selfKey: null, rankTier: "GOLD" };
+
+  it("inside your pool the lane matchup decides, not the most played champion", () => {
+    const result = suggest({
+      ...base,
+      db: db(),
+      allyKeys: [],
+      enemyKeys: [K.syndra],
+      personalStats: [personalEntry(Number(K.zed), 0.55, 40), personalEntry(Number(K.yasuo), 0.5, 4)],
+      liveCounters: [vs(K.zed, K.syndra, 0.45), vs(K.yasuo, K.syndra, 0.54)],
+    });
+    expect(result[0].champion.key).toBe(K.yasuo);
+    expect(result[0].breakdown.isComfort).toBe(true);
+    expect(result.find((s) => s.champion.key === K.zed)?.reasons).toContain("suggestions.reason.hardMatchup");
+  });
+
+  it("a champion you don't play needs a clearly better game, and then shows as best for this game", () => {
+    const clear = suggest({
+      ...base,
+      db: { ...db(), meta: [meta(K.zed, "MIDDLE", 0.08, "B"), meta(K.ori, "MIDDLE", 0.08, "S")] },
+      allyKeys: [],
+      enemyKeys: [K.syndra],
+      personalStats: [personalEntry(Number(K.zed), 0.55, 20)],
+      liveCounters: [vs(K.zed, K.syndra, 0.5), vs(K.ori, K.syndra, 0.56)],
+    });
+    expect(clear[0].champion.key).toBe(K.zed); // still yours first
+    const ori = clear.find((s) => s.champion.key === K.ori);
+    expect(ori?.reasons[0]).toBe("suggestions.reason.bestForDraft");
+
+    const close = suggest({
+      ...base,
+      db: db(),
+      allyKeys: [],
+      enemyKeys: [K.syndra],
+      personalStats: [personalEntry(Number(K.zed), 0.55, 20)],
+      liveCounters: [vs(K.zed, K.syndra, 0.5), vs(K.ori, K.syndra, 0.51)],
+    });
+    expect(close.flatMap((s) => s.reasons)).not.toContain("suggestions.reason.bestForDraft");
+  });
+
+  it("no best-for-this-game label before the enemy has picked", () => {
+    const result = suggest({ ...base, db: db(), allyKeys: [], enemyKeys: [], personalStats: [personalEntry(Number(K.zed), 0.55, 20)] });
+    expect(result.flatMap((s) => s.reasons)).not.toContain("suggestions.reason.bestForDraft");
+  });
+
+  it("answers a team that dives: peel beats an equal pick that doesn't", () => {
+    const result = suggest({
+      ...base,
+      db: db(),
+      allyKeys: [],
+      enemyKeys: [K.malph, K.leona, K.j4, K.darius],
+      personalStats: [personalEntry(Number(K.zed), 0.55, 10), personalEntry(Number(K.ori), 0.55, 10)],
+    });
+    expect(result[0].champion.key).toBe(K.ori);
+    expect(result[0].reasons).toContain("suggestions.reason.answersComp");
+  });
+
+  it("balances your team's damage: with three physical allies a magic pick beats a physical one", () => {
+    const result = suggest({
+      ...base,
+      db: db(),
+      allyKeys: [K.darius, K.jinx, K.garen],
+      enemyKeys: [],
+      personalStats: [personalEntry(Number(K.zed), 0.55, 10), personalEntry(Number(K.ori), 0.55, 10)],
+    });
+    const order = result.map((s) => s.champion.key);
+    expect(order.indexOf(K.ori)).toBeLessThan(order.indexOf(K.zed));
+  });
+
+  it("3 games in your role make a champion yours; fewer only 'known'", () => {
+    const run = (games: number) =>
+      suggest({ ...base, db: db(), allyKeys: [], enemyKeys: [], personalStats: [personalEntry(Number(K.yasuo), 0.6, games)] }).find(
+        (s) => s.champion.key === K.yasuo
+      )?.breakdown.isComfort;
+    expect(run(3)).toBe(true);
+    expect(run(2)).toBe(false);
+  });
+
+  it("keeps losing on a champion: 5+ games well under 50% stops counting it as yours", () => {
+    const r = suggest({ ...base, db: db(), allyKeys: [], enemyKeys: [], personalStats: [personalEntry(Number(K.yasuo), 0.2, 10)] });
+    expect(r.find((s) => s.champion.key === K.yasuo)?.breakdown.isComfort).toBe(false);
+  });
+});

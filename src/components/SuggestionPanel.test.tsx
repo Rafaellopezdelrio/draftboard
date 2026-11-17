@@ -45,6 +45,7 @@ function sug(
       isComfort: false,
       isPerfectPick: false,
       masteryLevel: 0,
+      fit: 0.5,
       ...breakdown,
     },
     reasons: [],

@@ -506,7 +506,9 @@
       "hardMatchup": "⚠ matchup difícil",
       "synergy": "sinergia con tu equipo",
       "strongMeta": "fuerte en el meta",
-      "fillsGap": "aporta lo que falta"
+      "fillsGap": "aporta lo que falta",
+      "bestForDraft": "mejor para esta partida",
+      "answersComp": "responde a su equipo"
     }
   },
   "terms": {
@@ -1819,6 +1821,7 @@
     "tagBest": "Mejor opción",
     "tagKnown": "Lo dominas",
     "tagNew": "Menos práctica",
+    "tagBestForGame": "Mejor para esta partida",
     "buyFor": "Con {{name}}",
     "buyEmpty": "Marca o fija un campeón y aquí sale qué comprar.",
     "buyLoading": "Buscando qué comprar…",
@@ -1843,7 +1846,9 @@
       "synergy": "combina bien con tu equipo",
       "strongMeta": "muy fuerte ahora mismo",
       "fillsGap": "aporta lo que le falta al equipo",
-      "winRate": "ganas {{pct}} de cada 100 con él"
+      "winRate": "ganas {{pct}} de cada 100 con él",
+      "bestForDraft": "encaja mejor en esta partida, aunque no lo juegas",
+      "answersComp": "responde a lo que hace su equipo"
     },
     "prepareTitle": "Prepara",
     "chance": "{{pct}} de cada 100",

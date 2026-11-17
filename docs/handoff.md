@@ -115,6 +115,24 @@ open. Not user documentation — see [`../README.md`](../README.md) for that.
     comfort / "perfect pick" label ≤90 d. His Lee Sin: 0.320 → 0.136.
     Still weak: recent games only enter as win rate (`personalScore`), not
     as how much a champion is played — that is the personal-list idea.
+  - **Pick advice: your champions filter, the game decides (2026-11-17).**
+    Owner: "no porque sea el campeón más jugado es el pick más adecuado".
+    Measured before: mastery could move a pick by 0.28, a 45 vs 55 % lane by
+    0.02; no read of the enemy comp. Now `score = 0.5·context + 0.25·meta +
+    comfort step` (unranked 0.6/0.15). Context = counter 0.55 (lane opponent
+    from `inferEnemyRoles` counted ×2, win rate stretched ×5 around 50 %),
+    comp 0.2 (`compFitScore`: vs 3+ engage/divers → peel/frontline, vs 2+
+    poke → engage, vs 2+ assassins → frontline/peel, own team ≥75 % one
+    damage type over 3+ sources → the other type), synergy 0.1, team gap
+    0.15 (only from 2 allies picked). Comfort is a step (`comfortTier`):
+    pool +0.25 (3+ games in the role or recent mastery ≥0.7, dropped if
+    losing badly), known +0.12. "Best for this game" (`bestForDraft`
+    reason, `breakdown.fit`): best fit outside the pool when ≥0.05 above #1;
+    simple view gives it the third slot. Checked on the owner's jungle (16
+    logged + 40 synthetic drafts, real op.gg matchups at gold, real
+    mastery): top pick lane WR 49.2 → 52.1 %, losing lanes 12 → 1, top pick
+    from the pool 55 → 56/56, 3 → 6 different top picks, best-for-game shown
+    8/56. Not checked in a live champ select (needs LoL open).
   - **Installed app showed 0.5.1 (2026-11-17):** the desktop icon
     `Draftboard.lnk` points at an old local build
     (`src-tauri/target/release/…`, 0.5.1 from 2026-11-12); the updater

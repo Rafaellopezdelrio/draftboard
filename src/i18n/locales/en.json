@@ -506,7 +506,9 @@
       "hardMatchup": "⚠ tough matchup",
       "synergy": "synergy with your team",
       "strongMeta": "strong in the meta",
-      "fillsGap": "fills the gap"
+      "fillsGap": "fills the gap",
+      "bestForDraft": "best for this game",
+      "answersComp": "answers their team"
     }
   },
   "terms": {
@@ -1819,6 +1821,7 @@
     "tagBest": "Best option",
     "tagKnown": "You know it",
     "tagNew": "Less practice",
+    "tagBestForGame": "Best for this game",
     "buyFor": "With {{name}}",
     "buyEmpty": "Hover or lock a champion to see what to buy.",
     "buyLoading": "Finding what to buy…",
@@ -1843,7 +1846,9 @@
       "synergy": "works well with your team",
       "strongMeta": "very strong right now",
       "fillsGap": "gives the team what it lacks",
-      "winRate": "you win {{pct}} of every 100 with it"
+      "winRate": "you win {{pct}} of every 100 with it",
+      "bestForDraft": "fits this game better, though you don't play it",
+      "answersComp": "answers what their team does"
     },
     "prepareTitle": "Get ready",
     "chance": "{{pct}} out of 100",
