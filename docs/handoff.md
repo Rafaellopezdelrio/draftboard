@@ -9,6 +9,17 @@ open. Not user documentation — see [`../README.md`](../README.md) for that.
   polishing, closed test with 5-10 people for 3 weeks, decide on day 21), Riot
   key rules (personal key = small private community only; public download is a
   violation), plan B per dependency. Work through it step by step.
+- **2026-11-17 — user reports (not released):** published builds had no
+  Sentry DSN, so error reporting was off and the feedback box said "sent"
+  while nothing arrived. Now: header button "Sugerencia / Error" → worker
+  `POST /report` → D1 `draftboard-reports`; failures are shown. Automatic
+  errors still use the Sentry SDK for capture only, with a transport that
+  posts a scrubbed summary to `/report` (nothing goes to Sentry). Opt-in
+  usage counter `POST /usage` (random install id, views per day). Consent is
+  an unticked box in TermsGate (TERMS_VERSION 2); `telemetryEnabled` now
+  defaults to false. Worker 2026-11-17.15 deployed with D1
+  `draftboard-reports` (live POST checked, test rows deleted). App side ships
+  with the tester build. Reading them: `docs/REPORTS.md`.
 - **2026-11-17 — v0.5.9 published** (manifest on worker 2026-11-17.14): AI
   coach by role + facts block + facts-only, model fall-through on Groq 429.
   Next-version AI fixes committed (cf791bf: data-picked main topic, role

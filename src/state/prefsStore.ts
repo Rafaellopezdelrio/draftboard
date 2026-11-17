@@ -132,10 +132,11 @@ export interface Preferences {
    * suppress the modal so we don't greet brand-new users with a
    * release note dump). */
   lastChangelogVersionShown: string | null;
-  /** When true, anonymised crash reports are sent to Sentry. Default
-   * `true` — disclosed in TermsGate so it's covered by consent. User can
-   * flip this off from Preferences → Privacy at any moment. GDPR Art. 7:
-   * consent must be as easy to withdraw as to give. */
+  /** When true, error reports and the anonymous daily usage counter are
+   * sent to our worker (services/reports.ts). Default `false`: opt-in via
+   * the unticked box in TermsGate. User can flip it from Preferences →
+   * Privacy at any moment. GDPR Art. 7: consent must be as easy to
+   * withdraw as to give. */
   telemetryEnabled: boolean;
   /** Which terms VERSION the user accepted (see `TERMS_VERSION` in
    * config.ts). When we materially change wording — new data sources,
@@ -244,7 +245,7 @@ export const DEFAULT_PREFS: Preferences = {
   termsAcceptedAt: null,
   termsAcceptedVersion: null,
   lastChangelogVersionShown: null,
-  telemetryEnabled: true,
+  telemetryEnabled: false,
   overlayOffsetX: null,
   overlayOffsetY: null,
   overlayFollowLol: true,

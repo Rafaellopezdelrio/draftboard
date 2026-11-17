@@ -5,6 +5,7 @@
   },
   "nav": {
     "aiCoach": "AI Coach",
+    "feedback": "Sugerencia / Error",
     "tierList": "Tier List",
     "search": "Buscar",
     "live": "Live",
@@ -523,8 +524,8 @@
     "dataMatchesDetail": "KDA, CS, builds y objetos. Se guarda solo en tu PC.",
     "dataPrefsLabel": "Preferencias",
     "dataPrefsDetail": "roles, ajustes de la app y, si las añades, tus claves propias. Todo se guarda en tu PC.",
-    "dataTelemetryLabel": "Telemetría de errores",
-    "dataTelemetryDetail": "solo avisos de fallos de la app, sin nombres, sin chat y sin partidas. Se puede apagar en Preferencias.",
+    "dataTelemetryLabel": "Avisos de errores y uso (solo si marcas la casilla de abajo)",
+    "dataTelemetryDetail": "los fallos de la app y qué pantallas usas cada día, con un número al azar que no está unido a tu cuenta. Sin nombres, sin chat y sin partidas. Llegan solo al servidor de Draftboard. Se puede apagar en Preferencias.",
     "dataGdpr": "Puedes exportar o borrar todo desde «Mis datos / privacidad» (búscalo con Ctrl+K). Cumple con el RGPD (derechos de acceso, portabilidad y supresión).",
     "sourcesTitle": "Fuentes de datos externas",
     "sourcesPrefix": "Draftboard consulta datos públicos de:",
@@ -535,6 +536,7 @@
     "licensePrefix": "Licencia MIT. Código fuente y términos completos en",
     "licenseSuffix": "dentro del paquete.",
     "agreeLabel": "He leído y acepto el aviso de privacidad, el uso de datos y el disclaimer de Riot Games.",
+    "shareLabel": "Opcional: enviar avisos de errores y qué pantallas uso, de forma anónima, para mejorar Draftboard.",
     "acceptNew": "Acepto y empezar",
     "acceptUpdated": "Acepto los cambios"
   },
@@ -870,15 +872,18 @@
     "noMatches": "No se pudo descargar ninguna partida. Se conservan los datos anteriores."
   },
   "feedback": {
-    "title": "Reportar problema",
-    "subtitle": "Tu nota se envía con el trail de acciones recientes — anónimo, sin partidas, sin chat.",
-    "telemetryOffTitle": "Telemetría desactivada",
-    "telemetryOffDetail": "Activa el envío de reportes en Preferencias → Privacidad para enviar feedback.",
-    "telemetryOffInline": "Telemetría desactivada. Actívala en Preferencias → Privacidad para poder enviar el reporte.",
-    "sentTitle": "Reporte enviado",
-    "sentDetail": "Lo revisamos en breve. Gracias por avisar.",
-    "failTitle": "No pude enviar",
+    "title": "Sugerencia o error",
+    "subtitle": "Llega directo al desarrollador. No se envía tu nombre de invocador.",
+    "kindLabel": "Tipo de mensaje",
+    "kindSuggestion": "Sugerencia",
+    "kindBug": "Error",
+    "attachLabel": "Adjuntar datos técnicos (versión de Draftboard y de Windows)",
+    "sentTitle": "Enviado",
+    "sentDetail": "Ha llegado. Gracias por avisar.",
+    "failTitle": "No se ha enviado",
+    "failDetail": "No ha llegado al servidor. Revisa tu conexión e inténtalo otra vez; tu texto sigue aquí.",
     "placeholder": "Qué pasó, qué hacías, qué esperabas que pasara...",
+    "placeholderSuggestion": "Qué echas en falta o qué cambiarías...",
     "sending": "Enviando...",
     "send": "Enviar"
   },
@@ -1269,8 +1274,8 @@
         "label": "Modo compacto (paneles más densos)"
       },
       "telemetryEnabled": {
-        "label": "Enviar reportes de error anónimos (Sentry)",
-        "detail": "Solo crashes y trazas de error — sin nombres, sin chat, sin partidas. Ayuda a arreglar bugs rápido. Cumple GDPR."
+        "label": "Enviar avisos de errores y uso anónimo",
+        "detail": "Fallos de la app y qué pantallas usas cada día, con un número al azar que no está unido a tu cuenta. Sin nombres, sin chat, sin partidas. Solo al servidor de Draftboard."
       },
       "voiceCoachEnabled": {
         "label": "Anuncios de voz en draft",

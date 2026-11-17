@@ -1,16 +1,61 @@
-// Sentry error tracking — auto-reports crashes from testers without
-// requiring them to manually copy/paste stack traces.
-//
-// DSN is hardcoded because it's not secret (it's a write-only public ID).
-// Anyone who decompiles the binary can find it but can't read events.
-//
-// User creates a free Sentry project at https://sentry.io and pastes the
-// DSN into VITE_SENTRY_DSN env var. If empty, Sentry is silently disabled
-// (zero overhead for dev or self-hosted builds).
+// Automatic error reports. The Sentry SDK only does the capturing (error
+// boundaries, window errors, breadcrumbs, scrubbing below); nothing is sent
+// to Sentry. Our transport turns each event into a short summary and posts
+// it to our own worker (/report, kind "error"), see services/reports.ts.
+// Only runs when the user said yes to reports (prefs.telemetryEnabled).
 
 import * as Sentry from "@sentry/react";
+import type { Event } from "@sentry/react";
+import { sendReport } from "./reports";
 
-const DSN = import.meta.env.VITE_SENTRY_DSN as string | undefined;
+/** The SDK needs a DSN to start. It is never contacted: the transport below
+ * replaces the network call. */
+const LOCAL_DSN = "https://draftboard@localhost/0";
+/** Per session: the same error is sent once, at most this many in total. */
+const MAX_ERROR_REPORTS = 10;
+const sentFingerprints = new Set<string>();
+
+/** Short, scrubbed summary of an error event for our /report route. */
+function summarizeEvent(event: Event): { message: string; details: string } | null {
+  const ex = event.exception?.values?.[0];
+  const message = ex ? `${ex.type ?? "Error"}: ${ex.value ?? ""}` : event.message;
+  if (!message) return null;
+  const frames = (ex?.stacktrace?.frames ?? [])
+    .slice(-5)
+    .reverse()
+    .map((f) => `${(f.filename ?? "?").split(/[\\/]/).pop()}:${f.lineno ?? "?"} ${f.function ?? ""}`.trim());
+  const crumbs = (event.breadcrumbs ?? [])
+    .slice(-15)
+    .map((c) => `${c.category ?? ""} ${c.message ?? ""}`.trim());
+  const details = JSON.stringify({ tags: event.tags ?? {}, frames, crumbs });
+  return { message: redactSecrets(message), details: redactSecrets(details) };
+}
+
+function forwardEvent(event: Event): void {
+  const key = (event.fingerprint ?? [event.message ?? ""]).join("|");
+  if (sentFingerprints.has(key) || sentFingerprints.size >= MAX_ERROR_REPORTS) return;
+  const summary = summarizeEvent(event);
+  if (!summary) return;
+  sentFingerprints.add(key);
+  sendReport("error", summary.message, summary.details).catch(() => {});
+}
+
+/** Transport that sends event items to our worker and drops the rest
+ * (sessions, client reports). */
+function workerTransport() {
+  return {
+    send: async (envelope: unknown) => {
+      const items = (Array.isArray(envelope) ? envelope[1] : []) as Array<[{ type?: string }, unknown]>;
+      for (const [header, payload] of items ?? []) {
+        if (header?.type === "event" && payload && typeof payload === "object") {
+          forwardEvent(payload as Event);
+        }
+      }
+      return {};
+    },
+    flush: async () => true,
+  };
+}
 /** Read at build time from package.json via Vite's define injection. The
  * value is the version of the binary the user is actually running, so
  * Sentry can group errors by release in its dashboard. Falls back to a
@@ -49,13 +94,9 @@ export function initSentry(opts: InitOptions = {}): void {
     console.info("[sentry] telemetry opt-out — error reporting disabled");
     return;
   }
-  if (!DSN) {
-    // eslint-disable-next-line no-console
-    console.info("[sentry] no DSN configured — error reporting disabled");
-    return;
-  }
   Sentry.init({
-    dsn: DSN,
+    dsn: LOCAL_DSN,
+    transport: workerTransport,
     release: `draftboard@${APP_VERSION}`,
     environment: import.meta.env.MODE, // "development" or "production"
     // Tracing & session replay disabled by default — they cost quota and
@@ -249,9 +290,12 @@ function hashId(s: string): string {
 
 export const SentryErrorBoundary = Sentry.ErrorBoundary;
 export const captureException = Sentry.captureException;
-export const captureMessage = Sentry.captureMessage;
 export const addBreadcrumb = Sentry.addBreadcrumb;
 export { setSentryGlobalTags as setSentryTags };
 
 // Exported for tests — the secret-redaction is security-critical, so pin it.
 export const __testOnly_redactSecrets = redactSecrets;
+export const __testOnly_workerTransport = workerTransport;
+export function __testOnly_resetErrorReports(): void {
+  sentFingerprints.clear();
+}

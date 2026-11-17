@@ -96,10 +96,21 @@ otro nombre); seguir este plan y antes de invitar a nadie:
       abren 3 o más días por semana; qué uso cuenta).
 - [ ] **Canal para avisar de fallos** (un grupo o un formulario) y que la app
       pueda guardar un informe de error para enviarlo.
+      17/11: hecho en código, sin publicar. Botón **Sugerencia / Error** a la
+      vista; llega a nuestro servidor (base de datos D1) y, si no llega, la
+      app lo dice. Antes la versión publicada decía "enviado" y no llegaba
+      nada (faltaba la dirección de Sentry). Servidor subido y probado en
+      vivo el 17/11 (base de datos `draftboard-reports`). La app lo trae en
+      la versión de los probadores. Cómo leerlos: `docs/REPORTS.md`.
 - [ ] **Excepción pactada:** solo se saca versión nueva si un fallo impide usar
       la app. Nada más.
 - [ ] **Contador anónimo:** consentimiento claro (RGPD) y que cumpla las
       normas de Riot, revisado antes de activarlo.
+      17/11: casilla opcional **sin marcar** en la pantalla de términos
+      (versión 2), número al azar que no se une a la cuenta de Riot, se borra
+      al decir que no, sin IP. Cuenta qué pantallas se usan cada día. No
+      toca datos de Riot (solo uso de nuestra app). Servidor listo; sale con
+      la versión de los probadores.
 
 ### Fase 1 — Prueba cerrada (3 semanas, sin versiones nuevas salvo fallos graves)
 - [ ] 5-10 amigos o conocidos, grupo cerrado (nada de Reddit ni Discord abiertos).

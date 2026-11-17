@@ -34,6 +34,7 @@ import {
   UserSearch,
   Calendar,
   Radio,
+  MessageSquare,
 } from "lucide-react";
 
 // Lazy-load all modals — only fetched when opened, keeps initial bundle smaller.
@@ -116,6 +117,9 @@ import { TrackingStatusBar } from "./components/TrackingStatusBar";
 // so no savings.
 const AboutModal = lazy(() =>
   import("./components/AboutModal").then((m) => ({ default: m.AboutModal }))
+);
+const FeedbackModal = lazy(() =>
+  import("./components/FeedbackModal").then((m) => ({ default: m.FeedbackModal }))
 );
 const ShortcutsHelp = lazy(() =>
   import("./components/ShortcutsHelp").then((m) => ({ default: m.ShortcutsHelp }))
@@ -250,6 +254,7 @@ function App() {
   const [showLessonPlan, setShowLessonPlan] = useState(false);
   const [showLiveGame, setShowLiveGame] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [forceChangelogVersion, setForceChangelogVersion] = useState<string | null>(null);
 
@@ -412,8 +417,8 @@ function App() {
     probeRustRecoveryMarker().finally(() => loadPrefs());
   }, [loadPrefs]);
 
-  // Mirrors telemetry pref → localStorage + shuts down Sentry mid-session.
-  useTelemetryConsent(prefs.telemetryEnabled);
+  // Mirrors the reports opt-in → localStorage, usage counter, error capture.
+  useTelemetryConsent(prefs.telemetryEnabled, prefsLoaded);
 
   // Sync Riot proxy URL into the API client whenever prefs change. Lets the
   // user toggle proxy mode without restarting the app.
@@ -807,6 +812,7 @@ function App() {
           />
             </>
           )}
+          <HeaderBtn onClick={() => setShowFeedback(true)} icon={<MessageSquare className="w-3.5 h-3.5" />} label={t("nav.feedback")} />
           <select
             value={myRole ?? ""}
             onChange={(e) =>
@@ -1223,6 +1229,11 @@ function App() {
         {showAbout && (
           <ViewBoundary viewName="AboutModal" onClose={() => setShowAbout(false)}>
             <AboutModal onClose={() => setShowAbout(false)} />
+          </ViewBoundary>
+        )}
+        {showFeedback && (
+          <ViewBoundary viewName="FeedbackModal" onClose={() => setShowFeedback(false)}>
+            <FeedbackModal contextTag="header" onClose={() => setShowFeedback(false)} />
           </ViewBoundary>
         )}
         {showShortcuts && (

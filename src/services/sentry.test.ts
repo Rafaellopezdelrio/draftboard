@@ -24,6 +24,7 @@ vi.mock("@sentry/react", () => ({
 
 type InitOpts = {
   dsn: string;
+  transport: unknown;
   release: string;
   tracesSampleRate: number;
   replaysSessionSampleRate: number;
@@ -33,11 +34,11 @@ type InitOpts = {
   beforeBreadcrumb: (c: Breadcrumb) => Breadcrumb;
 };
 
-const DSN = "https://public@o1.ingest.sentry.io/123";
+const reports = vi.hoisted(() => ({ sendReport: vi.fn() }));
+vi.mock("./reports", () => ({ sendReport: reports.sendReport }));
 
-async function loadSentry(dsn: string | undefined = DSN) {
+async function loadSentry() {
   vi.resetModules();
-  vi.stubEnv("VITE_SENTRY_DSN", dsn ?? "");
   return import("./sentry");
 }
 
@@ -69,25 +70,54 @@ describe("initSentry", () => {
     expect(console.info).toHaveBeenCalledWith(expect.stringContaining("opt-out"));
   });
 
-  it("does not init when no DSN is configured", async () => {
-    const mod = await loadSentry("");
-    mod.initSentry();
-    expect(sdk.init).not.toHaveBeenCalled();
-    expect(console.info).toHaveBeenCalledWith(expect.stringContaining("no DSN"));
-  });
-
-  it("inits once with the DSN, a draftboard release and zero sampling", async () => {
+  it("inits once with our own transport, a draftboard release and zero sampling", async () => {
     const mod = await loadSentry();
     mod.initSentry();
     mod.initSentry(); // second call is a no-op
     expect(sdk.init).toHaveBeenCalledTimes(1);
     const opts = sdk.init.mock.calls[0][0] as InitOpts;
-    expect(opts.dsn).toBe(DSN);
+    expect(opts.dsn).toContain("localhost");
+    expect(opts.transport).toBe(mod.__testOnly_workerTransport);
     expect(opts.release).toMatch(/^draftboard@\S+$/);
     expect(opts.tracesSampleRate).toBe(0);
     expect(opts.replaysSessionSampleRate).toBe(0);
     expect(opts.replaysOnErrorSampleRate).toBe(0);
     expect(opts.ignoreErrors).toContain("Network request failed");
+  });
+});
+
+describe("worker transport", () => {
+  const errorEvent = (value: string) => ({
+    exception: { values: [{ type: "TypeError", value, stacktrace: { frames: [{ filename: "C:\\x\\App.js", lineno: 3, function: "run" }] } }] },
+    fingerprint: ["TypeError", value],
+    breadcrumbs: [{ category: "navigation", message: "open CoachView" }],
+    tags: { view: "CoachView" },
+  });
+  const send = (mod: Awaited<ReturnType<typeof loadSentry>>, items: unknown[]) =>
+    mod.__testOnly_workerTransport().send([{}, items]);
+
+  beforeEach(() => reports.sendReport.mockReset().mockResolvedValue(undefined));
+
+  it("sends each error once, scrubbed, as an 'error' report; ignores sessions", async () => {
+    const mod = await loadSentry();
+    const ev = errorEvent("bad key RGAPI-123");
+    await send(mod, [[{ type: "session" }, {}], [{ type: "event" }, ev]]);
+    await send(mod, [[{ type: "event" }, ev]]);
+    expect(reports.sendReport).toHaveBeenCalledTimes(1);
+    const [kind, message, details] = reports.sendReport.mock.calls[0];
+    expect(kind).toBe("error");
+    expect(message).toBe("TypeError: bad key RGAPI-***");
+    expect(JSON.parse(details)).toEqual({
+      tags: { view: "CoachView" },
+      frames: ["App.js:3 run"],
+      crumbs: ["navigation open CoachView"],
+    });
+  });
+
+  it("stops after 10 different errors in one session", async () => {
+    const mod = await loadSentry();
+    for (let i = 0; i < 15; i++) await send(mod, [[{ type: "event" }, errorEvent(`e${i}`)]]);
+    expect(reports.sendReport).toHaveBeenCalledTimes(10);
   });
 });
 

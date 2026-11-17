@@ -5,6 +5,7 @@
   },
   "nav": {
     "aiCoach": "AI Coach",
+    "feedback": "Suggestion / Bug",
     "tierList": "Tier List",
     "search": "Search",
     "live": "Live",
@@ -523,8 +524,8 @@
     "dataMatchesDetail": "KDA, CS, builds and items. Stored only on your PC.",
     "dataPrefsLabel": "Preferences",
     "dataPrefsDetail": "roles, app settings and, if you add them, your own keys. All stored on your PC.",
-    "dataTelemetryLabel": "Error telemetry",
-    "dataTelemetryDetail": "only app crash reports, with no names, no chat and no games. Can be turned off in Preferences.",
+    "dataTelemetryLabel": "Error and usage reports (only if you tick the box below)",
+    "dataTelemetryDetail": "app errors and which screens you use each day, with a random number not linked to your account. No names, no chat, no games. Sent only to the Draftboard server. Can be turned off in Preferences.",
     "dataGdpr": "You can export or delete everything from “My data / privacy” (find it with Ctrl+K). GDPR-compliant (access, portability and erasure rights).",
     "sourcesTitle": "External data sources",
     "sourcesPrefix": "Draftboard reads public data from:",
@@ -535,6 +536,7 @@
     "licensePrefix": "MIT license. Source code and full terms in",
     "licenseSuffix": "inside the package.",
     "agreeLabel": "I have read and accept the privacy notice, the data usage and the Riot Games disclaimer.",
+    "shareLabel": "Optional: send error reports and which screens I use, anonymously, to improve Draftboard.",
     "acceptNew": "Accept & start",
     "acceptUpdated": "Accept the changes"
   },
@@ -870,15 +872,18 @@
     "noMatches": "No matches could be downloaded. The previous data was kept."
   },
   "feedback": {
-    "title": "Report a problem",
-    "subtitle": "Your note is sent with the recent-actions trail — anonymous, no matches, no chat.",
-    "telemetryOffTitle": "Telemetry disabled",
-    "telemetryOffDetail": "Enable report sending in Preferences → Privacy to send feedback.",
-    "telemetryOffInline": "Telemetry disabled. Enable it in Preferences → Privacy to send the report.",
-    "sentTitle": "Report sent",
-    "sentDetail": "We'll review it shortly. Thanks for the heads-up.",
-    "failTitle": "Couldn't send",
+    "title": "Suggestion or bug",
+    "subtitle": "Goes straight to the developer. Your summoner name is not sent.",
+    "kindLabel": "Message type",
+    "kindSuggestion": "Suggestion",
+    "kindBug": "Bug",
+    "attachLabel": "Attach technical data (Draftboard and Windows version)",
+    "sentTitle": "Sent",
+    "sentDetail": "It arrived. Thanks for the heads-up.",
+    "failTitle": "Not sent",
+    "failDetail": "It did not reach the server. Check your connection and try again; your text is still here.",
     "placeholder": "What happened, what you were doing, what you expected...",
+    "placeholderSuggestion": "What you miss or what you would change...",
     "sending": "Sending...",
     "send": "Send"
   },
@@ -1269,8 +1274,8 @@
         "label": "Compact mode (denser panels)"
       },
       "telemetryEnabled": {
-        "label": "Send anonymous error reports (Sentry)",
-        "detail": "Crashes and error traces only — no names, no chat, no matches. Helps fix bugs fast. GDPR-compliant."
+        "label": "Send error reports and anonymous usage",
+        "detail": "App errors and which screens you use each day, with a random number not linked to your account. No names, no chat, no matches. Only to the Draftboard server."
       },
       "voiceCoachEnabled": {
         "label": "Voice announcements in draft",

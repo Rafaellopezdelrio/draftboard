@@ -8,6 +8,7 @@
 // the Sentry UI groups events cleanly.
 
 import { addBreadcrumb as sentryAddBreadcrumb } from "./sentry";
+import { trackUsage } from "./reports";
 
 type Category =
   | "ui.click"
@@ -49,6 +50,8 @@ export function trackEvent(
  * far more actionable than a bare stack frame. */
 export function trackNavigation(view: string, action: "open" | "close"): void {
   trackEvent("navigation", `${action} ${view}`);
+  // Opt-in daily counter of which screens get used (no-op without consent).
+  if (action === "open") trackUsage(view);
 }
 
 /** A fetch finished. Useful when a downstream crash happens after a slow

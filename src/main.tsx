@@ -65,13 +65,12 @@ if (typeof window !== "undefined" && "__TAURI_INTERNALS__" in window) {
 // sync (SQLite hydration is async and would miss early crashes).
 function bootTelemetryDecision(): boolean {
   try {
-    const raw = localStorage.getItem("draftboard:telemetry");
-    if (raw === "false") return false;
+    // Opt-in: only an explicit "yes" from a previous session turns it on.
+    return localStorage.getItem("draftboard:telemetry") === "true";
   } catch {
-    // localStorage unavailable (e.g. file://, Tauri restrictive WebView2)
-    // — fall through to default-enabled.
+    // localStorage unavailable (e.g. file://, Tauri restrictive WebView2).
+    return false;
   }
-  return true;
 }
 // installLogBridge stays synchronous — it only patches console + adds the
 // window error/rejection listeners (cheap), so early crashes still reach
@@ -194,9 +193,9 @@ function ErrorScreen({ error, reset }: { error: unknown; reset: () => void }) {
       <div className="max-w-lg bg-bg-card border border-bad/40 rounded-lg p-6 space-y-3">
         <h1 className="text-xl font-bold text-bad">Algo se rompió</h1>
         <p className="text-sm text-white/70">
-          La app encontró un error inesperado. El reporte se ha enviado
-          automáticamente (sin datos personales) para que lo arreglemos.
-          Si puedes describir qué hacías cuando pasó, nos ayuda muchísimo.
+          La app encontró un error inesperado. Si activaste los avisos de
+          errores, ya nos ha llegado (sin datos personales). Si puedes
+          contar qué hacías cuando pasó, nos ayuda muchísimo.
         </p>
         <details className="text-xs text-white/45">
           <summary className="cursor-pointer hover:text-white/70">

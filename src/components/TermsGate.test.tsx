@@ -95,9 +95,21 @@ describe("TermsGate", () => {
     fireEvent.click(box);
     fireEvent.click(accept);
     expect(setPref.mock.calls).toEqual([
+      ["telemetryEnabled", false],
       ["termsAcceptedAt", Date.parse("2026-11-01T10:00:00Z")],
       ["termsAcceptedVersion", TERMS_VERSION],
     ]);
+  });
+
+  it("reports stay off unless the optional box is ticked (opt-in)", () => {
+    setPrefs({ termsAcceptedAt: null, termsAcceptedVersion: null });
+    renderGate();
+    const share = screen.getByRole("checkbox", { name: /Opcional: enviar avisos/ });
+    expect(share).not.toBeChecked();
+    fireEvent.click(screen.getByRole("checkbox", { name: /He leído y acepto/ }));
+    fireEvent.click(share);
+    fireEvent.click(screen.getByRole("button", { name: "Acepto y empezar" }));
+    expect(setPref).toHaveBeenCalledWith("telemetryEnabled", true);
   });
 
   it("lets the app through once the store records the acceptance", () => {
@@ -107,7 +119,7 @@ describe("TermsGate", () => {
       usePrefsStore.setState({ prefs: { ...s.prefs, [key]: value } });
     });
     renderGate();
-    fireEvent.click(screen.getByRole("checkbox"));
+    fireEvent.click(screen.getByRole("checkbox", { name: /He leído y acepto/ }));
     fireEvent.click(screen.getByRole("button", { name: "Acepto y empezar" }));
     expect(screen.getByText("contenido-app")).toBeInTheDocument();
   });

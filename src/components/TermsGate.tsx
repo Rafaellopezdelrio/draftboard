@@ -23,6 +23,9 @@ export function TermsGate({ children }: Props) {
   const setPref = usePrefsStore((s) => s.set);
   const loaded = usePrefsStore((s) => s.loaded);
   const [agreeChecked, setAgreeChecked] = useState(false);
+  // Opt-in, never pre-ticked (GDPR): error + usage reports stay off unless
+  // the user ticks this.
+  const [shareChecked, setShareChecked] = useState(false);
 
   // Wait for prefs to hydrate from SQLite before deciding whether to
   // show the gate — otherwise the user sees the gate flash even after
@@ -74,7 +77,7 @@ export function TermsGate({ children }: Props) {
           <Section icon={Bot} title={t("terms.sourcesTitle")}>
             <p className="text-white/70">
               {t("terms.sourcesPrefix")}{" "}
-              <strong>Riot Data Dragon, op.gg, dpm.lol, u.gg, Leaguepedia</strong>,{" "}
+              <strong>Riot Data Dragon, op.gg, u.gg, lolvvv, Leaguepedia</strong>,{" "}
               {t("terms.sourcesSuffix")}
             </p>
           </Section>
@@ -100,8 +103,18 @@ export function TermsGate({ children }: Props) {
             />
             <span className="text-sm text-white/80">{t("terms.agreeLabel")}</span>
           </label>
+          <label className="flex items-start gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={shareChecked}
+              onChange={(e) => setShareChecked(e.target.checked)}
+              className="mt-0.5 w-4 h-4 accent-accent"
+            />
+            <span className="text-sm text-white/65">{t("terms.shareLabel")}</span>
+          </label>
           <button
             onClick={() => {
+              setPref("telemetryEnabled", shareChecked);
               // Write timestamp + version atomically so a partial save
               // can't leave us in a "accepted but version unknown" state.
               setPref("termsAcceptedAt", Date.now());

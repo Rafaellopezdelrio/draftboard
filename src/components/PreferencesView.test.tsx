@@ -116,9 +116,9 @@ describe("PreferencesView — search", () => {
   it("matches on detail text too", async () => {
     await renderView();
     fireEvent.change(screen.getByPlaceholderText(/Buscar preferencia/), {
-      target: { value: "gdpr" },
+      target: { value: "número al azar" },
     });
-    expect(switchNames()).toEqual(["Enviar reportes de error anónimos (Sentry)"]);
+    expect(switchNames()).toEqual(["Enviar avisos de errores y uso anónimo"]);
     expect(screen.getByRole("heading", { name: "Privacidad" })).toBeInTheDocument();
   });
 
@@ -141,7 +141,7 @@ describe("PreferencesView — search", () => {
 
 describe("PreferencesView — presets", () => {
   it("competitive preset forces its keys and leaves undeclared prefs untouched", async () => {
-    setPrefs({ compactMode: true, autoApplyOnHover: false, coachAfterMatch: true });
+    setPrefs({ compactMode: true, autoApplyOnHover: false, coachAfterMatch: true, telemetryEnabled: true });
     await renderView();
     fireEvent.click(screen.getByRole("button", { name: /^Competitivo/ }));
     await waitFor(() => expect(prefs().coachShowGpi).toBe(false));

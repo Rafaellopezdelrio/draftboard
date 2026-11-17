@@ -13,7 +13,7 @@
  * changes materially (new data sources, new permissions, new disclaimers).
  * The `TermsGate` compares this to the stored acceptance and re-prompts
  * when they don't match — GDPR best practice. */
-export const TERMS_VERSION = 1;
+export const TERMS_VERSION = 2; // 2: opt-in error/usage reports to our worker
 
 /** Backend endpoints. All Riot API + scrape proxies route through the
  * Cloudflare Worker so we never need to ship Riot API keys. */
