@@ -60,14 +60,23 @@ marca cada punto cuando esté hecho **y comprobado**.
 ## Plan paso a paso
 
 ### Fase 0 — Cumplir y preparar (antes de repartir)
-- [ ] Poner al día `docs/RIOT_KEY_APPLICATION.md` con lo que hace la app hoy.
-- [ ] Rafael envía la solicitud de clave de producción en el portal.
+- [x] Poner al día `docs/RIOT_KEY_APPLICATION.md` con lo que hace la app hoy
+      (17/11: límites reales, IA por el servidor, descarga de mejores
+      jugadores, tier list por rango, lista de fuentes externas).
+- [ ] Página web sencilla (GitHub Pages) con capturas y botón de descarga:
+      Riot avisa de que con una web incompleta es poco probable que aprueben.
+      Capturas actuales en `docs/screenshots/` (del 12/11, 4 imágenes).
+- [ ] Rafael envía la solicitud de clave de producción en el portal
+      (developer.riotgames.com → Register Product → Production).
 - [ ] Decidir cómo cerrar la descarga pública mientras llega la clave (p. ej.
       no difundir el enlace; estudiar si el instalador puede servirse sin
       repositorio público sin romper las actualizaciones).
-- [ ] Publicar los últimos arreglos del coach (tema principal por datos,
-      objetivos de tu posición, nada de "te costó la partida" si ganas),
-      comprobados con la medición.
+- [ ] Arreglos del coach (tema principal por datos, objetivos de tu posición,
+      nada de "te costó la partida" si ganas): **hechos y medidos, sin
+      publicar por decisión de Rafael (17/11)**. Medido en 20 partidas de
+      jungla: consejos de calle 2 → 0, "te costó la partida" en victorias
+      3 → 0, cifras de los datos 91 → 98 %. Saldrán en la versión que se dé
+      a los probadores.
 - [ ] Probar 5 partidas la selección de campeones en directo con la lógica nueva.
 
 ### Fase 1 — Prueba cerrada (3 semanas, sin versiones nuevas salvo fallos graves)

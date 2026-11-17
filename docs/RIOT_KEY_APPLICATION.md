@@ -2,6 +2,9 @@
 
 Revisado 2026-11-02 contra https://developer.riotgames.com/policies/general
 (actualizada 29/05/2025) y https://developer.riotgames.com/docs/portal.
+**Puesto al día 2026-11-17** (portal releído ese día; ver `docs/PLAN_CONSEJO.md`):
+la app está en una clave personal y se puede descargar de GitHub, que es
+público → pedirla cuanto antes.
 
 ## Qué clave hace falta
 
@@ -24,7 +27,11 @@ con la cuenta de Riot): **Register Product → Production**.
 - La clave no va dentro del programa: la guarda el worker de Cloudflare como
   secreto y la app nunca la ve.
 - El worker ya no es un relé abierto: solo reenvía las lecturas que hace la app
-  (ids con formato fijo, parámetros limpios, 120 peticiones/min por IP).
+  (ids con formato fijo, parámetros limpios, 300 peticiones/min por IP; la app
+  se limita sola a 95 cada 2 min por región).
+- La IA compartida (Groq) también pasa por el worker y solo acepta lo que usa
+  la app (una conversación, tamaño y respuesta limitados, 15/min por IP).
+- Ya no se usa dpm.lol (sus normas prohíben el acceso automático).
 - Gratis, código abierto (MIT), sin anuncios ni pagos.
 - No se identifica a rivales ocultos en la selección de campeones: el
   explorador de rivales espera a la pantalla de carga, donde los nombres ya son
@@ -43,8 +50,14 @@ con la cuenta de Riot): **Register Product → Production**.
 3. **IA**: el resumen de la partida (datos del propio jugador) se manda a Groq
    para que redacte el consejo. Nada se vende ni se pasa a terceros para otro
    uso. Las políticas leídas no dicen nada de IA.
-4. **Web**: ahora solo hay GitHub. Si la rechazan por eso, hacer una página
-   sencilla (GitHub Pages) con capturas y botón de descarga y volver a pedirla.
+4. **Web**: ahora solo hay GitHub. Riot avisa de que con una web incompleta es
+   poco probable que la aprueben: mejor hacer **antes** una página sencilla
+   (GitHub Pages) con capturas y botón de descarga.
+5. **Datos de otras webs** (Riot prefiere fuentes oficiales; cada web tiene sus
+   condiciones): tier list y builds de op.gg (su servicio público MCP), partidas
+   pro de u.gg, builds pro de lolvvv, datos de esports de GRID (solo uso no
+   comercial) y Leaguepedia. Decirlo claro en el formulario; si Riot pone pegas
+   a alguna, quitarla (plan B en `docs/PLAN_CONSEJO.md`).
 
 ## Respuestas para el formulario (en inglés, Riot revisa en inglés)
 
@@ -82,8 +95,16 @@ Features:
   Live Client Data API (information already on the player's screen). No enemy
   cooldown or ultimate tracking, no memory reading, no automation of gameplay.
 - Post-game review: laning and game summary from the player's own matches
-  (Match-V5 + timeline), with an AI-written improvement plan.
-- Tier lists and matchup win rates from public community sources.
+  (Match-V5 + timeline), with an AI-written improvement plan. The AI only
+  explains numbers computed from the player's own match; it is told never to
+  invent facts.
+- Personal trends: the player's own stats over time compared with their rank.
+- Tier lists by rank and matchup win rates, from public community sources
+  (listed below), with our own grading on top (an S must win at least 51 %).
+- Optional "best players" download: aggregates recent Master+ ranked games
+  (League-V4 + Match-V5) into champion, build and rune stats stored locally.
+  It runs only when the user starts it and stays within the app's own cap of
+  95 requests per 2 minutes per region.
 
 Riot's legal boilerplate is shown on first launch and in the app footer.
 ```
@@ -93,15 +114,34 @@ Riot's legal boilerplate is shown on first launch and in the app footer.
 All calls go through our Cloudflare Worker, which holds the key as a secret
 (never shipped in the app binary). The worker only forwards the specific reads
 the app makes (fixed path shapes, typed ids, sanitized query) and rate-limits
-each IP to 120 requests/min. Responses are edge-cached (30 s for live data up
-to 24 h for finished matches) to keep load on Riot low.
+each IP to 300 requests/min; the app itself stays under 95 requests per
+2 minutes per region. Responses are edge-cached (30 s for live data up to
+24 h for finished matches) to keep load on Riot low.
 
 - Account-V1 by-riot-id: resolve the player's Riot ID.
 - Summoner-V4: summoner profile.
-- League-V4: rank of the player and teammates; Master+ ladder for benchmarks.
+- League-V4: rank of the player and teammates; Master+ ladder for the
+  optional "best players" stats.
 - Champion-Mastery-V4 (top): weight suggestions by real mastery.
-- Match-V5 ids, match and timeline: post-game review and history.
+- Match-V5 ids, match and timeline: post-game review, history and the optional
+  Master+ aggregation.
 - Spectator-V5 active-games by-summoner: own live game, from loading screen on.
+
+Local, on the player's PC: League Client API (champ select, optional rune /
+spell / item-set import) and the Live Client Data API (in-game overlay).
+Static data: Data Dragon and CommunityDragon.
+```
+
+### Third-party data (not Riot)
+```
+- op.gg public MCP API: lane tier lists (overall and per rank) and builds.
+- u.gg: recent pro matches for a champion/role (pro builds).
+- lolvvv.com: pro builds.
+- GRID: esports data, non-commercial use only.
+- Leaguepedia (lol.fandom.com API): pro-play picks/bans and patch notes.
+- Groq: writes the AI advice from a summary of the user's own match; called
+  through our worker, which only allows the app's chat request.
+If any of these is a problem for Riot, we will remove it.
 ```
 
 ### Data storage
@@ -136,5 +176,6 @@ Adjuntar capturas de `docs/screenshots/`.
    ```bash
    npx wrangler secret put RIOT_API_KEY
    ```
-2. Subir el límite por IP del worker si hace falta (ahora 120/min).
+2. Subir el límite por IP del worker si hace falta (ahora 300/min) y el tope
+   propio de la app (95 cada 2 min por región).
 3. Si la clave se filtra: regenerarla en el portal y volver a subirla.
