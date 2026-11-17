@@ -27,10 +27,40 @@ export interface SoloRank {
   lp: number;
 }
 
+/** null = not known (client closed, never seen); "unranked" = known to have
+ * no solo-queue rank. */
+export type RankState = SoloRank | "unranked" | null;
+
 interface LcuPersonalData {
   masteries: ChampionMasteryDto[];
   rankTier: string | null;
-  rank: SoloRank | null;
+  rank: RankState;
+}
+
+const LAST_RANK_KEY = "draftboard:last-solo-rank";
+
+function saveLastRank(rank: SoloRank | "unranked"): void {
+  try {
+    localStorage.setItem(LAST_RANK_KEY, JSON.stringify(rank));
+  } catch {
+    // storage unavailable: nothing to remember
+  }
+}
+
+function loadLastRank(): RankState {
+  try {
+    const raw = localStorage.getItem(LAST_RANK_KEY);
+    if (!raw) return null;
+    const v = JSON.parse(raw) as unknown;
+    if (v === "unranked") return v;
+    if (v && typeof v === "object" && typeof (v as SoloRank).tier === "string") {
+      const r = v as SoloRank;
+      return { tier: r.tier, division: String(r.division ?? ""), lp: Number(r.lp) || 0 };
+    }
+  } catch {
+    // unreadable: treat as unknown
+  }
+  return null;
 }
 
 /** Refetches on every `lcuConnected` transition and whenever `refreshKey`
@@ -38,7 +68,7 @@ interface LcuPersonalData {
  * the new one). Cheap — single LCU call + Riot fallback only when LCU misses. */
 export function useLcuPersonalData(lcuConnected: boolean, refreshKey: string | null = null): LcuPersonalData {
   const [masteries, setMasteries] = useState<ChampionMasteryDto[]>([]);
-  const [rank, setRank] = useState<SoloRank | null>(null);
+  const [rank, setRank] = useState<RankState>(null);
 
   useEffect(() => {
     // Guard against stale writes: if lcuConnected flips again (or the
@@ -71,23 +101,28 @@ export function useLcuPersonalData(lcuConnected: boolean, refreshKey: string | n
       // LCU first, Riot API fallback (solo-queue tier) so the rank-dependent
       // features use the real bracket instead of defaults when LoL is closed.
       const fromClient = await lcuRank().catch(() => null);
-      let next: SoloRank | null =
-        fromClient && isRanked(fromClient.tier)
+      let next: RankState = null;
+      if (fromClient)
+        next = isRanked(fromClient.tier)
           ? { tier: fromClient.tier, division: fromClient.division, lp: fromClient.leaguePoints }
-          : null;
+          : "unranked";
       if (cancelled) return;
       if (!next && hasRiotAccess) {
         try {
           const entries = await getLeagueEntriesByPuuid(cfg!, cfg!.puuid!);
           if (cancelled) return;
           const solo = entries.find((e) => e.queueType === "RANKED_SOLO_5x5");
-          if (solo && isRanked(solo.tier)) next = { tier: solo.tier, division: solo.rank, lp: solo.leaguePoints };
+          next = solo && isRanked(solo.tier) ? { tier: solo.tier, division: solo.rank, lp: solo.leaguePoints } : "unranked";
         } catch {
-          // no rank available — fall through to null
+          // no rank available — fall through to the last one seen
         }
       }
       if (cancelled) return;
-      if (next) setCoachEloBucket(next.tier);
+      // Client closed and no Riot access (e.g. a fresh install): show the last
+      // rank seen instead of nothing.
+      if (next) saveLastRank(next);
+      else next = loadLastRank();
+      if (next && next !== "unranked") setCoachEloBucket(next.tier);
       setRank(next);
 
       // ── Sentry anonymous user grouping ──
@@ -110,7 +145,7 @@ export function useLcuPersonalData(lcuConnected: boolean, refreshKey: string | n
     };
   }, [lcuConnected, refreshKey]);
 
-  return { masteries, rankTier: rank?.tier ?? null, rank };
+  return { masteries, rankTier: rank && rank !== "unranked" ? rank.tier : null, rank };
 }
 
 /** The client reports unranked players with an empty tier or "NONE". */

@@ -30,7 +30,22 @@ const M_LCU = [{ championId: 266, championLevel: 7, championPoints: 300000, last
 const M_RIOT = [{ championId: 103, championLevel: 5, championPoints: 50000, lastPlayTime: 2 }];
 const CFG = { puuid: "my-puuid", apiKey: "test-key", region: "euw1" };
 
+/** In-memory localStorage: the last rank seen is kept there. */
+class MemStorage {
+  private data = new Map<string, string>();
+  getItem(k: string) {
+    return this.data.get(k) ?? null;
+  }
+  setItem(k: string, v: string) {
+    this.data.set(k, v);
+  }
+  removeItem(k: string) {
+    this.data.delete(k);
+  }
+}
+
 beforeEach(() => {
+  vi.stubGlobal("localStorage", new MemStorage());
   for (const fn of Object.values(m)) fn.mockReset();
   m.loadSettings.mockResolvedValue(null);
   m.lcuMasteries.mockResolvedValue([]);
@@ -160,20 +175,29 @@ describe("useLcuPersonalData", () => {
     const { result, rerender } = renderHook(({ k }) => useLcuPersonalData(true, k), {
       initialProps: { k: null as string | null },
     });
-    await waitFor(() => expect(result.current.rank?.lp).toBe(45));
+    await waitFor(() => expect((result.current.rank as { lp: number } | null)?.lp).toBe(45));
     rerender({ k: "ended" });
-    await waitFor(() => expect(result.current.rank?.lp).toBe(66));
+    await waitFor(() => expect((result.current.rank as { lp: number } | null)?.lp).toBe(66));
   });
 
-  it("an unranked client (tier NONE) gives no rank", async () => {
+  it("an unranked client (tier NONE) is known unranked, not unknown", async () => {
     m.lcuRank.mockResolvedValue({ tier: "NONE", division: "NA", leaguePoints: 0 });
     const { result } = renderHook(() => useLcuPersonalData(true));
-    await waitFor(() => expect(m.lcuRank).toHaveBeenCalled());
-    await act(async () => {
-      await new Promise((r) => setTimeout(r, 0));
-    });
-    expect(result.current.rank).toBeNull();
+    await waitFor(() => expect(result.current.rank).toBe("unranked"));
+    expect(result.current.rankTier).toBeNull();
     expect(m.setCoachEloBucket).not.toHaveBeenCalled();
+  });
+
+  it("client closed and no Riot access: shows the last rank seen", async () => {
+    m.lcuRank.mockResolvedValueOnce({ tier: "GOLD", division: "II", leaguePoints: 45 });
+    const first = renderHook(() => useLcuPersonalData(true));
+    await waitFor(() => expect(first.result.current.rank).toEqual({ tier: "GOLD", division: "II", lp: 45 }));
+    first.unmount();
+
+    // Later session: client closed (lcuRank null), no saved account.
+    const { result } = renderHook(() => useLcuPersonalData(false));
+    await waitFor(() => expect(result.current.rank).toEqual({ tier: "GOLD", division: "II", lp: 45 }));
+    expect(result.current.rankTier).toBe("GOLD");
   });
 
   it("stops after unmount while settings are loading", async () => {
