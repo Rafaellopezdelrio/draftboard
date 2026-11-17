@@ -1368,6 +1368,7 @@
     "riotIdNotFound": "Riot ID no encontrado. Revisa el nombre y el tag (lo que va después de #).",
     "lastMustBeUser": "El último mensaje debe ser del usuario",
     "aiKeyNeeded": "Necesitas una API key de {{provider}}. Configúrala en Prefs.",
+    "aiOffline": "No hay conexión con la IA. Revisa tu internet o inténtalo en un rato.",
     "proxyRateLimit": "Demasiadas peticiones, espera 1 min",
     "proxyRiotDown": "El servidor de Draftboard no puede hablar con Riot ahora mismo. No tienes que hacer nada: prueba otra vez en un rato.",
     "serverUnreachable": "No hay conexión con el servidor de Draftboard. Revisa tu internet y prueba otra vez."
@@ -1544,6 +1545,7 @@
     "champMany": "campeones",
     "sortHint": "Ordenar: click en cabecera",
     "allRanksNote": "Lista de todos los rangos juntos (op.gg): la de tu rango no ha llegado. Elige tu rango para volver a intentarlo.",
+    "staticNote": "Sin conexión con op.gg: lista básica aproximada, los números no son reales. Vuelve a intentarlo en un rato.",
     "fewGames": "pocos datos",
     "fewGamesTip": "Solo {{games}} partidas: su nota puede cambiar mucho.",
     "ranks": {

@@ -86,11 +86,38 @@ otro nombre); seguir este plan y antes de invitar a nadie:
       claves ni historial, hasta la primera partida. Arreglar solo lo que
       bloquee. Si salen 3-4 fallos que bloquean o más: revisión corta solo de
       ese recorrido (no auditoría completa).
-- [ ] **Qué pasa si op.gg o la IA fallan** (cortarlos y mirar la app).
+- [x] **Qué pasa si op.gg o la IA fallan** (cortarlos y mirar la app).
+      17/11, cortados a mano en la app: no se cae nada. op.gg caído → tier
+      list básica, "Datos básicos" arriba y "A medias" abajo; **arreglado**
+      el texto, que decía "lista de op.gg" cuando era la de reserva. IA caída
+      → **arreglado** el mensaje: antes "TypeError: Failed to fetch", ahora
+      "No hay conexión con la IA. Revisa tu internet o inténtalo en un rato".
 - [ ] **Una partida en otra posición** que no sea jungla.
 - [ ] **Cerrar la descarga pública** mientras no haya clave de producción.
 - [ ] **Límites con 10 personas:** calcular si la clave personal (100 cada
       2 min por región) y la IA gratis aguantan a 10 probadores a la vez.
+      **Cuentas (17/11, mirando el código):**
+      - Pantalla de carga (ojeo de rivales): 5 rivales × 14 peticiones
+        (perfil, maestrías, lista de partidas, liga y **10 partidas**) =
+        **70 por partida** y probador, casi de golpe.
+      - Después de la partida: ~4. Con la app abierta sin jugar: 2 cada 5 min
+        (10 personas = ~8 cada 2 min).
+      - Clave personal en EUW: **100 cada 2 min para todos juntos**. Un ojeo
+        cabe (70 + 8). **Dos probadores cargando partida en los mismos
+        2 minutos (148) se pasan**: al segundo le sale el ojeo a medias. Con
+        5 jugando a la vez por la tarde pasa en la mayoría de rondas.
+      - Ayuda: si juegan juntos (dúo/flex), las peticiones repetidas salen de
+        la caché del servidor y no gastan.
+      - **Arreglo propuesto:** el ojeo mira 5 partidas por rival en vez de 10
+        → 45 por partida; dos a la vez caben (98). La racha sigue funcionando
+        (usa 4). Y la "descarga de mejores jugadores" (opcional, gasta 95 cada
+        2 min) **no debe usarla ningún probador** con la clave personal.
+      - IA (Groq gratis): ~5 000 palabras-ficha por análisis; 8 000 por
+        minuto y modelo, 1 000 peticiones al día. 10 probadores × 3-4
+        análisis al día = ~40: sobra. Si coinciden en el mismo minuto, la
+        app ya salta a otro modelo.
+      - Servidor Cloudflare gratis: 100 000 peticiones al día; 10 probadores
+        ≈ 4 000. Sobra.
 - [ ] **De dónde salen los 5-10 probadores** (lista de nombres antes de empezar).
 - [ ] **Qué es éxito el día 21, fijado ANTES de empezar** (p. ej. cuántos la
       abren 3 o más días por semana; qué uso cuenta).

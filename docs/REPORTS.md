@@ -17,7 +17,20 @@ pantalla de términos (versión 2) y elige.
 
 ## Leerlos
 
-Desde `cloudflare-worker/`:
+**Lo fácil:** desde la carpeta del proyecto, un resumen con todo (personas por
+día, quién la abre 3 días o más a la semana, pantallas más usadas y los
+últimos 30 avisos):
+
+```bash
+npm run reports
+```
+
+Detalle de un aviso (versión, Windows, pasos antes del fallo): `npm run reports -- 12`.
+
+También se ve en el panel de Cloudflare: Workers & Pages → D1 →
+`draftboard-reports` → pestaña Console o Tables.
+
+A mano, desde `cloudflare-worker/`:
 
 ```bash
 npx wrangler d1 execute draftboard-reports --remote --command "SELECT datetime(ts/1000,'unixepoch') AS cuando, kind, version, message FROM reports ORDER BY ts DESC LIMIT 30"

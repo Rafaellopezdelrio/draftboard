@@ -1368,6 +1368,7 @@
     "riotIdNotFound": "Riot ID not found. Check the name and the tag (the part after #).",
     "lastMustBeUser": "The last message must be from the user",
     "aiKeyNeeded": "You need a {{provider}} API key. Set it in Prefs.",
+    "aiOffline": "Could not reach the AI. Check your internet or try again in a while.",
     "proxyRateLimit": "Too many requests, wait 1 min",
     "proxyRiotDown": "Draftboard's server can't reach Riot right now. You don't need to do anything: try again in a while.",
     "serverUnreachable": "Can't reach the Draftboard server. Check your internet and try again."
@@ -1544,6 +1545,7 @@
     "champMany": "champions",
     "sortHint": "Sort: click a header",
     "allRanksNote": "One list for all ranks together (op.gg): your rank's list did not arrive. Pick your rank to try again.",
+    "staticNote": "No connection to op.gg: basic approximate list, the numbers are not real. Try again in a while.",
     "fewGames": "few games",
     "fewGamesTip": "Only {{games}} games: its grade can change a lot.",
     "ranks": {

@@ -63,7 +63,25 @@ export function aiReady(
   return !!apiKey?.trim() || (provider === "groq" && !!proxyUrl?.trim());
 }
 
+/** The request never reached the AI (no internet, server down, DNS…), as
+ * opposed to an answer with an error status. */
+function isNetworkError(e: unknown): boolean {
+  if (e instanceof TypeError) return true;
+  const msg = e instanceof Error ? e.message : String(e);
+  return /failed to fetch|error sending request|network ?error|connection (refused|reset|closed)|timed? ?out|dns/i.test(msg);
+}
+
 export async function callAi(p: AiCallParams): Promise<string> {
+  try {
+    return await callAiOnce(p);
+  } catch (e) {
+    // "TypeError: Failed to fetch" means nothing to a player: say it plainly.
+    if (isNetworkError(e)) throw new Error(i18n.t("serviceErrors.aiOffline"));
+    throw e;
+  }
+}
+
+async function callAiOnce(p: AiCallParams): Promise<string> {
   // Groq via proxy: works WITHOUT user-supplied key. Proxy injects the
   // shared production Groq key (CF secret). This is the "casual user" path.
   const proxyUrl = getRiotProxyUrl();

@@ -258,6 +258,15 @@ describe("TierListView — source selector", () => {
     expect(screen.queryByText(/dpm\.lol · /)).toBeNull();
   });
 
+  it("op.gg did not answer at all: says it is the basic list, never claims op.gg data", () => {
+    dpmOn = false;
+    setPrefs({ metaSource: "dpm" });
+    render(<TierListView db={mkDb({ metaSourceRequested: "dpm", metaSourceUsed: "static" })} onClose={() => {}} />);
+    expect(screen.getByTestId("tierlist-static")).toHaveTextContent("Sin conexión con op.gg");
+    expect(screen.queryByTestId("tierlist-all-ranks")).toBeNull();
+    expect(screen.queryByText(/usando/)).toBeNull();
+  });
+
   it("dpm on but this list fell back to op.gg: same note, rank select only (no region or period)", () => {
     setPrefs({ metaSource: "dpm" });
     render(<TierListView db={mkDb({ metaSourceRequested: "dpm", metaSourceUsed: "opgg" })} onClose={() => {}} />);

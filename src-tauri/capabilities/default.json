@@ -39,10 +39,7 @@
         { "url": "https://generativelanguage.googleapis.com/*" },
         { "url": "https://rsms.me/*" },
         { "url": "https://lol.fandom.com/*" },
-        { "url": "https://mcp-api.op.gg/*" },
-        { "url": "https://*.ingest.sentry.io/*" },
-        { "url": "https://*.ingest.us.sentry.io/*" },
-        { "url": "https://*.ingest.de.sentry.io/*" }
+        { "url": "https://mcp-api.op.gg/*" }
       ]
     }
   ]

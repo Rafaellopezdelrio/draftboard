@@ -94,8 +94,11 @@ export function TierListView({ db, onClose, onSelectChampion, onDbUpdate }: Prop
   // rank applies: op.gg has no region or period filter).
   const isOpggRank = prefs.metaSource === "dpm" && db.metaSourceUsed === "opggRank";
   const byRank = isDpm || isOpggRank;
+  // op.gg did not answer at all: the list is the built-in basic one, with
+  // placeholder numbers. Say so instead of naming op.gg.
+  const staticNote = db.metaSourceUsed === "static";
   const allRanksNote =
-    prefs.metaSource === "dpm" && !byRank && (db.metaSourceRequested ?? "dpm") === "dpm";
+    !staticNote && prefs.metaSource === "dpm" && !byRank && (db.metaSourceRequested ?? "dpm") === "dpm";
 
   // Any source/filter change (1) persists the new pref, (2) force-reloads the
   // championDb, and (3) hands the new db back up to the parent. Force is
@@ -299,7 +302,12 @@ export function TierListView({ db, onClose, onSelectChampion, onDbUpdate }: Prop
                 {t("tierList.allRanksNote")}
               </span>
             )}
-            {!allRanksNote && !isOpggRank && db.metaSourceUsed && db.metaSourceRequested && db.metaSourceUsed !== db.metaSourceRequested && (
+            {staticNote && (
+              <span className="text-[11px] text-meh" data-testid="tierlist-static">
+                {t("tierList.staticNote")}
+              </span>
+            )}
+            {!staticNote && !allRanksNote && !isOpggRank && db.metaSourceUsed && db.metaSourceRequested && db.metaSourceUsed !== db.metaSourceRequested && (
               <span
                 className="text-[10px] uppercase tracking-widest text-yellow-300/80"
                 title={t("tierList.fallbackTip", {

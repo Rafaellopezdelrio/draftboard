@@ -76,6 +76,21 @@ describe("callAi — provider dispatch + parsing + error mapping", () => {
     expect((init.headers as Record<string, string>).Authorization).toBe("Bearer k-123");
   });
 
+  it("no connection: plain message instead of 'TypeError: Failed to fetch'", async () => {
+    proxyUrl = "https://proxy.test";
+    httpFetchMock.mockRejectedValue(new TypeError("Failed to fetch"));
+    await expect(callAi({ ...base, apiKey: "", provider: "groq" })).rejects.toThrow(
+      "No hay conexión con la IA. Revisa tu internet o inténtalo en un rato."
+    );
+    httpFetchMock.mockRejectedValue("error sending request for url (https://proxy.test/groq/...)");
+    await expect(callAi({ ...base, apiKey: "", provider: "groq" })).rejects.toThrow("No hay conexión con la IA");
+  });
+
+  it("an answer with an error status keeps its own message", async () => {
+    httpFetchMock.mockResolvedValue(res(401, { error: "bad key" }));
+    await expect(callAi({ ...base, provider: "groq" })).rejects.not.toThrow("No hay conexión");
+  });
+
   it("anthropic: posts to the Anthropic endpoint with x-api-key and joins text blocks", async () => {
     httpFetchMock.mockResolvedValue(
       res(200, {
