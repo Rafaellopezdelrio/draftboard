@@ -95,18 +95,18 @@ test.describe("Draftboard smoke", () => {
     // Either the splash ("Cargando datos...") shows briefly then resolves to
     // the header, or DDragon is fast and we land on the header straight away.
     // Wait for the header's Patch label which only renders after db is loaded.
-    await expect(page.getByText(/Patch\s+\d+\.\d+/i)).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText(/(?:Patch|Parche)\s+\d+\.\d+/i)).toBeVisible({ timeout: 30_000 });
   });
 
   test("patch label uses Riot-year format (e.g. 26.x) not DDragon (16.x)", async ({ page }) => {
     await acceptTerms(page);
-    const label = page.getByText(/Patch\s+\d+\.\d+/i);
+    const label = page.getByText(/(?:Patch|Parche)\s+\d+\.\d+/i);
     await expect(label).toBeVisible({ timeout: 30_000 });
     const text = await label.textContent();
     // DDragon ships 16.x; displayPatch should add +10 → 26.x. Any number <14
     // (pre-2024) is legitimately untranslated, but if we see 14-19 raw, the
     // helper isn't wired in.
-    const match = text?.match(/Patch\s+(\d+)\./);
+    const match = text?.match(/(?:Patch|Parche)\s+(\d+)\./i);
     expect(match).not.toBeNull();
     const major = Number(match![1]);
     expect(major).toBeGreaterThanOrEqual(13);
@@ -126,10 +126,11 @@ test.describe("Draftboard smoke", () => {
 
   test("role selector renders all 5 canonical roles", async ({ page }) => {
     await acceptTerms(page);
-    await page.getByText(/Patch\s+\d+\.\d+/i).waitFor({ timeout: 30_000 });
+    await page.getByText(/(?:Patch|Parche)\s+\d+\.\d+/i).waitFor({ timeout: 30_000 });
     const select = page.locator("select").first();
     await expect(select).toBeVisible();
-    const options = await select.locator("option").allTextContents();
+    // The labels are translated ("Arriba", "Jungla"…); the values are the canonical roles.
+    const options = await select.locator("option").evaluateAll((els) => els.map((e) => (e as HTMLOptionElement).value));
     for (const r of ["TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY"]) {
       expect(options).toContain(r);
     }
@@ -137,7 +138,7 @@ test.describe("Draftboard smoke", () => {
 
   test("changing role updates draft store (panel rerenders)", async ({ page }) => {
     await acceptTerms(page);
-    await page.getByText(/Patch\s+\d+\.\d+/i).waitFor({ timeout: 30_000 });
+    await page.getByText(/(?:Patch|Parche)\s+\d+\.\d+/i).waitFor({ timeout: 30_000 });
     const select = page.locator("select").first();
     await select.selectOption("JUNGLE");
     await expect(select).toHaveValue("JUNGLE");
@@ -147,12 +148,12 @@ test.describe("Draftboard smoke", () => {
 
   test("header buttons open their respective modals", async ({ page }) => {
     await acceptTerms(page);
-    await page.getByText(/Patch\s+\d+\.\d+/i).waitFor({ timeout: 30_000 });
+    await page.getByText(/(?:Patch|Parche)\s+\d+\.\d+/i).waitFor({ timeout: 30_000 });
     await dismissOnboarding(page);
 
     // Tier List — in the simple view it lives in the Ajustes menu.
     await page.getByRole("button", { name: /Ajustes/i }).click();
-    await page.getByText(/Tier List/i).click();
+    await page.getByText(/Mejores campeones|Tier List/i).click();
     // Modal mount is lazy — wait for it.
     await page.waitForTimeout(500);
     // Close via Escape (every modal supports it).
@@ -161,7 +162,7 @@ test.describe("Draftboard smoke", () => {
 
   test("command palette opens with Ctrl+K", async ({ page }) => {
     await acceptTerms(page);
-    await page.getByText(/Patch\s+\d+\.\d+/i).waitFor({ timeout: 30_000 });
+    await page.getByText(/(?:Patch|Parche)\s+\d+\.\d+/i).waitFor({ timeout: 30_000 });
     await dismissOnboarding(page);
     await page.keyboard.press("Control+k");
     // CommandPalette renders an autofocused input with this Spanish placeholder.
@@ -181,7 +182,7 @@ test.describe("Draftboard smoke", () => {
     // this test observes a FULL bootstrap with the listeners attached.
     await page.reload();
     await acceptTerms(page);
-    await page.getByText(/Patch\s+\d+\.\d+/i).waitFor({ timeout: 30_000 });
+    await page.getByText(/(?:Patch|Parche)\s+\d+\.\d+/i).waitFor({ timeout: 30_000 });
     // Filter expected noise: Tauri plugin warnings, DevTools-only messages.
     const real = errors.filter(
       (e) =>
