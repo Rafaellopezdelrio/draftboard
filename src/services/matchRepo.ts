@@ -1,11 +1,36 @@
 import { getDb, isTauri } from "../db/client";
 import { choosePosition } from "./positionFix";
 import type { MatchSummary } from "./riotApi";
+import { loadSettings } from "./settingsRepo";
 
+/**
+ * Personal stats only read the games of the account the app is on (the one
+ * saved in settings, which follows the account logged into the client), so a
+ * smurf and the main never mix. Without a saved account: the games stored
+ * without one. Appends the condition and its parameter.
+ */
+async function accountFilter(params: unknown[], column = "account"): Promise<string> {
+  const account = (await loadSettings().catch(() => null))?.puuid || null;
+  if (!account) return ` AND ${column} IS NULL`;
+  params.push(account);
+  return ` AND ${column} = $${params.length}`;
+}
+
+/** Games stored before games carried an account belong to the account saved
+ * at that time. Idempotent; only touches rows without an account. */
+export async function claimUnownedMatches(account: string): Promise<void> {
+  if (!isTauri() || !account) return;
+  const db = await getDb();
+  await db.execute("UPDATE matches SET account = $1 WHERE account IS NULL", [account]);
+}
+
+/** Deletes the current account's stored games (a full re-download follows);
+ * other accounts' games are kept. */
 export async function clearAllMatches(): Promise<void> {
   if (!isTauri()) return;
   const db = await getDb();
-  await db.execute("DELETE FROM matches");
+  const params: unknown[] = [];
+  await db.execute("DELETE FROM matches WHERE 1=1" + (await accountFilter(params)), params);
 }
 
 export async function existingMatchIds(): Promise<Set<string>> {
@@ -56,13 +81,14 @@ export async function dropLcuTwins(): Promise<void> {
   );
 }
 
-export async function saveMatch(m: MatchSummary): Promise<void> {
+/** `account`: Riot puuid of the player the game belongs to (null when unknown). */
+export async function saveMatch(m: MatchSummary, account: string | null = null): Promise<void> {
   if (!isTauri()) return;
   const db = await getDb();
   await db.execute(
     `INSERT OR REPLACE INTO matches
-     (match_id, champion_id, win, kills, deaths, assists, cs, duration_sec, end_ts_ms, queue_id, position, opponent_champion_id, vision_score, gold_earned)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
+     (match_id, champion_id, win, kills, deaths, assists, cs, duration_sec, end_ts_ms, queue_id, position, opponent_champion_id, vision_score, gold_earned, account)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)`,
     [
       m.matchId,
       m.championId,
@@ -78,6 +104,7 @@ export async function saveMatch(m: MatchSummary): Promise<void> {
       m.opponentChampionId,
       m.visionScore ?? null,
       m.goldEarned ?? null,
+      account,
     ]
   );
 }
@@ -90,8 +117,8 @@ export async function recentMatches(
 ): Promise<MatchRow[]> {
   if (!isTauri()) return [];
   const db = await getDb();
-  let sql = "SELECT * FROM matches WHERE 1=1";
   const params: unknown[] = [];
+  let sql = "SELECT * FROM matches WHERE 1=1" + (await accountFilter(params));
   if (filters?.position) {
     params.push(filters.position);
     sql += ` AND position = $${params.length}`;
@@ -152,9 +179,9 @@ export async function personalStatsByChampion(
 ): Promise<ChampionPersonalStat[]> {
   if (!isTauri()) return [];
   const db = await getDb();
-  let sql = `SELECT champion_id, COUNT(*) as games, SUM(win) as wins
-     FROM matches WHERE 1=1`;
   const params: unknown[] = [];
+  let sql = `SELECT champion_id, COUNT(*) as games, SUM(win) as wins
+     FROM matches WHERE 1=1` + (await accountFilter(params));
   if (filters?.position) {
     params.push(filters.position);
     sql += ` AND position = $${params.length}`;
@@ -187,16 +214,18 @@ export async function personalMatchupsByRole(
   if (!isTauri()) return [];
   try {
     const db = await getDb();
+    const params: unknown[] = [position, minGames];
+    const mine = await accountFilter(params);
     const rows = await db.select<
       Array<{ opponent_champion_id: number; games: number; wins: number }>
     >(
       `SELECT opponent_champion_id, COUNT(*) as games, SUM(win) as wins
        FROM matches
-       WHERE position = $1 AND opponent_champion_id > 0
+       WHERE position = $1 AND opponent_champion_id > 0${mine}
        GROUP BY opponent_champion_id
        HAVING games >= $2
        ORDER BY (CAST(wins AS REAL) / games) ASC, games DESC`,
-      [position, minGames]
+      params
     );
     return rows.map((r) => ({
       position,

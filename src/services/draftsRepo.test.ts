@@ -4,6 +4,8 @@ const selectMock = vi.fn();
 const executeMock = vi.fn();
 const getDbMock = vi.fn();
 let tauri = true;
+const settingsMock = vi.hoisted(() => vi.fn(async () => ({ puuid: "acc-1" }) as unknown));
+vi.mock("./settingsRepo", () => ({ loadSettings: () => settingsMock() }));
 vi.mock("../db/client", () => ({
   isTauri: () => tauri,
   getDb: () => getDbMock(),
@@ -132,7 +134,8 @@ describe("drafts persistence (SQLite)", () => {
       { followed: 0, win: 0, n: 2 },
     ]);
     const s = await draftAdviceStats();
-    expect(selectMock.mock.calls[0][0]).toContain("JOIN matches m ON d.match_id = m.match_id");
+    expect(selectMock.mock.calls[0][0]).toContain("JOIN matches m ON d.match_id = m.match_id WHERE m.account = $1");
+    expect(selectMock.mock.calls[0][1]).toEqual(["acc-1"]); // the current account only
     expect(s).toEqual({ followedGames: 3, followedWins: 3, notFollowedGames: 2, notFollowedWins: 0 });
   });
 

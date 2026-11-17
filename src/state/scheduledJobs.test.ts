@@ -90,6 +90,15 @@ describe("useScheduledJobs — personal sync", () => {
     expect(svc.syncPersonalData).toHaveBeenCalledTimes(3);
   });
 
+  it("syncs again as soon as the client connects (app opened before LoL)", () => {
+    const { rerender } = renderHook(({ c }) => useScheduledJobs(c), { initialProps: { c: false } });
+    expect(svc.syncPersonalData).toHaveBeenCalledTimes(1); // first-run check
+    rerender({ c: true });
+    expect(svc.syncPersonalData).toHaveBeenCalledTimes(2);
+    rerender({ c: true }); // still connected: no extra run
+    expect(svc.syncPersonalData).toHaveBeenCalledTimes(2);
+  });
+
   it("keeps retrying after a failed sync", async () => {
     svc.syncPersonalData.mockRejectedValue(new Error("LCU offline"));
     renderHook(() => useScheduledJobs());

@@ -1,7 +1,14 @@
 // Hybrid sync: prefers LCU (no key needed) for personal data,
 // falls back to Riot API only when key is configured AND LCU lacks data.
 
-import { saveMatch, existingMatchIds, dropLcuTwins, gameIdOf, storedMatchEnds } from "./matchRepo";
+import {
+  saveMatch,
+  existingMatchIds,
+  dropLcuTwins,
+  gameIdOf,
+  storedMatchEnds,
+  claimUnownedMatches,
+} from "./matchRepo";
 import { linkDraftToMatch } from "./draftsRepo";
 import {
   lcuMasteries,
@@ -18,7 +25,8 @@ import {
   type RiotConfig,
 } from "./riotApi";
 import { loadSettings } from "./settingsRepo";
-import { resolveAccount } from "./accountResolve";
+import { followClientAccount, regionFromClient } from "./accountResolve";
+import { getCurrentSummoner } from "./lcuService";
 
 export interface SyncProgress {
   source: "LCU" | "Riot API" | "none";
@@ -77,10 +85,14 @@ export function syncPersonalData(
 async function runSync(
   onProgress: (p: SyncProgress) => void = () => {}
 ): Promise<SyncResult> {
-  let cfg = await loadSettings();
-  // Clean install: nothing saved yet. Read the account from the LoL client and
-  // save it, so the Riot path below (and the coach, live game…) can work.
-  if (!cfg?.puuid) cfg = (await resolveAccount().catch(() => null)) ?? cfg;
+  // Games stored before they carried an account belong to the account saved
+  // until now — claimed before a possible switch to another account.
+  const before = await loadSettings();
+  if (before?.puuid) await claimUnownedMatches(before.puuid).catch(() => {});
+  // The account logged into the client is the app's account (clean install,
+  // or a switch to a smurf): its games are stored and read apart.
+  const cfg = (await followClientAccount().catch(() => null)) ?? before;
+  if (cfg?.puuid) await claimUnownedMatches(cfg.puuid).catch(() => {});
 
   // 1. Prefer Riot API when key OR proxy is available + we know the puuid
   const hasRiotAccess = !!cfg?.apiKey || !!getRiotProxyUrl();
@@ -102,15 +114,33 @@ async function runSync(
   }
 
   // 2. Try LCU
-  const lcuResult = await tryLcuSync(onProgress);
+  const lcuResult = await tryLcuSync(onProgress, await lcuGamesAccount(cfg));
   if (lcuResult) return lcuResult;
 
   onProgress({ source: "none", done: 0, total: 0, message: "No data source available", messageKey: "sync.noSource" });
   return { matches: 0, masteries: 0, rank: null, source: "none" };
 }
 
+/**
+ * Which account the client's games are stored under: the saved one when the
+ * client is logged into it, none when no account is saved yet, and false
+ * (don't store them) when the client is on another account the app couldn't
+ * switch to — that would mix a smurf's games into the main's.
+ */
+async function lcuGamesAccount(cfg: { puuid?: string; riotIdName: string; riotIdTag: string; region: string } | null): Promise<string | null | false> {
+  if (!cfg?.puuid) return null;
+  const me = await getCurrentSummoner().catch(() => null);
+  if (!me?.gameName) return cfg.puuid;
+  const same =
+    me.gameName.trim().toLowerCase() === cfg.riotIdName.trim().toLowerCase() &&
+    (me.tagLine ?? "").trim().toLowerCase() === cfg.riotIdTag.trim().toLowerCase() &&
+    (regionFromClient(me.region) ?? cfg.region) === cfg.region;
+  return same ? cfg.puuid : false;
+}
+
 async function tryLcuSync(
-  onProgress: (p: SyncProgress) => void
+  onProgress: (p: SyncProgress) => void,
+  account: string | null | false = null
 ): Promise<SyncResult | null> {
   onProgress({ source: "LCU", done: 0, total: 1, message: "Conectando al cliente...", messageKey: "sync.connecting" });
   const [matches, masteries, rank] = await Promise.all([
@@ -129,8 +159,9 @@ async function tryLcuSync(
   const knownGames = new Set(Array.from(known, gameIdOf));
   let saved = 0;
   for (let i = 0; i < matches.length; i++) {
+    if (account === false) break;
     if (knownGames.has(gameIdOf(matches[i].matchId))) continue;
-    await saveMatch(matches[i]);
+    await saveMatch(matches[i], account);
     await linkDraftToMatch(
       matches[i].matchId,
       matches[i].championId,
@@ -166,7 +197,7 @@ async function riotApiSync(
   for (let i = 0; i < todo.length; i++) {
     try {
       const m = await getMatch(cfg, cfg.puuid!, todo[i]);
-      await saveMatch(m);
+      await saveMatch(m, cfg.puuid ?? null);
       await linkDraftToMatch(m.matchId, m.championId, m.gameEndTimestampMs).catch(
         () => {}
       );
@@ -246,7 +277,7 @@ export async function backfillSeason(
             reachedOlder = true;
             break;
           }
-          await saveMatch(m);
+          await saveMatch(m, cfg.puuid ?? null);
           await linkDraftToMatch(m.matchId, m.championId, m.gameEndTimestampMs).catch(() => {});
           ends.set(id, end);
           saved++;

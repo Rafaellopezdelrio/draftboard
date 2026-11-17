@@ -4,7 +4,13 @@ import type { LcuRankInfo } from "./lcuPersonalData";
 
 const loadSettingsMock = vi.fn();
 // Account auto-detection (clean install) has its own tests.
-vi.mock("./accountResolve", () => ({ resolveAccount: vi.fn(async () => null) }));
+// Following the client account has its own tests: here it keeps the saved one.
+vi.mock("./accountResolve", () => ({
+  followClientAccount: vi.fn(async () => null),
+  regionFromClient: (r?: string) => (r ? r.toLowerCase() + "1" : null),
+}));
+const getCurrentSummonerMock = vi.fn(async () => null as unknown);
+vi.mock("./lcuService", () => ({ getCurrentSummoner: () => getCurrentSummonerMock() }));
 vi.mock("./settingsRepo", () => ({
   loadSettings: () => loadSettingsMock(),
 }));
@@ -28,11 +34,13 @@ const existingMatchIdsMock = vi.fn();
 const saveMatchMock = vi.fn();
 const dropLcuTwinsMock = vi.fn();
 const storedMatchEndsMock = vi.fn(async () => new Map<string, number>());
+const claimUnownedMatchesMock = vi.fn(async (..._a: unknown[]) => {});
 vi.mock("./matchRepo", () => ({
   existingMatchIds: () => existingMatchIdsMock(),
   saveMatch: (...a: unknown[]) => saveMatchMock(...a),
   dropLcuTwins: () => dropLcuTwinsMock(),
   storedMatchEnds: () => storedMatchEndsMock(),
+  claimUnownedMatches: (...a: unknown[]) => claimUnownedMatchesMock(...a),
   gameIdOf: (id: string) => id.slice(id.lastIndexOf("_") + 1),
 }));
 
@@ -108,6 +116,7 @@ beforeEach(() => {
     m.mockReset();
   }
   getRiotProxyUrlMock.mockReturnValue(null);
+  getCurrentSummonerMock.mockReset().mockResolvedValue(null);
   existingMatchIdsMock.mockResolvedValue(new Set<string>());
   saveMatchMock.mockResolvedValue(undefined);
   dropLcuTwinsMock.mockResolvedValue(undefined);
@@ -218,6 +227,25 @@ describe("syncPersonalData — Riot API path", () => {
 });
 
 describe("syncPersonalData — LCU path", () => {
+  it("client games go to the saved account when the client is on it, and are not stored when it is on another", async () => {
+    // Saved account, but no Riot access: the client path runs.
+    loadSettingsMock.mockResolvedValue({ ...SETTINGS, apiKey: "" });
+    getRiotProxyUrlMock.mockReturnValue(null);
+    lcuRecentMatchesMock.mockResolvedValue([summary("LCU_5")]);
+    lcuMasteriesMock.mockResolvedValue([]);
+    lcuRankMock.mockResolvedValue(RANK);
+    existingMatchIdsMock.mockResolvedValue(new Set());
+
+    getCurrentSummonerMock.mockResolvedValue({ gameName: "tester", tagLine: "euw", region: "EUW" });
+    await syncPersonalData();
+    expect(saveMatchMock).toHaveBeenCalledWith(expect.objectContaining({ matchId: "LCU_5" }), "me");
+
+    saveMatchMock.mockClear();
+    getCurrentSummonerMock.mockResolvedValue({ gameName: "Smurfy", tagLine: "123", region: "EUW" });
+    await syncPersonalData();
+    expect(saveMatchMock).not.toHaveBeenCalled(); // a smurf's games never land in the main's
+  });
+
   it("saves new LCU matches, returns masteries and rank", async () => {
     loadSettingsMock.mockResolvedValue(null);
     lcuRecentMatchesMock.mockResolvedValue([summary("LCU_1"), summary("LCU_2", 64), summary("LCU_3")]);

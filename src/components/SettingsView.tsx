@@ -190,28 +190,6 @@ export function SettingsView({ onClose }: Props) {
     );
   }
 
-  async function autoDetect() {
-    setStatus(t("settings.detectingAccount"));
-    const s = await getCurrentSummoner();
-    if (!s) {
-      setStatus(t("settings.clientNotOpen"));
-      return;
-    }
-    if (s.gameName) setRiotIdName(s.gameName);
-    if (s.tagLine) setRiotIdTag(s.tagLine);
-    if (s.puuid) setPuuid(s.puuid);
-    if (s.region) {
-      const r = s.region.toLowerCase() as Region;
-      if (REGIONS.some((x) => x.value === r)) setRegion(r);
-    }
-    setStatus(
-      t("settings.detected", {
-        name: s.gameName ?? s.displayName ?? "?",
-        tag: s.tagLine ?? "?",
-      })
-    );
-  }
-
   async function handleSaveAndSync() {
     setBusy(true);
     setStatus(t("settings.syncing"));
@@ -378,13 +356,7 @@ export function SettingsView({ onClose }: Props) {
               className="w-24 bg-bg px-3 py-2 rounded border border-border-subtle text-white"
             />
           </div>
-          <button
-            onClick={autoDetect}
-            type="button"
-            className="text-xs text-accent/80 hover:text-accent mt-1"
-          >
-            {t("settings.autoDetect")}
-          </button>
+          <p className="text-xs text-white/50 mt-1">{t("settings.autoAccount")}</p>
         </Field>
 
         {shownStatus && (

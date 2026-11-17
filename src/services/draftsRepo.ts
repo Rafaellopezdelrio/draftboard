@@ -9,6 +9,7 @@
 // is set by personalDataSync after a match syncs.
 
 import { getDb, isTauri } from "../db/client";
+import { loadSettings } from "./settingsRepo";
 
 export interface DraftRecord {
   id?: number;
@@ -115,11 +116,20 @@ export async function draftAdviceStats(): Promise<AdviceStats> {
   };
   if (!isTauri()) return empty;
   const db = await getDb();
+  // Only the current account's games (a smurf's drafts don't count for the main).
+  const params: unknown[] = [];
+  const account = (await loadSettings().catch(() => null))?.puuid || null;
+  let mine = " WHERE m.account IS NULL";
+  if (account) {
+    params.push(account);
+    mine = " WHERE m.account = $1";
+  }
   const rows = await db.select<Array<{ followed: number; win: number; n: number }>>(
     `SELECT d.followed_suggestion AS followed, m.win AS win, COUNT(*) AS n
      FROM drafts d
-     JOIN matches m ON d.match_id = m.match_id
-     GROUP BY d.followed_suggestion, m.win`
+     JOIN matches m ON d.match_id = m.match_id${mine}
+     GROUP BY d.followed_suggestion, m.win`,
+    params
   );
   return aggregateAdviceRows(rows);
 }

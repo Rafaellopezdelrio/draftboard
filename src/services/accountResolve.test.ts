@@ -9,7 +9,7 @@ vi.mock("./settingsRepo", () => ({ loadSettings, saveSettings }));
 vi.mock("./lcuService", () => ({ getCurrentSummoner }));
 vi.mock("./riotApi", () => ({ getAccount, getRiotProxyUrl: () => proxy.url }));
 
-import { regionFromClient, resolveAccount, settingsOrDefault } from "./accountResolve";
+import { regionFromClient, resolveAccount, settingsOrDefault, followClientAccount } from "./accountResolve";
 
 beforeEach(() => {
   proxy.url = "https://server.test";
@@ -77,5 +77,46 @@ describe("settingsOrDefault", () => {
     expect((await settingsOrDefault()).region).toBe("na1");
     getCurrentSummoner.mockResolvedValue(null);
     expect((await settingsOrDefault()).region).toBe("euw1");
+  });
+});
+
+describe("followClientAccount (main and smurf)", () => {
+  const main = { apiKey: "", region: "euw1", riotIdName: "Rafa", riotIdTag: "EUW", puuid: "main" };
+
+  it("same account in the client: keeps it, asks Riot nothing", async () => {
+    loadSettings.mockResolvedValue(main);
+    getCurrentSummoner.mockResolvedValue({ puuid: "x", gameName: "rafa", tagLine: "euw", region: "EUW" });
+    expect(await followClientAccount()).toBe(main);
+    expect(getAccount).not.toHaveBeenCalled();
+    expect(saveSettings).not.toHaveBeenCalled();
+  });
+
+  it("logged into a smurf: switches to it (Riot puuid, saved)", async () => {
+    loadSettings.mockResolvedValue(main);
+    getCurrentSummoner.mockResolvedValue({ puuid: "x", gameName: "Smurfy", tagLine: "123", region: "EUW" });
+    getAccount.mockResolvedValue({ puuid: "smurf" });
+    const out = await followClientAccount();
+    expect(out).toEqual({ apiKey: "", region: "euw1", riotIdName: "Smurfy", riotIdTag: "123", puuid: "smurf" });
+    expect(saveSettings).toHaveBeenCalledWith(out);
+  });
+
+  it("client closed, Riot unreachable or no server: keeps the saved account", async () => {
+    loadSettings.mockResolvedValue(main);
+    getCurrentSummoner.mockResolvedValue(null);
+    expect(await followClientAccount()).toBe(main);
+
+    getCurrentSummoner.mockResolvedValue({ puuid: "x", gameName: "Smurfy", tagLine: "123", region: "EUW" });
+    getAccount.mockRejectedValue(new Error("503"));
+    expect(await followClientAccount()).toBe(main);
+
+    proxy.url = null;
+    expect(await followClientAccount()).toBe(main);
+    expect(saveSettings).not.toHaveBeenCalled();
+  });
+
+  it("clean install: takes the client's account", async () => {
+    const out = await followClientAccount();
+    expect(out?.puuid).toBe("riot-format");
+    expect(saveSettings).toHaveBeenCalledTimes(1);
   });
 });

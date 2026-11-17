@@ -39,3 +39,4 @@ Tauri-plugin-sql runs these in order on app start. Tracked in the
 | 8 | `008_chat_history.sql` | Persisted AI coach chat conversations + messages |
 | 9 | `009_champion_tips.sql` | Cached AI pre-game tips per (champion, role, patch) |
 | 10 | `010_match_vision_gold.sql` | Per-match vision score + gold earned (nullable) for leak analysis |
+| 11 | `011_match_account.sql` | Account (Riot puuid) per match: a smurf's games never mix with the main's |

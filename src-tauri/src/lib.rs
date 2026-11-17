@@ -126,6 +126,12 @@ pub fn run() {
             sql: include_str!("../../src/db/migrations/010_match_vision_gold.sql"),
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 11,
+            description: "match account (keeps a smurf apart from the main)",
+            sql: include_str!("../../src/db/migrations/011_match_account.sql"),
+            kind: MigrationKind::Up,
+        },
     ];
     // The pre-boot check repairs line-ending-only checksum drift against
     // exactly these embedded sources (see db_admin::repair_migration_line_endings).

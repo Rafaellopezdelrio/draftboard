@@ -40,19 +40,20 @@ interface LcuPersonalData {
   rank: RankState;
 }
 
-const LAST_RANK_KEY = "draftboard:last-solo-rank";
+/** One remembered rank per account: a smurf's rank never shows for the main. */
+const lastRankKey = (account: string | undefined) => `draftboard:last-solo-rank:${account || "none"}`;
 
-function saveLastRank(rank: SoloRank | "unranked"): void {
+function saveLastRank(account: string | undefined, rank: SoloRank | "unranked"): void {
   try {
-    localStorage.setItem(LAST_RANK_KEY, JSON.stringify(rank));
+    localStorage.setItem(lastRankKey(account), JSON.stringify(rank));
   } catch {
     // storage unavailable: nothing to remember
   }
 }
 
-function loadLastRank(): RankState {
+function loadLastRank(account: string | undefined): RankState {
   try {
-    const raw = localStorage.getItem(LAST_RANK_KEY);
+    const raw = localStorage.getItem(lastRankKey(account));
     if (!raw) return null;
     const v = JSON.parse(raw) as unknown;
     if (v === "unranked") return v;
@@ -135,8 +136,8 @@ export function useLcuPersonalData(lcuConnected: boolean, refreshKey: string | n
       if (cancelled) return;
       // Client closed and no Riot access (e.g. a fresh install): show the last
       // rank seen instead of nothing.
-      if (next) saveLastRank(next);
-      else next = loadLastRank();
+      if (next) saveLastRank(cfg?.puuid, next);
+      else next = loadLastRank(cfg?.puuid);
       if (next && next !== "unranked") setCoachEloBucket(next.tier);
       setRank(next);
 

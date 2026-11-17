@@ -39,6 +39,39 @@ export async function settingsOrDefault(): Promise<StoredSettings> {
   return { apiKey: "", region: regionFromClient(me?.region) ?? "euw1", riotIdName: "", riotIdTag: "" };
 }
 
+const sameText = (a: string | undefined, b: string | undefined) =>
+  !!a && !!b && a.trim().toLowerCase() === b.trim().toLowerCase();
+
+/**
+ * The account logged into the LoL client is the app's account: log into a
+ * smurf and the app switches to it (its games are stored apart, see
+ * matchRepo). Returns the settings to use. Unchanged when the client is
+ * closed, it is the same account, or Riot can't be asked right now.
+ */
+export async function followClientAccount(): Promise<StoredSettings | null> {
+  const saved = await loadSettings();
+  const me = await getCurrentSummoner().catch(() => null);
+  const region = regionFromClient(me?.region);
+  if (!me?.gameName || !me.tagLine || !region) return saved;
+  if (
+    saved?.puuid &&
+    sameText(saved.riotIdName, me.gameName) &&
+    sameText(saved.riotIdTag, me.tagLine) &&
+    saved.region === region
+  )
+    return saved;
+  if (!saved?.apiKey && !getRiotProxyUrl()) return saved;
+  const next = { apiKey: saved?.apiKey ?? "", region, riotIdName: me.gameName, riotIdTag: me.tagLine };
+  try {
+    const account = await getAccount(next);
+    const full = { ...next, puuid: account.puuid };
+    await saveSettings(full);
+    return full;
+  } catch {
+    return saved;
+  }
+}
+
 let inFlight: Promise<StoredSettings | null> | null = null;
 
 /**

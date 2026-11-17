@@ -6,6 +6,9 @@ const selectMock = vi.fn();
 const executeMock = vi.fn();
 const getDbMock = vi.fn();
 let tauri = true;
+// The saved account: personal reads only see its games.
+const loadSettingsMock = vi.fn(async () => ({ puuid: "acc-1" }) as unknown);
+vi.mock("./settingsRepo", () => ({ loadSettings: () => loadSettingsMock() }));
 vi.mock("../db/client", () => ({
   isTauri: () => tauri,
   getDb: () => getDbMock(),
@@ -20,6 +23,7 @@ import {
   recentMatches,
   personalStatsByChampion,
   personalMatchupsByRole,
+  claimUnownedMatches,
 } from "./matchRepo";
 import type { MatchSummary } from "./riotApi";
 
@@ -48,6 +52,7 @@ beforeEach(() => {
   selectMock.mockReset().mockResolvedValue([]);
   executeMock.mockReset().mockResolvedValue({ rowsAffected: 1 });
   getDbMock.mockReset().mockResolvedValue({ select: selectMock, execute: executeMock });
+  loadSettingsMock.mockReset().mockResolvedValue({ puuid: "acc-1" });
 });
 
 describe("matchRepo outside Tauri", () => {
@@ -64,9 +69,9 @@ describe("matchRepo outside Tauri", () => {
 });
 
 describe("clearAllMatches / existingMatchIds", () => {
-  it("clearAllMatches deletes every match row", async () => {
+  it("clearAllMatches deletes only the current account's games", async () => {
     await clearAllMatches();
-    expect(executeMock).toHaveBeenCalledWith("DELETE FROM matches");
+    expect(executeMock).toHaveBeenCalledWith("DELETE FROM matches WHERE 1=1 AND account = $1", ["acc-1"]);
   });
 
   it("existingMatchIds collapses rows into a Set (dedupe-ready for sync)", async () => {
@@ -117,13 +122,15 @@ describe("saveMatch", () => {
     goldEarned: 14500,
   };
 
-  it("upserts with the 14 columns in placeholder order and win as 1", async () => {
+  it("upserts with the 15 columns in placeholder order, win as 1 and the account last", async () => {
     await saveMatch(base);
     const [sql, params] = executeMock.mock.calls[0];
     expect(sql).toContain("INSERT OR REPLACE INTO matches");
     expect(params).toEqual([
-      "EUW1_42", 103, 1, 10, 3, 5, 250, 1900, 1_700_000_123_000, 420, "MIDDLE", 157, 30, 14500,
+      "EUW1_42", 103, 1, 10, 3, 5, 250, 1900, 1_700_000_123_000, 420, "MIDDLE", 157, 30, 14500, null,
     ]);
+    await saveMatch(base, "acc-9");
+    expect((executeMock.mock.calls[1][1] as unknown[])[14]).toBe("acc-9");
   });
 
   it("stores a loss as 0 and missing vision/gold (pre-010 sync) as NULL", async () => {
@@ -136,7 +143,7 @@ describe("saveMatch", () => {
 
   it("keeps a genuine 0 vision/gold instead of storing NULL", async () => {
     await saveMatch({ ...base, visionScore: 0, goldEarned: 0 });
-    expect((executeMock.mock.calls[0][1] as unknown[]).slice(12)).toEqual([0, 0]);
+    expect((executeMock.mock.calls[0][1] as unknown[]).slice(12, 14)).toEqual([0, 0]);
   });
 });
 
@@ -144,25 +151,25 @@ describe("recentMatches", () => {
   it("defaults to LIMIT 50 with no filters, newest first", async () => {
     await recentMatches();
     const [sql, params] = selectMock.mock.calls[0];
-    expect(sql).toBe("SELECT * FROM matches WHERE 1=1 ORDER BY end_ts_ms DESC LIMIT $1");
-    expect(params).toEqual([50]);
+    expect(sql).toBe("SELECT * FROM matches WHERE 1=1 AND account = $1 ORDER BY end_ts_ms DESC LIMIT $2");
+    expect(params).toEqual(["acc-1", 50]);
   });
 
   it("numbers placeholders to match the pushed params when both filters are set", async () => {
     await recentMatches(10, { position: "JUNGLE", queueId: 440 });
     const [sql, params] = selectMock.mock.calls[0];
-    expect(sql).toContain("AND position = $1");
-    expect(sql).toContain("AND queue_id = $2");
-    expect(sql).toContain("LIMIT $3");
-    expect(params).toEqual(["JUNGLE", 440, 10]);
+    expect(sql).toContain("AND position = $2");
+    expect(sql).toContain("AND queue_id = $3");
+    expect(sql).toContain("LIMIT $4");
+    expect(params).toEqual(["acc-1", "JUNGLE", 440, 10]);
   });
 
   it("treats queueId 0 as a real filter but skips an empty position", async () => {
     await recentMatches(5, { position: "", queueId: 0 });
     const [sql, params] = selectMock.mock.calls[0];
     expect(sql).not.toContain("position =");
-    expect(sql).toContain("AND queue_id = $1");
-    expect(params).toEqual([0, 5]);
+    expect(sql).toContain("AND queue_id = $2");
+    expect(params).toEqual(["acc-1", 0, 5]);
   });
 
   it("maps snake_case rows to MatchSummary (win bool, null opponent → 0)", async () => {
@@ -216,7 +223,7 @@ describe("personalStatsByChampion", () => {
     const [sql, params] = selectMock.mock.calls[0];
     expect(sql).not.toContain("position =");
     expect(sql).toContain("GROUP BY champion_id ORDER BY games DESC");
-    expect(params).toEqual([]);
+    expect(params).toEqual(["acc-1"]);
     expect(out).toEqual([
       { championId: 103, position: undefined, games: 4, wins: 3, winRate: 0.75 },
       // games 0 must not divide by zero
@@ -228,8 +235,8 @@ describe("personalStatsByChampion", () => {
     selectMock.mockResolvedValue([{ champion_id: 64, games: 5, wins: 2 }]);
     const out = await personalStatsByChampion({ position: "JUNGLE" });
     const [sql, params] = selectMock.mock.calls[0];
-    expect(sql).toContain("AND position = $1");
-    expect(params).toEqual(["JUNGLE"]);
+    expect(sql).toContain("AND position = $2");
+    expect(params).toEqual(["acc-1", "JUNGLE"]);
     expect(out).toEqual([
       { championId: 64, position: "JUNGLE", games: 5, wins: 2, winRate: 0.4 },
     ]);
@@ -244,9 +251,9 @@ describe("personalMatchupsByRole", () => {
     ]);
     const out = await personalMatchupsByRole("MIDDLE");
     const [sql, params] = selectMock.mock.calls[0];
-    expect(sql).toContain("WHERE position = $1 AND opponent_champion_id > 0");
+    expect(sql).toContain("WHERE position = $1 AND opponent_champion_id > 0 AND account = $3");
     expect(sql).toContain("HAVING games >= $2");
-    expect(params).toEqual(["MIDDLE", 2]);
+    expect(params).toEqual(["MIDDLE", 2, "acc-1"]);
     expect(out).toEqual([
       { position: "MIDDLE", opponentChampionId: 157, games: 4, wins: 1, winRate: 0.25 },
       { position: "MIDDLE", opponentChampionId: 238, games: 2, wins: 2, winRate: 1 },
@@ -255,7 +262,7 @@ describe("personalMatchupsByRole", () => {
 
   it("passes a custom min-games threshold", async () => {
     await personalMatchupsByRole("TOP", 5);
-    expect(selectMock.mock.calls[0][1]).toEqual(["TOP", 5]);
+    expect(selectMock.mock.calls[0][1]).toEqual(["TOP", 5, "acc-1"]);
   });
 
   it("returns [] when the query fails (old DB without opponent column)", async () => {
@@ -264,3 +271,27 @@ describe("personalMatchupsByRole", () => {
   });
 });
 
+
+describe("accounts (main and smurf kept apart)", () => {
+  it("without a saved account, reads only the games stored without one", async () => {
+    loadSettingsMock.mockResolvedValue(null);
+    await recentMatches(5);
+    const [sql, params] = selectMock.mock.calls[0];
+    expect(sql).toContain("AND account IS NULL");
+    expect(params).toEqual([5]);
+  });
+
+  it("a smurf's reads ask for the smurf's account only", async () => {
+    loadSettingsMock.mockResolvedValue({ puuid: "smurf" });
+    await personalStatsByChampion();
+    expect(selectMock.mock.calls[0][1]).toEqual(["smurf"]);
+  });
+
+  it("claimUnownedMatches gives the games without an account to the given one", async () => {
+    await claimUnownedMatches("acc-1");
+    expect(executeMock).toHaveBeenCalledWith("UPDATE matches SET account = $1 WHERE account IS NULL", ["acc-1"]);
+    executeMock.mockClear();
+    await claimUnownedMatches("");
+    expect(executeMock).not.toHaveBeenCalled();
+  });
+});

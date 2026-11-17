@@ -423,43 +423,6 @@ describe("SettingsView — resync", () => {
   });
 });
 
-describe("SettingsView — auto-detect", () => {
-  it("reports when the client isn't open", async () => {
-    await renderView();
-    await click(btn(/Auto-detectar/));
-    expect(screen.getByText("Cliente no abierto. Abre LoL primero.")).toBeInTheDocument();
-  });
-
-  it("fills Riot ID, region and PUUID from the LCU summoner", async () => {
-    vi.mocked(getCurrentSummoner).mockResolvedValue({
-      puuid: "lcu-puuid",
-      gameName: "Caps",
-      tagLine: "EUW",
-      region: "KR",
-    });
-    await renderView();
-    await click(btn(/Auto-detectar/));
-    expect(nameInput().value).toBe("Caps");
-    expect(tagInput().value).toBe("EUW");
-    expect(regionSelect().value).toBe("kr");
-    expect(screen.getByText("Detectado: Caps#EUW")).toBeInTheDocument();
-  });
-
-  it("ignores unknown regions and falls back to displayName / ? in the status", async () => {
-    vi.mocked(getCurrentSummoner).mockResolvedValue({
-      puuid: "",
-      displayName: "OldSummoner",
-      region: "PBE1",
-    });
-    await renderView();
-    await click(btn(/Auto-detectar/));
-    expect(regionSelect().value).toBe("euw1");
-    expect(nameInput().value).toBe("");
-    expect(screen.queryByText(/^PUUID:/)).toBeNull();
-    expect(screen.getByText("Detectado: OldSummoner#?")).toBeInTheDocument();
-  });
-});
-
 describe("SettingsView — meta syncs", () => {
   it("pro meta uses a forced championDb reload, the latest patch and the days-window pref", async () => {
     setPrefs({ proPlayDaysWindow: 14 });

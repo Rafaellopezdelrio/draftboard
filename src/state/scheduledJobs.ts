@@ -28,7 +28,14 @@ const META_AGG_INTERVAL_MS = 12 * 60 * 60 * 1000; // every 12h
  * restart. Cheap call (one HTTP GET to DDragon versions.json). */
 const PATCH_POLL_INTERVAL_MS = 6 * 60 * 60 * 1000; // every 6h
 
-export function useScheduledJobs() {
+export function useScheduledJobs(lcuConnected = false) {
+  // The client often opens after the app: sync as soon as it connects, so a
+  // clean install picks up the account and the season without waiting for
+  // the next 5-minute tick. Concurrent runs share one sync (deduped there).
+  useEffect(() => {
+    if (lcuConnected) syncPersonalData().catch(() => {});
+  }, [lcuConnected]);
+
   useEffect(() => {
     // Re-entrancy guards: these callbacks are async and network-heavy (meta
     // aggregation walks 150 summoners × 10 matches), so a slow run could still

@@ -311,7 +311,7 @@ function App() {
   // across monitors. No-op when overlay-follow pref is off or running
   // outside Tauri (tests, browser).
   useOverlayFollowLol(true);
-  useScheduledJobs();
+  useScheduledJobs(lcuStatus.connected);
 
   // Voice coach lifecycle — init + pref sync. Extracted to hook.
   useVoiceCoach();
