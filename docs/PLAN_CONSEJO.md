@@ -163,6 +163,13 @@ programador en la tier list) para después de la prueba. Fechas fijadas:
   versión pasa de 15 descargas, si aparece alguien que no conocemos o si Riot
   pregunta. Mirar: `curl -s https://api.github.com/repos/Rafaellopezdelrio/draftboard/releases`
   (campo `download_count`). Con la clave de producción el problema desaparece.
+- [x] **Instalación desde cero** (18/11, 0.6.3 instalada, datos apartados en
+      `D:\Claude\draftboard-respaldo-18-11`): términos, bienvenida, cuenta
+      detectada sola (Riot ID con letras raras bien), 72 partidas de la
+      temporada bajadas y con su cuenta, registro sin errores. Pendiente de
+      mirar: no hay entrada en el menú Inicio (solo acceso del escritorio);
+      comprobar en una instalación nueva si el instalador la crea.
+- [ ] Partida fuera de jungla con la app abierta (Rafael, más tarde).
 - [ ] 20/11: **última versión** para probadores (lleva las voces naturales,
       ya hechas y probadas) y congelar.
 - [ ] 20/11 → 11/12: prueba. **11/12: decidir** con los datos.
