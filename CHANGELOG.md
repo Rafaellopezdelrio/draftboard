@@ -4,10 +4,24 @@ All notable changes to Draftboard are documented here.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/);
 versions match the Tauri app version + the `vX.Y.Z` git tags.
 
+## [0.6.3] — 2026-11-18
+
+First version offered by the updater after 0.5.9 (0.6.0–0.6.2 were built
+only).
+
+### Fixed
+- Account detection reads the region from the client; it was read from a
+  Riot settings file that some PCs don't have (no account found / smurf
+  login kept the main). Second look 30 s after the client connects.
+
+### Changed
+- Settings for players: language, update channel and the detected account
+  (read-only). Region, manual Riot ID, own key and data downloads are in the
+  DEV build only.
+
 ## [0.6.2] — 2026-11-18
 
-First version offered by the updater after 0.5.9 (0.6.0 and 0.6.1 were
-built only).
+Built only (superseded by 0.6.3).
 
 ### Added
 - The app follows the account logged into the LoL client (a smurf included);
