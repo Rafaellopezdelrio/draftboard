@@ -5,6 +5,20 @@ open. Not user documentation — see [`../README.md`](../README.md) for that.
 
 ## Status
 
+- **2026-11-18 — v0.6.3 published** (worker 2026-11-18.1, manifest checked
+  live, installer 3 966 739 bytes downloads). Users go 0.5.9 → 0.6.3
+  (0.6.0–0.6.2 built, never offered). Contents: Mis campeones (whole season,
+  ranked first, Clash apart), automatic account + smurf separation (migration
+  011 `matches.account`), player Ajustes (language/updates/account only; data
+  tools DEV-only), bans filtered by lane, ELO card. In-app update from an
+  installed 0.5.9 not checked yet.
+- **Not released:** voice picker (88d016d). Next step on voice: test Piper
+  neural voices in DEV, one Spanish and one English voice, picked by app
+  language (user rule: every feature in Spanish and English). Open questions:
+  new Piper models need Piper 1.5+ (web package may not load them → use older
+  revision); espeak-ng phonemizer is GPL (matters if monetized); ~60 MB per
+  voice, downloaded once.
+
 - **Roadmap (2026-11-17): `docs/PLAN_CONSEJO.md`** — council verdict (stop
   polishing, closed test with 5-10 people for 3 weeks, decide on day 21), Riot
   key rules (personal key = small private community only; public download is a
