@@ -38,8 +38,13 @@ open. Not user documentation — see [`../README.md`](../README.md) for that.
   `wasm-unsafe-eval`, `media-src blob:`, connect-src huggingface/*.hf.co/
   jsdelivr — checked in the dev server only; **check a release build before
   shipping**. If the voice fails to load, the PC voice speaks instead.
-  Samples for the user: D:\Claude\voces-draftboard. Waiting for the user's
-  pick; then decide whether "automatic" should default to a natural voice.
+  Samples for the user: D:\Claude\voces-draftboard. **User picked Dave
+  (18/11):** "automatic" = Dave (es) / Joe (en) (`DEFAULT_NEURAL`). The voice
+  is preloaded when the voice coach is on (on by default → ~80 MB per new
+  player, once); a live line never waits for the download (PC voice speaks
+  meanwhile), the "Probar" sample does. Checked under the **release CSP**
+  (dist served with tauri.conf `csp`): preload, Dave and Joe play, 0 CSP
+  violations. Not checked: a real installed build (DPAPI etc.).
   espeak-ng phonemizer is GPL (matters if monetized).
 
 - **Roadmap (2026-11-17): `docs/PLAN_CONSEJO.md`** — council verdict (stop

@@ -2,7 +2,16 @@
 // natural neural voice (neuralVoice.ts) when the player picked one.
 // Speaks key events during champ select / draft.
 
-import { neuralVoice, speakNeural, stopNeural } from "./neuralVoice";
+import {
+  DEFAULT_NEURAL,
+  NEURAL_VOICES,
+  neuralReady,
+  neuralVoice,
+  speakNeural,
+  stopNeural,
+  warmNeural,
+  type NeuralVoice,
+} from "./neuralVoice";
 
 export type VoiceLang = "es" | "en";
 
@@ -70,16 +79,32 @@ class VoiceCoach {
   setEnabled(v: boolean) {
     this.enabled = v;
     if (!v) this.stop();
+    this.warm();
   }
 
   setLanguage(l: VoiceLang) {
     this.lang = l;
     this.pickVoice();
+    this.warm();
   }
 
   setPreferredVoice(name: string) {
     this.preferred = name;
     this.pickVoice();
+    this.warm();
+  }
+
+  /** The natural voice that speaks: the one the player picked, or the
+   * language's default when on "automatic". Null = a PC voice. */
+  naturalVoice(): NeuralVoice | null {
+    const picked = this.preferred === "" ? NEURAL_VOICES.find((v) => v.id === DEFAULT_NEURAL[this.lang]) : neuralVoice(this.preferred);
+    return picked && picked.lang === this.lang ? picked : null;
+  }
+
+  /** Downloads the natural voice ahead of time, so live lines don't wait. */
+  private warm() {
+    const natural = this.naturalVoice();
+    if (this.enabled && natural) warmNeural(natural.id);
   }
 
   /** Voices the player can choose from, best first. */
@@ -106,12 +131,12 @@ class VoiceCoach {
       if (this.spoken.has(dedupKey)) return;
       this.spoken.add(dedupKey);
     }
-    this.say(message);
+    this.say(message, false);
   }
 
   /** Says a sample line now, even with the voice coach off (Preferences). */
   preview(message: string) {
-    this.say(message);
+    this.say(message, true);
   }
 
   private stop() {
@@ -119,9 +144,16 @@ class VoiceCoach {
     if (hasSpeech()) speechSynthesis.cancel();
   }
 
-  private say(message: string) {
-    const neural = neuralVoice(this.preferred);
-    if (neural && neural.lang === this.lang) {
+  /** `wait`: a sample may wait for the natural voice to download; a live
+   * line can't, so the PC voice says it while the natural one loads. */
+  private say(message: string, wait: boolean) {
+    const neural = this.naturalVoice();
+    if (neural && !wait && !neuralReady(neural.id)) {
+      warmNeural(neural.id);
+      this.saySystem(message);
+      return;
+    }
+    if (neural) {
       const text = speakable(message, this.lang);
       if (hasSpeech()) speechSynthesis.cancel();
       // If the neural voice can't load (offline on first use…), the PC voice speaks instead.

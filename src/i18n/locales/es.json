@@ -1068,7 +1068,7 @@
   "prefs": {
     "voice": {
       "label": "Voz",
-      "auto": "Automática: la más natural ({{name}})",
+      "auto": "Automática: {{name}}",
       "try": "Probar",
       "sample": "Hola. Así sonaré en tus partidas: te aviso cuando te toque elegir.",
       "natural": "Voces naturales (se descargan una vez, unos 80 MB)",

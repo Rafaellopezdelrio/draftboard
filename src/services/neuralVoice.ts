@@ -23,6 +23,12 @@ export const NEURAL_VOICES: NeuralVoice[] = [
   { id: "en_GB-cori-medium", lang: "en", label: "Cori (UK)" },
 ];
 
+/** The "automatic" voice of each language (chosen by ear, 2026-11-18). */
+export const DEFAULT_NEURAL: Record<VoiceLang, string> = {
+  es: "es_ES-davefx-medium",
+  en: "en_US-joe-medium",
+};
+
 /** Prefix that marks a neural voice in prefs.voiceName. */
 export const NEURAL_PREFIX = "piper:";
 
@@ -38,6 +44,7 @@ type Session = { predict(text: string): Promise<Blob> };
 export type DownloadProgress = (pct: number) => void;
 
 let session: { id: string; ready: Promise<Session> } | null = null;
+let loadedId: string | null = null;
 let playing: HTMLAudioElement | null = null;
 const listeners = new Set<DownloadProgress>();
 
@@ -69,10 +76,28 @@ function load(id: string): Promise<Session> {
     });
   });
   session = { id, ready };
-  ready.catch(() => {
-    if (session?.ready === ready) session = null;
-  });
+  loadedId = null;
+  ready.then(
+    () => {
+      if (session?.ready === ready) loadedId = id;
+    },
+    () => {
+      if (session?.ready === ready) session = null;
+    }
+  );
   return ready;
+}
+
+/** True once the voice is downloaded and loaded, so it can speak at once. */
+export function neuralReady(id: string): boolean {
+  return loadedId === id;
+}
+
+/** Starts downloading/loading a voice in the background. */
+export function warmNeural(id: string) {
+  load(id).catch(() => {
+    // The PC voice keeps speaking; the next warm-up tries again.
+  });
 }
 
 export function stopNeural() {

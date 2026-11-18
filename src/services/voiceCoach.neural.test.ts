@@ -1,9 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 const speakNeural = vi.fn();
+const warmNeural = vi.fn();
+let ready = false;
 vi.mock("./neuralVoice", async (orig) => ({
   ...(await orig<typeof import("./neuralVoice")>()),
   speakNeural: (...a: unknown[]) => speakNeural(...a),
+  warmNeural: (...a: unknown[]) => warmNeural(...a),
+  neuralReady: () => ready,
   stopNeural: vi.fn(),
 }));
 
@@ -14,6 +18,8 @@ const speak = vi.fn();
 
 beforeEach(() => {
   speakNeural.mockReset().mockResolvedValue(undefined);
+  warmNeural.mockReset();
+  ready = false;
   speak.mockReset();
   vi.stubGlobal("speechSynthesis", { speak, cancel: vi.fn(), getVoices: () => [] });
   vi.stubGlobal(
@@ -65,5 +71,45 @@ describe("neural voices", () => {
     voiceCoach.preview("Hola");
     expect(speakNeural).not.toHaveBeenCalled();
     expect(speak).toHaveBeenCalledTimes(1);
+  });
+
+  it("'automatic' is Dave in Spanish and Joe in English", () => {
+    voiceCoach.setPreferredVoice("");
+    voiceCoach.preview("Hola");
+    expect(speakNeural).toHaveBeenLastCalledWith("es_ES-davefx-medium", "Hola", 0.9);
+    voiceCoach.setLanguage("en");
+    voiceCoach.preview("Hi");
+    expect(speakNeural).toHaveBeenLastCalledWith("en_US-joe-medium", "Hi", 0.9);
+  });
+
+  it("a live line never waits for the download: the PC voice says it meanwhile", () => {
+    voiceCoach.setEnabled(true);
+    voiceCoach.speak("Te toca banear");
+    expect(speakNeural).not.toHaveBeenCalled();
+    expect(speak).toHaveBeenCalledTimes(1);
+    expect(warmNeural).toHaveBeenCalledWith("es_ES-davefx-medium");
+
+    ready = true;
+    voiceCoach.speak("Te toca elegir");
+    expect(speakNeural).toHaveBeenCalledWith("es_ES-davefx-medium", "Te toca elegir", 0.9);
+    voiceCoach.setEnabled(false);
+  });
+
+  it("downloads the voice ahead of time only when the voice coach is on", () => {
+    voiceCoach.setEnabled(false);
+    expect(warmNeural).not.toHaveBeenCalled();
+    voiceCoach.setEnabled(true);
+    expect(warmNeural).toHaveBeenCalledWith("es_ES-davefx-medium");
+    voiceCoach.setEnabled(false);
+  });
+
+  it("a PC voice picked by the player never downloads anything", () => {
+    voiceCoach.setEnabled(true);
+    warmNeural.mockReset();
+    voiceCoach.setPreferredVoice("Microsoft Helena - Spanish (Spain)");
+    voiceCoach.speak("Hola");
+    expect(warmNeural).not.toHaveBeenCalled();
+    expect(speak).toHaveBeenCalledTimes(1);
+    voiceCoach.setEnabled(false);
   });
 });

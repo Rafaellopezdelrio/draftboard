@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { usePrefsStore } from "../../state/prefsStore";
 import { voiceCoach } from "../../services/voiceCoach";
-import { NEURAL_PREFIX, NEURAL_VOICES, onDownloadProgress } from "../../services/neuralVoice";
+import { DEFAULT_NEURAL, NEURAL_PREFIX, NEURAL_VOICES, onDownloadProgress } from "../../services/neuralVoice";
 
 export function VoicePickerField() {
   const { t } = useTranslation();
@@ -35,7 +35,7 @@ export function VoicePickerField() {
   const choose = async (name: string) => {
     await set("voiceName", name);
     voiceCoach.setPreferredVoice(name);
-    voiceCoach.preview(t("prefs.voice.sample"));
+    voiceCoach.preview(t("prefs.voice.sample", { lng: lang }));
   };
 
   return (
@@ -50,7 +50,11 @@ export function VoicePickerField() {
           onChange={(e) => void choose(e.target.value)}
           className="flex-1 bg-bg px-3 py-2 rounded border border-border-subtle text-white text-sm"
         >
-          <option value="">{t("prefs.voice.auto", { name: voices[0]?.name ?? "—" })}</option>
+          <option value="">
+            {t("prefs.voice.auto", {
+              name: natural.find((v) => v.id === DEFAULT_NEURAL[lang])?.label ?? voices[0]?.name ?? "—",
+            })}
+          </option>
           {natural.length > 0 && (
             <optgroup label={t("prefs.voice.natural")}>
               {natural.map((v) => (
@@ -72,7 +76,7 @@ export function VoicePickerField() {
         </select>
         <button
           type="button"
-          onClick={() => voiceCoach.preview(t("prefs.voice.sample"))}
+          onClick={() => voiceCoach.preview(t("prefs.voice.sample", { lng: lang }))}
           className="px-3 py-2 rounded border border-border-strong text-white/80 hover:text-white text-sm"
         >
           {t("prefs.voice.try")}
