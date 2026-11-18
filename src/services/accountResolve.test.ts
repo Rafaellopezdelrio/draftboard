@@ -114,6 +114,29 @@ describe("followClientAccount (main and smurf)", () => {
     expect(saveSettings).not.toHaveBeenCalled();
   });
 
+  it("client region unknown: the smurf is looked up on the saved account's server", async () => {
+    loadSettings.mockResolvedValue(main);
+    getCurrentSummoner.mockResolvedValue({ puuid: "x", gameName: "Faraón Gordo", tagLine: "EUW" });
+    getAccount.mockResolvedValue({ puuid: "smurf" });
+    const out = await followClientAccount();
+    expect(getAccount).toHaveBeenCalledWith({ apiKey: "", region: "euw1", riotIdName: "Faraón Gordo", riotIdTag: "EUW" });
+    expect(out?.puuid).toBe("smurf");
+  });
+
+  it("switching fires the account-changed event; staying does not", async () => {
+    const seen = vi.fn();
+    window.addEventListener("draftboard:account-changed", seen);
+    loadSettings.mockResolvedValue(main);
+    getCurrentSummoner.mockResolvedValue({ puuid: "x", gameName: "Rafa", tagLine: "EUW", region: "EUW" });
+    await followClientAccount();
+    expect(seen).not.toHaveBeenCalled();
+    getCurrentSummoner.mockResolvedValue({ puuid: "x", gameName: "Smurfy", tagLine: "123", region: "EUW" });
+    getAccount.mockResolvedValue({ puuid: "smurf" });
+    await followClientAccount();
+    expect(seen).toHaveBeenCalledTimes(1);
+    window.removeEventListener("draftboard:account-changed", seen);
+  });
+
   it("clean install: takes the client's account", async () => {
     const out = await followClientAccount();
     expect(out?.puuid).toBe("riot-format");

@@ -39,6 +39,10 @@ export async function settingsOrDefault(): Promise<StoredSettings> {
   return { apiKey: "", region: regionFromClient(me?.region) ?? "euw1", riotIdName: "", riotIdTag: "" };
 }
 
+/** Fired on window when the app switches account (e.g. the player logged into
+ * a smurf): screens showing personal data read it again. */
+export const ACCOUNT_CHANGED_EVENT = "draftboard:account-changed";
+
 const sameText = (a: string | undefined, b: string | undefined) =>
   !!a && !!b && a.trim().toLowerCase() === b.trim().toLowerCase();
 
@@ -51,7 +55,8 @@ const sameText = (a: string | undefined, b: string | undefined) =>
 export async function followClientAccount(): Promise<StoredSettings | null> {
   const saved = await loadSettings();
   const me = await getCurrentSummoner().catch(() => null);
-  const region = regionFromClient(me?.region);
+  // Unknown client region: a second account is almost always on the same server.
+  const region = regionFromClient(me?.region) ?? saved?.region;
   if (!me?.gameName || !me.tagLine || !region) return saved;
   if (
     saved?.puuid &&
@@ -66,6 +71,8 @@ export async function followClientAccount(): Promise<StoredSettings | null> {
     const account = await getAccount(next);
     const full = { ...next, puuid: account.puuid };
     await saveSettings(full);
+    if (full.puuid !== saved?.puuid && typeof window !== "undefined")
+      window.dispatchEvent(new CustomEvent(ACCOUNT_CHANGED_EVENT));
     return full;
   } catch {
     return saved;

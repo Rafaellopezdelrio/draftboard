@@ -21,6 +21,8 @@ import { usePrefsStore } from "./prefsStore";
 export const PATCH_UPDATED_EVENT = "draftboard:patch-updated";
 
 const PERSONAL_SYNC_INTERVAL_MS = 5 * 60 * 1000; // every 5 min
+/** Second look after the client connects: its account may load late. */
+const RECONNECT_RESYNC_MS = 30 * 1000;
 const META_AGG_INTERVAL_MS = 12 * 60 * 60 * 1000; // every 12h
 /** Patch poll interval. Patches drop ~once every 2 weeks but bug-fix
  * hotfixes happen mid-cycle. 6h cadence catches new patches within
@@ -32,8 +34,13 @@ export function useScheduledJobs(lcuConnected = false) {
   // The client often opens after the app: sync as soon as it connects, so a
   // clean install picks up the account and the season without waiting for
   // the next 5-minute tick. Concurrent runs share one sync (deduped there).
+  // Right after connecting (e.g. logging into a smurf) the client may not know
+  // the account yet, so look again a little later.
   useEffect(() => {
-    if (lcuConnected) syncPersonalData().catch(() => {});
+    if (!lcuConnected) return;
+    syncPersonalData().catch(() => {});
+    const again = setTimeout(() => syncPersonalData().catch(() => {}), RECONNECT_RESYNC_MS);
+    return () => clearTimeout(again);
   }, [lcuConnected]);
 
   useEffect(() => {

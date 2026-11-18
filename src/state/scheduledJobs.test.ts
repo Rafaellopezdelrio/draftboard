@@ -99,6 +99,14 @@ describe("useScheduledJobs — personal sync", () => {
     expect(svc.syncPersonalData).toHaveBeenCalledTimes(2);
   });
 
+  it("looks again 30 s after connecting (the client may not know the account yet)", async () => {
+    const { rerender } = renderHook(({ c }) => useScheduledJobs(c), { initialProps: { c: false } });
+    rerender({ c: true });
+    expect(svc.syncPersonalData).toHaveBeenCalledTimes(2);
+    await advance(30_000);
+    expect(svc.syncPersonalData).toHaveBeenCalledTimes(3);
+  });
+
   it("keeps retrying after a failed sync", async () => {
     svc.syncPersonalData.mockRejectedValue(new Error("LCU offline"));
     renderHook(() => useScheduledJobs());

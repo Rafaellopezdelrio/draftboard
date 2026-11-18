@@ -19,6 +19,7 @@ import {
   type ChampionMasteryDto,
 } from "../services/riotApi";
 import { setCoachEloBucket } from "../engine/coachEngine";
+import { ACCOUNT_CHANGED_EVENT } from "../services/accountResolve";
 
 /** Solo-queue rank as shown to the player. */
 export interface SoloRank {
@@ -79,6 +80,13 @@ function loadLastRank(account: string | undefined): RankState {
 export function useLcuPersonalData(lcuConnected: boolean, refreshKey: string | null = null): LcuPersonalData {
   const [masteries, setMasteries] = useState<ChampionMasteryDto[]>([]);
   const [rank, setRank] = useState<RankState>(null);
+  // Switching account (a smurf) changes the rank and masteries: read again.
+  const [accountTick, setAccountTick] = useState(0);
+  useEffect(() => {
+    const onChange = () => setAccountTick((n) => n + 1);
+    window.addEventListener(ACCOUNT_CHANGED_EVENT, onChange);
+    return () => window.removeEventListener(ACCOUNT_CHANGED_EVENT, onChange);
+  }, []);
 
   useEffect(() => {
     // Guard against stale writes: if lcuConnected flips again (or the
@@ -159,7 +167,7 @@ export function useLcuPersonalData(lcuConnected: boolean, refreshKey: string | n
     return () => {
       cancelled = true;
     };
-  }, [lcuConnected, refreshKey]);
+  }, [lcuConnected, refreshKey, accountTick]);
 
   return { masteries, rankTier: rank && rank !== "unranked" ? rank.tier : null, rank };
 }

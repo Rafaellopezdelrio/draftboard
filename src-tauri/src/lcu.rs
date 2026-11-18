@@ -978,7 +978,28 @@ async fn fetch_current_summoner() -> Result<LcuSummoner> {
         return Err(anyhow!("LCU returned {}", resp.status()));
     }
     let mut s: LcuSummoner = resp.json().await.context("parse summoner")?;
-    s.region = region;
+    // The client itself knows its region ("EUW"); the settings file read
+    // above is missing on some installs, which left the account unresolved.
+    let from_client = client
+        .get(format!(
+            "https://127.0.0.1:{}/riotclient/region-locale",
+            lf.port
+        ))
+        .header("Authorization", format!("Basic {}", auth_b64))
+        .send()
+        .await
+        .ok();
+    let client_region = match from_client {
+        Some(r) if r.status().is_success() => {
+            r.json::<serde_json::Value>().await.ok().and_then(|v| {
+                v.get("region")
+                    .and_then(|x| x.as_str())
+                    .map(str::to_lowercase)
+            })
+        }
+        _ => None,
+    };
+    s.region = client_region.or(region);
     Ok(s)
 }
 

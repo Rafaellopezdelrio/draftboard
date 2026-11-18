@@ -19,6 +19,7 @@ import {
 } from "../engine/championStats";
 import { useEscape } from "../hooks/useKeyboardShortcuts";
 import { MATCHES_SYNCED_EVENT } from "../services/personalDataSync";
+import { ACCOUNT_CHANGED_EVENT } from "../services/accountResolve";
 
 interface Props {
   db: ChampionDb;
@@ -49,7 +50,12 @@ export function ChampionStatsView({ db, onClose }: Props) {
   useEffect(() => {
     const onSynced = () => setSyncTick((n) => n + 1);
     window.addEventListener(MATCHES_SYNCED_EVENT, onSynced);
-    return () => window.removeEventListener(MATCHES_SYNCED_EVENT, onSynced);
+    // Another account (a smurf): its games, not the previous account's.
+    window.addEventListener(ACCOUNT_CHANGED_EVENT, onSynced);
+    return () => {
+      window.removeEventListener(MATCHES_SYNCED_EVENT, onSynced);
+      window.removeEventListener(ACCOUNT_CHANGED_EVENT, onSynced);
+    };
   }, []);
   useEffect(() => {
     let stale = false;

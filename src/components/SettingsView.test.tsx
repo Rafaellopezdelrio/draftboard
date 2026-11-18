@@ -11,7 +11,7 @@
 //   - Meta syncs report progress + done/error status lines.
 //   - Locale / update-channel pickers write their prefs.
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, act, within } from "@testing-library/react";
 import { SettingsView } from "./SettingsView";
 import { useDataSyncStore } from "../state/dataSyncStore";
@@ -557,5 +557,30 @@ describe("SettingsView — closing", () => {
     fireEvent.click(screen.getByRole("dialog"));
     fireEvent.keyDown(window, { key: "Escape" });
     expect(onClose).toHaveBeenCalledTimes(3);
+  });
+});
+
+describe("SettingsView — player build (not DEV)", () => {
+  // Players only get language, updates and which account: no fields to fill,
+  // no data downloads. Those stay in the DEV build.
+  beforeEach(() => vi.stubEnv("DEV", false));
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("shows the detected account read-only and no data tools", async () => {
+    vi.mocked(loadSettings).mockResolvedValue(SAVED);
+    const { onClose } = await renderView();
+    expect(screen.getByText("Faker#KR1")).toBeInTheDocument();
+    expect(screen.queryByRole("textbox")).toBeNull(); // no Riot ID boxes
+    expect(screen.queryByText(/Más acciones/)).toBeNull();
+    expect(screen.queryByRole("button", { name: /profesionales/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Guardar/ })).toBeNull();
+    expect(screen.getByLabelText(/idioma|language/i)).toBeInTheDocument();
+    await click(screen.getByRole("button", { name: "Cerrar" }));
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it("no account yet: says to open the client", async () => {
+    await renderView();
+    expect(screen.getByText(/Abre el cliente de LoL y la app reconocerá tu cuenta/)).toBeInTheDocument();
   });
 });

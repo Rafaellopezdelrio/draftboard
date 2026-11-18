@@ -221,6 +221,10 @@ export function SettingsView({ onClose }: Props) {
 
   const dialogRef = useRef<HTMLDivElement | null>(null);
   useFocusTrap(dialogRef, true);
+  // Players get plain settings (language, updates, which account): the app
+  // finds the account and downloads everything on its own. Region, manual
+  // Riot ID and the data downloads are developer tools (the DEV build).
+  const devTools = import.meta.env.DEV;
 
   return (
     <div
@@ -239,17 +243,17 @@ export function SettingsView({ onClose }: Props) {
 
         <ProxyOrLcuStatusBanner />
 
-        <div className="bg-bg-card border border-good/30 rounded p-3 text-xs text-white/80">
-          <p className="font-medium text-good mb-1">
-            {t("settings.autoModeTitle")}
-          </p>
-          <p>{t("settings.autoModeBody")}</p>
-        </div>
+        {devTools && (
+          <div className="bg-bg-card border border-good/30 rounded p-3 text-xs text-white/80">
+            <p className="font-medium text-good mb-1">{t("settings.autoModeTitle")}</p>
+            <p>{t("settings.autoModeBody")}</p>
+          </div>
+        )}
 
         {/* Own-key option only for people who use it (a key already saved) or
           * who turned Draftboard's server off: everyone else needs nothing,
           * and a key box with a developer-site link read as "you must get one". */}
-        {(apiKey || !getRiotProxyUrl()) && (
+        {devTools && (apiKey || !getRiotProxyUrl()) && (
         <details className="bg-bg-card border border-border-subtle rounded p-3 text-xs text-white/70">
           <summary className="cursor-pointer text-white/80 font-medium">
             {t("settings.advancedOptions")}
@@ -310,6 +314,8 @@ export function SettingsView({ onClose }: Props) {
           <UpdateChannelPicker />
         </Field>
 
+        {devTools ? (
+        <>
         <Field
           label={t("settings.regionLabel")}
           hint={t("settings.regionHint")}
@@ -358,6 +364,15 @@ export function SettingsView({ onClose }: Props) {
           </div>
           <p className="text-xs text-white/50 mt-1">{t("settings.autoAccount")}</p>
         </Field>
+        </>
+        ) : (
+          <Field label={t("settings.accountLabel")}>
+            <p className="text-sm text-white/90">
+              {riotIdName && riotIdTag ? `${riotIdName}#${riotIdTag}` : t("settings.accountUnknown")}
+            </p>
+            <p className="text-xs text-white/50">{t("settings.autoAccount")}</p>
+          </Field>
+        )}
 
         {shownStatus && (
           <p
@@ -367,6 +382,7 @@ export function SettingsView({ onClose }: Props) {
           </p>
         )}
 
+        {devTools && (
         <details className="text-sm">
           <summary className="cursor-pointer text-white/50 hover:text-white/80">{t("settings.moreActions")}</summary>
           <div className="flex flex-wrap gap-2 pt-2">
@@ -416,8 +432,16 @@ export function SettingsView({ onClose }: Props) {
             </button>
           </div>
         </details>
+        )}
 
         <div className="flex justify-end gap-2 pt-2">
+          {!devTools && (
+            <button onClick={onClose} className="px-4 py-2 bg-accent text-black font-medium rounded">
+              {t("common.close")}
+            </button>
+          )}
+          {devTools && (
+          <>
           <button
             onClick={onClose}
             className="px-4 py-2 text-white/70 hover:text-white"
@@ -438,6 +462,8 @@ export function SettingsView({ onClose }: Props) {
           >
             {localBusy ? "..." : t("settings.saveAndSync")}
           </button>
+          </>
+          )}
         </div>
       </div>
       {confirmResync && (

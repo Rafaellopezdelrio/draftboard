@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import type { ChampionDb } from "../types/champion";
 import { recentMatches, type MatchRow } from "../services/matchRepo";
 import { MATCHES_SYNCED_EVENT } from "../services/personalDataSync";
+import { ACCOUNT_CHANGED_EVENT } from "../services/accountResolve";
 import type { RankState } from "../hooks/useLcuPersonalData";
 
 interface Props {
@@ -77,7 +78,12 @@ export function SimpleHomeView({ db, rank, refreshKey, onOpenReview, onOpenChat,
   useEffect(() => {
     const onSynced = () => setSyncTick((n) => n + 1);
     window.addEventListener(MATCHES_SYNCED_EVENT, onSynced);
-    return () => window.removeEventListener(MATCHES_SYNCED_EVENT, onSynced);
+    // Another account (a smurf): its games, not the previous account's.
+    window.addEventListener(ACCOUNT_CHANGED_EVENT, onSynced);
+    return () => {
+      window.removeEventListener(MATCHES_SYNCED_EVENT, onSynced);
+      window.removeEventListener(ACCOUNT_CHANGED_EVENT, onSynced);
+    };
   }, []);
   useEffect(() => {
     let stale = false;

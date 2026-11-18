@@ -1024,6 +1024,8 @@
     "regionHint": "El servidor donde juegas. EUW si estás en Europa Occidental.",
     "riotIdLabel": "Riot ID",
     "riotIdHint": "Tu nombre de jugador con la etiqueta, por ejemplo Faker#KR1. Lo ves arriba a la derecha en el cliente de LoL.",
+    "accountLabel": "Tu cuenta",
+    "accountUnknown": "Abre el cliente de LoL y la app reconocerá tu cuenta.",
     "autoAccount": "La cuenta se detecta sola: es con la que entras en LoL. Si entras con otra (una smurf), la app cambia a ella y sus partidas van aparte, sin mezclarse.",
     "resyncTooltip": "Borra y vuelve a descargar tus partidas (útil tras actualizar la app)",
     "syncProMeta": "🏆 Actualizar datos de profesionales",
