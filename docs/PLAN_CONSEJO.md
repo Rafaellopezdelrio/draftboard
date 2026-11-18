@@ -146,6 +146,21 @@ otro nombre); seguir este plan y antes de invitar a nadie:
       toca datos de Riot (solo uso de nuestra app). Servidor listo; sale con
       la versión de los probadores.
 
+#### Tercer consejo (18/11/2026: "estoy perdido, ¿qué hacemos?")
+Los 5 de acuerdo: el plan es bueno y se rompió en 24 h (57 cambios, 5
+versiones). Parar las funciones nuevas, cerrar primero la descarga pública y
+apuntar las ideas nuevas (coach que aprende de todos, ayuda del amigo
+programador en la tier list) para después de la prueba. Fechas fijadas:
+- [ ] 18-19/11: cerrar la descarga pública, instalación limpia, una partida
+      fuera de jungla, lista de **5** probadores con nombre (no 10: límite de
+      la clave), éxito escrito: "3 de 5 la abren 2+ veces por semana sin que
+      se lo recuerde, medido con el contador".
+- [ ] 20/11: **última versión** para probadores (lleva las voces naturales,
+      ya hechas y probadas) y congelar.
+- [ ] 20/11 → 11/12: prueba. **11/12: decidir** con los datos.
+- Norma durante la prueba: si sale una idea nueva, se apunta aquí y no se
+  programa; el asistente lo recuerda antes de empezar nada.
+
 ### Fase 1 — Prueba cerrada (3 semanas, sin versiones nuevas salvo fallos graves)
 - [ ] 5-10 amigos o conocidos, grupo cerrado (nada de Reddit ni Discord abiertos).
 - [ ] Avisar de que el coach solo está medido en jungla.
