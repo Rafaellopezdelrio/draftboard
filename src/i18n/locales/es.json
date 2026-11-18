@@ -1070,7 +1070,11 @@
       "label": "Voz",
       "auto": "Automática: la más natural ({{name}})",
       "try": "Probar",
-      "sample": "Hola. Así sonaré en tus partidas: te aviso cuando te toque elegir."
+      "sample": "Hola. Así sonaré en tus partidas: te aviso cuando te toque elegir.",
+      "natural": "Voces naturales (se descargan una vez, unos 80 MB)",
+      "system": "Voces del ordenador",
+      "downloading": "Descargando la voz… {{pct}} %",
+      "credits": "Voces naturales de Piper. Sharvard: corpus Sharvard, Universidad de Edimburgo (CC BY 3.0). Cori: Hi-Fi TTS de NVIDIA, lectura de Cori Samuel para LibriVox (CC BY 4.0). Dave y Joe: CC0."
     },
     "aiCoachLang": "Idioma del AI Coach (respuestas)",
     "toggle": {

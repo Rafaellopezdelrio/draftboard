@@ -1070,7 +1070,11 @@
       "label": "Voice",
       "auto": "Automatic: the most natural ({{name}})",
       "try": "Try it",
-      "sample": "Hi. This is how I will sound in your games: I will tell you when it is your turn to pick."
+      "sample": "Hi. This is how I will sound in your games: I will tell you when it is your turn to pick.",
+      "natural": "Natural voices (downloaded once, about 80 MB)",
+      "system": "Voices on this PC",
+      "downloading": "Downloading the voice… {{pct}}%",
+      "credits": "Natural voices by Piper. Sharvard: Sharvard corpus, University of Edinburgh (CC BY 3.0). Cori: NVIDIA Hi-Fi TTS, read by Cori Samuel for LibriVox (CC BY 4.0). Dave and Joe: CC0."
     },
     "aiCoachLang": "AI Coach language (responses)",
     "toggle": {

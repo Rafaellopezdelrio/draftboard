@@ -12,12 +12,21 @@ open. Not user documentation — see [`../README.md`](../README.md) for that.
   011 `matches.account`), player Ajustes (language/updates/account only; data
   tools DEV-only), bans filtered by lane, ELO card. In-app update from an
   installed 0.5.9 not checked yet.
-- **Not released:** voice picker (88d016d). Next step on voice: test Piper
-  neural voices in DEV, one Spanish and one English voice, picked by app
-  language (user rule: every feature in Spanish and English). Open questions:
-  new Piper models need Piper 1.5+ (web package may not load them → use older
-  revision); espeak-ng phonemizer is GPL (matters if monetized); ~60 MB per
-  voice, downloaded once.
+- **Not released:** voice picker (88d016d) + natural Piper voices
+  (`src/services/neuralVoice.ts`, `@mintplex-labs/piper-tts-web` +
+  `onnxruntime-web`). Voices: es Dave (CC0), Sharvard (CC BY 3.0); en Joe
+  (CC0), Cori medium (CC BY 4.0); credits shown under the picker. Only voices
+  whose data allows commercial use (Lessac, Ryan, HFC are NC). Measured in
+  DEV: first use ~4-7 s (model ~63 MB from Hugging Face mirror
+  diffusionstudio/piper-voices, kept in OPFS; phonemizer 18 MB from jsdelivr,
+  HTTP cache only), then ~0.5 s per phrase (Cori *high* was 2.3 s → dropped).
+  ort wasm (14.8 MB) ships in the bundle → installer grows ~4 MB. CSP:
+  `wasm-unsafe-eval`, `media-src blob:`, connect-src huggingface/*.hf.co/
+  jsdelivr — checked in the dev server only; **check a release build before
+  shipping**. If the voice fails to load, the PC voice speaks instead.
+  Samples for the user: D:\Claude\voces-draftboard. Waiting for the user's
+  pick; then decide whether "automatic" should default to a natural voice.
+  espeak-ng phonemizer is GPL (matters if monetized).
 
 - **Roadmap (2026-11-17): `docs/PLAN_CONSEJO.md`** — council verdict (stop
   polishing, closed test with 5-10 people for 3 weeks, decide on day 21), Riot

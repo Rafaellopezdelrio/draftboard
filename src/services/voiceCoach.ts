@@ -1,5 +1,8 @@
-// Voice coach using Web Speech API (browser native, free, offline).
+// Voice coach using Web Speech API (browser native, free, offline), or a
+// natural neural voice (neuralVoice.ts) when the player picked one.
 // Speaks key events during champ select / draft.
+
+import { neuralVoice, speakNeural, stopNeural } from "./neuralVoice";
 
 export type VoiceLang = "es" | "en";
 
@@ -66,7 +69,7 @@ class VoiceCoach {
 
   setEnabled(v: boolean) {
     this.enabled = v;
-    if (!v && hasSpeech()) speechSynthesis.cancel();
+    if (!v) this.stop();
   }
 
   setLanguage(l: VoiceLang) {
@@ -98,7 +101,7 @@ class VoiceCoach {
   }
 
   speak(message: string, dedupKey?: string) {
-    if (!this.enabled || !hasSpeech()) return;
+    if (!this.enabled) return;
     if (dedupKey) {
       if (this.spoken.has(dedupKey)) return;
       this.spoken.add(dedupKey);
@@ -108,23 +111,41 @@ class VoiceCoach {
 
   /** Says a sample line now, even with the voice coach off (Preferences). */
   preview(message: string) {
-    if (hasSpeech()) this.say(message);
+    this.say(message);
+  }
+
+  private stop() {
+    stopNeural();
+    if (hasSpeech()) speechSynthesis.cancel();
   }
 
   private say(message: string) {
+    const neural = neuralVoice(this.preferred);
+    if (neural && neural.lang === this.lang) {
+      const text = speakable(message, this.lang);
+      if (hasSpeech()) speechSynthesis.cancel();
+      // If the neural voice can't load (offline on first use…), the PC voice speaks instead.
+      speakNeural(neural.id, text, 0.9).catch(() => this.saySystem(message));
+      return;
+    }
+    this.saySystem(message);
+  }
+
+  private saySystem(message: string) {
+    if (!hasSpeech()) return;
     const u = new SpeechSynthesisUtterance(speakable(message, this.lang));
     if (this.voice) u.voice = this.voice;
     u.lang = this.voice?.lang ?? (this.lang === "es" ? "es-ES" : "en-US");
     u.rate = 1.0;
     u.pitch = 1.0;
     u.volume = 0.9;
-    speechSynthesis.cancel();
+    this.stop();
     speechSynthesis.speak(u);
   }
 
   resetSession() {
     this.spoken.clear();
-    if (hasSpeech()) speechSynthesis.cancel();
+    this.stop();
   }
 }
 
