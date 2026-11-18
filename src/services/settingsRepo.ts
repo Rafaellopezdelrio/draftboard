@@ -1,5 +1,6 @@
 import { getDb, isTauri } from "../db/client";
 import type { Region, RiotConfig } from "./riotApi";
+import { isPlaintextSecret, protectSecret, unprotectSecret } from "./secretStore";
 
 export interface StoredSettings extends RiotConfig {
   puuid?: string;
@@ -30,8 +31,13 @@ export async function loadSettings(): Promise<StoredSettings | null> {
   >("SELECT api_key, region, riot_id_name, riot_id_tag, puuid FROM riot_config WHERE id = 1");
   if (rows.length === 0) return null;
   const r = rows[0];
+  // The key is encrypted on disk; one saved in plaintext by an older version
+  // is encrypted now.
+  if (isPlaintextSecret(r.api_key)) {
+    await db.execute("UPDATE riot_config SET api_key = $1 WHERE id = 1", [await protectSecret(r.api_key)]);
+  }
   return {
-    apiKey: r.api_key,
+    apiKey: await unprotectSecret(r.api_key),
     region: r.region as Region,
     riotIdName: r.riot_id_name,
     riotIdTag: r.riot_id_tag,
@@ -62,6 +68,6 @@ export async function saveSettings(s: StoredSettings): Promise<void> {
        riot_id_name = excluded.riot_id_name,
        riot_id_tag = excluded.riot_id_tag,
        puuid = excluded.puuid`,
-    [clean.apiKey, clean.region, clean.riotIdName, clean.riotIdTag, clean.puuid ?? null]
+    [clean.apiKey ? await protectSecret(clean.apiKey) : "", clean.region, clean.riotIdName, clean.riotIdTag, clean.puuid ?? null]
   );
 }

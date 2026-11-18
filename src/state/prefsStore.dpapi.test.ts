@@ -45,6 +45,28 @@ describe("prefs BYO-key encryption at rest (DPAPI seam)", () => {
     });
   });
 
+  // A key saved in plaintext by an older version stayed readable on disk until
+  // the player saved it again (found on a real install, 2026-11-18).
+  it("encrypts a legacy plaintext key on load, and leaves encrypted ones alone", async () => {
+    selectMock.mockResolvedValue([
+      row("groqApiKey", "gsk_legacy_plain"),
+      row("geminiApiKey", "dpapi:QkxPQg=="),
+      row("anthropicApiKey", ""),
+    ]);
+    invokeMock.mockImplementation(async (cmd: unknown) =>
+      cmd === "dpapi_protect" ? "RU5D" : "decrypted"
+    );
+
+    await usePrefsStore.getState().load();
+
+    expect(usePrefsStore.getState().prefs.groqApiKey).toBe("gsk_legacy_plain");
+    expect(executeMock).toHaveBeenCalledTimes(1);
+    expect(executeMock).toHaveBeenCalledWith("UPDATE preferences SET value = $1 WHERE key = $2", [
+      JSON.stringify("dpapi:RU5D"),
+      "groqApiKey",
+    ]);
+  });
+
   it("resets the key to empty when the blob can't be decrypted (fail closed)", async () => {
     selectMock.mockResolvedValue([row("groqApiKey", "dpapi:corrupt")]);
     invokeMock.mockRejectedValue(new Error("CryptUnprotectData: bad blob"));

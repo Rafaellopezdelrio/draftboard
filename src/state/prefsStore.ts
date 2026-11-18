@@ -1,42 +1,10 @@
 import { create } from "zustand";
-import { invoke } from "@tauri-apps/api/core";
 import { getDb, isTauri } from "../db/client";
+import { isPlaintextSecret, protectSecret, unprotectSecret } from "../services/secretStore";
 
-// ── At-rest encryption of BYO AI keys (Windows DPAPI) ──
-// These pref values are secrets; on disk they're stored as "dpapi:<base64>"
-// (encrypted via the dpapi_protect command — only this Windows user on this
-// machine can decrypt). In-memory the store always holds plaintext, so every
-// consumer stays unchanged. Legacy plaintext rows load as-is and get
-// re-encrypted on their next save.
+// BYO AI keys are encrypted on disk (secretStore.ts). In-memory the store
+// always holds plaintext, so every consumer stays unchanged.
 const SECRET_PREF_KEYS = new Set(["groqApiKey", "geminiApiKey", "anthropicApiKey"]);
-const DPAPI_PREFIX = "dpapi:";
-
-async function protectSecret(plaintext: string): Promise<string> {
-  try {
-    const blob = await invoke<string>("dpapi_protect", { plaintext });
-    return DPAPI_PREFIX + blob;
-  } catch (e) {
-    // Fail open on encryption: a persisted plaintext key beats a lost key.
-    // eslint-disable-next-line no-console
-    console.warn("[prefs] dpapi_protect failed — storing plaintext:", e);
-    return plaintext;
-  }
-}
-
-async function unprotectSecret(stored: string): Promise<string> {
-  if (!stored.startsWith(DPAPI_PREFIX)) return stored; // legacy plaintext
-  try {
-    return await invoke<string>("dpapi_unprotect", {
-      ciphertextB64: stored.slice(DPAPI_PREFIX.length),
-    });
-  } catch (e) {
-    // Fail closed on decryption: an undecryptable blob (user profile change,
-    // tampering) yields an empty key — the UI simply asks for the key again.
-    // eslint-disable-next-line no-console
-    console.warn("[prefs] dpapi_unprotect failed — key reset:", e);
-    return "";
-  }
-}
 
 export interface Preferences {
   // Draft features
@@ -377,10 +345,18 @@ async function loadAll(): Promise<Partial<Preferences>> {
   for (const r of rows) {
     try {
       const parsed = JSON.parse(r.value);
-      out[r.key] =
-        SECRET_PREF_KEYS.has(r.key) && typeof parsed === "string"
-          ? await unprotectSecret(parsed)
-          : parsed;
+      if (SECRET_PREF_KEYS.has(r.key) && typeof parsed === "string") {
+        out[r.key] = await unprotectSecret(parsed);
+        // Saved by an older version in plaintext: encrypt it now.
+        if (isPlaintextSecret(parsed)) {
+          await db.execute("UPDATE preferences SET value = $1 WHERE key = $2", [
+            JSON.stringify(await protectSecret(parsed)),
+            r.key,
+          ]);
+        }
+      } else {
+        out[r.key] = parsed;
+      }
     } catch {
       // skip
     }
