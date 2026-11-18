@@ -11,6 +11,9 @@ import { TermsGate } from "./TermsGate";
 import { usePrefsStore, DEFAULT_PREFS, type Preferences } from "../state/prefsStore";
 import { TERMS_VERSION } from "../config";
 
+const reportInstall = vi.fn();
+vi.mock("../services/reports", () => ({ reportInstall: () => reportInstall() }));
+
 const initialState = usePrefsStore.getState();
 const setPref = vi.fn<(key: string, value: unknown) => Promise<void>>(async () => {});
 
@@ -122,5 +125,21 @@ describe("TermsGate", () => {
     fireEvent.click(screen.getByRole("checkbox", { name: /He leído y acepto/ }));
     fireEvent.click(screen.getByRole("button", { name: "Acepto y empezar" }));
     expect(screen.getByText("contenido-app")).toBeInTheDocument();
+  });
+
+  it("counts a new install on the first acceptance only, never on re-acceptance", () => {
+    setPrefs({ termsAcceptedAt: null, termsAcceptedVersion: null });
+    renderGate();
+    fireEvent.click(screen.getAllByRole("checkbox")[0]);
+    fireEvent.click(screen.getByRole("button", { name: "Acepto y empezar" }));
+    expect(reportInstall).toHaveBeenCalledTimes(1);
+    cleanup();
+
+    reportInstall.mockClear();
+    setPrefs({ termsAcceptedAt: 1, termsAcceptedVersion: TERMS_VERSION - 1 });
+    renderGate();
+    fireEvent.click(screen.getAllByRole("checkbox")[0]);
+    fireEvent.click(screen.getByRole("button", { name: "Acepto los cambios" }));
+    expect(reportInstall).not.toHaveBeenCalled();
   });
 });

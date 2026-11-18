@@ -525,6 +525,8 @@
     "dataMatchesDetail": "KDA, CS, builds and items. Stored only on your PC.",
     "dataPrefsLabel": "Preferences",
     "dataPrefsDetail": "roles, app settings and, if you add them, your own keys. All stored on your PC.",
+    "dataInstallLabel": "New install",
+    "dataInstallDetail": "when you accept for the first time, the app tells Draftboard's server once that there is a new install. Only the version and the day: no name, no account, and your IP is not stored. Updates don't report anything.",
     "dataTelemetryLabel": "Error and usage reports (only if you tick the box below)",
     "dataTelemetryDetail": "app errors and which screens you use each day, with a random number not linked to your account. No names, no chat, no games. Sent only to the Draftboard server. Can be turned off in Preferences.",
     "dataGdpr": "You can export or delete everything from “My data / privacy” (find it with Ctrl+K). GDPR-compliant (access, portability and erasure rights).",

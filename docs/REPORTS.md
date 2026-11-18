@@ -10,6 +10,7 @@ nadie más. El servidor **no guarda la IP**.
 |---|---|---|
 | `reports`, tipo `suggestion` / `bug` | Lo que el usuario escribe en el botón **Sugerencia / Error** (arriba en la barra, en "Acerca de" y en la pantalla de fallo). Si deja marcada la casilla, va con la versión de Draftboard y de Windows. | Siempre que el usuario pulsa Enviar (es su decisión). Si no llega, la app se lo dice y el texto se queda. |
 | `reports`, tipo `error` | Errores de la app: mensaje, las 5 últimas líneas del fallo y los 15 últimos pasos. Sin claves (se tapan), sin nombre de usuario de Windows. Máximo 10 por sesión y cada error una vez. | Solo si el usuario marcó la casilla opcional al instalar (o lo activa en Preferencias). |
+| `installs` | Instalaciones nuevas por día y versión (solo un número). La app avisa una vez, la primera vez que alguien acepta los términos; las actualizaciones no avisan (ya estaban aceptados) y la versión DEV tampoco. Sin id ni IP. | Siempre, una sola vez por instalación (está explicado en la pantalla de términos). |
 | `usage` | Una fila por instalación y día: versión y qué pantallas abrió. La instalación se identifica con un número al azar hecho en su PC, que no está unido a la cuenta de Riot y se borra si dice que no. | Igual: solo con permiso. |
 
 El permiso viene **sin marcar** (RGPD). Quien ya tenía la app ve otra vez la

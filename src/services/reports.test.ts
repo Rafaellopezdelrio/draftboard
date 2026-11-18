@@ -2,7 +2,7 @@
 // counter only runs with consent, once per view per session, and the
 // install id is random and forgotten on opt-out.
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { sendReport, trackUsage, forgetInstallId, technicalDetails, __testOnly_resetUsage } from "./reports";
+import { sendReport, trackUsage, forgetInstallId, technicalDetails, reportInstall, __testOnly_resetUsage } from "./reports";
 
 let fetchMock: ReturnType<typeof vi.fn>;
 
@@ -20,7 +20,10 @@ beforeEach(() => {
   vi.stubGlobal("localStorage", new MemStorage());
   __testOnly_resetUsage();
 });
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
+});
 
 const body = (i = 0) => JSON.parse(fetchMock.mock.calls[i][1].body);
 
@@ -67,5 +70,21 @@ describe("trackUsage", () => {
 describe("technicalDetails", () => {
   it("names the app version and the Windows build only", () => {
     expect(technicalDetails()).toMatch(/^Draftboard \S+ · /);
+  });
+});
+
+describe("reportInstall", () => {
+  it("sends only the version to /install, with no id", () => {
+    vi.stubEnv("DEV", false);
+    reportInstall();
+    expect(fetchMock.mock.calls[0][0]).toMatch(/\/install$/);
+    expect(Object.keys(body())).toEqual(["version"]);
+    expect(localStorage.getItem("draftboard:install-id")).toBeNull();
+  });
+
+  it("is not sent from the DEV build", () => {
+    vi.stubEnv("DEV", true);
+    reportInstall();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

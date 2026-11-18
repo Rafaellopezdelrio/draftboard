@@ -79,6 +79,14 @@ export function trackUsage(view: string): void {
   post("/usage", { id, version: APP_VERSION, view }).catch(() => {});
 }
 
+/** A new install: sent once, when the player accepts the terms for the
+ * first time (updates keep the acceptance, so they never send it). Only the
+ * version; no id. Not sent from the DEV build. Failures are ignored. */
+export function reportInstall(): void {
+  if (import.meta.env.DEV) return;
+  post("/install", { version: APP_VERSION }).catch(() => {});
+}
+
 export function __testOnly_resetUsage(): void {
   countedThisSession.clear();
 }

@@ -20,6 +20,12 @@ function query(sql) {
 const when = (ms) => new Date(ms).toLocaleString("es-ES", { dateStyle: "short", timeStyle: "short" });
 const KIND = { suggestion: "Sugerencia", bug: "Error (usuario)", error: "Error automático" };
 
+console.log("\n== Instalaciones nuevas (las actualizaciones no cuentan) ==");
+const installs = query("SELECT day, SUM(count) AS n FROM installs GROUP BY day ORDER BY day DESC LIMIT 14");
+const totalInstalls = query("SELECT COALESCE(SUM(count), 0) AS n FROM installs")[0].n;
+console.log(`Total: ${totalInstalls}`);
+for (const r of installs) console.log(`  ${r.day}: ${r.n}`);
+
 console.log("\n== Uso (solo quien dio permiso) ==");
 const week = query(
   "SELECT id, COUNT(*) AS dias FROM usage WHERE day >= date('now','-6 days') GROUP BY id"

@@ -10,6 +10,7 @@ import { useTranslation } from "react-i18next";
 import { ScrollText, Shield, Database, Bot } from "lucide-react";
 import { usePrefsStore } from "../state/prefsStore";
 import { TERMS_VERSION } from "../config";
+import { reportInstall } from "../services/reports";
 
 interface Props {
   /** Render the children only after acceptance. */
@@ -68,6 +69,9 @@ export function TermsGate({ children }: Props) {
                 <strong>{t("terms.dataPrefsLabel")}</strong>: {t("terms.dataPrefsDetail")}
               </li>
               <li>
+                <strong>{t("terms.dataInstallLabel")}</strong>: {t("terms.dataInstallDetail")}
+              </li>
+              <li>
                 <strong>{t("terms.dataTelemetryLabel")}</strong> {t("terms.dataTelemetryDetail")}
               </li>
             </ul>
@@ -114,6 +118,8 @@ export function TermsGate({ children }: Props) {
           </label>
           <button
             onClick={() => {
+              // First acceptance ever = a new install (an update keeps it).
+              if (!acceptedAt) reportInstall();
               setPref("telemetryEnabled", shareChecked);
               // Write timestamp + version atomically so a partial save
               // can't leave us in a "accepted but version unknown" state.
