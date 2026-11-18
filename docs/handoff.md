@@ -12,6 +12,20 @@ open. Not user documentation — see [`../README.md`](../README.md) for that.
   011 `matches.account`), player Ajustes (language/updates/account only; data
   tools DEV-only), bans filtered by lane, ELO card. In-app update from an
   installed 0.5.9 not checked yet.
+- **2026-11-18 — security pass 2 (c3e7897, not released).** Git history of
+  both repos (both public: GitHub app, GitLab worker): no real secrets (only
+  test placeholders; an EC key inside a `node_modules/miniflare` committed and
+  removed 2026-05-15 is the library's sample). Installed exe + dist: no keys.
+  Shipped npm packages: 0 advisories; dev tools 41 → 30 after `npm audit fix`
+  (rest need major bumps: vitest 5, typescript-eslint). **Found and fixed:**
+  keys saved before DPAPI stayed plaintext until re-saved — the real install
+  had its Groq key and a Riot key readable in the DB; now encrypted on load,
+  and `riot_config.api_key` is encrypted too (`secretStore.ts`). The Riot key
+  there is unused (the app always goes through the worker). Open: one IP can
+  spend the shared Riot quota (300/min per IP > key's 100/2 min) — no key
+  leak, only a slowdown for everyone. User actions advised: 2FA on GitHub
+  (release workflow signs updates), GitLab, Cloudflare, Riot; consider new
+  Groq/Riot keys (they sat in plaintext while the PC had malware in 08/2026).
 - **Not released:** voice picker (88d016d) + natural Piper voices
   (`src/services/neuralVoice.ts`, `@mintplex-labs/piper-tts-web` +
   `onnxruntime-web`). Voices: es Dave (CC0), Sharvard (CC BY 3.0); en Joe
