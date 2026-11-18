@@ -17,6 +17,7 @@ import { voiceCoach } from "../services/voiceCoach";
 export function useVoiceCoach(): void {
   const enabled = usePrefsStore((s) => s.prefs.voiceCoachEnabled);
   const language = usePrefsStore((s) => s.prefs.aiCoachLanguage);
+  const voiceName = usePrefsStore((s) => s.prefs.voiceName);
 
   // One-shot init at mount.
   useEffect(() => {
@@ -32,5 +33,6 @@ export function useVoiceCoach(): void {
   useEffect(() => {
     voiceCoach.setEnabled(enabled);
     voiceCoach.setLanguage(language);
-  }, [enabled, language]);
+    voiceCoach.setPreferredVoice(voiceName);
+  }, [enabled, language, voiceName]);
 }

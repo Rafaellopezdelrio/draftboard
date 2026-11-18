@@ -24,6 +24,7 @@ import { RiotProxyField } from "./prefs/RiotProxyField";
 import { MetaSourceField } from "./prefs/MetaSourceField";
 import { ThemeAccentField } from "./prefs/ThemeAccentField";
 import { AnthropicKeyField } from "./prefs/AnthropicKeyField";
+import { VoicePickerField } from "./prefs/VoicePickerField";
 
 const PREFS_TITLE_ID = "preferences-view-title";
 
@@ -174,6 +175,7 @@ export function PreferencesView({ onClose }: Props) {
                     onChange={(v) => set(item.key, v)}
                   />
                 ))}
+                {sec.title === "prefsConfig.sections.voiceCoach" && <VoicePickerField />}
               </div>
             </section>
           ))}

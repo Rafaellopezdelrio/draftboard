@@ -1066,6 +1066,12 @@
     "confirmResetLabel": "Restablecer"
   },
   "prefs": {
+    "voice": {
+      "label": "Voz",
+      "auto": "Automática: la más natural ({{name}})",
+      "try": "Probar",
+      "sample": "Hola. Así sonaré en tus partidas: te aviso cuando te toque elegir."
+    },
     "aiCoachLang": "Idioma del AI Coach (respuestas)",
     "toggle": {
       "advanced": "avanzado",

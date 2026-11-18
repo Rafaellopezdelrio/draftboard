@@ -31,10 +31,37 @@ export function speakable(message: string, lang: VoiceLang): string {
   });
 }
 
+const LOCALES: Record<VoiceLang, string[]> = { es: ["es-ES", "es-MX", "es-US", "es"], en: ["en-US", "en-GB", "en"] };
+
+/** How human a voice sounds. Windows' old desktop voices (Helena, Pablo…)
+ * sound robotic; the "Natural"/online neural ones (Elvira, Álvaro…) and
+ * Google's sound close to a person. */
+function quality(v: SpeechSynthesisVoice): number {
+  const n = v.name.toLowerCase();
+  if (n.includes("natural") || n.includes("neural")) return 3;
+  if (n.includes("online") || n.includes("google")) return 2;
+  return v.localService === false ? 1 : 0;
+}
+
+/** Voices for the language, best sounding first (then the closest accent:
+ * Spain before Mexico for Spanish). */
+export function rankVoices(all: SpeechSynthesisVoice[], lang: VoiceLang): SpeechSynthesisVoice[] {
+  const locales = LOCALES[lang];
+  const accent = (v: SpeechSynthesisVoice) => {
+    const i = locales.findIndex((l) => v.lang.startsWith(l));
+    return i < 0 ? locales.length : i;
+  };
+  return all
+    .filter((v) => v.lang.toLowerCase().startsWith(lang))
+    .sort((a, b) => quality(b) - quality(a) || accent(a) - accent(b) || a.name.localeCompare(b.name));
+}
+
 class VoiceCoach {
   private enabled = false;
   private lang: VoiceLang = "es";
   private voice: SpeechSynthesisVoice | null = null;
+  /** Voice name the player chose; empty = the best one available. */
+  private preferred = "";
   private spoken = new Set<string>(); // dedupe per session
 
   setEnabled(v: boolean) {
@@ -47,6 +74,16 @@ class VoiceCoach {
     this.pickVoice();
   }
 
+  setPreferredVoice(name: string) {
+    this.preferred = name;
+    this.pickVoice();
+  }
+
+  /** Voices the player can choose from, best first. */
+  voices(): SpeechSynthesisVoice[] {
+    return hasSpeech() ? rankVoices(speechSynthesis.getVoices(), this.lang) : [];
+  }
+
   init() {
     if (!hasSpeech()) return;
     this.pickVoice();
@@ -55,16 +92,9 @@ class VoiceCoach {
 
   private pickVoice() {
     if (!hasSpeech()) return;
-    const wanted = this.lang === "es" ? ["es-ES", "es-MX", "es"] : ["en-US", "en-GB", "en"];
     const all = speechSynthesis.getVoices();
-    for (const w of wanted) {
-      const v = all.find((x) => x.lang.startsWith(w));
-      if (v) {
-        this.voice = v;
-        return;
-      }
-    }
-    this.voice = all[0] ?? null;
+    const ranked = rankVoices(all, this.lang);
+    this.voice = ranked.find((v) => v.name === this.preferred) ?? ranked[0] ?? all[0] ?? null;
   }
 
   speak(message: string, dedupKey?: string) {
@@ -73,6 +103,15 @@ class VoiceCoach {
       if (this.spoken.has(dedupKey)) return;
       this.spoken.add(dedupKey);
     }
+    this.say(message);
+  }
+
+  /** Says a sample line now, even with the voice coach off (Preferences). */
+  preview(message: string) {
+    if (hasSpeech()) this.say(message);
+  }
+
+  private say(message: string) {
     const u = new SpeechSynthesisUtterance(speakable(message, this.lang));
     if (this.voice) u.voice = this.voice;
     u.lang = this.voice?.lang ?? (this.lang === "es" ? "es-ES" : "en-US");

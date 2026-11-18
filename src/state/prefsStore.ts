@@ -157,6 +157,8 @@ export interface Preferences {
 
   // Voice
   voiceCoachEnabled: boolean;
+  /** Voice the player picked (its name); empty = the most natural one found. */
+  voiceName: string;
 
   // Accent theme variant. Brand color is mint by default but power users
   // sometimes want a different vibe — we ship 3 curated variants. CSS
@@ -255,6 +257,7 @@ export const DEFAULT_PREFS: Preferences = {
   // turn announcements) that it stays useful without being noisy. User
   // can mute via Settings if unwanted.
   voiceCoachEnabled: true,
+  voiceName: "",
   // Mint default — user's brand color preference (see App.css).
   accentTheme: "mint",
 
