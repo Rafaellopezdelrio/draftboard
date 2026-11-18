@@ -155,6 +155,14 @@ programador en la tier list) para después de la prueba. Fechas fijadas:
       fuera de jungla, lista de **5** probadores con nombre (no 10: límite de
       la clave), éxito escrito: "3 de 5 la abren 2+ veces por semana sin que
       se lo recuerde, medido con el contador".
+- **Descarga pública: se espera (decisión de Rafael, 18/11), con datos.**
+  En todo el historial, 71 descargas (3-6 por versión, y eso cuenta las
+  actualizaciones automáticas de su PC y del amigo y nuestras
+  comprobaciones), 1 estrella, 0 copias del repositorio. Hoy solo la tiene un
+  amigo. Cerrarla costaría trabajo y crear claves nuevas. **Se cierra si** una
+  versión pasa de 15 descargas, si aparece alguien que no conocemos o si Riot
+  pregunta. Mirar: `curl -s https://api.github.com/repos/Rafaellopezdelrio/draftboard/releases`
+  (campo `download_count`). Con la clave de producción el problema desaparece.
 - [ ] 20/11: **última versión** para probadores (lleva las voces naturales,
       ya hechas y probadas) y congelar.
 - [ ] 20/11 → 11/12: prueba. **11/12: decidir** con los datos.
