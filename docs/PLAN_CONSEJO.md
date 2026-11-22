@@ -253,6 +253,25 @@ También solo si el día 21 sale "seguir". Para cobrar hace falta:
   jugadores", Máster+); a lo grande necesita la clave de producción y un
   servidor que guarde y sume (coste mensual).
 
+## A futuro: coach de equipo para Flex y Clash (pedido por Rafael, 22/11)
+
+Apuntado para **después de la prueba** (no se programa antes del 11/12).
+Lo mismo que hace el coach para uno, pero para un grupo de 2 a 5 amigos:
+- **El equipo sale solo:** el cliente de LoL sabe quién está en tu grupo
+  (Flex con amigos, Clash); no hay que escribir nombres. Si sois 3, coordina
+  a los 3 y trata a los otros 2 como hoy.
+- **Plan de draft:** qué banear según lo que mejor juega cada uno, en qué
+  orden pickear y qué guardar para el final.
+- **Sinergias:** parejas que combinan bien entre los campeones de cada uno
+  y qué tipo de equipo sale (iniciar peleas, pegar de lejos, dividirse).
+- **Durante la selección:** recomendaciones para todos a la vez.
+- **Ojo:** bajar el historial de 5 gasta mucho cupo de Riot → guardar lo ya
+  bajado. Normas de Riot: solo el propio grupo; nada de destapar nombres
+  ocultos de desconocidos en la selección. Al principio el plan lo ve solo
+  quien tiene la app abierta (el "capitán", que lo cuenta por Discord);
+  verlo todos a la vez sería un paso posterior.
+- Reutiliza casi todo lo que ya calcula la app (picks, counters, sinergias).
+
 ## Ya hecho este día (contexto)
 
 - Tier list: ningún S por debajo del 51 % en las 50 listas por rango + la general.
