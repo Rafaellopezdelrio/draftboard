@@ -265,6 +265,19 @@ describe("LiveGamePanel", () => {
     expect(speak).not.toHaveBeenCalled();
   });
 
+  it("says the trinket swap out loud at minute 15 even though it is not critical", () => {
+    const stealthWard = { itemID: 3340, count: 1, slot: 6, price: 0, canUse: true, displayName: "Guardián invisible", consumable: false };
+    setGame({
+      gameTime: 900,
+      active: mkActive(),
+      players: [mkPlayer({ summonerName: "Me#EUW", position: "UTILITY", items: [stealthWard] })],
+    });
+    render(<LiveGamePanel />);
+    const line = "Minuto 15: cambia el trinket a la Lente del oráculo en la tienda. Es gratis.";
+    expect(screen.getByText(line)).toHaveClass("text-meh");
+    expect(speak).toHaveBeenCalledWith(line, "live-trinket-swap");
+  });
+
   it("suggests item counters for the champion actually being played", () => {
     const healer = (name: string) =>
       mkPlayer({

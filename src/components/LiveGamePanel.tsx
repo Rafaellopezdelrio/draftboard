@@ -45,7 +45,7 @@ import type { ChampionDb } from "../types/champion";
 // only while in-game; unmount (game over) resets the per-session dedup so the
 // next game alerts again. Respects the global voice toggle via voiceCoach.
 export function LiveVoice({ insights }: { insights: LiveCoachInsight[] }) {
-  const criticals = insights.filter((c) => c.severity === "critical");
+  const criticals = insights.filter((c) => c.severity === "critical" || c.speak);
   const sig = criticals.map((c) => c.key).join(",");
   useEffect(() => {
     // i18n.t singleton (not the hook) so this effect needn't depend on t.

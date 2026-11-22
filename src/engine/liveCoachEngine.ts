@@ -10,6 +10,12 @@
 import type { LiveGamePlayer } from "../services/liveClient";
 import type { PowerSpikeProfile } from "../data/powerSpikes";
 import { i18n } from "../i18n";
+import {
+  FARSIGHT_ALTERATION,
+  FARSIGHT_MIN_LEVEL,
+  ORACLE_LENS,
+  TRINKET_SWAP_MIN,
+} from "./coachEngine";
 
 export type LiveCoachSeverity = "critical" | "warn" | "good" | "info";
 
@@ -21,6 +27,8 @@ export interface LiveCoachInsight {
    *  version uses the i18n.t singleton. */
   textKey: string;
   params?: Record<string, string | number>;
+  /** Also say it out loud (once per game), like the critical ones. */
+  speak?: boolean;
 }
 
 export interface LiveCoachArgs {
@@ -73,6 +81,13 @@ const RECALL_GOLD = 2000;
 const SOUL_POINT = 3; // a team on 3 dragons takes Soul on its next dragon
 const BARON_BUFF_SEC = 180; // Baron buff lasts ~3min
 const LOW_HP_PCT = 0.2; // retreat nudge below 20% HP
+const STEALTH_WARD = 3340;
+/** Roles that should swap the Stealth Ward by minute 15, and the voice line. */
+const TRINKET_SWAP_KEY: Record<string, string> = {
+  UTILITY: "liveCoach.trinketOracle",
+  JUNGLE: "liveCoach.trinketOracle",
+  BOTTOM: "liveCoach.trinketFarsight",
+};
 
 const RANK: Record<LiveCoachSeverity, number> = {
   critical: 0,
@@ -267,6 +282,22 @@ export function coachLiveGame(args: LiveCoachArgs): LiveCoachInsight[] {
     }
   }
 
+  // --- Trinket swap ----------------------------------------------------
+  // Support/jungle should be on Oracle Lens and ADC on Farsight by minute 15;
+  // players forget. Shown until they swap, spoken once per game. Farsight
+  // needs level 9, so an ADC is only told once both are true.
+  const trinketKey = TRINKET_SWAP_KEY[me.position];
+  if (
+    trinketKey &&
+    isRift !== false &&
+    minutes >= TRINKET_SWAP_MIN &&
+    (me.position !== "BOTTOM" || me.level >= FARSIGHT_MIN_LEVEL) &&
+    me.items.some((i) => i.itemID === STEALTH_WARD) &&
+    !me.items.some((i) => i.itemID === ORACLE_LENS || i.itemID === FARSIGHT_ALTERATION)
+  ) {
+    out.push({ key: "trinket-swap", severity: "warn", textKey: trinketKey, speak: true });
+  }
+
   // --- Reset value ------------------------------------------------------
   // No recall off the Rift (ARAM / Arena shop only on death or between rounds).
   if (isRift !== false && !me.isDead && currentGold >= RECALL_GOLD) {
@@ -278,6 +309,9 @@ export function coachLiveGame(args: LiveCoachArgs): LiveCoachInsight[] {
     });
   }
 
-  out.sort((x, y) => RANK[x.severity] - RANK[y.severity]);
+  // Spoken lines go first within their severity so the top-3 cut keeps them.
+  out.sort(
+    (x, y) => RANK[x.severity] - RANK[y.severity] || Number(!!y.speak) - Number(!!x.speak)
+  );
   return out.slice(0, 3);
 }

@@ -180,11 +180,16 @@ function checkVision(me: MatchParticipant, role: string, minutes: number): Insig
   return [];
 }
 
-const ORACLE_LENS = 3364;
-const FARSIGHT_ALTERATION = 3363;
-/** Minute after which the swap counts as late: supports swap once the support
- * item quest is done (~10 min), junglers and ADCs once laning ends. */
-const TRINKET_LATE_MIN: Record<string, number> = { UTILITY: 15, JUNGLE: 20, BOTTOM: 20 };
+export const ORACLE_LENS = 3364;
+export const FARSIGHT_ALTERATION = 3363;
+/** From minute 15 a support, jungler or ADC should be off the Stealth Ward:
+ * the live coach says it out loud then, and the post-game coach flags a swap
+ * that never happened or came after it. Shared with liveCoachEngine. */
+export const TRINKET_SWAP_MIN = 15;
+/** Farsight Alteration (the ADC swap) can only be bought from level 9. */
+export const FARSIGHT_MIN_LEVEL = 9;
+/** Time to get back to base and swap once it is due before calling it late. */
+const TRINKET_GRACE_MIN = 2;
 const TRINKET_NEVER_KEY: Record<string, string> = {
   UTILITY: "coach.trinket.neverSupport",
   JUNGLE: "coach.trinket.neverJungle",
@@ -204,8 +209,20 @@ function checkTrinket(
   role: string,
   minutes: number
 ): Insight[] {
-  const lateMin = TRINKET_LATE_MIN[role];
-  if (lateMin === undefined || minutes < lateMin) return [];
+  const neverKey = TRINKET_NEVER_KEY[role];
+  if (neverKey === undefined) return [];
+  // The swap is due at minute 15; an ADC also needs level 9 for Farsight, so
+  // for them it is due at whichever comes later (level 9 time from the
+  // per-minute frames; unknown → minute 15). Never reached 9 → nothing due.
+  let dueMin = TRINKET_SWAP_MIN;
+  if (role === "BOTTOM") {
+    if (me.champLevel < FARSIGHT_MIN_LEVEL) return [];
+    const lvl9 = timeline.frames.find(
+      (f) => (f.participantFrames?.[myParticipantId]?.level ?? 0) >= FARSIGHT_MIN_LEVEL
+    );
+    if (lvl9) dueMin = Math.max(dueMin, lvl9.timestamp / 1000 / 60);
+  }
+  if (minutes < dueMin) return [];
 
   let swapMin: number | null = null;
   for (const frame of timeline.frames) {
@@ -226,14 +243,14 @@ function checkTrinket(
     return [
       {
         category: "vision",
-        severity: role === "UTILITY" ? "warn" : "info",
+        severity: "warn",
         title: i18n.t("coach.trinket.neverTitle"),
-        detail: i18n.t(TRINKET_NEVER_KEY[role], { min: Math.round(minutes) }),
+        detail: i18n.t(neverKey, { min: Math.round(minutes) }),
         action,
       },
     ];
   }
-  if (swapMin !== null && swapMin > lateMin) {
+  if (swapMin !== null && swapMin > dueMin + TRINKET_GRACE_MIN) {
     return [
       {
         category: "vision",

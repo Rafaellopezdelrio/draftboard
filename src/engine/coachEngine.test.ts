@@ -729,65 +729,96 @@ describe("coachEngine — trinket swap", () => {
     mkParticipant({ position: "UTILITY", items: [3869, 3340], ...o });
   const jungler = (o: Partial<MatchParticipant> = {}) =>
     mkParticipant({ position: "JUNGLE", items: [3006, 3340], ...o });
+  const adc = (o: Partial<MatchParticipant> = {}) =>
+    mkParticipant({ position: "BOTTOM", items: [3031, 3340], ...o });
+  /** One frame per minute; my level reaches 9 at `lvl9At`. */
+  const levelTimeline = (lvl9At: number, events: Array<ReturnType<typeof buy>> = []): MatchTimeline => ({
+    matchId: "EUW1_TEST",
+    participantToPuuid: { 1: "me" },
+    frames: Array.from({ length: 31 }, (_, m) => ({
+      timestamp: m * 60_000,
+      events: (m === 0 ? events : []) as never,
+      participantFrames: { 1: { level: m >= lvl9At ? 9 : 8 } } as never,
+    })) as never,
+  });
+  const NEVER = "No cambiaste el trinket";
+  const LATE = "Cambio de trinket tarde";
 
-  it("warns a support who kept the Stealth Ward all game", () => {
-    const ins = titled(run(support()), "No cambiaste el trinket");
-    expect(ins).toMatchObject({ category: "vision", severity: "warn" });
-    expect(ins!.detail).toMatch(/30 min de support/);
-    expect(ins!.action).toMatch(/tienda/);
+  it("warns a support, jungler or ADC who kept the Stealth Ward past minute 15", () => {
+    for (const [who, role] of [[support(), "support"], [jungler(), "jungla"], [adc(), "ADC"]] as const) {
+      const ins = titled(run(who), NEVER);
+      expect(ins).toMatchObject({ category: "vision", severity: "warn" });
+      expect(ins!.detail).toMatch(new RegExp(`30 min de ${role}`));
+      expect(ins!.action).toMatch(/tienda/);
+    }
+    expect(titled(run(adc()), NEVER)!.detail).toMatch(/Visión lejana modificada/);
   });
 
-  it("only notes it (info) for a jungler, and not before minute 20", () => {
-    expect(titled(run(jungler()), "No cambiaste el trinket")).toMatchObject({ severity: "info" });
-    expect(titled(run(jungler(), { durationSec: 19 * 60 }), "No cambiaste el trinket")).toBeUndefined();
+  it("says nothing in a game that ended before minute 15", () => {
+    for (const who of [support(), jungler(), adc()])
+      expect(titled(run(who, { durationSec: 14 * 60 }), NEVER)).toBeUndefined();
   });
 
   it("never nags top or mid, who keep the ward on purpose", () => {
     for (const position of ["TOP", "MIDDLE"]) {
       const ins = run(mkParticipant({ position, items: [3006, 3340] }));
-      expect(titled(ins, "No cambiaste el trinket")).toBeUndefined();
-      expect(titled(ins, "Cambio de trinket tarde")).toBeUndefined();
+      expect(titled(ins, NEVER)).toBeUndefined();
+      expect(titled(ins, LATE)).toBeUndefined();
     }
   });
 
   it("says nothing when the swap came in time (Oracle or Farsight)", () => {
     for (const item of [3364, 3363]) {
       const ins = run(support({ items: [3869, item] }), { events: [buy(11, item)] });
-      expect(titled(ins, "No cambiaste el trinket")).toBeUndefined();
-      expect(titled(ins, "Cambio de trinket tarde")).toBeUndefined();
+      expect(titled(ins, NEVER)).toBeUndefined();
+      expect(titled(ins, LATE)).toBeUndefined();
     }
   });
 
   it("flags a late swap with the minute it happened", () => {
-    const ins = titled(run(support({ items: [3869, 3364] }), { events: [buy(22.5, 3364)] }), "Cambio de trinket tarde");
+    const ins = titled(run(jungler({ items: [3006, 3364] }), { events: [buy(22.5, 3364)] }), LATE);
     expect(ins).toMatchObject({ category: "vision", severity: "info" });
     expect(ins!.detail).toMatch(/minuto 22/);
   });
 
-  it("uses the earliest swap and ignores other players' purchases", () => {
-    const events = [buy(9, 3364, 7), buy(25, 3364), buy(12, 3364)];
-    const ins = run(support({ items: [3869, 3364] }), { events });
-    expect(titled(ins, "Cambio de trinket tarde")).toBeUndefined();
-    // Another player's early swap does not count as mine.
-    const late = run(support({ items: [3869, 3364] }), { events: [buy(9, 3364, 7), buy(25, 3364)] });
-    expect(titled(late, "Cambio de trinket tarde")!.detail).toMatch(/minuto 25/);
+  it("gives 2 minutes to get back to base before calling a swap late", () => {
+    expect(titled(run(support({ items: [3869, 3364] }), { events: [buy(16.9, 3364)] }), LATE)).toBeUndefined();
+    expect(titled(run(support({ items: [3869, 3364] }), { events: [buy(17.5, 3364)] }), LATE)).toBeDefined();
   });
 
-  it("reminds an ADC about the blue trinket (info, from minute 20)", () => {
-    const adc = (o: Partial<MatchParticipant> = {}) =>
-      mkParticipant({ position: "BOTTOM", items: [3031, 3340], ...o });
-    const ins = titled(run(adc()), "No cambiaste el trinket");
-    expect(ins).toMatchObject({ category: "vision", severity: "info" });
-    expect(ins!.detail).toMatch(/30 min de ADC.*Visión lejana modificada/);
-    expect(titled(run(adc(), { durationSec: 19 * 60 }), "No cambiaste el trinket")).toBeUndefined();
-    // Blue trinket bought in time: nothing to say.
-    const done = run(adc({ items: [3031, 3363] }), { events: [buy(14, 3363)] });
-    expect(titled(done, "No cambiaste el trinket")).toBeUndefined();
-    expect(titled(done, "Cambio de trinket tarde")).toBeUndefined();
+  it("uses the earliest swap and ignores other players' purchases", () => {
+    const ins = run(support({ items: [3869, 3364] }), { events: [buy(9, 3364, 7), buy(25, 3364), buy(12, 3364)] });
+    expect(titled(ins, LATE)).toBeUndefined();
+    const late = run(support({ items: [3869, 3364] }), { events: [buy(9, 3364, 7), buy(25, 3364)] });
+    expect(titled(late, LATE)!.detail).toMatch(/minuto 25/);
   });
 
   it("trusts the final items when the timeline has no swap event", () => {
-    expect(titled(run(support({ items: [3869, 3364] })), "No cambiaste el trinket")).toBeUndefined();
+    expect(titled(run(support({ items: [3869, 3364] })), NEVER)).toBeUndefined();
+  });
+
+  describe("ADC: Farsight needs level 9", () => {
+    it("an ADC who never reached level 9 could not swap, so is not told", () => {
+      expect(titled(run(adc({ champLevel: 8 })), NEVER)).toBeUndefined();
+    });
+
+    it("the swap is due at level 9 when that came after minute 15", () => {
+      // Level 9 at minute 18: a swap at 19 is in time, at 22 is late.
+      const inTime = run(adc({ items: [3031, 3363] }), { timeline: levelTimeline(18, [buy(19, 3363)]) });
+      expect(titled(inTime, LATE)).toBeUndefined();
+      const late = run(adc({ items: [3031, 3363] }), { timeline: levelTimeline(18, [buy(22, 3363)]) });
+      expect(titled(late, LATE)!.detail).toMatch(/minuto 22/);
+    });
+
+    it("a game ending before the level-9 due time says nothing", () => {
+      expect(titled(run(adc(), { durationSec: 20 * 60, timeline: levelTimeline(21) }), NEVER)).toBeUndefined();
+      expect(titled(run(adc(), { durationSec: 30 * 60, timeline: levelTimeline(21) }), NEVER)).toBeDefined();
+    });
+
+    it("level 9 before minute 15 keeps the minute-15 due time", () => {
+      const late = run(adc({ items: [3031, 3363] }), { timeline: levelTimeline(12, [buy(18, 3363)]) });
+      expect(titled(late, LATE)!.detail).toMatch(/minuto 18/);
+    });
   });
 
   it("speaks English when the app is in English", async () => {

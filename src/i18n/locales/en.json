@@ -147,7 +147,9 @@
     "baronMine": "You have Baron ({{sec}}s). Push lanes with the wave and close the map.",
     "spikeStrong": "Power spike ({{rating}}/10): force fights and objectives now.",
     "spikeWeak": "Weak right now ({{rating}}/10): {{summary}}. Play safe until your spike.",
-    "recall": "You have {{gold}} unspent gold. Recall in the next wave window."
+    "recall": "You have {{gold}} unspent gold. Recall in the next wave window.",
+    "trinketOracle": "Minute 15: swap your trinket to Oracle Lens in the shop. It is free.",
+    "trinketFarsight": "You can now swap your trinket to the blue one, Farsight Alteration, in the shop. It is free."
   },
   "runeAdvice": {
     "apHeavy": "AP-heavy comp: MR shard (row 3) instead of armor.",
@@ -382,7 +384,7 @@
       "neverAdc": "You played {{min}} min of ADC without swapping to Farsight Alteration (the blue trinket). Once laning ends it lets you check bushes and entrances from afar without walking in.",
       "lateTitle": "Late trinket swap",
       "lateDetail": "You swapped your trinket at minute {{at}}. The sooner you swap, the sooner you start blinding them.",
-      "action": "Swap it in the shop, it is free: supports to Oracle Lens once the support item quest is done; junglers to Oracle Lens around minute 15; ADCs to the blue trinket once laning ends."
+      "action": "Swap it in the shop, it is free: supports to Oracle Lens once the support item quest is done; junglers to Oracle Lens around minute 15; ADCs to the blue one at minute 15 once level 9 (not available before)."
     },
     "topInsight": "Top insight",
     "needRiotId": "Open LoL so we can recognise your account, then try again.",

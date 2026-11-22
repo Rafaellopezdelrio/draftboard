@@ -147,7 +147,9 @@
     "baronMine": "Tenéis Barón ({{sec}}s). Empujad calles con la oleada y cerrad el mapa.",
     "spikeStrong": "Pico de poder ({{rating}}/10): fuerza peleas y objetivos ahora.",
     "spikeWeak": "Débil ahora ({{rating}}/10): {{summary}}. Juega seguro hasta tu pico.",
-    "recall": "Tienes {{gold}} de oro sin gastar. Recall en la próxima ventana de oleada."
+    "recall": "Tienes {{gold}} de oro sin gastar. Recall en la próxima ventana de oleada.",
+    "trinketOracle": "Minuto 15: cambia el trinket a la Lente del oráculo en la tienda. Es gratis.",
+    "trinketFarsight": "Ya puedes: cambia el trinket al azul, la Visión lejana modificada, en la tienda. Es gratis."
   },
   "runeAdvice": {
     "apHeavy": "Comp AP-heavy: shard de MR (fila 3) en vez de armadura.",
@@ -382,7 +384,7 @@
       "neverAdc": "Jugaste {{min}} min de ADC sin cambiar a la Visión lejana modificada (el trinket azul). Al acabar la fase de líneas te deja mirar arbustos y entradas desde lejos sin acercarte.",
       "lateTitle": "Cambio de trinket tarde",
       "lateDetail": "Cambiaste de trinket en el minuto {{at}}. Cuanto antes lo cambies, antes empiezas a dejarles a ciegas.",
-      "action": "Cámbialo en la tienda, es gratis: support a la Lente del oráculo al completar la misión del objeto; jungla a la Lente hacia el minuto 15; ADC al azul al acabar la fase de líneas."
+      "action": "Cámbialo en la tienda, es gratis: support a la Lente del oráculo al completar la misión del objeto; jungla a la Lente hacia el minuto 15; ADC al azul en el minuto 15 si ya eres nivel 9 (antes no se puede)."
     },
     "topInsight": "Insight principal",
     "needRiotId": "Abre el LoL para que podamos reconocer tu cuenta, y vuelve a probar.",
