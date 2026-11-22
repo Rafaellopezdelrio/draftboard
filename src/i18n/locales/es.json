@@ -790,6 +790,8 @@
     "emptyDetail": "Crea tu primer plan de 7 días en la pestaña \"Generar nuevo\".",
     "completed": "completado",
     "markCompleted": "marcar completado",
+    "showPlan": "Ver plan completo",
+    "hidePlan": "Ocultar plan",
     "errKey": "Configura API key ({{provider}}) en Prefs",
     "errMinGames": "Necesitas al menos 5 partidas guardadas"
   },

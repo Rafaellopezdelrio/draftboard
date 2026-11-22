@@ -54,6 +54,15 @@ export function LessonPlanView({ db, onClose }: Props) {
 
   const [tab, setTab] = useState<Tab>("current");
   const [past, setPast] = useState<LessonPlan[]>([]);
+  // Saved plans start as a clamped preview; these are the ones opened whole.
+  const [expanded, setExpanded] = useState<Set<number>>(new Set());
+  const toggleExpanded = (key: number) =>
+    setExpanded((old) => {
+      const next = new Set(old);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -223,8 +232,11 @@ export function LessonPlanView({ db, onClose }: Props) {
                   detail={t("lessonPlan.emptyDetail")}
                 />
               )}
-              {past.map((p) => (
-                <Panel key={p.id} padding="sm">
+              {past.map((p, i) => {
+                const key = p.id ?? -1 - i;
+                const isOpen = expanded.has(key);
+                return (
+                <Panel key={key} padding="sm">
                   <div className="flex items-baseline justify-between mb-2">
                     <p className="text-xs text-white/55">
                       {new Date(p.createdTsMs).toLocaleDateString()} ·{" "}
@@ -257,11 +269,23 @@ export function LessonPlanView({ db, onClose }: Props) {
                       </button>
                     )}
                   </div>
-                  <p className="text-xs text-white/80 whitespace-pre-wrap leading-relaxed line-clamp-6">
-                    {p.planText}
-                  </p>
+                  {isOpen ? (
+                    <Markdown source={p.planText} className="text-sm text-white/90" />
+                  ) : (
+                    <p className="text-xs text-white/80 whitespace-pre-wrap leading-relaxed line-clamp-6">
+                      {p.planText}
+                    </p>
+                  )}
+                  <button
+                    onClick={() => toggleExpanded(key)}
+                    aria-expanded={isOpen}
+                    className="mt-2 text-xs text-accent hover:underline"
+                  >
+                    {isOpen ? t("lessonPlan.hidePlan") : t("lessonPlan.showPlan")}
+                  </button>
                 </Panel>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

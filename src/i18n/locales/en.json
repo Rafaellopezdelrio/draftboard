@@ -790,6 +790,8 @@
     "emptyDetail": "Create your first 7-day plan in the \"Generate new\" tab.",
     "completed": "completed",
     "markCompleted": "mark completed",
+    "showPlan": "Show full plan",
+    "hidePlan": "Hide plan",
     "errKey": "Set an API key ({{provider}}) in Prefs",
     "errMinGames": "You need at least 5 saved games"
   },

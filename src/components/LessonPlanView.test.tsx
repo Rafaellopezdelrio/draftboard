@@ -374,6 +374,28 @@ describe("LessonPlanView — history", () => {
     ]);
   });
 
+  it("expands a saved plan to read it whole, and collapses it again", async () => {
+    const long = "## Día 1\n- farmear\n\n## Día 7\n- revisar repeticiones";
+    vi.mocked(recentLessonPlans).mockResolvedValue([
+      { id: 9, createdTsMs: 0, weakestArea: null, archetype: "Seguro", planText: long, completed: false },
+    ]);
+    await setup();
+    fireEvent.click(historyTab());
+
+    const open = screen.getByRole("button", { name: "Ver plan completo" });
+    expect(open).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(open);
+
+    // Expanded: rendered as Markdown (bullets become list items), not the
+    // clamped raw-text preview.
+    expect(screen.getByText("revisar repeticiones").tagName).toBe("LI");
+    const close = screen.getByRole("button", { name: "Ocultar plan" });
+    expect(close).toHaveAttribute("aria-expanded", "true");
+    fireEvent.click(close);
+    expect(screen.queryByText("revisar repeticiones")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Ver plan completo" })).toBeInTheDocument();
+  });
+
   it("ignores 'mark completed' on a plan without an id", async () => {
     vi.mocked(recentLessonPlans).mockResolvedValue([
       { createdTsMs: 0, weakestArea: null, archetype: "Seguro", planText: "Sin id", completed: false },
