@@ -292,10 +292,15 @@ export function TierListView({ db, onClose, onSelectChampion, onDbUpdate }: Prop
                   SoloQ Master+ · {db.metaSourceCounts.soloq}
                 </option>
               )}
-              {db.metaSourceCounts &&
-                (db.metaSourceCounts.proplay > 0 || db.metaSourceCounts.soloq > 0) && (
-                  <option value="blend">Pro + SoloQ blend</option>
-                )}
+              {/* A blend needs both halves: with pro data alone it is just
+                  "Pro play" under a misleading name. Players never have
+                  SoloQ data (it needs an own Riot key), so they never see it. */}
+              {((db.metaSourceCounts &&
+                db.metaSourceCounts.proplay > 0 &&
+                db.metaSourceCounts.soloq > 0) ||
+                prefs.metaSource === "blend") && (
+                <option value="blend">Pro + SoloQ blend</option>
+              )}
             </select>
             {allRanksNote && (
               <span className="text-[11px] text-white/55" data-testid="tierlist-all-ranks">

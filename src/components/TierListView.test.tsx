@@ -354,7 +354,8 @@ describe("TierListView — source selector", () => {
     const { unmount } = render(<TierListView db={db} onClose={() => {}} />);
     let options = within(sourceSelect()).getAllByRole("option").map((o) => o.textContent);
     // Paused dpm is served by op.gg, so that is what the option says.
-    expect(options).toEqual(["op.gg · 50", "Pro play · 5", "Pro + SoloQ blend"]);
+    // No SoloQ data (every player without an own key) → no "blend" either.
+    expect(options).toEqual(["op.gg · 50", "Pro play · 5"]);
     unmount();
 
     setPrefs({ metaSource: "opgg" });
@@ -364,8 +365,21 @@ describe("TierListView — source selector", () => {
       "op.gg",
       "op.gg (legacy · 10)",
       "SoloQ Master+ · 3",
-      "Pro + SoloQ blend",
     ]);
+  });
+
+  it("offers the blend only when both pro and SoloQ data exist, or it is active", () => {
+    dpmOn = false;
+    const both = mkDb({ metaSourceCounts: { opgg: 0, proplay: 5, soloq: 3, dpm: 50 } });
+    const { unmount } = render(<TierListView db={both} onClose={() => {}} />);
+    expect(within(sourceSelect()).getByRole("option", { name: "Pro + SoloQ blend" })).toBeTruthy();
+    unmount();
+
+    // A player who picked "blend" before keeps the option, so the select
+    // still shows what they chose.
+    setPrefs({ metaSource: "blend" });
+    render(<TierListView db={mkDb({ metaSourceCounts: { opgg: 0, proplay: 5, soloq: 0, dpm: 50 } })} onClose={() => {}} />);
+    expect(within(sourceSelect()).getByRole("option", { name: "Pro + SoloQ blend" })).toBeTruthy();
   });
 
   it("without source counts only the dpm option is offered", () => {

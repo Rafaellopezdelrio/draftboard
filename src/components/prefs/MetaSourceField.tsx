@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { usePrefsStore } from "../../state/prefsStore";
 import { isDpmEnabled } from "../../services/dpmTierlist";
+import { getLastAggregationTimestamp } from "../../services/aggregateRepo";
 
 export function MetaSourceField() {
   const { t } = useTranslation();
@@ -14,6 +15,19 @@ export function MetaSourceField() {
   const days = usePrefsStore((s) => s.prefs.proPlayDaysWindow);
   const set = usePrefsStore((s) => s.set);
   const [daysInput, setDaysInput] = useState(String(days));
+  // SoloQ Master+ data only exists after a sync with an own Riot key, which
+  // players never have: hide "SoloQ" and "blend" until that data exists
+  // (keeping whichever one is already selected).
+  const [hasSoloq, setHasSoloq] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    getLastAggregationTimestamp()
+      .then((ts) => alive && setHasSoloq(ts !== null))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   // Keep local string in sync if pref changes from outside (e.g. another window).
   useEffect(() => {
@@ -50,8 +64,12 @@ export function MetaSourceField() {
             {isDpmEnabled() ? `🎯 ${t("metaSource.optDpm")}` : `⚡ ${t("metaSource.optOpgg")}`}
           </option>
           <option value="proplay">🏆 {t("metaSource.optProplay")}</option>
-          <option value="soloq">{t("metaSource.optSoloq")}</option>
-          <option value="blend">{t("metaSource.optBlend")}</option>
+          {(hasSoloq || source === "soloq") && (
+            <option value="soloq">{t("metaSource.optSoloq")}</option>
+          )}
+          {(hasSoloq || source === "blend") && (
+            <option value="blend">{t("metaSource.optBlend")}</option>
+          )}
           {/* op.gg deprecated as primary source — only show when user
             * is currently on it so they can stay or migrate to dpm.
             * Hidden by default to nudge new installs to the better source. */}
