@@ -59,6 +59,13 @@ const CS_PER_MIN_TARGET: Record<string, number> = new Proxy({} as Record<string,
   get: (_t, p: string) => CS_PER_MIN_BY_ELO[CURRENT_ELO_BUCKET][p] ?? 6,
 });
 
+/** Post-game insight text, in the app language (coach.insights.*). */
+const T = (key: string, params?: Record<string, string | number>): string =>
+  i18n.t(`coach.insights.${key}`, params);
+/** "MIDDLE" → "mid" (es/en); unknown positions are shown as they come. */
+const roleLabel = (role: string): string =>
+  role ? i18n.t(`coach.roles.${role}`, { defaultValue: role }) : role;
+
 const VISION_SCORE_PER_MIN_TARGET: Record<string, number> = {
   TOP: 0.7,
   JUNGLE: 0.9,
@@ -120,10 +127,10 @@ function checkFarming(me: MatchParticipant, role: string, minutes: number): Insi
       {
         category: "farming",
         severity: "bad",
-        title: "CS muy bajo",
-        detail: `Conseguiste ${cspm.toFixed(1)} CS/min. El objetivo en ${role} es ${target.toFixed(1)}+.`,
-        metric: `${me.cs} CS en ${minutes.toFixed(0)}min`,
-        action: "Practica last-hits en modo práctica 5 min antes de jugar. Foco en wave management.",
+        title: T("farmLowTitle"),
+        detail: T("farmLowDetail", { cspm: cspm.toFixed(1), role: roleLabel(role), target: target.toFixed(1) }),
+        metric: T("farmLowMetric", { cs: me.cs, min: minutes.toFixed(0) }),
+        action: T("farmLowAction"),
       },
     ];
   }
@@ -132,9 +139,9 @@ function checkFarming(me: MatchParticipant, role: string, minutes: number): Insi
       {
         category: "farming",
         severity: "warn",
-        title: "CS mejorable",
-        detail: `${cspm.toFixed(1)} CS/min. Margen para llegar a ${target.toFixed(1)}.`,
-        action: "Vuelve siempre a la lane con peón y aprovecha waves antes de roams.",
+        title: T("farmMehTitle"),
+        detail: T("farmMehDetail", { cspm: cspm.toFixed(1), target: target.toFixed(1) }),
+        action: T("farmMehAction"),
       },
     ];
   }
@@ -143,8 +150,8 @@ function checkFarming(me: MatchParticipant, role: string, minutes: number): Insi
       {
         category: "farming",
         severity: "good",
-        title: "Buen farm",
-        detail: `${cspm.toFixed(1)} CS/min — por encima del objetivo en ${role}.`,
+        title: T("farmGoodTitle"),
+        detail: T("farmGoodDetail", { cspm: cspm.toFixed(1), role: roleLabel(role) }),
       },
     ];
   }
@@ -159,10 +166,10 @@ function checkVision(me: MatchParticipant, role: string, minutes: number): Insig
       {
         category: "vision",
         severity: "bad",
-        title: "Visión muy baja",
-        detail: `Vision score ${me.visionScore} (${vspm.toFixed(2)}/min). Objetivo: ${target.toFixed(2)}+/min.`,
-        metric: `${me.wardsPlaced} wards puestas, ${me.controlWardsBought} control wards`,
-        action: "Compra control ward en cada vuelta a base. Pon ward antes de empujar.",
+        title: T("visionLowTitle"),
+        detail: T("visionLowDetail", { score: me.visionScore, vspm: vspm.toFixed(2), target: target.toFixed(2) }),
+        metric: T("visionLowMetric", { wards: me.wardsPlaced, control: me.controlWardsBought }),
+        action: T("visionLowAction"),
       },
     ];
   }
@@ -171,9 +178,9 @@ function checkVision(me: MatchParticipant, role: string, minutes: number): Insig
       {
         category: "vision",
         severity: "warn",
-        title: "Pocos control wards",
-        detail: `Solo compraste ${me.controlWardsBought} control wards en ${minutes.toFixed(0)}min.`,
-        action: "Cómpralos siempre que vuelvas a base si tienes 75g sobrantes.",
+        title: T("controlWardsTitle"),
+        detail: T("controlWardsDetail", { n: me.controlWardsBought, min: minutes.toFixed(0) }),
+        action: T("controlWardsAction"),
       },
     ];
   }
@@ -290,22 +297,16 @@ function checkDeaths(
     out.push({
       category: "deaths",
       severity: "bad",
-      title: `${earlyDeaths} muertes en early`,
-      detail: "Moriste demasiado antes del minuto 8.",
-      action:
-        role === "JUNGLE"
-          ? "Wardea las entradas de tu jungla y no invadas sin prioridad en las líneas cercanas."
-          : "Juega más pasivo hasta nivel 6. Pushea solo cuando tengas visión del jungla.",
+      title: T("earlyDeathsBadTitle", { n: earlyDeaths }),
+      detail: T("earlyDeathsBadDetail"),
+      action: T(role === "JUNGLE" ? "earlyDeathsBadActionJungle" : "earlyDeathsBadActionLane"),
     });
   } else if (earlyDeaths >= 2) {
     out.push({
       category: "deaths",
       severity: "warn",
-      title: `${earlyDeaths} muertes tempranas`,
-      detail:
-        role === "JUNGLE"
-          ? "Cuida más el early — trackea al jungla rival y no entres al río sin prioridad."
-          : "Cuida más el early — los ganks son letales sin items.",
+      title: T("earlyDeathsWarnTitle", { n: earlyDeaths }),
+      detail: T(role === "JUNGLE" ? "earlyDeathsWarnJungle" : "earlyDeathsWarnLane"),
     });
   }
 
@@ -313,9 +314,9 @@ function checkDeaths(
     out.push({
       category: "deaths",
       severity: "bad",
-      title: "Muchas muertes",
-      detail: `${me.deaths} muertes en ${minutes.toFixed(0)}min.`,
-      action: "Cuando vayas perdiendo, juega seguro y espera a que el equipo se reagrupe. Cada muerte da oro al rival.",
+      title: T("manyDeathsTitle"),
+      detail: T("manyDeathsDetail", { n: me.deaths, min: minutes.toFixed(0) }),
+      action: T("manyDeathsAction"),
     });
   }
 
@@ -323,9 +324,9 @@ function checkDeaths(
     out.push({
       category: "deaths",
       severity: "warn",
-      title: `${soloDeaths} solo deaths`,
-      detail: "Te pillaron solo varias veces. Es el patrón más punible en SoloQ.",
-      action: "No empujes sin visión. No te salgas hacia el enemigo cuando los aliados están lejos.",
+      title: T("soloDeathsTitle", { n: soloDeaths }),
+      detail: T("soloDeathsDetail"),
+      action: T("soloDeathsAction"),
     });
   }
 
@@ -341,9 +342,9 @@ function checkKillParticipation(me: MatchParticipant, team: MatchParticipant[]):
       {
         category: "macro",
         severity: "warn",
-        title: "Participación baja",
-        detail: `Solo participaste en ${(kp * 100).toFixed(0)}% de las kills del equipo.`,
-        action: "Acude a teamfights. Si tu lane no necesita atención, hace roam o agrupa.",
+        title: T("kpLowTitle"),
+        detail: T("kpLowDetail", { pct: (kp * 100).toFixed(0) }),
+        action: T("kpLowAction"),
       },
     ];
   }
@@ -352,8 +353,8 @@ function checkKillParticipation(me: MatchParticipant, team: MatchParticipant[]):
       {
         category: "macro",
         severity: "good",
-        title: "Excelente participación",
-        detail: `${(kp * 100).toFixed(0)}% KP — siempre estuviste en las jugadas.`,
+        title: T("kpHighTitle"),
+        detail: T("kpHighDetail", { pct: (kp * 100).toFixed(0) }),
       },
     ];
   }
@@ -374,9 +375,13 @@ function checkDamageShare(
       {
         category: "combat",
         severity: "bad",
-        title: "Daño muy bajo",
-        detail: `Hiciste ${(share * 100).toFixed(0)}% del daño del equipo (objetivo en ${role}: ${(target * 100).toFixed(0)}%).`,
-        action: "Posiciónate mejor en teamfights — necesitas mantenerte vivo y disparar todo el fight.",
+        title: T("dmgLowTitle"),
+        detail: T("dmgLowDetail", {
+          pct: (share * 100).toFixed(0),
+          role: roleLabel(role),
+          target: (target * 100).toFixed(0),
+        }),
+        action: T("dmgLowAction"),
       },
     ];
   }
@@ -406,17 +411,17 @@ function checkObjectives(
     out.push({
       category: "objectives",
       severity: "warn",
-      title: "Dragones perdidos",
-      detail: `Tu equipo cedió ${lostDragons} dragones (alma del rival muy probable).`,
-      action: "Coordínate con el jungla en el spawn de drakes (cada 5 min). Empuja waves laterales antes.",
+      title: T("dragonsLostTitle"),
+      detail: T("dragonsLostDetail", { n: lostDragons }),
+      action: T("dragonsLostAction"),
     });
   }
   if (lostBarons >= 1 && me.position !== "JUNGLE") {
     out.push({
       category: "objectives",
       severity: "info",
-      title: "Baron al rival",
-      detail: "El rival cogió Baron — recuerda contestar el siguiente con visión río preparada.",
+      title: T("baronLostTitle"),
+      detail: T("baronLostDetail"),
     });
   }
   return out;
@@ -436,9 +441,9 @@ function checkGoldEfficiency(
       {
         category: "macro",
         severity: "warn",
-        title: "Oro bajo como ADC",
-        detail: `${(goldShare * 100).toFixed(0)}% del oro del equipo. Como carry deberías estar entre 25-30%.`,
-        action: "Llega a las waves rápido tras teamfights. No mueras innecesariamente.",
+        title: T("adcGoldTitle"),
+        detail: T("adcGoldDetail", { pct: (goldShare * 100).toFixed(0) }),
+        action: T("adcGoldAction"),
       },
     ];
   }
@@ -447,9 +452,9 @@ function checkGoldEfficiency(
       {
         category: "macro",
         severity: "warn",
-        title: "GPM bajo",
-        detail: `${gpm.toFixed(0)} oro/min. Diamond promedio en ${me.position}: 380+.`,
-        action: "Usa el push de wave para volver a base con oro y rotar; no farmees pasivo cuando te toca rotar.",
+        title: T("gpmTitle"),
+        detail: T("gpmDetail", { gpm: gpm.toFixed(0), role: roleLabel(me.position) }),
+        action: T("gpmAction"),
       },
     ];
   }
@@ -467,9 +472,9 @@ function checkDamagePerGold(me: MatchParticipant, role: string): Insight[] {
       {
         category: "combat",
         severity: "warn",
-        title: "Daño por oro bajo",
-        detail: `${dpg.toFixed(2)} dmg/gold. Objetivo: ${target.toFixed(1)}+. Compraste items y no los usaste para hacer daño.`,
-        action: "En teamfights, posiciónate para meter daño SIN morir antes. Espera el frontline tank.",
+        title: T("dpgTitle"),
+        detail: T("dpgDetail", { dpg: dpg.toFixed(2), target: target.toFixed(1) }),
+        action: T("dpgAction"),
       },
     ];
   }
@@ -497,9 +502,9 @@ function checkFirstBlood(
       {
         category: "deaths",
         severity: "warn",
-        title: "First blood en tu contra",
-        detail: `Moriste en el primer kill de la partida (${(firstKill.ts / 1000 / 60).toFixed(1)}min).`,
-        action: "Juega más seguro en early. Wardea jungla o evita pushear sin visión.",
+        title: T("fbLostTitle"),
+        detail: T("fbLostDetail", { min: (firstKill.ts / 1000 / 60).toFixed(1) }),
+        action: T("fbLostAction"),
       },
     ];
   }
@@ -508,8 +513,8 @@ function checkFirstBlood(
       {
         category: "macro",
         severity: "good",
-        title: "First blood",
-        detail: "Conseguiste el primer kill — buena lectura del momento.",
+        title: T("fbTitle"),
+        detail: T("fbDetail"),
       },
     ];
   }
@@ -525,8 +530,8 @@ function checkSnowball(me: MatchParticipant, minutes: number): Insight[] {
       {
         category: "combat",
         severity: "good",
-        title: "Snowball ejecutado",
-        detail: `${me.kills}/${me.deaths}/${me.assists} — convertiste la lead en victoria.`,
+        title: T("snowballTitle"),
+        detail: T("snowballDetail", { kda: `${me.kills}/${me.deaths}/${me.assists}` }),
       },
     ];
   }
@@ -535,9 +540,9 @@ function checkSnowball(me: MatchParticipant, minutes: number): Insight[] {
       {
         category: "macro",
         severity: "warn",
-        title: "Lead desperdiciada",
-        detail: `${me.kills}/${me.deaths}/${me.assists} pero perdiste. Snowball necesita objetivos, no solo kills.`,
-        action: "Después de una kill: empuja wave, mira drake/herald, prox-ward. Convierte oro en mapa.",
+        title: T("leadLostTitle"),
+        detail: T("leadLostDetail", { kda: `${me.kills}/${me.deaths}/${me.assists}` }),
+        action: T("leadLostAction"),
       },
     ];
   }
@@ -563,9 +568,9 @@ function checkLanePhase(
       {
         category: "farming",
         severity: "bad",
-        title: `CS@14 muy bajo: ${cs14}`,
-        detail: `Objetivo en ${role}: ${target}+. Saliste de lane phase sin oro.`,
-        action: "Trabaja wave management. No abandones lane sin recoger la wave que empujaste.",
+        title: T("cs14Title", { cs: cs14 }),
+        detail: T("cs14Detail", { role: roleLabel(role), target }),
+        action: T("cs14Action"),
       },
     ];
   }
@@ -592,9 +597,9 @@ function checkBuildVsEnemy(enemy: MatchParticipant[]): Insight[] {
       {
         category: "build",
         severity: "info",
-        title: "Enemigo mayormente mágico",
-        detail: `El equipo enemigo hizo ${(magicShare * 100).toFixed(0)}% de su daño como mágico.`,
-        action: "Prioriza resistencia mágica (MR) en tu build contra esta comp.",
+        title: T("magicTitle"),
+        detail: T("magicDetail", { pct: (magicShare * 100).toFixed(0) }),
+        action: T("magicAction"),
       },
     ];
   }
@@ -603,9 +608,9 @@ function checkBuildVsEnemy(enemy: MatchParticipant[]): Insight[] {
       {
         category: "build",
         severity: "info",
-        title: "Enemigo mayormente físico",
-        detail: `El equipo enemigo hizo ${((1 - magicShare) * 100).toFixed(0)}% de su daño como físico.`,
-        action: "Prioriza armadura en tu build contra esta comp.",
+        title: T("physTitle"),
+        detail: T("physDetail", { pct: ((1 - magicShare) * 100).toFixed(0) }),
+        action: T("physAction"),
       },
     ];
   }

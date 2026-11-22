@@ -346,6 +346,7 @@ export function CoachView({ db, onClose }: Props) {
 }
 
 function InsightCard({ insight }: { insight: Insight }) {
+  const { t } = useTranslation();
   const colors = {
     bad: "border-bad/60 bg-bad/10",
     warn: "border-meh/60 bg-meh/10",
@@ -359,7 +360,7 @@ function InsightCard({ insight }: { insight: Insight }) {
         <span className="text-lg leading-none">{icons[insight.severity]}</span>
         <h4 className="font-medium text-white">{insight.title}</h4>
         <span className="ml-auto text-xs text-white/40 uppercase">
-          {insight.category}
+          {t(`coach.categories.${insight.category}`, { defaultValue: insight.category })}
         </span>
       </div>
       <p className="text-sm text-white/80 mt-1">{insight.detail}</p>

@@ -255,7 +255,7 @@ describe("CoachView — report", () => {
     await renderView();
     const bad = screen.getByText("CS bajo").closest("div.rounded")!;
     expect(bad).toHaveTextContent("✗");
-    expect(bad).toHaveTextContent("farming");
+    expect(bad).toHaveTextContent("farmeo");
     expect(bad).toHaveTextContent("Perdiste muchas oleadas.");
     expect(bad).toHaveTextContent("5.1 cs/min");
     expect(bad).toHaveTextContent("→ Practica last-hit");

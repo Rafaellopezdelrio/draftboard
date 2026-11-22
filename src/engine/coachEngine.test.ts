@@ -282,6 +282,9 @@ function run(
   });
 }
 
+/** How the coach names each position in Spanish (coach.roles). */
+const ROLE_ES: Record<string, string> = { TOP: "top", JUNGLE: "jungla", MIDDLE: "mid", BOTTOM: "ADC", UTILITY: "support" };
+
 const titled = (insights: ReturnType<typeof analyzeMatch>, title: string) =>
   insights.find((i) => i.title === title);
 
@@ -329,7 +332,7 @@ describe("coachEngine — setCoachEloBucket", () => {
     // 60 CS / 30 min = 2.0/min: "bad" in every bucket, so the detail always names the target.
     const farm = titled(run(mkParticipant({ cs: 60 })), "CS muy bajo");
     expect(farm).toBeDefined();
-    expect(farm!.detail).toBe(`Conseguiste 2.0 CS/min. El objetivo en MIDDLE es ${target}+.`);
+    expect(farm!.detail).toBe(`Conseguiste 2.0 CS/min. El objetivo en mid es ${target}+.`);
     expect(farm!.metric).toBe("60 CS en 30min");
   });
 
@@ -452,7 +455,7 @@ describe("coachEngine — kill participation & damage", () => {
     // 5000 / (5000 + 4×15000) = 8%
     const d = titled(run(mkParticipant({ position, totalDamageDealtToChampions: 5000 })), "Daño muy bajo");
     expect(d).toMatchObject({ category: "combat", severity: "bad" });
-    expect(d!.detail).toBe(`Hiciste 8% del daño del equipo (objetivo en ${position}: ${target}%).`);
+    expect(d!.detail).toBe(`Hiciste 8% del daño del equipo (objetivo en ${ROLE_ES[position]}: ${target}%).`);
   });
 
   it("does not apply the damage-share check to non-carry roles", () => {
@@ -502,7 +505,7 @@ describe("coachEngine — gold efficiency", () => {
 
   it.each(["MIDDLE", "TOP"])("warns %s about GPM below 320", (position) => {
     const g = titled(run(mkParticipant({ position, goldEarned: 9000 })), "GPM bajo");
-    expect(g!.detail).toBe(`300 oro/min. Diamond promedio en ${position}: 380+.`);
+    expect(g!.detail).toBe(`300 oro/min. Diamond promedio en ${ROLE_ES[position]}: 380+.`);
   });
 
   it("does not apply the GPM check to junglers", () => {
@@ -656,13 +659,13 @@ describe("coachEngine — lane phase (CS@14)", () => {
       "CS@14 muy bajo: 50"
     );
     expect(l).toMatchObject({ category: "farming", severity: "bad" });
-    expect(l!.detail).toBe("Objetivo en MIDDLE: 105+. Saliste de lane phase sin oro.");
+    expect(l!.detail).toBe("Objetivo en mid: 105+. Saliste de lane phase sin oro.");
   });
 
   it("uses a 130 target for BOTTOM (85 flagged, 95 fine)", () => {
     const bot = mkParticipant({ position: "BOTTOM" });
     const low = run(bot, { timeline: timelineWith14([pframe(1, 85)]) });
-    expect(titled(low, "CS@14 muy bajo: 85")!.detail).toMatch(/^Objetivo en BOTTOM: 130\+/);
+    expect(titled(low, "CS@14 muy bajo: 85")!.detail).toMatch(/^Objetivo en ADC: 130\+/);
     const ok = run(bot, { timeline: timelineWith14([pframe(1, 95)]) });
     expect(ok.some((i) => i.title.startsWith("CS@14"))).toBe(false);
   });
@@ -829,6 +832,51 @@ describe("coachEngine — trinket swap", () => {
       const ins = titled(run(support()), "You never swapped your trinket");
       expect(ins!.detail).toMatch(/30 min of support/);
       expect(ins!.action).toMatch(/shop/);
+    } finally {
+      await i18n.changeLanguage("es");
+    }
+  });
+});
+
+describe("coachEngine — English", () => {
+  it("every insight of a rough game reads in English, with no Spanish or raw keys left", async () => {
+    i18n.addResourceBundle("en", "translation", enBundle, true, true);
+    await i18n.changeLanguage("en");
+    try {
+      setCoachEloBucket("DIAMOND");
+      // Low CS, vision, damage and gold; early, solo and many deaths; first
+      // blood given; dragons and Baron lost: as many checks as one game can hit.
+      const me = mkParticipant({
+        position: "MIDDLE",
+        cs: 60,
+        visionScore: 5,
+        controlWardsBought: 0,
+        deaths: 9,
+        kills: 0,
+        assists: 1,
+        totalDamageDealtToChampions: 2000,
+        goldEarned: 6000,
+      });
+      const events = [
+        kill(1, 6, 1),
+        kill(3, 7, 1),
+        kill(5, 8, 1),
+        elite(6, 7, "DRAGON"),
+        elite(12, 8, "DRAGON"),
+        elite(18, 9, "DRAGON"),
+        elite(24, 10, "DRAGON"),
+        elite(25, 7, "BARON_NASHOR"),
+      ];
+      const insights = run(me, { durationSec: 25 * 60, events });
+      expect(insights.length).toBeGreaterThan(6);
+      for (const ins of insights) {
+        for (const text of [ins.title, ins.detail, ins.metric, ins.action]) {
+          if (text === undefined) continue;
+          expect(text).not.toMatch(/coach\.|[áéíóúñ¿¡]|muerte|equipo|objetivo/i);
+        }
+      }
+      expect(insights.map((i) => i.title)).toContain("Very low CS");
+      expect(insights.find((i) => i.title === "Very low CS")!.detail).toMatch(/target for mid/);
     } finally {
       await i18n.changeLanguage("es");
     }
