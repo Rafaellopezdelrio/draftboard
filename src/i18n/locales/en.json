@@ -375,6 +375,15 @@
     "aiTips": "AI tips"
   },
   "coach": {
+    "trinket": {
+      "neverTitle": "You never swapped your trinket",
+      "neverSupport": "You played {{min}} min of support with the Stealth Ward. Once your support item quest is done you already have plenty of wards: Oracle Lens lets you clear theirs.",
+      "neverJungle": "You played {{min}} min of jungle without swapping to Oracle Lens. By mid-game, clearing their wards before Dragon and Baron is worth more than placing another.",
+      "neverAdc": "You played {{min}} min of ADC without swapping to Farsight Alteration (the blue trinket). Once laning ends it lets you check bushes and entrances from afar without walking in.",
+      "lateTitle": "Late trinket swap",
+      "lateDetail": "You swapped your trinket at minute {{at}}. The sooner you swap, the sooner you start blinding them.",
+      "action": "Swap it in the shop, it is free: supports to Oracle Lens once the support item quest is done; junglers to Oracle Lens around minute 15; ADCs to the blue trinket once laning ends."
+    },
     "topInsight": "Top insight",
     "needRiotId": "Open LoL so we can recognise your account, then try again.",
     "aiAnalyzing": "Analyzing...",

@@ -4,6 +4,7 @@ import type {
   MatchTimeline,
 } from "../services/riotApi";
 import { DAMAGE_SHARE_TARGET, isRiftQueue } from "./rankBenchmarks";
+import { i18n } from "../i18n";
 
 export type Severity = "info" | "warn" | "bad" | "good";
 export type Category =
@@ -92,6 +93,7 @@ export function analyzeMatch({
 
   out.push(...checkFarming(me, role, minutes));
   out.push(...checkVision(me, role, minutes));
+  out.push(...checkTrinket(me, myParticipantId, timeline, role, minutes));
   out.push(...checkDeaths(me, myParticipantId, timeline, minutes, role));
   out.push(...checkKillParticipation(me, team));
   out.push(...checkDamageShare(me, team, role));
@@ -172,6 +174,73 @@ function checkVision(me: MatchParticipant, role: string, minutes: number): Insig
         title: "Pocos control wards",
         detail: `Solo compraste ${me.controlWardsBought} control wards en ${minutes.toFixed(0)}min.`,
         action: "Cómpralos siempre que vuelvas a base si tienes 75g sobrantes.",
+      },
+    ];
+  }
+  return [];
+}
+
+const ORACLE_LENS = 3364;
+const FARSIGHT_ALTERATION = 3363;
+/** Minute after which the swap counts as late: supports swap once the support
+ * item quest is done (~10 min), junglers and ADCs once laning ends. */
+const TRINKET_LATE_MIN: Record<string, number> = { UTILITY: 15, JUNGLE: 20, BOTTOM: 20 };
+const TRINKET_NEVER_KEY: Record<string, string> = {
+  UTILITY: "coach.trinket.neverSupport",
+  JUNGLE: "coach.trinket.neverJungle",
+  BOTTOM: "coach.trinket.neverAdc",
+};
+
+/**
+ * Supports and junglers should swap the starting Stealth Ward for Oracle Lens,
+ * and ADCs for Farsight Alteration, mid-game; many players forget. Top and mid
+ * keep the ward, so they are never told. Either swap counts as done. The swap
+ * time comes from the timeline; the final items catch a swap it missed.
+ */
+function checkTrinket(
+  me: MatchParticipant,
+  myParticipantId: number,
+  timeline: MatchTimeline,
+  role: string,
+  minutes: number
+): Insight[] {
+  const lateMin = TRINKET_LATE_MIN[role];
+  if (lateMin === undefined || minutes < lateMin) return [];
+
+  let swapMin: number | null = null;
+  for (const frame of timeline.frames) {
+    for (const ev of frame.events) {
+      if (ev.type !== "ITEM_PURCHASED") continue;
+      const e = ev as Extract<typeof ev, { type: "ITEM_PURCHASED" }>;
+      if (e.participantId !== myParticipantId) continue;
+      if (e.itemId !== ORACLE_LENS && e.itemId !== FARSIGHT_ALTERATION) continue;
+      const t = e.timestamp / 1000 / 60;
+      if (swapMin === null || t < swapMin) swapMin = t;
+    }
+  }
+  const swapped =
+    swapMin !== null || me.items.includes(ORACLE_LENS) || me.items.includes(FARSIGHT_ALTERATION);
+  const action = i18n.t("coach.trinket.action");
+
+  if (!swapped) {
+    return [
+      {
+        category: "vision",
+        severity: role === "UTILITY" ? "warn" : "info",
+        title: i18n.t("coach.trinket.neverTitle"),
+        detail: i18n.t(TRINKET_NEVER_KEY[role], { min: Math.round(minutes) }),
+        action,
+      },
+    ];
+  }
+  if (swapMin !== null && swapMin > lateMin) {
+    return [
+      {
+        category: "vision",
+        severity: "info",
+        title: i18n.t("coach.trinket.lateTitle"),
+        detail: i18n.t("coach.trinket.lateDetail", { at: Math.floor(swapMin) }),
+        action,
       },
     ];
   }

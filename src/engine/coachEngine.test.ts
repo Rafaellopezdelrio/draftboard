@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { analyzeMatch, setCoachEloBucket } from "./coachEngine";
+import { i18n } from "../i18n";
+import enBundle from "../i18n/locales/en.json";
 import type {
   MatchFull,
   MatchParticipant,
@@ -711,5 +713,93 @@ describe("coachEngine — role & queue awareness", () => {
     const two = [kill(2, 6, 1, [7]), kill(4, 7, 1, [8])];
     const jgWarn = titled(run(mkParticipant({ position: "JUNGLE" }), { events: two }), "2 muertes tempranas");
     expect(jgWarn!.detail).not.toMatch(/ganks/);
+  });
+});
+
+describe("coachEngine — trinket swap", () => {
+  beforeEach(() => setCoachEloBucket("DIAMOND"));
+
+  const buy = (min: number, itemId: number, participantId = 1) => ({
+    timestamp: min * 60_000,
+    type: "ITEM_PURCHASED",
+    participantId,
+    itemId,
+  });
+  const support = (o: Partial<MatchParticipant> = {}) =>
+    mkParticipant({ position: "UTILITY", items: [3869, 3340], ...o });
+  const jungler = (o: Partial<MatchParticipant> = {}) =>
+    mkParticipant({ position: "JUNGLE", items: [3006, 3340], ...o });
+
+  it("warns a support who kept the Stealth Ward all game", () => {
+    const ins = titled(run(support()), "No cambiaste el trinket");
+    expect(ins).toMatchObject({ category: "vision", severity: "warn" });
+    expect(ins!.detail).toMatch(/30 min de support/);
+    expect(ins!.action).toMatch(/tienda/);
+  });
+
+  it("only notes it (info) for a jungler, and not before minute 20", () => {
+    expect(titled(run(jungler()), "No cambiaste el trinket")).toMatchObject({ severity: "info" });
+    expect(titled(run(jungler(), { durationSec: 19 * 60 }), "No cambiaste el trinket")).toBeUndefined();
+  });
+
+  it("never nags top or mid, who keep the ward on purpose", () => {
+    for (const position of ["TOP", "MIDDLE"]) {
+      const ins = run(mkParticipant({ position, items: [3006, 3340] }));
+      expect(titled(ins, "No cambiaste el trinket")).toBeUndefined();
+      expect(titled(ins, "Cambio de trinket tarde")).toBeUndefined();
+    }
+  });
+
+  it("says nothing when the swap came in time (Oracle or Farsight)", () => {
+    for (const item of [3364, 3363]) {
+      const ins = run(support({ items: [3869, item] }), { events: [buy(11, item)] });
+      expect(titled(ins, "No cambiaste el trinket")).toBeUndefined();
+      expect(titled(ins, "Cambio de trinket tarde")).toBeUndefined();
+    }
+  });
+
+  it("flags a late swap with the minute it happened", () => {
+    const ins = titled(run(support({ items: [3869, 3364] }), { events: [buy(22.5, 3364)] }), "Cambio de trinket tarde");
+    expect(ins).toMatchObject({ category: "vision", severity: "info" });
+    expect(ins!.detail).toMatch(/minuto 22/);
+  });
+
+  it("uses the earliest swap and ignores other players' purchases", () => {
+    const events = [buy(9, 3364, 7), buy(25, 3364), buy(12, 3364)];
+    const ins = run(support({ items: [3869, 3364] }), { events });
+    expect(titled(ins, "Cambio de trinket tarde")).toBeUndefined();
+    // Another player's early swap does not count as mine.
+    const late = run(support({ items: [3869, 3364] }), { events: [buy(9, 3364, 7), buy(25, 3364)] });
+    expect(titled(late, "Cambio de trinket tarde")!.detail).toMatch(/minuto 25/);
+  });
+
+  it("reminds an ADC about the blue trinket (info, from minute 20)", () => {
+    const adc = (o: Partial<MatchParticipant> = {}) =>
+      mkParticipant({ position: "BOTTOM", items: [3031, 3340], ...o });
+    const ins = titled(run(adc()), "No cambiaste el trinket");
+    expect(ins).toMatchObject({ category: "vision", severity: "info" });
+    expect(ins!.detail).toMatch(/30 min de ADC.*Visión lejana modificada/);
+    expect(titled(run(adc(), { durationSec: 19 * 60 }), "No cambiaste el trinket")).toBeUndefined();
+    // Blue trinket bought in time: nothing to say.
+    const done = run(adc({ items: [3031, 3363] }), { events: [buy(14, 3363)] });
+    expect(titled(done, "No cambiaste el trinket")).toBeUndefined();
+    expect(titled(done, "Cambio de trinket tarde")).toBeUndefined();
+  });
+
+  it("trusts the final items when the timeline has no swap event", () => {
+    expect(titled(run(support({ items: [3869, 3364] })), "No cambiaste el trinket")).toBeUndefined();
+  });
+
+  it("speaks English when the app is in English", async () => {
+    // Only Spanish is preloaded in tests; English loads lazily in the app.
+    i18n.addResourceBundle("en", "translation", enBundle, true, true);
+    await i18n.changeLanguage("en");
+    try {
+      const ins = titled(run(support()), "You never swapped your trinket");
+      expect(ins!.detail).toMatch(/30 min of support/);
+      expect(ins!.action).toMatch(/shop/);
+    } finally {
+      await i18n.changeLanguage("es");
+    }
   });
 });
