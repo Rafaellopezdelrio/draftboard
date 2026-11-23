@@ -693,7 +693,7 @@ function App() {
             </div>
           </div>
           <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-4">
-            <SkeletonPanel rows={10} title="Cargando draft board..." />
+            <SkeletonPanel rows={10} title={t("common.loadingDraft")} />
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <SkeletonPanel rows={6} />
               <SkeletonPanel rows={6} />

@@ -250,7 +250,7 @@ describe("App — boot states and gates", () => {
   it("renders the loading skeleton (not the header) while the champion DB is null", async () => {
     h.boot.db = null;
     await renderApp();
-    expect(await screen.findByText("Cargando draft board...")).toBeInTheDocument();
+    expect(await screen.findByText("Cargando el draft…")).toBeInTheDocument();
     expect(screen.queryByText("Esperando cliente")).not.toBeInTheDocument();
   });
 

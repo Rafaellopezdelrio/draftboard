@@ -156,12 +156,15 @@ function EnemyScoutPanelInner({
             const champName = champId
               ? db.champions[String(champId)]?.name
               : null;
+            const rank = r.rank ?? "?";
             toast(
-              `🔥 Enemigo en racha (${r.rank ?? "?"}) ${champName ? `con ${champName}` : ""}`,
+              champName
+                ? i18n.t("scout.toastHotWith", { rank, champ: champName })
+                : i18n.t("scout.toastHot", { rank }),
               { severity: "warn", ttlMs: 6000 }
             );
             voiceCoach.speak(
-              `Cuidado, enemigo en racha${champName ? ` con ${champName}` : ""}`,
+              champName ? i18n.t("scout.voiceHotWith", { champ: champName }) : i18n.t("scout.voiceHot"),
               `hot-${slot.summonerId || slot.puuid}`
             );
           }
@@ -171,10 +174,13 @@ function EnemyScoutPanelInner({
             r.pickedChampionMastery.points > 200000
           ) {
             const c = db.champions[String(r.pickedChampionMastery.championId)];
-            toast(`🎯 One-trick: ${c?.name} (${Math.round(r.pickedChampionMastery.points / 1000)}k pts)`, {
-              severity: "warn",
-              ttlMs: 7000,
-            });
+            toast(
+              i18n.t("scout.toastOneTrick", {
+                champ: c?.name ?? "?",
+                k: Math.round(r.pickedChampionMastery.points / 1000),
+              }),
+              { severity: "warn", ttlMs: 7000 }
+            );
           }
           // Audio alert for the genuinely scary enemies — hands-free at champ
           // select. Reuses the same threat synthesis the cards show.

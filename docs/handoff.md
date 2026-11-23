@@ -10,6 +10,13 @@ open. Not user documentation — see [`../README.md`](../README.md) for that.
   - Worker `c3608f1`: each IP may spend at most 50 calls per 2 min that reach
     Riot (cache misses; `RIOT_UPSTREAM_PER_IP`), and every worker 429 sends
     Retry-After. Needs `wrangler deploy` (bump `WORKER_VERSION`).
+    **Do not deploy as is:** the loading-screen scout spends ~14 calls per
+    enemy (summoner, masteries, ids, league, 10 matches) = ~70 in a burst, so
+    a cap of 50 starves the 4th-5th enemy for one normal player. Decide the
+    cap (or a cheaper scout) first.
+  - App: enemy-scout streak / one-trick toasts and voice line, and the boot
+    skeleton title, were Spanish-only; now `scout.toastHot*`,
+    `scout.voiceHot*`, `scout.toastOneTrick`, `common.loadingDraft`.
 - **2026-11-23 — v0.6.5 tagged = the tester build** (0.6.4 built only: the
   CI cargo-audit gate had been red since 22/11 on cookie RUSTSEC-2026-0594 and
   url RUSTSEC-2026-0592; 0.6.5 = 0.6.4 + `cargo update -p cookie -p url`).

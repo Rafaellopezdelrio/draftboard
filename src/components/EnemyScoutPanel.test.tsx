@@ -36,6 +36,8 @@ import { usePrefsStore, DEFAULT_PREFS } from "../state/prefsStore";
 import { useDraftStore } from "../state/draftStore";
 import { useToastStore } from "./Toaster";
 import { voiceCoach } from "../services/voiceCoach";
+import { i18n } from "../i18n";
+import enBundle from "../i18n/locales/en.json";
 
 const speak = vi.spyOn(voiceCoach, "speak").mockImplementation(() => {});
 
@@ -306,7 +308,7 @@ describe("EnemyScoutPanel", () => {
     const toasts = useToastStore.getState().toasts;
     expect(toasts.map((t) => [t.message, t.severity, t.ttlMs])).toEqual([
       ["🔥 Enemigo en racha (DIAMOND I) con Ahri", "warn", 6000],
-      ["🎯 One-trick: Ahri (250k pts)", "warn", 7000],
+      ["🎯 One-trick: Ahri (250k puntos)", "warn", 7000],
     ]);
     expect(speak.mock.calls).toEqual([
       ["Cuidado, enemigo en racha con Ahri", "hot-11"],
@@ -317,6 +319,32 @@ describe("EnemyScoutPanel", () => {
     expect(screen.getByText(/one-trick/)).toBeInTheDocument();
     expect(screen.getByText(/main$/)).toBeInTheDocument();
     expect(screen.getByText("M7 · 250k")).toBeInTheDocument();
+  });
+
+  it("says the streak and one-trick alerts in English when the app is in English", async () => {
+    i18n.addResourceBundle("en", "translation", enBundle, true, true);
+    await i18n.changeLanguage("en");
+    try {
+      m.scoutPlayer.mockResolvedValue(
+        mkScout({
+          rank: "DIAMOND I",
+          recentWins: 8,
+          recentLosses: 2,
+          hotStreak: true,
+          pickedChampionMastery: { championId: 103, level: 7, points: 250_000 },
+        })
+      );
+      render(<EnemyScoutPanel db={db} enemySummonerIds={[11]} enemyChampionIds={[103]} />);
+      await screen.findByText("80%");
+
+      expect(useToastStore.getState().toasts.map((t) => t.message)).toEqual([
+        "🔥 Enemy on a win streak (DIAMOND I) on Ahri",
+        "🎯 One-trick: Ahri (250k points)",
+      ]);
+      expect(speak.mock.calls[0]).toEqual(["Careful, enemy on a win streak on Ahri", "hot-11"]);
+    } finally {
+      await i18n.changeLanguage("es");
+    }
   });
 
   it("stays silent and hides streak chips when hot-streak notifications are off", async () => {

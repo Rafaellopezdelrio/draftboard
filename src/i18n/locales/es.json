@@ -412,7 +412,12 @@
       "coldStreakWr": "Jungla rival bajo de forma ({{wr}}%). Juega agresivo, pero sigue vigilando el mapa.",
       "main": "Jungla rival con su main ({{champ}}). Respeta sus ganks y su control de objetivos.",
       "standard": "Jungla rival normal. Wardea su ruta y avisa cuando desaparezca."
-    }
+    },
+    "toastHot": "🔥 Enemigo en racha ({{rank}})",
+    "toastHotWith": "🔥 Enemigo en racha ({{rank}}) con {{champ}}",
+    "voiceHot": "Cuidado, enemigo en racha",
+    "voiceHotWith": "Cuidado, enemigo en racha con {{champ}}",
+    "toastOneTrick": "🎯 One-trick: {{champ}} ({{k}}k puntos)"
   },
   "matchupTips": {
     "title": "Tips de matchup",
@@ -1131,7 +1136,8 @@
     "confirm": "Confirmar",
     "yourMain": "tu main",
     "hide": "Ocultar",
-    "unknownError": "Error desconocido"
+    "unknownError": "Error desconocido",
+    "loadingDraft": "Cargando el draft…"
   },
   "settings": {
     "title": "Configuración",

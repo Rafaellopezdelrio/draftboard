@@ -412,7 +412,12 @@
       "coldStreakWr": "Enemy jungler out of form ({{wr}}%). Play aggressive, but keep an eye on the map.",
       "main": "Enemy jungler on their main ({{champ}}). Respect their ganks and objective control.",
       "standard": "Standard enemy jungler. Ward their path and call it when they go missing."
-    }
+    },
+    "toastHot": "🔥 Enemy on a win streak ({{rank}})",
+    "toastHotWith": "🔥 Enemy on a win streak ({{rank}}) on {{champ}}",
+    "voiceHot": "Careful, enemy on a win streak",
+    "voiceHotWith": "Careful, enemy on a win streak on {{champ}}",
+    "toastOneTrick": "🎯 One-trick: {{champ}} ({{k}}k points)"
   },
   "matchupTips": {
     "title": "Matchup tips",
@@ -1131,7 +1136,8 @@
     "confirm": "Confirm",
     "yourMain": "your main",
     "hide": "Hide",
-    "unknownError": "Unknown error"
+    "unknownError": "Unknown error",
+    "loadingDraft": "Loading the draft…"
   },
   "settings": {
     "title": "Settings",
