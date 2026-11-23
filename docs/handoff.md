@@ -17,7 +17,12 @@ open. Not user documentation — see [`../README.md`](../README.md) for that.
     key fixes that.
   - App: enemy-scout streak / one-trick toasts and voice line, and the boot
     skeleton title, were Spanish-only; now `scout.toastHot*`,
-    `scout.voiceHot*`, `scout.toastOneTrick`, `common.loadingDraft`.
+    `scout.voiceHot*`, `scout.toastOneTrick`, `common.loadingDraft`. Same
+    for the cached-data / data-updated / database-reset toasts
+    (`systemToast.stale*`, `refreshed*`, `recovered*`). A sweep of
+    components, engines, services, hooks, state and the Rust tray found no
+    other Spanish-only user text (AI prompts stay Spanish on purpose: they
+    already ask for the reply language).
 - **2026-11-23 — v0.6.5 tagged = the tester build** (0.6.4 built only: the
   CI cargo-audit gate had been red since 22/11 on cookie RUSTSEC-2026-0594 and
   url RUSTSEC-2026-0592; 0.6.5 = 0.6.4 + `cargo update -p cookie -p url`).

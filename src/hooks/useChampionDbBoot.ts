@@ -19,6 +19,7 @@ import { loadChampionDb, readChampionDbCacheUnsafe } from "../services/championD
 import { trackEvent, trackFetch } from "../services/breadcrumbs";
 import { mark, measure, warnIfSlow } from "../services/perf";
 import type { ChampionDb } from "../types/champion";
+import { i18n } from "../i18n";
 import type { Toast } from "../components/ui/ToastContainer";
 import { startAutoProSync } from "../services/autoProSync";
 import { DATA_UPDATED_EVENT } from "../state/dataSyncStore";
@@ -104,12 +105,13 @@ export function useChampionDbBoot(
           setDb(stale);
           setUsingStaleCache(true);
           const ageMin = Math.round((Date.now() - stale.fetchedAt) / 60_000);
-          const ageLabel =
-            ageMin < 60 ? `hace ${ageMin}min` : `hace ${Math.round(ageMin / 60)}h`;
           pushToast({
             type: "warn",
-            title: "Mostrando datos en caché",
-            detail: `No pude refrescar (${ageLabel}). Reintento en background.`,
+            title: i18n.t("systemToast.staleTitle"),
+            detail:
+              ageMin < 60
+                ? i18n.t("systemToast.staleDetailMin", { n: ageMin })
+                : i18n.t("systemToast.staleDetailHours", { n: Math.round(ageMin / 60) }),
             durationMs: 8000,
           });
           // Background retry every minute until fresh load works. Handle
@@ -126,8 +128,8 @@ export function useChampionDbBoot(
                 if (retryTimer) clearInterval(retryTimer);
                 pushToast({
                   type: "success",
-                  title: "Datos actualizados",
-                  detail: "Refresco completado.",
+                  title: i18n.t("systemToast.refreshedTitle"),
+                  detail: i18n.t("systemToast.refreshedDetail"),
                 });
               }
             } catch {

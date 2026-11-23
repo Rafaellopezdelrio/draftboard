@@ -2288,6 +2288,13 @@
   },
   "systemToast": {
     "fetchFailedTitle": "Couldn't get fresh data",
-    "fetchFailedDetail": "Using saved data. You don't need to do anything."
+    "fetchFailedDetail": "Using saved data. You don't need to do anything.",
+    "staleTitle": "Showing cached data",
+    "staleDetailMin": "Couldn’t refresh (from {{n}} min ago). Retrying in the background.",
+    "staleDetailHours": "Couldn’t refresh (from {{n}} h ago). Retrying in the background.",
+    "refreshedTitle": "Data updated",
+    "refreshedDetail": "Refresh complete.",
+    "recoveredTitle": "Data reset",
+    "recoveredDetail": "Your database was damaged and has been set aside. The app starts with empty data so you can keep using it."
   }
 }

@@ -2288,6 +2288,13 @@
   },
   "systemToast": {
     "fetchFailedTitle": "No hemos podido traer datos nuevos",
-    "fetchFailedDetail": "Se usan los guardados. No tienes que hacer nada."
+    "fetchFailedDetail": "Se usan los guardados. No tienes que hacer nada.",
+    "staleTitle": "Mostrando datos en caché",
+    "staleDetailMin": "No pude refrescar (hace {{n}} min). Reintento en segundo plano.",
+    "staleDetailHours": "No pude refrescar (hace {{n}} h). Reintento en segundo plano.",
+    "refreshedTitle": "Datos actualizados",
+    "refreshedDetail": "Refresco completado.",
+    "recoveredTitle": "Datos restablecidos",
+    "recoveredDetail": "Tu base de datos estaba dañada y se ha guardado a un lado. La app arranca con datos en blanco para que puedas seguir usándola."
   }
 }

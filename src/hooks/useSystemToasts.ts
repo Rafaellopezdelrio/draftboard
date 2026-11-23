@@ -77,9 +77,8 @@ export function useSystemToasts(pushToast: PushToast): void {
       if (didRecoverFromCorruption()) {
         pushToast({
           type: "warn",
-          title: "Datos restablecidos",
-          detail:
-            "Tu base de datos estaba dañada y se ha guardado a un lado. La app arranca con datos en blanco para que puedas seguir usándola.",
+          title: i18n.t("systemToast.recoveredTitle"),
+          detail: i18n.t("systemToast.recoveredDetail"),
           durationMs: 12000,
         });
         consumeCorruptionRecovery();

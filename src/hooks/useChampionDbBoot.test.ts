@@ -23,6 +23,8 @@ vi.mock("../services/autoProSync", () => ({ startAutoProSync: m.startAutoProSync
 
 import { useChampionDbBoot } from "./useChampionDbBoot";
 import { DATA_UPDATED_EVENT } from "../state/dataSyncStore";
+import { i18n } from "../i18n";
+import enBundle from "../i18n/locales/en.json";
 
 const NOW = new Date("2026-11-01T12:00:00Z").getTime();
 
@@ -122,7 +124,7 @@ describe("useChampionDbBoot", () => {
     expect(pushToast).toHaveBeenCalledWith({
       type: "warn",
       title: "Mostrando datos en caché",
-      detail: "No pude refrescar (hace 30min). Reintento en background.",
+      detail: "No pude refrescar (hace 30 min). Reintento en segundo plano.",
       durationMs: 8000,
     });
 
@@ -154,8 +156,27 @@ describe("useChampionDbBoot", () => {
     renderHook(() => useChampionDbBoot(true, pushToast));
     await flush();
     expect(pushToast).toHaveBeenCalledWith(
-      expect.objectContaining({ detail: "No pude refrescar (hace 3h). Reintento en background." })
+      expect.objectContaining({ detail: "No pude refrescar (hace 3 h). Reintento en segundo plano." })
     );
+  });
+
+  it("warns in English when the app is in English", async () => {
+    i18n.addResourceBundle("en", "translation", enBundle, true, true);
+    await i18n.changeLanguage("en");
+    try {
+      m.readChampionDbCacheUnsafe.mockReturnValue(makeDb("16.0.1", NOW - 3 * 60 * 60_000));
+      m.loadChampionDb.mockRejectedValue(new Error("offline"));
+      renderHook(() => useChampionDbBoot(true, pushToast));
+      await flush();
+      expect(pushToast).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: "Showing cached data",
+          detail: "Couldn’t refresh (from 3 h ago). Retrying in the background.",
+        })
+      );
+    } finally {
+      await i18n.changeLanguage("es");
+    }
   });
 
   it("clears the background retry on unmount", async () => {
