@@ -9,6 +9,17 @@ import { fetchMatchupBuild, type MatchupBuild } from "../../services/opggMatchup
 import type { ChampionDb } from "../../types/champion";
 
 vi.mock("../../services/opggMatchupBuild", () => ({ fetchMatchupBuild: vi.fn() }));
+vi.mock("../../services/opggBuilds", () => {
+  const p = (id: number) => [{ ids: [id], names: [], play: 100, win: 55, pickRate: 0.4 }];
+  return {
+    fetchOpggBuild: vi.fn(() => Promise.resolve({ fourthItems: p(3089), fifthItems: p(3135), sixthItems: p(3165) })),
+    topBuild: (b: { fourthItems: unknown[]; fifthItems: unknown[]; sixthItems: unknown[] }) => ({
+      fourth: b.fourthItems[0],
+      fifth: b.fifthItems[0],
+      sixth: b.sixthItems[0],
+    }),
+  };
+});
 vi.mock("../../services/itemMeta", () => ({
   getItemMeta: () => null,
   subscribeToItemMeta: () => () => {},
@@ -39,7 +50,7 @@ const build = (over: Partial<MatchupBuild> = {}): MatchupBuild => ({
   boots: [{ ids: [3020], names: [], play: 2932, win: 1471, pickRate: 0.57 }],
   starterItems: [{ ids: [1056], names: [], play: 5312, win: 2631, pickRate: 0.99 }],
   runes: [
-    { primaryStyle: 8100, subStyle: 8200, perks: [8112, 8139, 8140, 8106, 8210, 8226], shards: [], play: 1, win: 1, pickRate: 0.5 },
+    { primaryStyle: 8100, subStyle: 8200, perks: [8112, 8139, 8140, 8106, 8210, 8226], shards: [5008, 5008, 5001], play: 1, win: 1, pickRate: 0.5 },
   ],
   summonerSpells: [],
   ...over,
@@ -76,6 +87,14 @@ describe("MatchupBuildCard", () => {
     expect(screen.queryByText("Guarda el Encanto hasta que Zed use la W.")).toBeNull();
     const icons = screen.getByTestId("matchup-build").querySelectorAll("img");
     expect([...icons].some((i) => i.getAttribute("src")?.endsWith("/item/3118.png"))).toBe(true);
+    // Runes: the 6 runes plus the 3 stat shards.
+    const titles = [...icons].map((i) => i.getAttribute("title"));
+    expect(titles).toEqual(expect.arrayContaining(["Runa 8112", "Runa 8226", "Runa 5008", "Runa 5001"]));
+    expect(titles.filter((t) => t === "Runa 5008")).toHaveLength(2);
+    // After the matchup core, the champion's usual 4th-6th items.
+    expect(await screen.findByTestId("plan-sixth")).toBeInTheDocument();
+    expect(screen.getByTestId("plan-fourth").textContent).toContain("lo habitual después");
+    expect(screen.getByTestId("plan-fourth").querySelector("img")?.getAttribute("src")).toContain("/item/3089.png");
   });
 
   it("merges lane and team: team boots and third item, each with its why", async () => {

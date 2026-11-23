@@ -208,8 +208,9 @@ export function SimplePrepare({ db, champion, role }: { db: ChampionDb; champion
         <div className="flex items-center gap-2">
           <span className={LABEL}>{t("simple.prepRunes")}</span>
           <div className="flex items-center gap-1">
-            {page.selectedPerkIds.slice(0, 4).map((id, i) => (
-              <PerkIcon key={id} id={id} small={i > 0} />
+            {/* The whole page: keystone, 5 runes and the 3 stat shards. */}
+            {page.selectedPerkIds.map((id, i) => (
+              <PerkIcon key={i} id={id} small={i > 0} />
             ))}
           </div>
         </div>

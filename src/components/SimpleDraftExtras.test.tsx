@@ -111,6 +111,8 @@ describe("SimplePrepare", () => {
     } as never);
     render(<SimplePrepare db={db} champion={db.champions["103"]} role="MIDDLE" />);
     expect(await screen.findByText("perk-8112")).toBeInTheDocument();
+    // The whole page, stat shards included — not just the first four.
+    expect(screen.getAllByText(/^perk-/).map((e) => e.textContent)).toEqual(page.selectedPerkIds.map((id) => `perk-${id}`));
     expect(screen.getByText("Destello y Prender")).toBeInTheDocument();
     expect(screen.getByText("Primero la Q, luego la W")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Poner en el juego" }));

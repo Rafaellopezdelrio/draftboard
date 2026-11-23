@@ -52,6 +52,9 @@ vi.mock("../services/itemMeta", () => ({
   localItemName: (_id: number, fallback: string) => fallback,
 }));
 // Stub exposes the props BuildPanel derives so we can assert the wiring.
+// The matchup card has its own tests (MatchupBuildCard.test.tsx); here it
+// would add its own general-build fetch to the counts below.
+vi.mock("./build/MatchupBuildCard", () => ({ MatchupBuildCard: () => null }));
 vi.mock("./build/OpggBuildSection", async () => {
   const { createElement } = await import("react");
   return {

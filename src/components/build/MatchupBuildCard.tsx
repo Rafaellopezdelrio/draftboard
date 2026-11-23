@@ -14,6 +14,7 @@ import { fetchMatchupBuild, type MatchupBuildResponse } from "../../services/opg
 import { localItemName } from "../../services/itemMeta";
 import type { BuildAdaptation } from "../../engine/adaptiveBuildEngine";
 import { buildMatchupPlan } from "../../engine/matchupPlan";
+import { fetchOpggBuild, topBuild } from "../../services/opggBuilds";
 import { ItemIcon, PerkIcon } from "./icons";
 
 /** Below this many games the matchup numbers are noise, not advice. */
@@ -87,6 +88,24 @@ export function MatchupBuildCard({
     };
   }, [want, championDdId, role, oppDdId, lang]);
 
+  // The usual 4th-6th items: op.gg's matchup data stops at the third.
+  const generalKey = `${championDdId}:${role}`;
+  const [late, setLate] = useState<{ key: string; ids: number[] } | null>(null);
+  useEffect(() => {
+    let stale = false;
+    void fetchOpggBuild(championDdId, role)
+      .then((b) => {
+        if (stale || !b) return;
+        const top = topBuild(b);
+        setLate({ key: generalKey, ids: [top.fourth, top.fifth, top.sixth].flatMap((p) => p?.ids.slice(0, 1) ?? []) });
+      })
+      .catch(() => {});
+    return () => {
+      stale = true;
+    };
+  }, [generalKey, championDdId, role]);
+  const lateItems = late?.key === generalKey ? late.ids : [];
+
   // Only the answer for the pair on screen — never the previous opponent's.
   const answer = want && got?.key === want ? got.data?.build : null;
   const build =
@@ -123,7 +142,7 @@ export function MatchupBuildCard({
   }
 
   const winRate = build.games && build.wins !== null ? build.wins / build.games : null;
-  const plan = buildMatchupPlan(build, adaptations);
+  const plan = buildMatchupPlan(build, adaptations, lateItems);
   const runes = build.runes[0];
   // op.gg names the champion with the edge, or "EVEN".
   const adv = build.laneAdvantage?.toLowerCase();
@@ -175,7 +194,9 @@ export function MatchupBuildCard({
           >
             {step.source === "team"
               ? t("build.planWhyTeam", { reason: step.reason })
-              : t("build.planWhyLane", { name: opp.name })}
+              : step.source === "general"
+                ? t("build.planWhyGeneral")
+                : t("build.planWhyLane", { name: opp.name })}
           </span>
         </div>
       ))}
@@ -199,7 +220,7 @@ export function MatchupBuildCard({
             {t("build.matchupRunes")}
           </span>
           <div className="flex gap-1 flex-1 items-center">
-            {runes.perks.map((id, i) => (
+            {[...runes.perks, ...runes.shards].map((id, i) => (
               <PerkIcon key={i} id={id} small={i !== 0} />
             ))}
           </div>

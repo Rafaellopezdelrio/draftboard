@@ -6,13 +6,15 @@
 import type { BuildAdaptation } from "./adaptiveBuildEngine";
 import type { MatchupBuild } from "../services/opggMatchupBuild";
 
-export type PlanSlot = "start" | "first" | "boots" | "second" | "third";
+export type PlanSlot = "start" | "first" | "boots" | "second" | "third" | "fourth" | "fifth" | "sixth";
+const LATE_SLOTS: PlanSlot[] = ["fourth", "fifth", "sixth"];
 
 export interface PlanStep {
   slot: PlanSlot;
   ids: number[];
-  /** "lane": from the matchup build. "team": swapped in for the enemy comp. */
-  source: "lane" | "team";
+  /** "lane": from the matchup build. "team": swapped in for the enemy comp.
+   * "general": the champion's usual later item (matchup data stops at three). */
+  source: "lane" | "team" | "general";
   /** Team steps only: the adaptation's own reason text. */
   reason?: string;
 }
@@ -26,7 +28,13 @@ export interface MatchupPlan {
 /** Finished boots (tier 2). Adaptations name them like any other item. */
 const BOOT_IDS = new Set([3006, 3009, 3010, 3020, 3047, 3111, 3117, 3158]);
 
-export function buildMatchupPlan(build: MatchupBuild, adaptations: BuildAdaptation[]): MatchupPlan {
+/** `lateItems`: the champion's usual 4th, 5th and 6th items from its general
+ * build; any already in the plan is skipped. */
+export function buildMatchupPlan(
+  build: MatchupBuild,
+  adaptations: BuildAdaptation[],
+  lateItems: number[] = []
+): MatchupPlan {
   const steps: PlanStep[] = [];
   const used = new Set<BuildAdaptation>();
   const starter = build.starterItems[0];
@@ -67,6 +75,15 @@ export function buildMatchupPlan(build: MatchupBuild, adaptations: BuildAdaptati
     later[i] = { slot: later[i].slot, ids: [a.itemId], source: "team", reason: a.reason };
   }
   steps.push(...later);
+
+  const taken = new Set(steps.flatMap((s) => s.ids));
+  for (const id of lateItems) {
+    const slot = LATE_SLOTS[steps.length - steps.filter((s) => !LATE_SLOTS.includes(s.slot)).length];
+    if (!slot) break;
+    if (taken.has(id) || BOOT_IDS.has(id)) continue;
+    taken.add(id);
+    steps.push({ slot, ids: [id], source: "general" });
+  }
 
   // Already in the lane build = already covered, not a leftover.
   for (const a of adaptations) if (core.includes(a.itemId)) used.add(a);

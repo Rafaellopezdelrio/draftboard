@@ -86,6 +86,22 @@ describe("buildMatchupPlan", () => {
     expect(p.situational.map((x) => x.itemId)).toEqual([3165]);
   });
 
+  // 23/11 (Rafael): the matchup plan stopped at the third item.
+  it("adds the usual 4th-6th items after the core, skipping ones already planned and boots", () => {
+    const p = buildMatchupPlan(build(), [], [3157, 3089, 3020, 3135, 3165, 4645]);
+    expect(p.steps.slice(5)).toEqual([
+      { slot: "fourth", ids: [3089], source: "general" },
+      { slot: "fifth", ids: [3135], source: "general" },
+      { slot: "sixth", ids: [3165], source: "general" },
+    ]);
+  });
+
+  it("an item a team adaptation already put in the plan is not repeated later", () => {
+    const p = buildMatchupPlan(build(), [adapt(3165, "core")], [3165, 3089]);
+    expect(p.steps.find((s) => s.slot === "third")?.ids).toEqual([3165]);
+    expect(p.steps.slice(5)).toEqual([{ slot: "fourth", ids: [3089], source: "general" }]);
+  });
+
   it("survives a build with missing pieces", () => {
     const p = buildMatchupPlan(build({ coreItems: [], boots: [], starterItems: [] }), [adapt(3165, "core")]);
     expect(p.steps).toEqual([]);
