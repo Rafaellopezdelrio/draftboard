@@ -7,13 +7,14 @@ open. Not user documentation — see [`../README.md`](../README.md) for that.
 
 - **Next package (not released, not deployed — release only when Rafael
   says "publica/lanza"):**
-  - Worker `c3608f1`: each IP may spend at most 50 calls per 2 min that reach
-    Riot (cache misses; `RIOT_UPSTREAM_PER_IP`), and every worker 429 sends
-    Retry-After. Needs `wrangler deploy` (bump `WORKER_VERSION`).
-    **Do not deploy as is:** the loading-screen scout spends ~14 calls per
-    enemy (summoner, masteries, ids, league, 10 matches) = ~70 in a burst, so
-    a cap of 50 starves the 4th-5th enemy for one normal player. Decide the
-    cap (or a cheaper scout) first.
+  - Worker `c3608f1` + `5dcb7fa`: each IP may spend at most 80 calls per
+    2 min that reach Riot (cache misses; `RIOT_UPSTREAM_PER_IP`), and every
+    worker 429 sends Retry-After. Needs `wrangler deploy` (bump
+    `WORKER_VERSION`). 80, not 50: the loading-screen scout spends ~14 calls
+    per enemy (summoner, masteries, ids, league, 10 matches) = ~70 in a
+    burst; 50 starved the 4th-5th enemy (Rafael chose 80 on 23/11). Two
+    testers loading at once still pass the key's 100: only the production
+    key fixes that.
   - App: enemy-scout streak / one-trick toasts and voice line, and the boot
     skeleton title, were Spanish-only; now `scout.toastHot*`,
     `scout.voiceHot*`, `scout.toastOneTrick`, `common.loadingDraft`.
