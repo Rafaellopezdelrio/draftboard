@@ -1,5 +1,11 @@
 # i18n Progress — EN/ES coverage
 
+> **2026-11-23: done.** A sweep of components, engines, services, hooks,
+> state and the Rust tray found no Spanish-only user text left (last fixes:
+> enemy-scout alerts + voice, boot/cache/reset toasts). The "Remaining" lists
+> below are history. AI prompts are Spanish on purpose and ask for the reply
+> language. New text: add both `es.json` and `en.json` keys (parity test).
+
 > **▶ RESUME HERE (next session):** "termina la cola i18n desde este doc".
 > State: ~42 components localized, 576 es=en keys, 858 tests green, tree clean.
 > The toggle-revert bug is FIXED (commit 2a95979). Pattern is proven — just
