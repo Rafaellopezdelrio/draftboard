@@ -786,6 +786,19 @@ describe("coachEngine — trinket swap", () => {
     expect(titled(run(adc()), NEVER)!.detail).toMatch(/Visión lejana modificada/);
   });
 
+  // Rafael 23/11: Fiddlesticks' trinket is his own Scarecrow Effigy and cannot be swapped.
+  it("never tells Fiddlesticks to swap: his Scarecrow Effigy is locked", () => {
+    for (const who of [
+      jungler({ championId: 9, items: [3006, 3330] }),
+      jungler({ championId: 9, items: [3006] }),
+      support({ championId: 9, items: [3869, 3330] }),
+    ]) {
+      const ins = run(who);
+      expect(titled(ins, NEVER)).toBeUndefined();
+      expect(titled(ins, LATE)).toBeUndefined();
+    }
+  });
+
   it("says nothing in a game that ended before minute 15", () => {
     for (const who of [support(), jungler(), adc()])
       expect(titled(run(who, { durationSec: 14 * 60 }), NEVER)).toBeUndefined();

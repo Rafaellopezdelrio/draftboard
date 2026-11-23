@@ -214,6 +214,14 @@ const TRINKET_NEVER_KEY: Record<string, string> = {
   BOTTOM: "coach.trinket.neverAdc",
 };
 
+/** Fiddlesticks' passive replaces the trinket with his Scarecrow Effigy, which
+ * cannot be swapped; Data Dragon lists no other champion-locked trinket. */
+const SCARECROW_EFFIGY = 3330;
+const FIDDLESTICKS_ID = 9;
+function hasLockedTrinket(me: MatchParticipant): boolean {
+  return me.championId === FIDDLESTICKS_ID || me.items.includes(SCARECROW_EFFIGY);
+}
+
 /**
  * Supports and junglers should swap the starting Stealth Ward for Oracle Lens,
  * and ADCs for Farsight Alteration, mid-game; many players forget. Top and mid
@@ -227,6 +235,7 @@ function checkTrinket(
   role: string,
   minutes: number
 ): Insight[] {
+  if (hasLockedTrinket(me)) return [];
   const neverKey = TRINKET_NEVER_KEY[role];
   if (neverKey === undefined) return softTrinketNote(me, myParticipantId, timeline, role, minutes);
   // The swap is due at minute 15; an ADC also needs level 9 for Farsight, so
