@@ -670,7 +670,7 @@
     "dataInstallLabel": "New install",
     "dataInstallDetail": "when you accept for the first time, the app tells Draftboard's server once that there is a new install. Only the version and the day: no name, no account, and your IP is not stored. Updates don't report anything.",
     "dataTelemetryLabel": "Error and usage reports (only if you tick the box below)",
-    "dataTelemetryDetail": "app errors and which screens you use each day, with a random number not linked to your account. No names, no chat, no games. Sent only to the Draftboard server. Can be turned off in Preferences.",
+    "dataTelemetryDetail": "app errors, which screens you use each day and which features ran or failed (for example a champ select, whether the natural voice loaded or the AI answered), with a random number not linked to your account. No names, no chat, no champions and no matches. Only to the Draftboard server. You can turn it off in Preferences.",
     "dataGdpr": "You can export or delete everything from “My data / privacy” (find it with Ctrl+K). GDPR-compliant (access, portability and erasure rights).",
     "sourcesTitle": "External data sources",
     "sourcesPrefix": "Draftboard reads public data from:",
@@ -681,7 +681,7 @@
     "licensePrefix": "MIT license. Source code and full terms in",
     "licenseSuffix": "inside the package.",
     "agreeLabel": "I have read and accept the privacy notice, the data usage and the Riot Games disclaimer.",
-    "shareLabel": "Optional: send error reports and which screens I use, anonymously, to improve Draftboard.",
+    "shareLabel": "Optional: send error reports and which screens and features I use, anonymously, to improve Draftboard.",
     "acceptNew": "Accept & start",
     "acceptUpdated": "Accept the changes"
   },
@@ -1432,7 +1432,7 @@
       },
       "telemetryEnabled": {
         "label": "Send error reports and anonymous usage",
-        "detail": "App errors and which screens you use each day, with a random number not linked to your account. No names, no chat, no matches. Only to the Draftboard server."
+        "detail": "App errors, which screens you use each day and which features ran or failed (voice, AI, data), with a random number not linked to your account. No names, no chat, no matches. Only to the Draftboard server."
       },
       "voiceCoachEnabled": {
         "label": "Voice announcements in draft",

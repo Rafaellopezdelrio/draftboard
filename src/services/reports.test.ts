@@ -2,7 +2,7 @@
 // counter only runs with consent, once per view per session, and the
 // install id is random and forgotten on opt-out.
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { sendReport, trackUsage, forgetInstallId, technicalDetails, reportInstall, __testOnly_resetUsage } from "./reports";
+import { sendReport, trackUsage, trackFeature, forgetInstallId, technicalDetails, reportInstall, __testOnly_resetUsage } from "./reports";
 
 let fetchMock: ReturnType<typeof vi.fn>;
 
@@ -64,6 +64,19 @@ describe("trackUsage", () => {
     trackUsage("open");
     forgetInstallId();
     expect(localStorage.getItem("draftboard:install-id")).toBeNull();
+  });
+});
+
+describe("trackFeature", () => {
+  it("counts a feature on the same opt-in counter, as f-<name>, once per session", () => {
+    trackFeature("voice-natural");
+    expect(fetchMock).not.toHaveBeenCalled(); // no consent, nothing sent
+
+    localStorage.setItem("draftboard:telemetry", "true");
+    trackFeature("voice-natural");
+    trackFeature("voice-natural");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(body(0)).toMatchObject({ view: "f-voice-natural" });
   });
 });
 

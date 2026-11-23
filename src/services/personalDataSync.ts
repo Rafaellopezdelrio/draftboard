@@ -27,6 +27,7 @@ import {
 import { loadSettings } from "./settingsRepo";
 import { followClientAccount, regionFromClient } from "./accountResolve";
 import { getCurrentSummoner } from "./lcuService";
+import { trackFeature } from "./reports";
 
 export interface SyncProgress {
   source: "LCU" | "Riot API" | "none";
@@ -72,6 +73,7 @@ export function syncPersonalData(
   if (syncInFlight) return syncInFlight;
   syncInFlight = runSync(onProgress)
     .then((result) => {
+      trackFeature(result.source === "Riot API" ? "sync-riot" : result.source === "LCU" ? "sync-lcu" : "sync-none");
       if (result.matches > 0 && typeof window !== "undefined")
         window.dispatchEvent(new CustomEvent(MATCHES_SYNCED_EVENT, { detail: result }));
       return result;
@@ -109,6 +111,7 @@ async function runSync(
         messageKey: "sync.riotFailed",
         messageParams: { error: msg },
       });
+      trackFeature("sync-riot-failed");
       // Fall through to LCU
     }
   }

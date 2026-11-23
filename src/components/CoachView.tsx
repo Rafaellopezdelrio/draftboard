@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Markdown } from "./ui/Markdown";
 import { i18n } from "../i18n";
 import { analyzeMatch, type Insight } from "../engine/coachEngine";
+import { trackFeature } from "../services/reports";
 import { computeGpi, type GpiScore } from "../engine/gpiEngine";
 import { deriveTopInsight } from "../engine/topInsight";
 import {
@@ -118,6 +119,7 @@ export function CoachView({ db, onClose }: Props) {
         setMatchFull(full);
         setMatchTimeline(timeline);
         setInsights(analyzeMatch({ match: full, timeline, myPuuid: cfg.puuid }));
+        trackFeature("postgame-coach");
         setGpi(computeGpi(full, cfg.puuid, rank?.tier ?? null, timeline));
       } catch (e) {
         setErr(String(e));

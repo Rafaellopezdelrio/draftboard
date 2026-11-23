@@ -12,6 +12,7 @@ import {
 import { CHAMPION_ROLES } from "../data/championRoles";
 import { usePrefsStore } from "../state/prefsStore";
 import { DATA_UPDATED_EVENT } from "../state/dataSyncStore";
+import { trackFeature } from "./reports";
 
 /** How long a load waits for the per-rank list before going on with the
  * general one. The server builds a rank it has not stored in 5-8 s; the app
@@ -200,6 +201,7 @@ export async function loadChampionDb(
         : " (no pro data yet — will refine after auto-sync)")
   );
 
+  trackFeature(`meta-${metaSourceUsed}`);
   const counters = aggCounters;
   const db: ChampionDb = {
     patch,

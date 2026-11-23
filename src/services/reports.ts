@@ -79,6 +79,14 @@ export function trackUsage(view: string): void {
   post("/usage", { id, version: APP_VERSION, view }).catch(() => {});
 }
 
+/** Count that a feature ran (or failed) today, on the same opt-in counter as
+ * the screens, prefixed "f-" so the report lists them apart: champ select
+ * seen, natural voice used, AI answered, tier list fell back... Only fixed
+ * names: never a champion, a Riot ID or anything typed by the player. */
+export function trackFeature(name: string): void {
+  trackUsage(`f-${name}`);
+}
+
 /** A new install: sent once, when the player accepts the terms for the
  * first time (updates keep the acceptance, so they never send it). Only the
  * version; no id. Not sent from the DEV build. Failures are ignored. */

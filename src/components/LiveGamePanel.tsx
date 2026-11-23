@@ -38,6 +38,7 @@ import {
   type LiveCoachInsight,
 } from "../engine/liveCoachEngine";
 import { voiceCoach } from "../services/voiceCoach";
+import { trackFeature } from "../services/reports";
 import type { ChampionDb } from "../types/champion";
 
 // Speaks the CRITICAL live-coach insights aloud (soul-deny, heavy deaths) so
@@ -49,8 +50,10 @@ export function LiveVoice({ insights }: { insights: LiveCoachInsight[] }) {
   const sig = criticals.map((c) => c.key).join(",");
   useEffect(() => {
     // i18n.t singleton (not the hook) so this effect needn't depend on t.
-    for (const c of criticals)
+    for (const c of criticals) {
       voiceCoach.speak(i18n.t(c.textKey, c.params), `live-${c.key}`);
+      trackFeature(`said-${c.key}`);
+    }
     // criticals derived from `insights`; sig captures the meaningful change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sig]);

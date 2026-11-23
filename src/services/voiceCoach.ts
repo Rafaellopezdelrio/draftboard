@@ -12,6 +12,7 @@ import {
   warmNeural,
   type NeuralVoice,
 } from "./neuralVoice";
+import { trackFeature } from "./reports";
 
 export type VoiceLang = "es" | "en";
 
@@ -150,6 +151,7 @@ class VoiceCoach {
     const neural = this.naturalVoice();
     if (neural && !wait && !neuralReady(neural.id)) {
       warmNeural(neural.id);
+      trackFeature("voice-pc-while-loading");
       this.saySystem(message);
       return;
     }
@@ -157,9 +159,15 @@ class VoiceCoach {
       const text = speakable(message, this.lang);
       if (hasSpeech()) speechSynthesis.cancel();
       // If the neural voice can't load (offline on first use…), the PC voice speaks instead.
-      speakNeural(neural.id, text, 0.9).catch(() => this.saySystem(message));
+      speakNeural(neural.id, text, 0.9)
+        .then(() => trackFeature("voice-natural"))
+        .catch(() => {
+          trackFeature("voice-natural-failed");
+          this.saySystem(message);
+        });
       return;
     }
+    trackFeature("voice-pc");
     this.saySystem(message);
   }
 

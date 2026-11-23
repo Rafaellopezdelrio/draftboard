@@ -670,7 +670,7 @@
     "dataInstallLabel": "Instalación nueva",
     "dataInstallDetail": "al aceptar por primera vez, la app avisa una sola vez al servidor de Draftboard de que hay una instalación nueva. Solo la versión y el día: sin nombre, sin cuenta y sin guardar tu IP. Las actualizaciones no avisan.",
     "dataTelemetryLabel": "Avisos de errores y uso (solo si marcas la casilla de abajo)",
-    "dataTelemetryDetail": "los fallos de la app y qué pantallas usas cada día, con un número al azar que no está unido a tu cuenta. Sin nombres, sin chat y sin partidas. Llegan solo al servidor de Draftboard. Se puede apagar en Preferencias.",
+    "dataTelemetryDetail": "los fallos de la app, qué pantallas usas cada día y qué funciones se usaron o fallaron (por ejemplo si hubo selección de campeones, si la voz natural cargó o si la IA respondió), con un número al azar que no está unido a tu cuenta. Sin nombres, sin chat, sin campeones y sin partidas. Llegan solo al servidor de Draftboard. Se puede apagar en Preferencias.",
     "dataGdpr": "Puedes exportar o borrar todo desde «Mis datos / privacidad» (búscalo con Ctrl+K). Cumple con el RGPD (derechos de acceso, portabilidad y supresión).",
     "sourcesTitle": "Fuentes de datos externas",
     "sourcesPrefix": "Draftboard consulta datos públicos de:",
@@ -681,7 +681,7 @@
     "licensePrefix": "Licencia MIT. Código fuente y términos completos en",
     "licenseSuffix": "dentro del paquete.",
     "agreeLabel": "He leído y acepto el aviso de privacidad, el uso de datos y el disclaimer de Riot Games.",
-    "shareLabel": "Opcional: enviar avisos de errores y qué pantallas uso, de forma anónima, para mejorar Draftboard.",
+    "shareLabel": "Opcional: enviar avisos de errores y qué pantallas y funciones uso, de forma anónima, para mejorar Draftboard.",
     "acceptNew": "Acepto y empezar",
     "acceptUpdated": "Acepto los cambios"
   },
@@ -1432,7 +1432,7 @@
       },
       "telemetryEnabled": {
         "label": "Enviar avisos de errores y uso anónimo",
-        "detail": "Fallos de la app y qué pantallas usas cada día, con un número al azar que no está unido a tu cuenta. Sin nombres, sin chat, sin partidas. Solo al servidor de Draftboard."
+        "detail": "Fallos de la app, qué pantallas usas cada día y qué funciones se usaron o fallaron (voz, IA, datos), con un número al azar que no está unido a tu cuenta. Sin nombres, sin chat, sin partidas. Solo al servidor de Draftboard."
       },
       "voiceCoachEnabled": {
         "label": "Anuncios de voz en draft",

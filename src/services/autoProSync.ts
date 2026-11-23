@@ -11,6 +11,7 @@ import { getDb, isTauri } from "../db/client";
 import { aggregateFromProPlay } from "./proPlayAggregator";
 import { fetchLatestPatch } from "./dataDragon";
 import type { ChampionDb } from "../types/champion";
+import { trackFeature } from "./reports";
 
 const STALE_AFTER_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
@@ -101,18 +102,21 @@ export function startAutoProSync(db: ChampionDb): void {
       // Zero games = Leaguepedia outage (aggregator kept old rows); leave the
       // patch unmarked so the next startup retries.
       if (result.games === 0) {
+        trackFeature("prosync-empty");
         // eslint-disable-next-line no-console
         console.warn("[proSync] no pro games downloaded; will retry next start");
         return;
       }
 
       await markPatchSynced(currentPatch);
+      trackFeature("prosync-ok");
 
       // eslint-disable-next-line no-console
       console.log(
         `[proSync] done: ${result.games} pro games → ${result.rows} aggregate rows`
       );
     } catch (e) {
+      trackFeature("prosync-fail");
       // eslint-disable-next-line no-console
       console.error("[proSync] background sync failed:", e);
     }

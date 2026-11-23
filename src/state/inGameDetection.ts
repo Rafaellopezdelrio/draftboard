@@ -7,6 +7,7 @@ import {
   type GameflowGameData,
 } from "./gameflowRoster";
 import { refreshEnemyScoutTargets, resetEnemyScoutTargets } from "./enemyScoutTargets";
+import { trackFeature } from "../services/reports";
 
 export type GamePhase =
   | "None"
@@ -112,7 +113,9 @@ export function useGamePhase(): { phase: GamePhase | null; gameId?: number } {
         }
         // Enemy identities are public once the game exists — feed the scout.
         void refreshEnemyScoutTargets(next.gameId, session.gameData.queue?.gameMode);
+        trackFeature("in-game");
       } else if (next.phase === "ChampSelect") {
+        trackFeature("champ-select");
         // New draft: drop the previous game's enemies.
         resetEnemyScoutTargets();
       }

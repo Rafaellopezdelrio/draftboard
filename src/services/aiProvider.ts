@@ -4,6 +4,7 @@
 import { httpFetch } from "./httpClient";
 import { getRiotProxyUrl } from "./riotApi";
 import { i18n } from "../i18n";
+import { trackFeature } from "./reports";
 
 export type AiProvider = "groq" | "anthropic" | "gemini";
 
@@ -73,8 +74,11 @@ function isNetworkError(e: unknown): boolean {
 
 export async function callAi(p: AiCallParams): Promise<string> {
   try {
-    return await callAiOnce(p);
+    const answer = await callAiOnce(p);
+    trackFeature(`ai-${p.provider}-ok`);
+    return answer;
   } catch (e) {
+    trackFeature(`ai-${p.provider}-fail`);
     // "TypeError: Failed to fetch" means nothing to a player: say it plainly.
     if (isNetworkError(e)) throw new Error(i18n.t("serviceErrors.aiOffline"));
     throw e;

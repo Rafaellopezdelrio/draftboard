@@ -38,9 +38,55 @@ for (const r of query("SELECT day, COUNT(*) AS personas FROM usage GROUP BY day 
 const views = query("SELECT views FROM usage WHERE day >= date('now','-6 days')");
 const count = new Map();
 for (const { views: v } of views) for (const name of v.split(",").filter(Boolean)) count.set(name, (count.get(name) ?? 0) + 1);
-if (count.size) {
-  console.log("Pantallas más usadas (7 días):");
-  for (const [name, n] of [...count].sort((a, b) => b[1] - a[1]).slice(0, 10)) console.log(`  ${name}: ${n}`);
+const sorted = [...count].sort((a, b) => b[1] - a[1]);
+const screens = sorted.filter(([name]) => !name.startsWith("f-"));
+if (screens.length) {
+  console.log("Pantallas más usadas (7 días, días-persona):");
+  for (const [name, n] of screens.slice(0, 10)) console.log(`  ${name}: ${n}`);
+}
+
+// Features ("f-" names, see trackFeature in src/services/reports.ts).
+// Counted once per person per day; the number is "days-person it happened".
+const FEATURE = {
+  "champ-select": "Selección de campeones con la app abierta",
+  "in-game": "Partida con la app abierta",
+  "postgame-coach": "Coach de después de la partida",
+  "voice-natural": "Voz natural habló",
+  "voice-pc": "Voz del PC habló (eligió voz de Windows)",
+  "voice-pc-while-loading": "Voz del PC mientras cargaba la natural",
+  "voice-natural-failed": "FALLO: la voz natural no cargó",
+  "sync-lcu": "Partidas leídas del cliente de LoL",
+  "sync-riot": "Partidas bajadas de Riot",
+  "sync-none": "FALLO: no se pudo leer ninguna partida",
+  "sync-riot-failed": "FALLO: Riot no respondió (se usó el cliente)",
+  "prosync-ok": "Datos de pros actualizados",
+  "prosync-empty": "FALLO: datos de pros vacíos",
+  "prosync-fail": "FALLO: datos de pros no se pudieron bajar",
+};
+const featureLabel = (name) => {
+  if (FEATURE[name]) return FEATURE[name];
+  let m;
+  if ((m = /^meta-(.+)$/.exec(name)))
+    return m[1] === "static" ? "FALLO: tier list sin fuentes (datos básicos)" : `Tier list desde ${m[1]}`;
+  if ((m = /^ai-(\w+)-(ok|fail)$/.exec(name)))
+    return m[2] === "ok" ? `IA respondió (${m[1]})` : `FALLO: la IA no respondió (${m[1]})`;
+  if ((m = /^said-(.+)$/.exec(name))) return `Aviso por voz en partida: ${m[1]}`;
+  return name;
+};
+const features = sorted.filter(([name]) => name.startsWith("f-"));
+if (features.length) {
+  console.log("Funciones (7 días, días-persona; los FALLO primero):");
+  const rows = features.map(([name, n]) => [featureLabel(name.slice(2)), n]);
+  rows.sort((a, b) => Number(b[0].startsWith("FALLO")) - Number(a[0].startsWith("FALLO")) || b[1] - a[1]);
+  for (const [label, n] of rows) console.log(`  ${label}: ${n}`);
+}
+
+const versions = query(
+  "SELECT version, COUNT(DISTINCT id) AS personas FROM usage WHERE day >= date('now','-6 days') GROUP BY version ORDER BY personas DESC"
+);
+if (versions.length) {
+  console.log("Versión que usan (7 días):");
+  for (const r of versions) console.log(`  v${r.version}: ${r.personas}`);
 }
 
 console.log("\n== Avisos (últimos 30) ==");
