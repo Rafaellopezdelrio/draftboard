@@ -206,8 +206,8 @@ programador en la tier list) para después de la prueba. Fechas fijadas:
   interna (`/api/graphql`) no ofrecida a terceros; la página pública solo
   trae la posición principal y las regiones mezcladas (KR/NA/EUW/BR). Sin
   permiso, no usar la interna. Rafael (23/11): no escribirles por ahora.
-- Pendiente de respuesta: ¿nota suave del trinket en top/mid en el coach?
-  (sin voz; en top/mid el cambio depende de la partida).
+- Hecho 23/11: nota suave del trinket en top/mid en el coach (sin voz,
+  "info", solo si acabas una partida de 20+ min con el amarillo).
 
 ### Fase 1 — Prueba cerrada (3 semanas, sin versiones nuevas salvo fallos graves)
 - [ ] 5-10 amigos o conocidos, grupo cerrado (nada de Reddit ni Discord abiertos).
