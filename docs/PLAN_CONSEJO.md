@@ -210,6 +210,13 @@ programador en la tier list) para después de la prueba. Fechas fijadas:
   permiso, no usar la interna. Rafael (23/11): no escribirles por ahora.
 - Hecho 23/11: nota suave del trinket en top/mid en el coach (sin voz,
   "info", solo si acabas una partida de 20+ min con el amarillo).
+- 24/11: coach pasado por 8 partidas reales (Fiddle, Nocturne, Gnar top,
+  3 mid, 2 support). Arreglado: Fiddlesticks ya no recibe el aviso de
+  trinket (el suyo es fijo; es el único campeón así según Data Dragon); el
+  "no cambiaste el trinket" tiene 2 min de margen (support a las 15:14); y
+  "participación baja" ya no dice "acude a teamfights" (chocaba con "no hace
+  falta seguir cada pelea"). Pendiente de mirar con más partidas: daño por
+  oro en jungla (objetivo 1.1, Fiddle 2/0/4 ganando dio 0.49).
 
 ### Fase 1 — Prueba cerrada (3 semanas, sin versiones nuevas salvo fallos graves)
 - [ ] 5-10 amigos o conocidos, grupo cerrado (nada de Reddit ni Discord abiertos).

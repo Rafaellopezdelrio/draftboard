@@ -249,7 +249,8 @@ function checkTrinket(
     );
     if (lvl9) dueMin = Math.max(dueMin, lvl9.timestamp / 1000 / 60);
   }
-  if (minutes < dueMin) return [];
+  // Same grace as a late swap: a game over at 15:30 left no time to base.
+  if (minutes < dueMin + TRINKET_GRACE_MIN) return [];
 
   let swapMin: number | null = null;
   for (const frame of timeline.frames) {

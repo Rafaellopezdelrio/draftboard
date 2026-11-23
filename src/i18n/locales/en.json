@@ -488,7 +488,7 @@
       "soloDeathsAction": "Don't push without vision. Don't step towards the enemy when your allies are far away.",
       "kpLowTitle": "Low kill participation",
       "kpLowDetail": "You only took part in {{pct}}% of your team's kills.",
-      "kpLowAction": "Join the teamfights. If your lane doesn't need you, roam or group.",
+      "kpLowAction": "Get to the fights and objectives your team can win (even numbers or better). If your lane is quiet, rotate before the fight starts, not once it has.",
       "kpHighTitle": "Excellent kill participation",
       "kpHighDetail": "{{pct}}% KP — you were in every play.",
       "dmgLowTitle": "Very low damage",

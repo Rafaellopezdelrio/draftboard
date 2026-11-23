@@ -488,7 +488,7 @@
       "soloDeathsAction": "No empujes sin visión. No te salgas hacia el enemigo cuando los aliados están lejos.",
       "kpLowTitle": "Participación baja",
       "kpLowDetail": "Solo participaste en {{pct}}% de las kills del equipo.",
-      "kpLowAction": "Acude a teamfights. Si tu lane no necesita atención, haz roam o agrupa.",
+      "kpLowAction": "Llega a las peleas y objetivos que podáis ganar (con la misma gente o más). Si tu línea está tranquila, rota antes de que empiece la pelea, no cuando ya ha empezado.",
       "kpHighTitle": "Excelente participación",
       "kpHighDetail": "{{pct}}% KP — siempre estuviste en las jugadas.",
       "dmgLowTitle": "Daño muy bajo",

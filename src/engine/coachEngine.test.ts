@@ -804,6 +804,15 @@ describe("coachEngine — trinket swap", () => {
       expect(titled(run(who, { durationSec: 14 * 60 }), NEVER)).toBeUndefined();
   });
 
+  // Real game 24/11: a support game over at 15:14 was told "never swapped".
+  it("gives the same 2-minute grace as a late swap to a game over just after 15", () => {
+    for (const who of [support(), jungler()]) {
+      expect(titled(run(who, { durationSec: 15 * 60 + 14 }), NEVER)).toBeUndefined();
+      expect(titled(run(who, { durationSec: 16 * 60 + 50 }), NEVER)).toBeUndefined();
+      expect(titled(run(who, { durationSec: 17 * 60 + 10 }), NEVER)).toBeDefined();
+    }
+  });
+
   it("never nags top or mid, who keep the ward on purpose", () => {
     for (const position of ["TOP", "MIDDLE"]) {
       const ins = run(mkParticipant({ position, items: [3006, 3340] }));
