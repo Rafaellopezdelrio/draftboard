@@ -620,6 +620,15 @@ describe("App — simple view (default)", () => {
     expect(screen.queryByRole("button", { name: "Mi juego" })).not.toBeInTheDocument();
   });
 
+  // Rafael 24/11: the rival scout's voice only played behind "more details".
+  it("keeps the rival scout running (voice and toasts) in the simple draft, with its cards hidden", async () => {
+    h.gamePhase.phase = "ChampSelect";
+    await renderApp();
+    const scout = screen.getByTestId("EnemyScoutPanel");
+    expect(scout.closest("[hidden]")).not.toBeNull();
+    expect(screen.getByTestId("SimpleDraftView")).toBeInTheDocument();
+  });
+
   it("the moved entries still open their views from the menus", async () => {
     await renderApp();
     fireEvent.click(screen.getByRole("button", { name: "Ajustes" }));

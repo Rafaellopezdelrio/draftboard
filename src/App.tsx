@@ -892,6 +892,21 @@ function App() {
           onShowDetails={() => setShowDetails(true)}
         />
       ) : mainView === "draft" ? (
+        <>
+        {/* The rival scout's voice and toasts ("on a streak", one-trick) also
+            in the simple view; its cards stay behind details. */}
+        {prefs.showEnemyScout && (
+          <div hidden>
+            <PanelBoundary name="EnemyScoutPanel">
+              <EnemyScoutPanel
+                db={db}
+                enemySummonerIds={enemySummonerIds}
+                enemyChampionIds={enemyChampionIds}
+                enemyScoutTargets={enemyScoutTargets}
+              />
+            </PanelBoundary>
+          </div>
+        )}
         <SimpleDraftView
           db={db}
           role={myRole}
@@ -906,6 +921,7 @@ function App() {
           prediction={draftPrediction}
           onShowDetails={() => setShowDetails(true)}
         />
+        </>
       ) : (
         <>
       {prefs.simpleView && (
