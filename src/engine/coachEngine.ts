@@ -228,7 +228,7 @@ function checkTrinket(
   minutes: number
 ): Insight[] {
   const neverKey = TRINKET_NEVER_KEY[role];
-  if (neverKey === undefined) return [];
+  if (neverKey === undefined) return softTrinketNote(me, myParticipantId, timeline, role, minutes);
   // The swap is due at minute 15; an ADC also needs level 9 for Farsight, so
   // for them it is due at whichever comes later (level 9 time from the
   // per-minute frames; unknown → minute 15). Never reached 9 → nothing due.
@@ -280,6 +280,42 @@ function checkTrinket(
     ];
   }
   return [];
+}
+
+/** Top and mid: the swap depends on the game (lane warding first, then the
+ * red lens when grouping for objectives, or the blue one when split-pushing),
+ * so only a gentle note after a long game still on the yellow trinket. */
+const SOFT_TRINKET_MIN = 20;
+/** The yellow trinket (Stealth Ward). */
+const STEALTH_WARD_TRINKET = 3340;
+function softTrinketNote(
+  me: MatchParticipant,
+  myParticipantId: number,
+  timeline: MatchTimeline,
+  role: string,
+  minutes: number
+): Insight[] {
+  if ((role !== "TOP" && role !== "MIDDLE") || minutes < SOFT_TRINKET_MIN) return [];
+  if (!me.items.includes(STEALTH_WARD_TRINKET)) return [];
+  const swapped =
+    me.items.includes(ORACLE_LENS) ||
+    me.items.includes(FARSIGHT_ALTERATION) ||
+    timeline.frames.some((f) =>
+      f.events.some((ev) => {
+        if (ev.type !== "ITEM_PURCHASED") return false;
+        const e = ev as Extract<typeof ev, { type: "ITEM_PURCHASED" }>;
+        return e.participantId === myParticipantId && (e.itemId === ORACLE_LENS || e.itemId === FARSIGHT_ALTERATION);
+      })
+    );
+  if (swapped) return [];
+  return [
+    {
+      category: "vision",
+      severity: "info",
+      title: i18n.t("coach.trinket.softTitle"),
+      detail: i18n.t("coach.trinket.softDetail", { role: roleLabel(role), min: Math.round(minutes) }),
+    },
+  ];
 }
 
 function checkDeaths(

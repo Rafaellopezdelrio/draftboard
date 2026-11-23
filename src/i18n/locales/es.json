@@ -436,7 +436,9 @@
       "neverAdc": "Jugaste {{min}} min de ADC sin cambiar a la Visión lejana modificada (el trinket azul). Al acabar la fase de líneas te deja mirar arbustos y entradas desde lejos sin acercarte.",
       "lateTitle": "Cambio de trinket tarde",
       "lateDetail": "Cambiaste de trinket en el minuto {{at}}. Cuanto antes lo cambies, antes empiezas a dejarles a ciegas.",
-      "action": "Cámbialo en la tienda, es gratis: support a la Lente del oráculo al completar la misión del objeto; jungla a la Lente hacia el minuto 15; ADC al azul en el minuto 15 si ya eres nivel 9 (antes no se puede)."
+      "action": "Cámbialo en la tienda, es gratis: support a la Lente del oráculo al completar la misión del objeto; jungla a la Lente hacia el minuto 15; ADC al azul en el minuto 15 si ya eres nivel 9 (antes no se puede).",
+      "softTitle": "Acabaste con el trinket amarillo",
+      "softDetail": "Jugaste {{min}} min de {{role}} sin cambiar de trinket. En {{role}} depende de la partida: el amarillo va bien en la fase de líneas; si luego vas con tu equipo a pelear dragones y Barón, la Lente del oráculo (roja) te deja quitarles guardias; si te quedas empujando solo una línea, la Visión lejana (azul) te deja mirar desde lejos."
     },
     "roles": {
       "TOP": "top",

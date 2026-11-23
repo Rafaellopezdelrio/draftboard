@@ -799,6 +799,25 @@ describe("coachEngine — trinket swap", () => {
     }
   });
 
+  // Rafael 23/11: in top and mid it depends on the game — a gentle note only.
+  const SOFT = "Acabaste con el trinket amarillo";
+  it("gives top and mid a gentle info note after 20+ min still on the yellow trinket", () => {
+    for (const [position, label] of [["TOP", "top"], ["MIDDLE", "mid"]]) {
+      const ins = titled(run(mkParticipant({ position, items: [3006, 3340] })), SOFT);
+      expect(ins).toMatchObject({ category: "vision", severity: "info" });
+      expect(ins!.detail).toMatch(new RegExp(`^Jugaste 30 min de ${label} sin cambiar de trinket. En ${label} depende de la partida`));
+      expect(ins!.action).toBeUndefined();
+    }
+  });
+
+  it("no gentle note after a swap, in a short game, or for other roles", () => {
+    const top = (o: Partial<MatchParticipant> = {}) => mkParticipant({ position: "TOP", items: [3006, 3340], ...o });
+    expect(titled(run(top({ items: [3006, 3364] })), SOFT)).toBeUndefined();
+    expect(titled(run(top(), { events: [buy(18, 3363)] }), SOFT)).toBeUndefined();
+    expect(titled(run(top(), { durationSec: 19 * 60 }), SOFT)).toBeUndefined();
+    expect(titled(run(support()), SOFT)).toBeUndefined();
+  });
+
   it("says nothing when the swap came in time (Oracle or Farsight)", () => {
     for (const item of [3364, 3363]) {
       const ins = run(support({ items: [3869, item] }), { events: [buy(11, item)] });

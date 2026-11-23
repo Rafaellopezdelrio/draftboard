@@ -436,7 +436,9 @@
       "neverAdc": "You played {{min}} min of ADC without swapping to Farsight Alteration (the blue trinket). Once laning ends it lets you check bushes and entrances from afar without walking in.",
       "lateTitle": "Late trinket swap",
       "lateDetail": "You swapped your trinket at minute {{at}}. The sooner you swap, the sooner you start blinding them.",
-      "action": "Swap it in the shop, it is free: supports to Oracle Lens once the support item quest is done; junglers to Oracle Lens around minute 15; ADCs to the blue one at minute 15 once level 9 (not available before)."
+      "action": "Swap it in the shop, it is free: supports to Oracle Lens once the support item quest is done; junglers to Oracle Lens around minute 15; ADCs to the blue one at minute 15 once level 9 (not available before).",
+      "softTitle": "You ended on the yellow trinket",
+      "softDetail": "You played {{min}} min of {{role}} without swapping trinkets. In {{role}} it depends on the game: yellow is fine during laning; if you then group for dragons and Baron, the Oracle Lens (red) clears their wards; if you stay split-pushing one lane, the Farsight Alteration (blue) lets you look from afar."
     },
     "roles": {
       "TOP": "top",
