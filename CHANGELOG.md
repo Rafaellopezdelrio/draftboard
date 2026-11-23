@@ -4,6 +4,32 @@ All notable changes to Draftboard are documented here.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/);
 versions match the Tauri app version + the `vX.Y.Z` git tags.
 
+## [0.6.6] — 2026-11-23
+
+From two real games (Ornn and Mordekaiser top) and a champ-select screenshot.
+
+### Added
+- Post-game coach follows the real lane opponent from minute 3-14
+  positions (lane swaps included), says whether the lane was won, even or
+  lost at minute 14 and how many of the opponent's early kills were on
+  teammates, and after a loss names the matchup that fell furthest behind.
+- Deaths in team fights counted apart; deaths in fights taken outnumbered
+  (2+ fewer players) flagged with a "rotate instead" tip.
+- Gentle trinket note for top and mid (info only, 20+ min on the yellow).
+- Matchup plan: 4th-6th items from the champion's general build; full rune
+  pages (9, stat shards included) in Prepare and the matchup card.
+
+### Fixed
+- No "prioritise armor/MR" advice when two items of it are already built.
+- Off-meta picks (Ezreal top) are no longer moved to their usual role when
+  that leaves a team with two of a role: games keep their lane opponent.
+- Enemy-scout streak / one-trick alerts and voice, and cache/reset toasts,
+  were Spanish-only.
+
+### Server (worker)
+- Each IP may spend at most 80 Riot calls per 2 minutes that reach Riot;
+  every 429 carries Retry-After.
+
 ## [0.6.5] — 2026-11-23
 
 The tester build (0.6.4 was built only; users go 0.6.3 → 0.6.5).

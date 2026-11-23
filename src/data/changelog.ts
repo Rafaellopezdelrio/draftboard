@@ -18,6 +18,28 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "0.6.6",
+    date: "2026-11-23",
+    highlights: [
+      "🧭 Coach: mira dónde jugaste de verdad (si cambiaste de línea, tu rival real) y te dice si ganaste, empataste o perdiste tu línea en el minuto 14",
+      "🔎 Si pierdes, el coach te dice por dónde se escapó la partida, con números y sin culpar a nadie",
+      "⚔️ Muertes en peleas de equipo contadas aparte, y aviso si entrasteis a pelear con menos gente: no hace falta seguir cada pelea, a veces toca rotar",
+      "🛡️ Ya no te dice que compres armadura o resistencia mágica si ya la llevas",
+      "🧩 Runas completas (las 9) y objetos del 4.º al 6.º en el plan contra tu rival",
+      "👁️ Top y mid: nota suave del trinket después de la partida",
+      "🌍 Avisos que salían solo en español, ahora también en inglés",
+    ],
+    highlightsEn: [
+      "🧭 Coach: sees where you really played (lane swaps, your real opponent) and tells you if you won, tied or lost your lane at minute 14",
+      "🔎 When you lose, the coach tells you where the game slipped away, with numbers and no blame",
+      "⚔️ Team-fight deaths counted apart, and a note when you fought outnumbered: you don’t have to follow every fight, sometimes it’s time to rotate",
+      "🛡️ No more “buy armor / magic resist” when you already have it",
+      "🧩 Full rune pages (all 9) and 4th to 6th items in the plan against your opponent",
+      "👁️ Top and mid: a gentle trinket note after the game",
+      "🌍 Alerts that only came in Spanish now come in English too",
+    ],
+  },
+  {
     // 0.6.4 was built only (superseded by 0.6.5): users go 0.6.3 → 0.6.5.
     version: "0.6.5",
     date: "2026-11-23",
