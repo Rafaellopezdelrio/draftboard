@@ -183,7 +183,10 @@ programador en la tier list) para después de la prueba. Fechas fijadas:
 
 ### Fase 1 — Prueba cerrada (3 semanas, sin versiones nuevas salvo fallos graves)
 - [ ] 5-10 amigos o conocidos, grupo cerrado (nada de Reddit ni Discord abiertos).
-- [ ] Avisar de que el coach solo está medido en jungla.
+- [ ] Avisar de que el coach solo está medido en jungla. 23/11: mensaje para
+      el grupo listo en `D:\Claude\draftboard\mensaje-probadores.txt`
+      (instalar, aviso de Windows, casilla de avisos, este aviso, botón de
+      errores y las tres preguntas). Falta enviarlo.
 - [x] Contador anónimo y voluntario (con permiso explícito): si abren la app,
       qué pantallas usan y qué funciones fallan (23/11; `npm run reports`).
       Nada de datos personales. **Pedir a cada probador que marque la casilla
