@@ -166,9 +166,12 @@ programador en la tier list) para después de la prueba. Fechas fijadas:
 - [x] **Instalación desde cero** (18/11, 0.6.3 instalada, datos apartados en
       `D:\Claude\draftboard-respaldo-18-11`): términos, bienvenida, cuenta
       detectada sola (Riot ID con letras raras bien), 72 partidas de la
-      temporada bajadas y con su cuenta, registro sin errores. Pendiente de
-      mirar: no hay entrada en el menú Inicio (solo acceso del escritorio);
-      comprobar en una instalación nueva si el instalador la crea.
+      temporada bajadas y con su cuenta, registro sin errores. Menú Inicio
+      (mirado 23/11): el instalador de Tauri crea el acceso en la primera
+      instalación y las actualizaciones a propósito no lo vuelven a crear
+      (`shortcuts.nsh`: sale si `/UPDATE`). En el PC de Rafael falta porque
+      se borró en algún momento; un probador que instale de cero lo tendrá.
+      Comprobarlo en el primer probador.
 - [ ] Partida fuera de jungla con la app abierta (Rafael, más tarde).
 - [ ] 20/11: **última versión** para probadores (lleva las voces naturales,
       ya hechas y probadas) y congelar.

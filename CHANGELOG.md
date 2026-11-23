@@ -4,6 +4,30 @@ All notable changes to Draftboard are documented here.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/);
 versions match the Tauri app version + the `vX.Y.Z` git tags.
 
+## [Unreleased] — planned 0.6.4, the tester build
+
+### Added
+- Natural voices (Piper) in Spanish and English: Dave and Joe by default,
+  downloaded once and preloaded; a voice picker with a "try" button. The PC
+  voice speaks while the natural one is still loading.
+- Trinket swap reminder: from minute 15 the live coach tells a support or
+  jungler to swap to Oracle Lens, and an ADC to Farsight once also level 9
+  (shown until swapped, spoken once per game). The post-game coach flags a
+  swap that never happened or came late.
+- Anonymous install counter: one ping on first launch with the app version
+  only (updates are not counted).
+
+### Changed
+- The post-game coach reads in Spanish and English (it was Spanish only);
+  positions show as top/jungle/mid/ADC/support.
+- Past 7-day plans can be opened in full ("Show full plan").
+- SoloQ Master+ and "Pro + SoloQ" tier-list sources only appear when that
+  data exists (players never have it).
+
+### Security
+- Riot and AI keys saved in plain text by older versions are encrypted on
+  first load (Windows DPAPI).
+
 ## [0.6.3] — 2026-11-18
 
 First version offered by the updater after 0.5.9 (0.6.0–0.6.2 were built
