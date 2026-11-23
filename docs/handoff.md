@@ -15,6 +15,13 @@ open. Not user documentation — see [`../README.md`](../README.md) for that.
     burst; 50 starved the 4th-5th enemy (Rafael chose 80 on 23/11). Two
     testers loading at once still pass the key's 100: only the production
     key fixes that.
+  - Coach (from Rafael's 23/11 games, Ornn/Mordekaiser top): real lane
+    opponent from minute 3-14 positions (`laneMatchups.ts`, lane swaps
+    followed), lane result at 14, "where the game was lost" after a loss,
+    team-fight deaths counted apart, deaths in fights taken outnumbered
+    (rotate instead), no armor/MR advice when already built (Data Dragon
+    item tags). Build: full rune pages (9) in Prepare and the matchup card,
+    4th-6th items from the general build after the matchup core.
   - App: enemy-scout streak / one-trick toasts and voice line, and the boot
     skeleton title, were Spanish-only; now `scout.toastHot*`,
     `scout.voiceHot*`, `scout.toastOneTrick`, `common.loadingDraft`. Same

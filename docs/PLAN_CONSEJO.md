@@ -194,6 +194,9 @@ programador en la tier list) para después de la prueba. Fechas fijadas:
   rival en el 14 y al final; si la tuya fue bien, decirlo y señalar la que se
   hundió, solo con números, sin culpar; (2) separar muertes en peleas de
   equipo (varios aliados caen a la vez) de las muertes en solitario.
+- Hecho 23/11 (sin publicar, próximo paquete): coach con línea real, "dónde
+  se perdió", muertes en pelea aparte, peleas con menos gente ("no hace
+  falta seguir cada pelea"); runas completas y objetos 4.º-6.º.
 - Apuntado 23/11 (Rafael): runas incompletas en "Prepara" (`slice(0, 4)`
   de 9) y en "Contra X" (faltan los 3 fragmentos); build del enfrentamiento
   cortada en el 3.er objeto (op.gg matchup solo trae 3; rellenar 4.º-6.º con
