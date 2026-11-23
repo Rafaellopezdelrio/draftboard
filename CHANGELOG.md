@@ -4,9 +4,17 @@ All notable changes to Draftboard are documented here.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/);
 versions match the Tauri app version + the `vX.Y.Z` git tags.
 
+## [0.6.5] — 2026-11-23
+
+The tester build (0.6.4 was built only; users go 0.6.3 → 0.6.5).
+
+### Security
+- Rust dependencies: cookie 0.18.3 (RUSTSEC-2026-0594) and url 2.5.9
+  (RUSTSEC-2026-0592).
+
 ## [0.6.4] — 2026-11-23
 
-The tester build.
+Built only (superseded by 0.6.5). Everything below shipped in 0.6.5.
 
 ### Added
 - Natural voices (Piper) in Spanish and English: Dave and Joe by default,

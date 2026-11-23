@@ -18,7 +18,8 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
-    version: "0.6.4",
+    // 0.6.4 was built only (superseded by 0.6.5): users go 0.6.3 → 0.6.5.
+    version: "0.6.5",
     date: "2026-11-23",
     highlights: [
       "🗣️ Voces naturales en español e inglés (Dave y Joe), que se descargan una vez; puedes elegir otra en Preferencias y probarla",
