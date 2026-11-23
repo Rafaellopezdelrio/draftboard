@@ -330,7 +330,10 @@
       "first": "1.º",
       "boots": "Botas",
       "second": "2.º",
-      "third": "3.º"
+      "third": "3.º",
+      "fourth": "4.º",
+      "fifth": "5.º",
+      "sixth": "6.º"
     },
     "planWhyLane": "por {{name}}",
     "planWhyTeam": "por su equipo: {{reason}}",
@@ -352,7 +355,8 @@
       "antiHealArmor": "Se curan mucho: les corta la curación y te da armadura.",
       "antiHeal": "Se curan mucho: este objeto les corta la curación.",
       "antiHealCheap": "Se curan mucho: una pieza barata que les corta la curación."
-    }
+    },
+    "planWhyGeneral": "lo habitual después"
   },
   "scout": {
     "title": "Scout enemigos",
@@ -535,7 +539,11 @@
       "laneLostFed_one": "{{champ}} también mató {{count}} vez a un compañero antes del minuto 14: parte de su ventaja no la perdiste tú.",
       "laneLostFed_other": "{{champ}} también mató {{count}} veces a compañeros antes del minuto 14: parte de su ventaja no la perdiste tú.",
       "manyDeathsDetailTf_one": "{{n}} muertes en {{min}} min; {{count}} fue en una pelea de equipo, donde cayeron varios a la vez.",
-      "manyDeathsDetailTf_other": "{{n}} muertes en {{min}} min; {{count}} fueron en peleas de equipo, donde cayeron varios a la vez."
+      "manyDeathsDetailTf_other": "{{n}} muertes en {{min}} min; {{count}} fueron en peleas de equipo, donde cayeron varios a la vez.",
+      "outnumberedTitle_one": "Moriste en {{count}} pelea con menos gente",
+      "outnumberedTitle_other": "Moriste en {{count}} peleas con menos gente",
+      "outnumberedDetail": "Por ejemplo, en el minuto {{min}} erais {{us}} contra {{them}}.",
+      "outnumberedAction": "No hace falta seguir cada pelea. Si vais con menos gente o por detrás, no entres: rota a otra línea, coge una oleada o un objetivo al otro lado del mapa."
     },
     "topInsight": "Insight principal",
     "needRiotId": "Abre el LoL para que podamos reconocer tu cuenta, y vuelve a probar.",

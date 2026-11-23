@@ -330,7 +330,10 @@
       "first": "1st",
       "boots": "Boots",
       "second": "2nd",
-      "third": "3rd"
+      "third": "3rd",
+      "fourth": "4th",
+      "fifth": "5th",
+      "sixth": "6th"
     },
     "planWhyLane": "for {{name}}",
     "planWhyTeam": "for their team: {{reason}}",
@@ -352,7 +355,8 @@
       "antiHealArmor": "They heal a lot: cuts their healing and gives you armor.",
       "antiHeal": "They heal a lot: this item cuts their healing.",
       "antiHealCheap": "They heal a lot: a cheap piece that cuts their healing."
-    }
+    },
+    "planWhyGeneral": "the usual next item"
   },
   "scout": {
     "title": "Enemy scout",
@@ -535,7 +539,11 @@
       "laneLostFed_one": "{{champ}} also killed a teammate {{count}} time before minute 14: part of that lead was not on you.",
       "laneLostFed_other": "{{champ}} also killed teammates {{count}} times before minute 14: part of that lead was not on you.",
       "manyDeathsDetailTf_one": "{{n}} deaths in {{min}} min; {{count}} was in a team fight, where several went down at once.",
-      "manyDeathsDetailTf_other": "{{n}} deaths in {{min}} min; {{count}} were in team fights, where several went down at once."
+      "manyDeathsDetailTf_other": "{{n}} deaths in {{min}} min; {{count}} were in team fights, where several went down at once.",
+      "outnumberedTitle_one": "You died in {{count}} fight taken outnumbered",
+      "outnumberedTitle_other": "You died in {{count}} fights taken outnumbered",
+      "outnumberedDetail": "For example, at minute {{min}} it was {{us}} against {{them}}.",
+      "outnumberedAction": "You don’t have to follow every fight. When you’re outnumbered or behind, don’t go in: rotate to another lane, take a wave or an objective on the other side of the map."
     },
     "topInsight": "Top insight",
     "needRiotId": "Open LoL so we can recognise your account, then try again.",

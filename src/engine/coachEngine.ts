@@ -110,6 +110,7 @@ export function analyzeMatch({
   out.push(...checkTrinket(me, myParticipantId, timeline, role, minutes));
   out.push(...checkDeaths(me, myParticipantId, timeline, minutes, role, new Set(team.map((p) => p.participantId))));
   out.push(...checkKillParticipation(me, team));
+  out.push(...checkOutnumberedFights(myParticipantId, timeline, new Set(team.map((p) => p.participantId))));
   out.push(...checkDamageShare(me, team, role));
   out.push(...checkObjectives(me, myTeamId, timeline));
   out.push(...checkBuildVsEnemy(enemy, me, itemTags));
@@ -427,6 +428,46 @@ function checkWhereLost(me: MatchParticipant, pairs: LanePair[], name: (id: numb
         gold: fmtGold(worst.gold),
         kda: `${e.kills}/${e.deaths}/${e.assists}`,
       }),
+    },
+  ];
+}
+
+/** Enemies minus teammates in a fight for it to count as taken outnumbered. */
+const OUTNUMBERED_BY = 2;
+
+/** Deaths in fights my side took with fewer players: not every call has to
+ * be followed — when the numbers are against you, rotate instead. Who was
+ * in a fight = everyone who killed, assisted or died within 15 s of my death. */
+function checkOutnumberedFights(myParticipantId: number, timeline: MatchTimeline, allyIds: Set<number>): Insight[] {
+  const kills = timeline.frames.flatMap((f) =>
+    f.events.filter((ev) => ev.type === "CHAMPION_KILL")
+  ) as Extract<MatchTimeline["frames"][number]["events"][number], { type: "CHAMPION_KILL" }>[];
+  const fights: Array<{ min: number; us: number; them: number }> = [];
+  for (const death of kills) {
+    if (death.victimId !== myParticipantId) continue;
+    const near = kills.filter((k) => Math.abs(k.timestamp - death.timestamp) <= TEAM_FIGHT_WINDOW_MS);
+    const us = new Set<number>();
+    const them = new Set<number>();
+    for (const k of near) {
+      for (const id of [k.killerId, k.victimId, ...(k.assistingParticipantIds ?? [])]) {
+        if (id <= 0) continue; // tower / minion kill
+        (allyIds.has(id) ? us : them).add(id);
+      }
+    }
+    // A pick-off (one or two enemies on me alone) is "solo deaths", not this.
+    if (us.size >= 2 && them.size - us.size >= OUTNUMBERED_BY) {
+      fights.push({ min: death.timestamp / 60_000, us: us.size, them: them.size });
+    }
+  }
+  if (fights.length === 0) return [];
+  const worst = [...fights].sort((a, b) => b.them - b.us - (a.them - a.us))[0];
+  return [
+    {
+      category: "macro",
+      severity: "warn",
+      title: T("outnumberedTitle", { count: fights.length }),
+      detail: T("outnumberedDetail", { min: worst.min.toFixed(0), us: worst.us, them: worst.them }),
+      action: T("outnumberedAction"),
     },
   ];
 }

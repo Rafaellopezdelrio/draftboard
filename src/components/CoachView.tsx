@@ -137,7 +137,7 @@ export function CoachView({ db, onClose }: Props) {
         setLoading(false);
       }
     })();
-  }, [matchId, db.patch]);
+  }, [matchId, db]);
 
   async function runAi() {
     if (!matchFull || !matchTimeline) return;

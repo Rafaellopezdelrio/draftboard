@@ -1020,3 +1020,51 @@ describe("coachEngine — lane matchup and where the game was lost", () => {
     }
   });
 });
+
+// Rafael 23/11: teach that not every fight has to be followed — rotate instead.
+describe("coachEngine — fights taken outnumbered", () => {
+  beforeEach(() => setCoachEloBucket("DIAMOND"));
+  // mkMatch: me = 1, allies 2-5, enemies 6-10.
+  const ck = (t: number, killerId: number, victimId: number, assisting: number[] = []) => ({
+    type: "CHAMPION_KILL",
+    timestamp: t * 60_000,
+    killerId,
+    victimId,
+    assistingParticipantIds: assisting,
+  });
+  const fightTitle = (out: ReturnType<typeof analyzeMatch>) => out.find((i) => /con menos gente|outnumbered/.test(i.title));
+
+  it("flags dying in a fight my side took with two or more fewer players", () => {
+    // Minute 24: me and ally 2 against enemies 6-9.
+    const out = run(mkParticipant(), { events: [ck(24, 6, 1, [7, 8]), ck(24.1, 9, 2, [6])] });
+    expect(fightTitle(out)).toMatchObject({
+      category: "macro",
+      severity: "warn",
+      title: "Moriste en 1 pelea con menos gente",
+      detail: "Por ejemplo, en el minuto 24 erais 2 contra 4.",
+    });
+    expect(fightTitle(out)!.action).toMatch(/No hace falta seguir cada pelea/);
+  });
+
+  it("leaves pick-offs and even fights alone", () => {
+    // Caught alone by two: that is a solo death, not a fight the team took.
+    expect(fightTitle(run(mkParticipant(), { events: [ck(10, 6, 1, [7])] }))).toBeUndefined();
+    // 3 v 3.
+    expect(fightTitle(run(mkParticipant(), { events: [ck(20, 6, 1, [7]), ck(20.1, 2, 8, [3])] }))).toBeUndefined();
+  });
+
+  it("speaks English when the app does", async () => {
+    i18n.addResourceBundle("en", "translation", enBundle, true, true);
+    await i18n.changeLanguage("en");
+    try {
+      const out = run(mkParticipant(), { events: [ck(24, 6, 1, [7, 8]), ck(24.1, 9, 2, [6]), ck(30, 6, 1, [7, 8, 9]), ck(30.1, 10, 3)] });
+      expect(fightTitle(out)).toMatchObject({
+        title: "You died in 2 fights taken outnumbered",
+        // The worst one is the example: minute 30, 2 against 5.
+        detail: "For example, at minute 30 it was 2 against 5.",
+      });
+    } finally {
+      await i18n.changeLanguage("es");
+    }
+  });
+});
