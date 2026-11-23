@@ -173,8 +173,10 @@ programador en la tier list) para después de la prueba. Fechas fijadas:
       se borró en algún momento; un probador que instale de cero lo tendrá.
       Comprobarlo en el primer probador.
 - [ ] Partida fuera de jungla con la app abierta (Rafael, más tarde).
-- [ ] 20/11: **última versión** para probadores (lleva las voces naturales,
-      ya hechas y probadas) y congelar.
+- [x] **Última versión para probadores: 0.6.5** (publicada 23/11; la 0.6.4
+      quedó solo fabricada). Lleva voces naturales, aviso del trinket, coach y
+      tendencias en es/en, contador de funciones con permiso. **Congelada**:
+      durante la prueba solo arreglos de fallos graves.
 - [ ] 20/11 → 11/12: prueba. **11/12: decidir** con los datos.
 - Norma durante la prueba: si sale una idea nueva, se apunta aquí y no se
   programa; el asistente lo recuerda antes de empezar nada.
