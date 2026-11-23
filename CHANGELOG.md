@@ -20,6 +20,9 @@ versions match the Tauri app version + the `vX.Y.Z` git tags.
 ### Changed
 - The post-game coach reads in Spanish and English (it was Spanish only);
   positions show as top/jungle/mid/ADC/support.
+- The Trends tab (vs-rank, progress, trend lines, weakest area) and the
+  cache / basic-data badges read in Spanish and English; the "main leak
+  changed" note names the stats in words instead of internal keys.
 - Past 7-day plans can be opened in full ("Show full plan").
 - SoloQ Master+ and "Pro + SoloQ" tier-list sources only appear when that
   data exists (players never have it).
