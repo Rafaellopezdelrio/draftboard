@@ -51,6 +51,46 @@ export function choosePosition(
   return valid[0];
 }
 
+const usualRoles = (championKey: number | string): readonly string[] => {
+  const id = idByKey[String(championKey)];
+  return (id && CHAMPION_ROLES[id]) || [];
+};
+
+/**
+ * choosePosition looks at one player; a team needs one of each role. When the
+ * choices leave a team with a role twice and another missing, settle it:
+ *  - the other player in the doubled role usually plays the missing one →
+ *    Riot swapped them, move that player (the mid Ahri labelled TOP case);
+ *  - else the player whose Riot position IS the missing role keeps it (a real
+ *    off-meta pick: Ezreal top, 23/11 — "ADC" left his team with two ADCs).
+ * Returns the final positions, in order. ARAM-like teams (blank) are skipped.
+ */
+export function settleTeamPositions(
+  players: Array<{ teamId: number; championId: number; position: string; riot: string | null | undefined }>
+): string[] {
+  const out = players.map((p) => p.position);
+  for (const teamId of new Set(players.map((p) => p.teamId))) {
+    const idx = players.map((p, i) => (p.teamId === teamId ? i : -1)).filter((i) => i >= 0);
+    if (idx.length !== 5 || idx.some((i) => !out[i])) continue;
+    for (let pass = 0; pass < 5; pass++) {
+      const missing = ROLES.filter((r) => !idx.some((i) => out[i] === r));
+      const doubled = ROLES.find((r) => idx.filter((i) => out[i] === r).length > 1);
+      if (!doubled || missing.length === 0) break;
+      const dups = idx.filter((i) => out[i] === doubled);
+      const swapped = missing
+        .map((m) => ({ m, i: dups.find((i) => normalize(players[i].riot) !== m && usualRoles(players[i].championId).includes(m)) }))
+        .find((x) => x.i !== undefined);
+      const offMeta = missing
+        .map((m) => ({ m, i: dups.find((i) => normalize(players[i].riot) === m) }))
+        .find((x) => x.i !== undefined);
+      const fix = swapped ?? offMeta;
+      if (!fix || fix.i === undefined) break;
+      out[fix.i] = fix.m;
+    }
+  }
+  return out;
+}
+
 /** Test-only: forget the registered champion table. */
 export function __testOnly_resetChampionIds(): void {
   idByKey = {};

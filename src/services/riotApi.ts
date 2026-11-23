@@ -9,7 +9,7 @@
 
 import { httpFetch } from "./httpClient";
 import { splitRiotId } from "./riotId";
-import { choosePosition } from "./positionFix";
+import { choosePosition, settleTeamPositions } from "./positionFix";
 import { riotIdLookalikes } from "./riotIdLookalikes";
 import { i18n } from "../i18n";
 
@@ -553,7 +553,7 @@ export async function getMatchFull(
     `https://${cluster}.api.riotgames.com/lol/match/v5/matches/${matchId}`,
     cfg.apiKey
   );
-  return {
+  const full: MatchFull = {
     matchId: m.metadata.matchId,
     durationSec: m.info.gameDuration,
     endTsMs: m.info.gameEndTimestamp,
@@ -589,6 +589,12 @@ export async function getMatchFull(
       perks: p.perks,
     })),
   };
+  // One of each role per team: settle what the per-player check doubled up.
+  const settled = settleTeamPositions(
+    full.participants.map((p, n) => ({ ...p, riot: m.info.participants[n].teamPosition }))
+  );
+  full.participants.forEach((p, n) => (p.position = settled[n]));
+  return full;
 }
 
 export async function getMatchTimeline(
