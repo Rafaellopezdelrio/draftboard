@@ -296,6 +296,3 @@ export { setSentryGlobalTags as setSentryTags };
 // Exported for tests — the secret-redaction is security-critical, so pin it.
 export const __testOnly_redactSecrets = redactSecrets;
 export const __testOnly_workerTransport = workerTransport;
-export function __testOnly_resetErrorReports(): void {
-  sentFingerprints.clear();
-}

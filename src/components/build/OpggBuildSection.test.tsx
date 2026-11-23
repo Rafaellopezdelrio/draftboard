@@ -31,7 +31,6 @@ vi.mock("../../services/lolvvvBuilds", () => ({
 }));
 vi.mock("../../services/lcuService", () => ({
   applySummonerSpells: vi.fn(),
-  applyRunes: vi.fn(),
 }));
 // Lazy DDragon / CommunityDragon manifests — keep the render offline.
 vi.mock("../../services/itemMeta", () => ({

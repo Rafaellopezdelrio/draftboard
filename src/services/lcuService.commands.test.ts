@@ -11,7 +11,6 @@ import {
   getCurrentSummoner,
   getSummonerById,
   applyRunesResult,
-  applyRunes,
   pushItemSet,
   applySummonerSpells,
   subscribeChampSelect,
@@ -121,13 +120,6 @@ describe("applyRunesResult / applyRunes", () => {
       reason: "error",
       detail: "Error: HTTP 500",
     });
-  });
-
-  it("applyRunes collapses the result to a boolean", async () => {
-    tauri.invoke.mockResolvedValueOnce(undefined);
-    expect(await applyRunes(PAGE)).toBe(true);
-    tauri.invoke.mockRejectedValueOnce("PAGE_LIMIT");
-    expect(await applyRunes(PAGE)).toBe(false);
   });
 });
 

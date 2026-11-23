@@ -65,10 +65,6 @@ export async function applyRunesResult(page: RunePageInput): Promise<RuneApplyRe
   }
 }
 
-export async function applyRunes(page: RunePageInput): Promise<boolean> {
-  return (await applyRunesResult(page)).ok;
-}
-
 /**
  * Push a recommended item set to the LCU. Shows up in the in-game shop's
  * left sidebar so the user can buy each block with a click.

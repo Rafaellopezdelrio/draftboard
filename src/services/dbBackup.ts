@@ -11,7 +11,7 @@
 //      export. SQLite file IS the portability format.
 
 import { invoke } from "@tauri-apps/api/core";
-import { save, open } from "@tauri-apps/plugin-dialog";
+import { save } from "@tauri-apps/plugin-dialog";
 import { i18n } from "../i18n";
 
 function isTauri(): boolean {
@@ -58,13 +58,6 @@ export async function restoreFromPath(sourcePath: string): Promise<number> {
   return await invoke<number>("db_restore_from", { sourcePath });
 }
 
-export interface RestoreResult {
-  /** Where the restored DB came from. Empty when cancelled. */
-  path: string;
-  /** Bytes copied. 0 when cancelled. */
-  bytes: number;
-}
-
 /**
  * Open a native "Save As..." picker, then write a consistent snapshot of
  * the running SQLite DB (WAL included) to the chosen location. Returns the chosen path + byte count on success,
@@ -83,29 +76,4 @@ export async function backupDatabase(): Promise<BackupResult> {
   if (!target) return { path: "", bytes: 0 };
   const bytes = await invoke<number>("db_backup_to", { targetPath: target });
   return { path: target, bytes };
-}
-
-/**
- * Open a native "Open file" picker, validate the chosen file is a SQLite
- * 3 database, then stage it. The swap happens on the next launch (the live
- * DB can't be replaced safely while it is open); the existing DB is kept at
- * `<dir>/lol-draft-advisor.db.pre-restore` so the user has one undo if the
- * imported file is wrong.
- *
- * The caller is responsible for prompting the user to restart the app —
- * the restore does not take effect until the next launch.
- */
-export async function restoreDatabase(): Promise<RestoreResult> {
-  if (!isTauri()) {
-    throw new Error(i18n.t("about.desktopOnly"));
-  }
-  const source = await open({
-    title: i18n.t("dataPrivacy.toast.pickBackup"),
-    multiple: false,
-    directory: false,
-    filters: [{ name: "SQLite DB", extensions: ["db", "sqlite", "sqlite3"] }],
-  });
-  if (!source || Array.isArray(source)) return { path: "", bytes: 0 };
-  const bytes = await invoke<number>("db_restore_from", { sourcePath: source });
-  return { path: source, bytes };
 }

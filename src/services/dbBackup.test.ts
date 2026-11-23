@@ -8,15 +8,12 @@ vi.mock("@tauri-apps/api/core", () => ({
 }));
 
 let saveResult: string | null = null;
-let openResult: string | string[] | null = null;
 vi.mock("@tauri-apps/plugin-dialog", () => ({
   save: () => Promise.resolve(saveResult),
-  open: () => Promise.resolve(openResult),
 }));
 
 import {
   backupDatabase,
-  restoreDatabase,
   listAutoBackups,
   restoreFromPath,
 } from "./dbBackup";
@@ -25,7 +22,6 @@ describe("dbBackup — dialog + IPC wrappers", () => {
   beforeEach(() => {
     invokeMock.mockReset();
     saveResult = null;
-    openResult = null;
   });
 
   it("backupDatabase returns an empty result and skips IPC when the user cancels", async () => {
@@ -42,32 +38,6 @@ describe("dbBackup — dialog + IPC wrappers", () => {
     expect(r).toEqual({ path: "C:\\Users\\me\\backup.db", bytes: 2048 });
     expect(invokeMock).toHaveBeenCalledWith("db_backup_to", {
       targetPath: "C:\\Users\\me\\backup.db",
-    });
-  });
-
-  it("restoreDatabase returns empty when cancelled (null)", async () => {
-    openResult = null;
-    const r = await restoreDatabase();
-    expect(r).toEqual({ path: "", bytes: 0 });
-    expect(invokeMock).not.toHaveBeenCalled();
-  });
-
-  it("restoreDatabase guards against a multi-select array result", async () => {
-    // `open({multiple:false})` should give a string, but defend against an
-    // array shape — restoring 'the first of N' silently would be wrong.
-    openResult = ["C:\\a.db", "C:\\b.db"];
-    const r = await restoreDatabase();
-    expect(r).toEqual({ path: "", bytes: 0 });
-    expect(invokeMock).not.toHaveBeenCalled();
-  });
-
-  it("restoreDatabase restores from the chosen file", async () => {
-    openResult = "C:\\Users\\me\\snapshot.db";
-    invokeMock.mockResolvedValue(4096);
-    const r = await restoreDatabase();
-    expect(r).toEqual({ path: "C:\\Users\\me\\snapshot.db", bytes: 4096 });
-    expect(invokeMock).toHaveBeenCalledWith("db_restore_from", {
-      sourcePath: "C:\\Users\\me\\snapshot.db",
     });
   });
 

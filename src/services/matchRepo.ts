@@ -238,7 +238,3 @@ export async function personalMatchupsByRole(
     return []; // opponent_champion_id column may not exist on old DBs
   }
 }
-
-export interface PersonalChampionRoleStat extends ChampionPersonalStat {
-  position: string;
-}
