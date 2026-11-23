@@ -44,6 +44,7 @@ describe("perf.mark + perf.measure", () => {
 describe("perf.warnIfSlow", () => {
   it("ignores fast operations (no breadcrumb fired)", async () => {
     const { trackEvent } = await import("./breadcrumbs");
+    (trackEvent as ReturnType<typeof vi.fn>).mockClear();
     warnIfSlow(500, 1000, "fast op");
     expect(trackEvent).not.toHaveBeenCalled();
   });

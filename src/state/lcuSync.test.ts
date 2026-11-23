@@ -398,13 +398,18 @@ describe("lcuSync.applySession — defensive parsing", () => {
     expect(s.enemy[0].championKey).toBe("157"); // enemy hover via actions
   });
 
+  // The [lcu-shape] dump is throttled to one per 10s on a module-level clock.
+  // Each test that expects a dump jumps further ahead than any earlier one,
+  // so the result does not depend on test order.
+  let fakeNow = Date.now();
+  const pastDumpThrottle = () => (fakeNow += 1e9);
+
   it("[lcu-shape] dump keeps the pick actions after a full ban phase (compact tokens)", () => {
     // Live log 2026-10-27: the raw JSON dump was sliced inside the 10 bans,
     // so the pick actions — where the unresolved champ should be — never
     // reached the disk log.
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    // Step past the 10s dump throttle regardless of earlier tests.
-    const now = vi.spyOn(Date, "now").mockReturnValue(Date.now() + 1e9);
+    const now = vi.spyOn(Date, "now").mockReturnValue(pastDumpThrottle());
     const bans = Array.from({ length: 10 }, (_, i) => ({
       type: "ban", actorCellId: i, championId: 100 + i, completed: true,
       isAllyAction: i < 5, isInProgress: false, id: i, duration: 0, pickTurn: 0,
@@ -436,7 +441,7 @@ describe("lcuSync.applySession — defensive parsing", () => {
     ["completed with no champion", { completed: true, isInProgress: false }, true],
   ])("[lcu-shape] dump decision when my pick action is %s", (_n, flags, expected) => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const now = vi.spyOn(Date, "now").mockReturnValue(Date.now() + 2e9 + (expected ? 1e6 : 0));
+    const now = vi.spyOn(Date, "now").mockReturnValue(pastDumpThrottle());
     applySession({
       localPlayerCellId: 9,
       myTeam: [player(5, 0), player(6, 0), player(7, 0), player(8, 0), player(9, 0)],

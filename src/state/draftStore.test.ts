@@ -7,7 +7,9 @@ import { useDraftStore } from "./draftStore";
 
 describe("draftStore", () => {
   beforeEach(() => {
-    useDraftStore.getState().reset();
+    // reset() is the board button and keeps your role on purpose; tests
+    // start from the full initial state so their order does not matter.
+    useDraftStore.setState(useDraftStore.getInitialState(), true);
   });
 
   it("starts with 5 empty slots per side and no role", () => {
