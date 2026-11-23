@@ -5,6 +5,18 @@ open. Not user documentation — see [`../README.md`](../README.md) for that.
 
 ## Status
 
+- **2026-11-23 — v0.6.5 tagged = the tester build** (0.6.4 built only: the
+  CI cargo-audit gate had been red since 22/11 on cookie RUSTSEC-2026-0594 and
+  url RUSTSEC-2026-0592; 0.6.5 = 0.6.4 + `cargo update -p cookie -p url`).
+  Users go 0.6.3 → 0.6.5. Contents: natural voices + picker, encrypted legacy
+  keys, install counter, trinket swap reminder (live voice at minute 15, ADC
+  also level 9; post-game insight), post-game coach and Trends tab in es/en,
+  past 7-day plans open in full, SoloQ/blend sources hidden without data,
+  opt-in feature counter (`trackFeature`, `f-*` names, terms v3; `npm run
+  reports` lists failures first), what's-new modal bilingual
+  (`highlightsEn`). Not checked yet: the voices in an installed release build,
+  a non-jungle game, the Start menu shortcut on a first install (Tauri creates
+  it; updates don't — `shortcuts.nsh`).
 - **2026-11-18 — v0.6.3 published** (worker 2026-11-18.1, manifest checked
   live, installer 3 966 739 bytes downloads). Users go 0.5.9 → 0.6.3
   (0.6.0–0.6.2 built, never offered). Contents: Mis campeones (whole season,

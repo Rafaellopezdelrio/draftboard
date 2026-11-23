@@ -52,7 +52,9 @@ function randomWorld(r: ReturnType<typeof rng>) {
     return { championId: Number(k), games, wins, winRate: games ? wins / games : 0 };
   });
   const masteries: ChampionMasteryDto[] = keys.filter(() => r.chance(0.3)).map(
-    (k) => ({ championId: Number(k), championLevel: r.int(1, 12), championPoints: r.int(0, 400_000), lastPlayTime: r.chance(0.2) ? 0 : Date.now() - r.int(0, 900) * DAY }) as ChampionMasteryDto
+    // Half a day off whole days: recency steps at 30/90/365 days, and an age of
+    // exactly 30 days flipped between the two suggest() calls below (ms apart).
+    (k) => ({ championId: Number(k), championLevel: r.int(1, 12), championPoints: r.int(0, 400_000), lastPlayTime: r.chance(0.2) ? 0 : Date.now() - (r.int(0, 900) + 0.5) * DAY }) as ChampionMasteryDto
   );
   return {
     db,
