@@ -16,6 +16,9 @@ versions match the Tauri app version + the `vX.Y.Z` git tags.
   swap that never happened or came late.
 - Anonymous install counter: one ping on first launch with the app version
   only (updates are not counted).
+- With the player's yes (terms v3, box unticked by default), the anonymous
+  usage counter also records which features ran or failed: champ select,
+  natural voice, AI, data sources, live voice lines. Fixed names only.
 
 ### Changed
 - The post-game coach reads in Spanish and English (it was Spanish only);

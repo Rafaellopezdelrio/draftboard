@@ -182,8 +182,10 @@ programador en la tier list) para después de la prueba. Fechas fijadas:
 ### Fase 1 — Prueba cerrada (3 semanas, sin versiones nuevas salvo fallos graves)
 - [ ] 5-10 amigos o conocidos, grupo cerrado (nada de Reddit ni Discord abiertos).
 - [ ] Avisar de que el coach solo está medido en jungla.
-- [ ] Contador anónimo y voluntario (con permiso explícito): si abren la app y
-      qué partes usan. Nada de datos personales.
+- [x] Contador anónimo y voluntario (con permiso explícito): si abren la app,
+      qué pantallas usan y qué funciones fallan (23/11; `npm run reports`).
+      Nada de datos personales. **Pedir a cada probador que marque la casilla
+      de avisos** al instalar: viene sin marcar y sin ella no llega nada.
 - [ ] Tres preguntas: ¿la abres sin que te lo recuerde?, ¿qué usas?, ¿qué te sobra?
 - [ ] Medir el coach con partidas de otras posiciones (top, mid, ADC, support).
 
