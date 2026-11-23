@@ -5,6 +5,11 @@ open. Not user documentation — see [`../README.md`](../README.md) for that.
 
 ## Status
 
+- **Next package (not released, not deployed — release only when Rafael
+  says "publica/lanza"):**
+  - Worker `c3608f1`: each IP may spend at most 50 calls per 2 min that reach
+    Riot (cache misses; `RIOT_UPSTREAM_PER_IP`), and every worker 429 sends
+    Retry-After. Needs `wrangler deploy` (bump `WORKER_VERSION`).
 - **2026-11-23 — v0.6.5 tagged = the tester build** (0.6.4 built only: the
   CI cargo-audit gate had been red since 22/11 on cookie RUSTSEC-2026-0594 and
   url RUSTSEC-2026-0592; 0.6.5 = 0.6.4 + `cargo update -p cookie -p url`).
