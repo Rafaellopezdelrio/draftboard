@@ -2,7 +2,7 @@
 // No Riot API key required — works as long as the LoL client is open.
 
 import { invoke } from "@tauri-apps/api/core";
-import { choosePosition } from "./positionFix";
+import { choosePosition, settleTeamPositions } from "./positionFix";
 import type { MatchSummary } from "./riotApi";
 import type { ChampionMasteryDto } from "./riotApi";
 
@@ -116,14 +116,20 @@ export async function lcuRecentMatches(
     }
     if (!me) continue;
 
-    const myPosition = inferPosition(me, g.queueId);
+    // With all ten players, settle each team to one player per role (a real
+    // off-meta pick keeps its lane, like the Riot path).
+    const inferred = g.participants.map((p) => inferPosition(p, g.queueId));
+    const positions =
+      g.participants.length === 10
+        ? settleTeamPositions(
+            g.participants.map((p, i) => ({ teamId: p.teamId, championId: p.championId, position: inferred[i], riot: rawPosition(p) }))
+          )
+        : inferred;
+    const posOf = (p: (typeof g.participants)[number]) => positions[g.participants.indexOf(p)];
+    const myPosition = posOf(me) ?? inferPosition(me, g.queueId);
     let opponent = null;
     if (myPosition) {
-      opponent = g.participants.find(
-        (p) =>
-          p.teamId !== me.teamId &&
-          inferPosition(p, g.queueId) === myPosition
-      );
+      opponent = g.participants.find((p) => p.teamId !== me.teamId && posOf(p) === myPosition);
     }
 
     out.push({

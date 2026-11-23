@@ -1,4 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { registerChampionIds, __testOnly_resetChampionIds } from "./positionFix";
+import type { ChampionDb } from "../types/champion";
 
 // lcuGet() goes through Tauri's invoke("lcu_get_json", { path }).
 const invokeMock = vi.fn();
@@ -193,6 +195,33 @@ function requestedPaths(): string[] {
 describe("lcuRecentMatches", () => {
   beforeEach(() => {
     invokeMock.mockReset();
+  });
+
+  // 23/11 real game: Ezreal really played top. The per-player check calls
+  // a one-role champion "ADC", which left his team two ADCs and no top, and
+  // the game was saved with no lane opponent.
+  it("with all ten players, keeps a real off-meta pick in its lane so the opponent is found", async () => {
+    const champs = { 81: "Ezreal", 234: "Viego", 84: "Akali", 498: "Xayah", 902: "Milio", 82: "Mordekaiser", 91: "Talon", 13: "Ryze", 221: "Zeri", 99: "Lux" };
+    __testOnly_resetChampionIds();
+    registerChampionIds({
+      champions: Object.fromEntries(Object.entries(champs).map(([key, id]) => [key, { key, id }])),
+    } as unknown as ChampionDb);
+    try {
+      const roles = ["TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY"];
+      const ids = [81, 234, 84, 498, 902, 82, 91, 13, 221, 99];
+      const g = game(
+        500,
+        5_000_000,
+        440,
+        ids.map((champ, i) => lp({ pid: i + 1, champ, team: i < 5 ? 100 : 200, pos: roles[i % 5] })),
+        [[6, "me"]]
+      );
+      routeLcu({ [SUMMONER]: { puuid: "me" }, [byPuuid(5)]: history(g), [byCurrent(5)]: history() });
+      const [m] = await lcuRecentMatches(5);
+      expect(m).toMatchObject({ championId: 82, position: "TOP", opponentChampionId: 81 });
+    } finally {
+      __testOnly_resetChampionIds();
+    }
   });
 
   it("merges both history endpoints newest-first and maps the local player's stats", async () => {
