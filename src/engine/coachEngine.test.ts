@@ -911,3 +911,112 @@ describe("coachEngine — English", () => {
     }
   });
 });
+
+// Real lanes come from where each player stood in minutes 3-14 (23/11 games:
+// a lane swap Riot didn't see, and a loss that came from another lane).
+describe("coachEngine — lane matchup and where the game was lost", () => {
+  beforeEach(() => setCoachEloBucket("DIAMOND"));
+
+  const SPOT = { TOP: { x: 1500, y: 12000 }, MID: { x: 7400, y: 7400 }, BOT: { x: 12500, y: 2000 }, JG: { x: 4000, y: 7500 } };
+  type Spot = keyof typeof SPOT;
+  // mkMatch: me = 1 (MIDDLE); allies 2 TOP, 3 JUNGLE, 4 BOTTOM, 5 UTILITY; enemies 6 TOP, 7 JUNGLE, 8 MIDDLE, 9 BOTTOM, 10 UTILITY.
+  const usual: Record<number, Spot> = { 1: "MID", 2: "TOP", 3: "JG", 4: "BOT", 5: "BOT", 6: "TOP", 7: "JG", 8: "MID", 9: "BOT", 10: "BOT" };
+  const names: Record<number, string> = { 238: "Zed" };
+  const name = (id: number) => names[id] ?? `C${id}`;
+
+  function lanes(
+    where: (id: number, min: number) => Spot,
+    gold: Record<number, number> = {},
+    events: Array<{ timestamp: number; type: string; [k: string]: unknown }> = []
+  ): MatchTimeline {
+    return {
+      matchId: "EUW1_TEST",
+      participantToPuuid: { 1: "me" },
+      frames: Array.from({ length: 16 }, (_, m) => ({
+        timestamp: m * 60_000,
+        events: (m === 1 ? events : []) as never,
+        participantFrames: Object.fromEntries(
+          Array.from({ length: 10 }, (_, i) => [
+            String(i + 1),
+            {
+              participantId: i + 1, currentGold: 0, totalGold: gold[i + 1] ?? 5000, level: 9, xp: 6000,
+              minionsKilled: i + 1 === 5 || i + 1 === 10 ? 10 : 100, jungleMinionsKilled: 0,
+              position: SPOT[where(i + 1, m)],
+            },
+          ])
+        ),
+      })),
+    };
+  }
+  const game = (me: MatchParticipant, durationSec = 1800) => {
+    const match = mkMatch(me, durationSec);
+    match.participants.forEach((p) => (p.championId = p.participantId === 1 ? 238 : p.participantId));
+    return match;
+  };
+  const coach = (me: MatchParticipant, timeline: MatchTimeline, durationSec = 1800) =>
+    analyzeMatch({ match: game(me, durationSec), timeline, myPuuid: "me", championName: name });
+  const kill = (t: number, killerId: number, victimId: number) => ({ type: "CHAMPION_KILL", timestamp: t * 60_000, killerId, victimId });
+
+  it("says I won my lane against the enemy in it", () => {
+    const out = coach(mkParticipant(), lanes((id) => usual[id], { 1: 5800 }));
+    expect(titled(out, "Ganaste tu línea")).toMatchObject({ severity: "good", detail: "En el minuto 14 sacabas 800 de oro a C8." });
+  });
+
+  it("calls a lane within 500 gold even", () => {
+    const out = coach(mkParticipant(), lanes((id) => usual[id], { 1: 5100 }));
+    expect(titled(out, "Línea igualada")!.detail).toBe("En el minuto 14 ibais casi igual en oro con C8: 100 de diferencia.");
+  });
+
+  it("follows a lane swap and says how much of the lead came from killing others", () => {
+    // I (MIDDLE) go top at minute 5 and my top ally comes mid; enemies stay.
+    const where = (id: number, m: number): Spot =>
+      id === 1 ? (m < 5 ? "MID" : "TOP") : id === 2 ? (m < 5 ? "TOP" : "MID") : usual[id];
+    const out = coach(
+      mkParticipant(),
+      lanes(where, { 1: 4000 }, [kill(4, 6, 1), kill(6, 6, 2), kill(9, 6, 3)])
+    );
+    expect(titled(out, "Jugaste en top")!.detail).toBe(
+      "Riot te puso de mid, pero entre los minutos 3 y 14 estuviste sobre todo en top. Tu rival de línea fue C6."
+    );
+    expect(titled(out, "Perdiste tu línea")!.detail).toBe(
+      "En el minuto 14 ibas 1000 de oro por detrás de C6. C6 también mató 2 veces a compañeros antes del minuto 14: parte de su ventaja no la perdiste tú."
+    );
+  });
+
+  it("after a loss, points at the lane that fell furthest behind", () => {
+    const ornn = mkParticipant({ win: false });
+    const out = coach(ornn, lanes((id) => usual[id], { 3: 3600 }));
+    expect(titled(out, "La partida se escapó por jungla")).toMatchObject({
+      severity: "info",
+      detail: "C3 acabó el minuto 14 con 1400 de oro menos que C7, que terminó 5/5/5. Tu línea fue mejor que esa.",
+    });
+  });
+
+  it("says nothing about where it was lost after a win, or when my lane was the worst", () => {
+    expect(coach(mkParticipant({ win: true }), lanes((id) => usual[id], { 3: 3600 })).some((i) => /se escapó/.test(i.title))).toBe(false);
+    expect(coach(mkParticipant(), lanes((id) => usual[id], { 1: 3000, 3: 3600 })).some((i) => /se escapó/.test(i.title))).toBe(false);
+  });
+
+  it("counts deaths where two more teammates fell within 15 s as team fights", () => {
+    const me = mkParticipant({ deaths: 9 });
+    // Minute 10: me, then allies 2 and 3 within 6 s = team fight. Minute 20: alone.
+    const ev = [kill(10, 6, 1), kill(10.05, 7, 2), kill(10.1, 8, 3), kill(20, 6, 1)];
+    const out = coach(me, lanes((id) => usual[id], {}, ev), 1500);
+    expect(titled(out, "Muchas muertes")!.detail).toBe(
+      "9 muertes en 25 min; 1 fue en una pelea de equipo, donde cayeron varios a la vez."
+    );
+  });
+
+  it("speaks English when the app does", async () => {
+    i18n.addResourceBundle("en", "translation", enBundle, true, true);
+    await i18n.changeLanguage("en");
+    try {
+      const out = coach(mkParticipant(), lanes((id) => usual[id], { 3: 3600 }));
+      expect(out.find((i) => i.title === "The game slipped away in jungle")!.detail).toBe(
+        "C3 ended minute 14 1,400 gold behind C7, who finished 5/5/5. Your lane did better than that."
+      );
+    } finally {
+      await i18n.changeLanguage("es");
+    }
+  });
+});

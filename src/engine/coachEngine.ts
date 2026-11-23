@@ -5,6 +5,7 @@ import type {
 } from "../services/riotApi";
 import { DAMAGE_SHARE_TARGET, isRiftQueue } from "./rankBenchmarks";
 import { i18n } from "../i18n";
+import { earlyKillsBy, lanePairs, ROLE_LANE, type LanePair } from "./laneMatchups";
 
 export type Severity = "info" | "warn" | "bad" | "good";
 export type Category =
@@ -31,6 +32,8 @@ interface AnalyzeArgs {
   myPuuid: string;
   /** Data Dragon tags of an item ("Armor", "SpellBlock"…); [] when unknown. */
   itemTags?: (itemId: number) => string[];
+  /** Champion name for the texts; "#id" when unknown. */
+  championName?: (championId: number) => string;
 }
 
 // Reference benchmarks per role for several elos. Coach picks the closest
@@ -81,6 +84,7 @@ export function analyzeMatch({
   timeline,
   myPuuid,
   itemTags = () => [],
+  championName = (id) => `#${id}`,
 }: AnalyzeArgs): Insight[] {
   const me = match.participants.find((p) => p.puuid === myPuuid);
   if (!me) return [];
@@ -104,7 +108,7 @@ export function analyzeMatch({
   out.push(...checkFarming(me, role, minutes));
   out.push(...checkVision(me, role, minutes));
   out.push(...checkTrinket(me, myParticipantId, timeline, role, minutes));
-  out.push(...checkDeaths(me, myParticipantId, timeline, minutes, role));
+  out.push(...checkDeaths(me, myParticipantId, timeline, minutes, role, new Set(team.map((p) => p.participantId))));
   out.push(...checkKillParticipation(me, team));
   out.push(...checkDamageShare(me, team, role));
   out.push(...checkObjectives(me, myTeamId, timeline));
@@ -114,6 +118,9 @@ export function analyzeMatch({
   out.push(...checkFirstBlood(me, myParticipantId, timeline));
   out.push(...checkSnowball(me, minutes));
   out.push(...checkLanePhase(me, role, timeline, myParticipantId));
+  const pairs = lanePairs(match, timeline, myTeamId);
+  out.push(...checkLaneMatchup(me, role, pairs, timeline, championName));
+  out.push(...checkWhereLost(me, pairs, championName));
 
   // Sort: bad first, then warn, then good, then info
   const order: Severity[] = ["bad", "warn", "good", "info"];
@@ -279,20 +286,29 @@ function checkDeaths(
   myParticipantId: number,
   timeline: MatchTimeline,
   minutes: number,
-  role: string
+  role: string,
+  allyIds: Set<number>
 ): Insight[] {
   let earlyDeaths = 0;
   let soloDeaths = 0;
-  for (const frame of timeline.frames) {
-    for (const ev of frame.events) {
-      if (ev.type !== "CHAMPION_KILL") continue;
-      const e = ev as Extract<typeof ev, { type: "CHAMPION_KILL" }>;
-      if (e.victimId !== myParticipantId) continue;
-      const t = e.timestamp / 1000 / 60;
-      if (t < 8) earlyDeaths++;
-      const assists = (e.assistingParticipantIds ?? []).length;
-      if (assists === 0) soloDeaths++;
-    }
+  let teamFightDeaths = 0;
+  const kills = timeline.frames.flatMap((f) =>
+    f.events.filter((ev) => ev.type === "CHAMPION_KILL")
+  ) as Extract<MatchTimeline["frames"][number]["events"][number], { type: "CHAMPION_KILL" }>[];
+  for (const e of kills) {
+    if (e.victimId !== myParticipantId) continue;
+    const t = e.timestamp / 1000 / 60;
+    if (t < 8) earlyDeaths++;
+    const assists = (e.assistingParticipantIds ?? []).length;
+    if (assists === 0) soloDeaths++;
+    // Two or more teammates down within 15 s: a team fight, the group's call.
+    const alliesDown = kills.filter(
+      (k) =>
+        k.victimId !== myParticipantId &&
+        allyIds.has(k.victimId) &&
+        Math.abs(k.timestamp - e.timestamp) <= TEAM_FIGHT_WINDOW_MS
+    ).length;
+    if (alliesDown >= 2) teamFightDeaths++;
   }
 
   const out: Insight[] = [];
@@ -318,7 +334,10 @@ function checkDeaths(
       category: "deaths",
       severity: "bad",
       title: T("manyDeathsTitle"),
-      detail: T("manyDeathsDetail", { n: me.deaths, min: minutes.toFixed(0) }),
+      detail:
+        teamFightDeaths > 0
+          ? T("manyDeathsDetailTf", { n: me.deaths, min: minutes.toFixed(0), count: teamFightDeaths })
+          : T("manyDeathsDetail", { n: me.deaths, min: minutes.toFixed(0) }),
       action: T("manyDeathsAction"),
     });
   }
@@ -334,6 +353,82 @@ function checkDeaths(
   }
 
   return out;
+}
+
+const TEAM_FIGHT_WINDOW_MS = 15_000;
+/** Gold gap at minute 14 that counts as a won / lost lane. */
+const LANE_GOLD_EDGE = 500;
+/** A lane this far behind at 14, and at least this much worse than mine,
+ * is where the game was lost. */
+const WHERE_LOST_GOLD = 1000;
+
+const laneName = (lane: string) => i18n.t(`coach.lanes.${lane}`);
+const fmtGold = (g: number) => Math.abs(Math.round(g)).toLocaleString(i18n.language?.startsWith("en") ? "en-US" : "es-ES");
+
+/** My lane at minute 14 against whoever really laned against me (lane
+ * swaps included), and how much of their lead came from killing others. */
+function checkLaneMatchup(
+  me: MatchParticipant,
+  role: string,
+  pairs: LanePair[],
+  timeline: MatchTimeline,
+  name: (id: number) => string
+): Insight[] {
+  const mine = pairs.find((p) => p.ally === me);
+  if (!mine || mine.lane === "JUNGLE") return [];
+  const champ = name(mine.enemy.championId);
+  const out: Insight[] = [];
+  const assigned = ROLE_LANE[role];
+  if (assigned && assigned !== mine.lane) {
+    out.push({
+      category: "macro",
+      severity: "info",
+      title: T("laneSwapTitle", { lane: laneName(mine.lane) }),
+      detail: T("laneSwapDetail", { lane: laneName(mine.lane), role: roleLabel(role), champ }),
+    });
+  }
+  if (role === "UTILITY") return out;
+  const gold = fmtGold(mine.gold);
+  if (mine.gold >= LANE_GOLD_EDGE) {
+    out.push({ category: "combat", severity: "good", title: T("laneWonTitle"), detail: T("laneWonDetail", { gold, champ }) });
+  } else if (mine.gold > -LANE_GOLD_EDGE) {
+    out.push({ category: "combat", severity: "info", title: T("laneEvenTitle"), detail: T("laneEvenDetail", { gold, champ }) });
+  } else {
+    const { onOthers } = earlyKillsBy(timeline, mine.enemy.participantId, me.participantId);
+    const fed = onOthers > 0 ? ` ${T("laneLostFed", { champ, count: onOthers })}` : "";
+    out.push({
+      category: "combat",
+      severity: "warn",
+      title: T("laneLostTitle"),
+      detail: T("laneLostDetail", { gold, champ }) + fed,
+      action: T("laneLostAction"),
+    });
+  }
+  return out;
+}
+
+/** After a loss: the matchup that fell furthest behind at minute 14, when it
+ * is not mine and clearly worse than mine. Numbers only, no blame. */
+function checkWhereLost(me: MatchParticipant, pairs: LanePair[], name: (id: number) => string): Insight[] {
+  if (me.win || pairs.length === 0) return [];
+  const mine = pairs.find((p) => p.ally === me);
+  const worst = [...pairs].sort((a, b) => a.gold - b.gold)[0];
+  if (worst.ally === me || worst.gold > -WHERE_LOST_GOLD) return [];
+  if (mine && mine.gold - worst.gold < WHERE_LOST_GOLD) return [];
+  const e = worst.enemy;
+  return [
+    {
+      category: "macro",
+      severity: "info",
+      title: T("whereLostTitle", { lane: laneName(worst.lane) }),
+      detail: T("whereLostDetail", {
+        ally: name(worst.ally.championId),
+        enemy: name(e.championId),
+        gold: fmtGold(worst.gold),
+        kda: `${e.kills}/${e.deaths}/${e.assists}`,
+      }),
+    },
+  ];
 }
 
 function checkKillParticipation(me: MatchParticipant, team: MatchParticipant[]): Insight[] {

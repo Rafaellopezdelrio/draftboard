@@ -194,6 +194,15 @@ programador en la tier list) para después de la prueba. Fechas fijadas:
   rival en el 14 y al final; si la tuya fue bien, decirlo y señalar la que se
   hundió, solo con números, sin culpar; (2) separar muertes en peleas de
   equipo (varios aliados caen a la vez) de las muertes en solitario.
+- Apuntado 23/11 (Rafael): runas incompletas en "Prepara" (`slice(0, 4)`
+  de 9) y en "Contra X" (faltan los 3 fragmentos); build del enfrentamiento
+  cortada en el 3.er objeto (op.gg matchup solo trae 3; rellenar 4.º-6.º con
+  la build general). Coach: enseñar a no seguir todas las peleas y a rotar.
+- Apuntado 23/11 (Rafael): builds de lolvvv con elección EUW/KR, posición
+  detectada y rival. lolvvv **no tiene API pública**: su web usa una GraphQL
+  interna (`/api/graphql`) no ofrecida a terceros; la página pública solo
+  trae la posición principal y las regiones mezcladas (KR/NA/EUW/BR). Paso
+  previo: pedirles permiso o acceso por escrito; sin eso, no usar la interna.
 - Pendiente de respuesta: ¿nota suave del trinket en top/mid en el coach?
   (sin voz; en top/mid el cambio depende de la partida).
 

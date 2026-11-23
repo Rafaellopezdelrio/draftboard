@@ -520,7 +520,22 @@
       "magicAction": "Prioritise magic resist (MR) in your build against this comp.",
       "physTitle": "Mostly physical enemy",
       "physDetail": "The enemy team dealt {{pct}}% of its damage as physical.",
-      "physAction": "Prioritise armor in your build against this comp."
+      "physAction": "Prioritise armor in your build against this comp.",
+      "laneSwapTitle": "You played {{lane}}",
+      "laneSwapDetail": "Riot had you as {{role}}, but between minutes 3 and 14 you were mostly in {{lane}}. Your lane opponent was {{champ}}.",
+      "laneWonTitle": "You won your lane",
+      "laneWonDetail": "At minute 14 you were {{gold}} gold ahead of {{champ}}.",
+      "laneEvenTitle": "Even lane",
+      "laneEvenDetail": "At minute 14 you and {{champ}} were close in gold: {{gold}} apart.",
+      "laneLostTitle": "You lost your lane",
+      "laneLostDetail": "At minute 14 you were {{gold}} gold behind {{champ}}.",
+      "laneLostAction": "Check your lane deaths: if they were yours, play further back when you can’t see their jungler.",
+      "whereLostTitle": "The game slipped away in {{lane}}",
+      "whereLostDetail": "{{ally}} ended minute 14 {{gold}} gold behind {{enemy}}, who finished {{kda}}. Your lane did better than that.",
+      "laneLostFed_one": "{{champ}} also killed a teammate {{count}} time before minute 14: part of that lead was not on you.",
+      "laneLostFed_other": "{{champ}} also killed teammates {{count}} times before minute 14: part of that lead was not on you.",
+      "manyDeathsDetailTf_one": "{{n}} deaths in {{min}} min; {{count}} was in a team fight, where several went down at once.",
+      "manyDeathsDetailTf_other": "{{n}} deaths in {{min}} min; {{count}} were in team fights, where several went down at once."
     },
     "topInsight": "Top insight",
     "needRiotId": "Open LoL so we can recognise your account, then try again.",
@@ -568,7 +583,13 @@
         "needsWork": "Draw or win your lane. Improve wave management and punish the enemy's CDs for an early edge."
       }
     },
-    "riftOnly": "Analysis is only available for Summoner's Rift games."
+    "riftOnly": "Analysis is only available for Summoner's Rift games.",
+    "lanes": {
+      "TOP": "top",
+      "MID": "mid",
+      "BOT": "bot",
+      "JUNGLE": "jungle"
+    }
   },
   "lobby": {
     "title": "Lobby scout",

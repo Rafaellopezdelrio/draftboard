@@ -520,7 +520,22 @@
       "magicAction": "Prioriza resistencia mágica (MR) en tu build contra esta comp.",
       "physTitle": "Enemigo mayormente físico",
       "physDetail": "El equipo enemigo hizo {{pct}}% de su daño como físico.",
-      "physAction": "Prioriza armadura en tu build contra esta comp."
+      "physAction": "Prioriza armadura en tu build contra esta comp.",
+      "laneSwapTitle": "Jugaste en {{lane}}",
+      "laneSwapDetail": "Riot te puso de {{role}}, pero entre los minutos 3 y 14 estuviste sobre todo en {{lane}}. Tu rival de línea fue {{champ}}.",
+      "laneWonTitle": "Ganaste tu línea",
+      "laneWonDetail": "En el minuto 14 sacabas {{gold}} de oro a {{champ}}.",
+      "laneEvenTitle": "Línea igualada",
+      "laneEvenDetail": "En el minuto 14 ibais casi igual en oro con {{champ}}: {{gold}} de diferencia.",
+      "laneLostTitle": "Perdiste tu línea",
+      "laneLostDetail": "En el minuto 14 ibas {{gold}} de oro por detrás de {{champ}}.",
+      "laneLostAction": "Mira las muertes de tu línea: si fuiste tú, juega más atrás cuando no veas a su jungla.",
+      "whereLostTitle": "La partida se escapó por {{lane}}",
+      "whereLostDetail": "{{ally}} acabó el minuto 14 con {{gold}} de oro menos que {{enemy}}, que terminó {{kda}}. Tu línea fue mejor que esa.",
+      "laneLostFed_one": "{{champ}} también mató {{count}} vez a un compañero antes del minuto 14: parte de su ventaja no la perdiste tú.",
+      "laneLostFed_other": "{{champ}} también mató {{count}} veces a compañeros antes del minuto 14: parte de su ventaja no la perdiste tú.",
+      "manyDeathsDetailTf_one": "{{n}} muertes en {{min}} min; {{count}} fue en una pelea de equipo, donde cayeron varios a la vez.",
+      "manyDeathsDetailTf_other": "{{n}} muertes en {{min}} min; {{count}} fueron en peleas de equipo, donde cayeron varios a la vez."
     },
     "topInsight": "Insight principal",
     "needRiotId": "Abre el LoL para que podamos reconocer tu cuenta, y vuelve a probar.",
@@ -568,7 +583,13 @@
         "needsWork": "Empata o gana tu carril. Mejora wave management y castiga los CDs del rival para sacar ventaja temprana."
       }
     },
-    "riftOnly": "Análisis solo disponible para partidas de la Grieta del Invocador."
+    "riftOnly": "Análisis solo disponible para partidas de la Grieta del Invocador.",
+    "lanes": {
+      "TOP": "top",
+      "MID": "mid",
+      "BOT": "bot",
+      "JUNGLE": "jungla"
+    }
   },
   "lobby": {
     "title": "Lobby scout",

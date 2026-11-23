@@ -203,11 +203,14 @@ describe("CoachView — match list + loading", () => {
       timeline: TIMELINE,
       myPuuid: "me",
       itemTags: expect.any(Function),
+      championName: expect.any(Function),
     });
     // Item tags come from the patch's item list (Armor, SpellBlock…).
     const { itemTags } = vi.mocked(analyzeMatch).mock.calls[0][0];
     expect(itemTags!(3047)).toEqual(["Armor", "Boots"]);
     expect(itemTags!(1)).toEqual([]);
+    const { championName } = vi.mocked(analyzeMatch).mock.calls[0][0];
+    expect(championName!(999999)).toBe("#999999");
     expect(computeGpi).toHaveBeenCalledWith(matchFull(), "me", "GOLD", TIMELINE);
   });
 

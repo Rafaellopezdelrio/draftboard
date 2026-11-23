@@ -126,6 +126,7 @@ export function CoachView({ db, onClose }: Props) {
             timeline,
             myPuuid: cfg.puuid,
             itemTags: (id) => getItemMeta(db.patch, id)?.tags ?? [],
+            championName: (id) => db.champions[String(id)]?.name ?? `#${id}`,
           })
         );
         trackFeature("postgame-coach");
