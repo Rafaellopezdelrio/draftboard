@@ -180,6 +180,12 @@ programador en la tier list) para después de la prueba. Fechas fijadas:
 - [ ] 20/11 → 11/12: prueba. **11/12: decidir** con los datos.
 - Norma durante la prueba: si sale una idea nueva, se apunta aquí y no se
   programa; el asistente lo recuerda antes de empezar nada.
+- Apuntado 23/11 (partida con la 0.6.5 instalada): las voces naturales le
+  siguen sonando robóticas; Sharvard algo menos que Dave. En España no hay
+  voz Piper de calidad "alta" (Dave y Sharvard son "media"). Las de calidad
+  alta son de otro acento: es_MX-claude-high (México, Apache 2.0, 63 MB) y
+  es_AR-daniela-high (Argentina, CC BY-SA 4.0, 114 MB). Antes de tocar nada:
+  que las escuche en https://rhasspy.github.io/piper-samples/ y decida.
 
 ### Fase 1 — Prueba cerrada (3 semanas, sin versiones nuevas salvo fallos graves)
 - [ ] 5-10 amigos o conocidos, grupo cerrado (nada de Reddit ni Discord abiertos).
