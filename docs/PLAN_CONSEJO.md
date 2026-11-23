@@ -204,8 +204,8 @@ programador en la tier list) para después de la prueba. Fechas fijadas:
 - Apuntado 23/11 (Rafael): builds de lolvvv con elección EUW/KR, posición
   detectada y rival. lolvvv **no tiene API pública**: su web usa una GraphQL
   interna (`/api/graphql`) no ofrecida a terceros; la página pública solo
-  trae la posición principal y las regiones mezcladas (KR/NA/EUW/BR). Paso
-  previo: pedirles permiso o acceso por escrito; sin eso, no usar la interna.
+  trae la posición principal y las regiones mezcladas (KR/NA/EUW/BR). Sin
+  permiso, no usar la interna. Rafael (23/11): no escribirles por ahora.
 - Pendiente de respuesta: ¿nota suave del trinket en top/mid en el coach?
   (sin voz; en top/mid el cambio depende de la partida).
 

@@ -125,6 +125,11 @@ beforeEach(() => {
   lcuRecentMatchesMock.mockResolvedValue([]);
   lcuMasteriesMock.mockResolvedValue([]);
   lcuRankMock.mockResolvedValue(null);
+  // A season backfill may start in the background after a sync: give it an
+  // empty season, or a list left by the backfill tests leaks into this file's
+  // getMatch calls (seen with --sequence.shuffle, seed 12).
+  seasonIdsMock.mockReset().mockResolvedValue([]);
+  storedMatchEndsMock.mockReset().mockResolvedValue(new Map());
 });
 
 describe("syncPersonalData — Riot API path", () => {
