@@ -194,7 +194,9 @@ programador en la tier list) para después de la prueba. Fechas fijadas:
   rival en el 14 y al final; si la tuya fue bien, decirlo y señalar la que se
   hundió, solo con números, sin culpar; (2) separar muertes en peleas de
   equipo (varios aliados caen a la vez) de las muertes en solitario.
-- Hecho 23/11 (sin publicar, próximo paquete): coach con línea real, "dónde
+- **23/11: publicada la 0.6.6** (Rafael: "despliega", servidor + versión;
+  rompe la congelación de la 0.6.5 por decisión suya). Lleva lo de abajo.
+- Hecho 23/11 (en la 0.6.6): coach con línea real, "dónde
   se perdió", muertes en pelea aparte, peleas con menos gente ("no hace
   falta seguir cada pelea"); runas completas y objetos 4.º-6.º.
 - Apuntado 23/11 (Rafael): runas incompletas en "Prepara" (`slice(0, 4)`

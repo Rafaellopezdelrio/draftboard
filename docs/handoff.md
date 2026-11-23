@@ -5,8 +5,12 @@ open. Not user documentation — see [`../README.md`](../README.md) for that.
 
 ## Status
 
-- **Next package (not released, not deployed — release only when Rafael
-  says "publica/lanza"):**
+- **2026-11-23 — v0.6.6 published** (Rafael: "despliega", server + app;
+  it breaks the 0.6.5 tester freeze, his call). Worker 2026-11-23.2 deployed
+  (version 47d81ec7): manifest offers 0.6.6, signature checked identical to
+  the release .sig, installer 6 869 470 bytes downloads, /health ok, a Riot
+  call through the worker answers 200. Contents = the list below.
+- **Shipped in 0.6.6 (was the "next package"):**
   - Worker `c3608f1` + `5dcb7fa`: each IP may spend at most 80 calls per
     2 min that reach Riot (cache misses; `RIOT_UPSTREAM_PER_IP`), and every
     worker 429 sends Retry-After. Needs `wrangler deploy` (bump
