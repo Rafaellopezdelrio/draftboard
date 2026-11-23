@@ -13,8 +13,9 @@ import { i18n } from "../i18n";
 import {
   FARSIGHT_ALTERATION,
   FARSIGHT_MIN_LEVEL,
+  JUNGLE_TRINKET_LIVE_MIN,
   ORACLE_LENS,
-  TRINKET_SWAP_MIN,
+  WARDING_SUPPORT_ITEMS,
 } from "./coachEngine";
 
 export type LiveCoachSeverity = "critical" | "warn" | "good" | "info";
@@ -82,9 +83,9 @@ const SOUL_POINT = 3; // a team on 3 dragons takes Soul on its next dragon
 const BARON_BUFF_SEC = 180; // Baron buff lasts ~3min
 const LOW_HP_PCT = 0.2; // retreat nudge below 20% HP
 const STEALTH_WARD = 3340;
-/** Roles that should swap the Stealth Ward by minute 15, and the voice line. */
+/** Roles that should swap the Stealth Ward, and the voice line. */
 const TRINKET_SWAP_KEY: Record<string, string> = {
-  UTILITY: "liveCoach.trinketOracle",
+  UTILITY: "liveCoach.trinketSupport",
   JUNGLE: "liveCoach.trinketOracle",
   BOTTOM: "liveCoach.trinketFarsight",
 };
@@ -283,15 +284,21 @@ export function coachLiveGame(args: LiveCoachArgs): LiveCoachInsight[] {
   }
 
   // --- Trinket swap ----------------------------------------------------
-  // Support/jungle should be on Oracle Lens and ADC on Farsight by minute 15;
-  // players forget. Shown until they swap, spoken once per game. Farsight
-  // needs level 9, so an ADC is only told once both are true.
+  // When each role should swap (Rafael, 24/11): a support once the support
+  // item places wards, a jungler around the first or second trip to base
+  // (minute 8), an ADC at level 9 (Farsight is not sold before). Players
+  // forget; shown until they swap, spoken once per game.
   const trinketKey = TRINKET_SWAP_KEY[me.position];
+  const trinketDue =
+    me.position === "UTILITY"
+      ? me.items.some((i) => WARDING_SUPPORT_ITEMS.includes(i.itemID))
+      : me.position === "JUNGLE"
+        ? minutes >= JUNGLE_TRINKET_LIVE_MIN
+        : me.level >= FARSIGHT_MIN_LEVEL;
   if (
     trinketKey &&
     isRift !== false &&
-    minutes >= TRINKET_SWAP_MIN &&
-    (me.position !== "BOTTOM" || me.level >= FARSIGHT_MIN_LEVEL) &&
+    trinketDue &&
     me.items.some((i) => i.itemID === STEALTH_WARD) &&
     !me.items.some((i) => i.itemID === ORACLE_LENS || i.itemID === FARSIGHT_ALTERATION)
   ) {

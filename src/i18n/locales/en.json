@@ -191,8 +191,9 @@
     "spikeStrong": "Power spike ({{rating}}/10): force fights and objectives now.",
     "spikeWeak": "Weak right now ({{rating}}/10): {{summary}}. Play safe until your spike.",
     "recall": "You have {{gold}} unspent gold. Recall in the next wave window.",
-    "trinketOracle": "Minute 15: swap your trinket to Oracle Lens in the shop. It is free.",
-    "trinketFarsight": "You can now swap your trinket to the blue one, Farsight Alteration, in the shop. It is free."
+    "trinketOracle": "Swap your trinket to Oracle Lens on this trip to base. It is free.",
+    "trinketFarsight": "You are level 9: swap your trinket to the blue one, Farsight Alteration, on your next trip to base. It is free.",
+    "trinketSupport": "Your support item places wards now: swap your trinket to Oracle Lens on your next trip to base. It is free."
   },
   "runeAdvice": {
     "apHeavy": "AP-heavy comp: MR shard (row 3) instead of armor.",
@@ -431,12 +432,12 @@
   "coach": {
     "trinket": {
       "neverTitle": "You never swapped your trinket",
-      "neverSupport": "You played {{min}} min of support with the Stealth Ward. Once your support item quest is done you already have plenty of wards: Oracle Lens lets you clear theirs.",
-      "neverJungle": "You played {{min}} min of jungle without swapping to Oracle Lens. By mid-game, clearing their wards before Dragon and Baron is worth more than placing another.",
-      "neverAdc": "You played {{min}} min of ADC without swapping to Farsight Alteration (the blue trinket). Once laning ends it lets you check bushes and entrances from afar without walking in.",
+      "neverSupport": "You played {{min}} min of support on the Stealth Ward. Your support item placed wards from minute {{due}} (Runic Compass): from then on Oracle Lens is worth more, since it lets you clear theirs.",
+      "neverJungle": "You played {{min}} min of jungle without swapping to Oracle Lens. Most junglers swap on their first or second trip to base: clearing their wards before dragon and Baron is worth more than placing another.",
+      "neverAdc": "You played {{min}} min of ADC without swapping to Farsight Alteration (the blue trinket), and you were level 9 from minute {{due}}. It lets you check bushes and entrances from far away.",
       "lateTitle": "Late trinket swap",
-      "lateDetail": "You swapped your trinket at minute {{at}}. The sooner you swap, the sooner you start blinding them.",
-      "action": "Swap it in the shop, it is free: supports to Oracle Lens once the support item quest is done; junglers to Oracle Lens around minute 15; ADCs to the blue one at minute 15 once level 9 (not available before).",
+      "lateDetail": "You swapped your trinket at minute {{at}}. You could have done it on your trip to base at minute {{could}}.",
+      "action": "Swap it in the shop, it is free. Support: to Oracle Lens on the first trip to base after your item places wards. Jungle: to Oracle Lens on your first or second trip. ADC: to the blue one on the first trip after level 9 (not sold before).",
       "softTitle": "You ended on the yellow trinket",
       "softDetail": "You played {{min}} min of {{role}} without swapping trinkets. In {{role}} it depends on the game: yellow is fine during laning; if you then group for dragons and Baron, the Oracle Lens (red) clears their wards; if you stay split-pushing one lane, the Farsight Alteration (blue) lets you look from afar."
     },

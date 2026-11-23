@@ -490,6 +490,7 @@ export type TimelineEvent =
   | { type: "CHAMPION_KILL"; timestamp: number; killerId: number; victimId: number; assistingParticipantIds?: number[]; position?: { x: number; y: number } }
   | { type: "ITEM_PURCHASED"; timestamp: number; participantId: number; itemId: number }
   | { type: "ITEM_SOLD"; timestamp: number; participantId: number; itemId: number }
+  | { type: "ITEM_DESTROYED"; timestamp: number; participantId: number; itemId: number }
   | { type: "SKILL_LEVEL_UP"; timestamp: number; participantId: number; skillSlot: number; levelUpType: string }
   | { type: "WARD_PLACED"; timestamp: number; creatorId: number; wardType: string }
   | { type: "WARD_KILL"; timestamp: number; killerId: number; wardType: string }

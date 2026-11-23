@@ -200,14 +200,21 @@ function checkVision(me: MatchParticipant, role: string, minutes: number): Insig
 
 export const ORACLE_LENS = 3364;
 export const FARSIGHT_ALTERATION = 3363;
-/** From minute 15 a support, jungler or ADC should be off the Stealth Ward:
- * the live coach says it out loud then, and the post-game coach flags a swap
- * that never happened or came after it. Shared with liveCoachEngine. */
-export const TRINKET_SWAP_MIN = 15;
+/** The live coach reminds a jungler from this minute: most junglers are on
+ * their first or second trip to base by then. Shared with liveCoachEngine. */
+export const JUNGLE_TRINKET_LIVE_MIN = 8;
 /** Farsight Alteration (the ADC swap) can only be bought from level 9. */
 export const FARSIGHT_MIN_LEVEL = 9;
-/** Time to get back to base and swap once it is due before calling it late. */
-const TRINKET_GRACE_MIN = 2;
+/** World Atlas (3865) turns into Runic Compass, which already places wards;
+ * from then on a support should swap to Oracle Lens. Later stages included. */
+export const WORLD_ATLAS = 3865;
+export const WARDING_SUPPORT_ITEMS = [3866, 3867, 3869, 3870, 3871, 3876, 3877];
+/** Trips to base (after the start) a jungler gets to swap: Rafael, 24/11. */
+const JUNGLE_SWAP_TRIPS = 2;
+/** Purchases closer than this belong to the same trip to base. */
+const SHOP_TRIP_GAP_MS = 60_000;
+/** The starting purchases happen before this. */
+const START_SHOP_MS = 90_000;
 const TRINKET_NEVER_KEY: Record<string, string> = {
   UTILITY: "coach.trinket.neverSupport",
   JUNGLE: "coach.trinket.neverJungle",
@@ -222,11 +229,49 @@ function hasLockedTrinket(me: MatchParticipant): boolean {
   return me.championId === FIDDLESTICKS_ID || me.items.includes(SCARECROW_EFFIGY);
 }
 
+/** My trips to base after the start, from my purchases: buys less than a
+ * minute apart are one trip. */
+function shopTrips(timeline: MatchTimeline, myParticipantId: number): Array<{ start: number; end: number }> {
+  const times: number[] = [];
+  for (const frame of timeline.frames)
+    for (const ev of frame.events)
+      if (ev.type === "ITEM_PURCHASED" && ev.participantId === myParticipantId && ev.timestamp >= START_SHOP_MS)
+        times.push(ev.timestamp);
+  times.sort((x, y) => x - y);
+  const trips: Array<{ start: number; end: number }> = [];
+  for (const t of times) {
+    const last = trips[trips.length - 1];
+    if (last && t - last.end < SHOP_TRIP_GAP_MS) last.end = t;
+    else trips.push({ start: t, end: t });
+  }
+  return trips;
+}
+
+/** When the swap becomes due (ms), or null if it never did: a support once
+ * World Atlas turns into a warding item, an ADC at level 9 (Farsight is not
+ * sold before), a jungler from the start. */
+function trinketDueMs(role: string, me: MatchParticipant, myParticipantId: number, timeline: MatchTimeline): number | null {
+  if (role === "JUNGLE") return 0;
+  if (role === "UTILITY") {
+    for (const frame of timeline.frames)
+      for (const ev of frame.events)
+        if (ev.type === "ITEM_DESTROYED" && ev.participantId === myParticipantId && ev.itemId === WORLD_ATLAS)
+          return ev.timestamp as number;
+    return null;
+  }
+  if (me.champLevel < FARSIGHT_MIN_LEVEL) return null;
+  const lvl9 = timeline.frames.find(
+    (f) => (f.participantFrames?.[myParticipantId]?.level ?? 0) >= FARSIGHT_MIN_LEVEL
+  );
+  return lvl9 ? lvl9.timestamp : null;
+}
+
 /**
  * Supports and junglers should swap the starting Stealth Ward for Oracle Lens,
- * and ADCs for Farsight Alteration, mid-game; many players forget. Top and mid
- * keep the ward, so they are never told. Either swap counts as done. The swap
- * time comes from the timeline; the final items catch a swap it missed.
+ * and ADCs for Farsight Alteration; many players forget. When (Rafael, 24/11):
+ * a support on the first trip to base after the support item places wards, a
+ * jungler by the second trip, an ADC on the first trip after level 9. Top and
+ * mid depend on the game (softTrinketNote). Either swap counts as done.
  */
 function checkTrinket(
   me: MatchParticipant,
@@ -238,34 +283,25 @@ function checkTrinket(
   if (hasLockedTrinket(me)) return [];
   const neverKey = TRINKET_NEVER_KEY[role];
   if (neverKey === undefined) return softTrinketNote(me, myParticipantId, timeline, role, minutes);
-  // The swap is due at minute 15; an ADC also needs level 9 for Farsight, so
-  // for them it is due at whichever comes later (level 9 time from the
-  // per-minute frames; unknown → minute 15). Never reached 9 → nothing due.
-  let dueMin = TRINKET_SWAP_MIN;
-  if (role === "BOTTOM") {
-    if (me.champLevel < FARSIGHT_MIN_LEVEL) return [];
-    const lvl9 = timeline.frames.find(
-      (f) => (f.participantFrames?.[myParticipantId]?.level ?? 0) >= FARSIGHT_MIN_LEVEL
-    );
-    if (lvl9) dueMin = Math.max(dueMin, lvl9.timestamp / 1000 / 60);
-  }
-  // Same grace as a late swap: a game over at 15:30 left no time to base.
-  if (minutes < dueMin + TRINKET_GRACE_MIN) return [];
+  const dueMs = trinketDueMs(role, me, myParticipantId, timeline);
+  if (dueMs === null) return [];
+  const tripsAllowed = role === "JUNGLE" ? JUNGLE_SWAP_TRIPS : 1;
+  // The last trip to base where the swap was still on time; none yet → not late.
+  const deadline = shopTrips(timeline, myParticipantId).filter((t) => t.end >= dueMs)[tripsAllowed - 1];
 
-  let swapMin: number | null = null;
+  let swapMs: number | null = null;
   for (const frame of timeline.frames) {
     for (const ev of frame.events) {
-      if (ev.type !== "ITEM_PURCHASED") continue;
-      const e = ev as Extract<typeof ev, { type: "ITEM_PURCHASED" }>;
-      if (e.participantId !== myParticipantId) continue;
-      if (e.itemId !== ORACLE_LENS && e.itemId !== FARSIGHT_ALTERATION) continue;
-      const t = e.timestamp / 1000 / 60;
-      if (swapMin === null || t < swapMin) swapMin = t;
+      if (ev.type !== "ITEM_PURCHASED" || ev.participantId !== myParticipantId) continue;
+      if (ev.itemId !== ORACLE_LENS && ev.itemId !== FARSIGHT_ALTERATION) continue;
+      if (swapMs === null || ev.timestamp < swapMs) swapMs = ev.timestamp;
     }
   }
   const swapped =
-    swapMin !== null || me.items.includes(ORACLE_LENS) || me.items.includes(FARSIGHT_ALTERATION);
+    swapMs !== null || me.items.includes(ORACLE_LENS) || me.items.includes(FARSIGHT_ALTERATION);
+  if (!deadline) return [];
   const action = i18n.t("coach.trinket.action");
+  const toMin = (ms: number) => Math.floor(ms / 60_000);
 
   if (!swapped) {
     return [
@@ -273,18 +309,18 @@ function checkTrinket(
         category: "vision",
         severity: "warn",
         title: i18n.t("coach.trinket.neverTitle"),
-        detail: i18n.t(neverKey, { min: Math.round(minutes) }),
+        detail: i18n.t(neverKey, { min: Math.round(minutes), due: toMin(dueMs) }),
         action,
       },
     ];
   }
-  if (swapMin !== null && swapMin > dueMin + TRINKET_GRACE_MIN) {
+  if (swapMs !== null && swapMs > deadline.end) {
     return [
       {
         category: "vision",
         severity: "info",
         title: i18n.t("coach.trinket.lateTitle"),
-        detail: i18n.t("coach.trinket.lateDetail", { at: Math.floor(swapMin) }),
+        detail: i18n.t("coach.trinket.lateDetail", { at: toMin(swapMs), could: toMin(deadline.start) }),
         action,
       },
     ];

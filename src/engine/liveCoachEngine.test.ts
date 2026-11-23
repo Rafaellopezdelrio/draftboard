@@ -304,21 +304,23 @@ describe("coachLiveGame — trinket swap reminder", () => {
   const ward = [item(3340)];
   const swap = (r: ReturnType<typeof coachLiveGame>) => r.find((i) => i.key === "trinket-swap");
 
-  it("tells a support or jungler on the Stealth Ward at minute 15, out loud", () => {
-    for (const position of ["UTILITY", "JUNGLE"]) {
-      const r = swap(coachLiveGame({ ...base, gameTime: 900, me: p({ position, items: ward }) }));
-      expect(r).toMatchObject({ severity: "warn", textKey: "liveCoach.trinketOracle", speak: true });
-    }
+  it("tells a support once the support item places wards (Runic Compass on), out loud", () => {
+    const at = (supportItem: number) =>
+      swap(coachLiveGame({ ...base, gameTime: 420, me: p({ position: "UTILITY", items: [item(supportItem), item(3340)] }) }));
+    expect(at(3865)).toBeUndefined(); // World Atlas: no wards yet
+    for (const id of [3866, 3867, 3869, 3876])
+      expect(at(id)).toMatchObject({ severity: "warn", textKey: "liveCoach.trinketSupport", speak: true });
   });
 
-  it("waits until minute 15", () => {
-    const me = p({ position: "UTILITY", items: ward });
-    expect(swap(coachLiveGame({ ...base, gameTime: 899, me }))).toBeUndefined();
+  it("tells a jungler from minute 8, around the first or second trip to base", () => {
+    const at = (gameTime: number) => swap(coachLiveGame({ ...base, gameTime, me: p({ position: "JUNGLE", items: ward }) }));
+    expect(at(479)).toBeUndefined();
+    expect(at(480)).toMatchObject({ severity: "warn", textKey: "liveCoach.trinketOracle", speak: true });
   });
 
-  it("an ADC also needs level 9, since Farsight is not sold before", () => {
+  it("tells an ADC at level 9, whatever the minute (Farsight is not sold before)", () => {
     const at = (level: number) =>
-      swap(coachLiveGame({ ...base, gameTime: 960, me: p({ position: "BOTTOM", level, items: ward }) }));
+      swap(coachLiveGame({ ...base, gameTime: 600, me: p({ position: "BOTTOM", level, items: ward }) }));
     expect(at(8)).toBeUndefined();
     expect(at(9)).toMatchObject({ textKey: "liveCoach.trinketFarsight", speak: true });
   });
@@ -333,7 +335,7 @@ describe("coachLiveGame — trinket swap reminder", () => {
   });
 
   it("not off the Rift", () => {
-    const me = p({ position: "UTILITY", items: ward });
+    const me = p({ position: "JUNGLE", items: ward });
     expect(swap(coachLiveGame({ ...base, me, isRift: false }))).toBeUndefined();
   });
 
@@ -351,6 +353,8 @@ describe("coachLiveGame — trinket swap reminder", () => {
 
   it("has Spanish and English lines", () => {
     expect(es.liveCoach.trinketOracle).toMatch(/Lente del oráculo/);
+    expect(es.liveCoach.trinketSupport).toMatch(/Lente del oráculo/);
+    expect(en.liveCoach.trinketSupport).toMatch(/Oracle Lens/);
     expect(es.liveCoach.trinketFarsight).toMatch(/azul/);
     expect(en.liveCoach.trinketOracle).toMatch(/Oracle Lens/);
     expect(en.liveCoach.trinketFarsight).toMatch(/Farsight/);

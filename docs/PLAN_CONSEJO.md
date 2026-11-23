@@ -217,6 +217,14 @@ programador en la tier list) para después de la prueba. Fechas fijadas:
   "participación baja" ya no dice "acude a teamfights" (chocaba con "no hace
   falta seguir cada pelea"). Pendiente de mirar con más partidas: daño por
   oro en jungla (objetivo 1.1, Fiddle 2/0/4 ganando dio 0.49).
+- 24/11 (Rafael): cuándo cambiar el trinket por rol, en vez de "minuto 15".
+  Support: en la primera vuelta a base después de que el objeto ponga wards
+  (Atlas → Brújula rúnica, 3866). Jungla: en la 1.ª o 2.ª vuelta. ADC: en la
+  1.ª vuelta tras el nivel 9. Top/mid: nota suave (depende). Las vueltas a
+  base salen de las compras de la partida (compras a <1 min = una vuelta).
+  En directo: support al tener la Brújula, jungla desde el minuto 8, ADC al
+  nivel 9. Comprobado en tus partidas: Braum "tarde" (7 → 9), Nautilus "no
+  cambiaste" (3 vueltas sin cambiar), Nocturne nada (cambió en la 1.ª).
 
 ### Fase 1 — Prueba cerrada (3 semanas, sin versiones nuevas salvo fallos graves)
 - [ ] 5-10 amigos o conocidos, grupo cerrado (nada de Reddit ni Discord abiertos).

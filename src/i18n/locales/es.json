@@ -191,8 +191,9 @@
     "spikeStrong": "Pico de poder ({{rating}}/10): fuerza peleas y objetivos ahora.",
     "spikeWeak": "Débil ahora ({{rating}}/10): {{summary}}. Juega seguro hasta tu pico.",
     "recall": "Tienes {{gold}} de oro sin gastar. Recall en la próxima ventana de oleada.",
-    "trinketOracle": "Minuto 15: cambia el trinket a la Lente del oráculo en la tienda. Es gratis.",
-    "trinketFarsight": "Ya puedes: cambia el trinket al azul, la Visión lejana modificada, en la tienda. Es gratis."
+    "trinketOracle": "Cambia el trinket a la Lente del oráculo en esta vuelta a base. Es gratis.",
+    "trinketFarsight": "Ya eres nivel 9: cambia el trinket al azul, la Visión lejana modificada, en tu próxima vuelta a base. Es gratis.",
+    "trinketSupport": "Tu objeto de support ya pone wards: cambia el trinket a la Lente del oráculo en tu próxima vuelta a base. Es gratis."
   },
   "runeAdvice": {
     "apHeavy": "Comp AP-heavy: shard de MR (fila 3) en vez de armadura.",
@@ -431,12 +432,12 @@
   "coach": {
     "trinket": {
       "neverTitle": "No cambiaste el trinket",
-      "neverSupport": "Jugaste {{min}} min de support con el Guardián invisible. Cuando completas la misión del objeto de support ya tienes wards de sobra: la Lente del oráculo te deja quitarles las suyas.",
-      "neverJungle": "Jugaste {{min}} min de jungla sin cambiar a la Lente del oráculo. A mitad de partida, limpiar sus wards antes de dragón y Barón vale más que poner otra.",
-      "neverAdc": "Jugaste {{min}} min de ADC sin cambiar a la Visión lejana modificada (el trinket azul). Al acabar la fase de líneas te deja mirar arbustos y entradas desde lejos sin acercarte.",
+      "neverSupport": "Jugaste {{min}} min de support con el Guardián invisible. Tu objeto de support pone wards desde el minuto {{due}} (Brújula rúnica): desde ahí la Lente del oráculo te sirve más, porque te deja quitarles las suyas.",
+      "neverJungle": "Jugaste {{min}} min de jungla sin cambiar a la Lente del oráculo. Lo normal es cambiarla en la primera o segunda vuelta a base: limpiar sus wards antes de dragón y Barón vale más que poner otra.",
+      "neverAdc": "Jugaste {{min}} min de ADC sin cambiar a la Visión lejana modificada (el trinket azul), y eras nivel 9 desde el minuto {{due}}. Te deja mirar arbustos y entradas desde lejos sin acercarte.",
       "lateTitle": "Cambio de trinket tarde",
-      "lateDetail": "Cambiaste de trinket en el minuto {{at}}. Cuanto antes lo cambies, antes empiezas a dejarles a ciegas.",
-      "action": "Cámbialo en la tienda, es gratis: support a la Lente del oráculo al completar la misión del objeto; jungla a la Lente hacia el minuto 15; ADC al azul en el minuto 15 si ya eres nivel 9 (antes no se puede).",
+      "lateDetail": "Cambiaste de trinket en el minuto {{at}}. Podías haberlo hecho en tu vuelta a base del minuto {{could}}.",
+      "action": "Cámbialo en la tienda, es gratis. Support: a la Lente del oráculo en la primera vuelta a base después de que tu objeto ponga wards. Jungla: a la Lente en la primera o segunda vuelta. ADC: al azul en la primera vuelta después del nivel 9 (antes no se puede).",
       "softTitle": "Acabaste con el trinket amarillo",
       "softDetail": "Jugaste {{min}} min de {{role}} sin cambiar de trinket. En {{role}} depende de la partida: el amarillo va bien en la fase de líneas; si luego vas con tu equipo a pelear dragones y Barón, la Lente del oráculo (roja) te deja quitarles guardias; si te quedas empujando solo una línea, la Visión lejana (azul) te deja mirar desde lejos."
     },
