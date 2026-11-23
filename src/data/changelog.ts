@@ -11,9 +11,34 @@ export interface ChangelogEntry {
   version: string;
   date: string; // ISO YYYY-MM-DD
   highlights: string[];
+  /** Same bullets in English; shown when the app is in English (older
+   * entries without it fall back to the Spanish ones). */
+  highlightsEn?: string[];
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "0.6.4",
+    date: "2026-11-23",
+    highlights: [
+      "🗣️ Voces naturales en español e inglés (Dave y Joe), que se descargan una vez; puedes elegir otra en Preferencias y probarla",
+      "👁️ Aviso del trinket: en el minuto 15 el coach te dice por voz que cambies a la Lente del oráculo (support y jungla) o al azul (ADC, desde nivel 9)",
+      "📋 Coach de después de la partida: te dice si no cambiaste el trinket, y ahora todo en español e inglés",
+      "📈 Tendencias en español e inglés, y el aviso de tu fallo principal con palabras en vez de códigos",
+      "🗓️ Planes de 7 días anteriores: ya se pueden abrir enteros",
+      "🔒 Tus claves guardadas por versiones antiguas se cifran solas",
+      "📊 Opcional: si marcas la casilla, nos llegan los fallos y qué funciones se usan, sin nada personal",
+    ],
+    highlightsEn: [
+      "🗣️ Natural voices in Spanish and English (Dave and Joe), downloaded once; pick another in Preferences and try it",
+      "👁️ Trinket reminder: at minute 15 the coach tells you out loud to swap to Oracle Lens (support and jungle) or the blue one (ADC, from level 9)",
+      "📋 Post-game coach: tells you if you never swapped your trinket, and now all of it in Spanish and English",
+      "📈 Trends in Spanish and English, and your main weak spot named in words instead of codes",
+      "🗓️ Past 7-day plans: you can now open them in full",
+      "🔒 Keys saved by older versions are encrypted automatically",
+      "📊 Optional: if you tick the box, we get errors and which features are used, nothing personal",
+    ],
+  },
   {
     // 0.6.0–0.6.2 were built but never offered by the updater: users go
     // 0.5.9 → 0.6.3.

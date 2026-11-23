@@ -4,7 +4,9 @@ All notable changes to Draftboard are documented here.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/);
 versions match the Tauri app version + the `vX.Y.Z` git tags.
 
-## [Unreleased] — planned 0.6.4, the tester build
+## [0.6.4] — 2026-11-23
+
+The tester build.
 
 ### Added
 - Natural voices (Piper) in Spanish and English: Dave and Joe by default,

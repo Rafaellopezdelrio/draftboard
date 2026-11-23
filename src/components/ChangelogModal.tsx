@@ -25,7 +25,7 @@ interface Props {
 }
 
 export function ChangelogModal({ forceVersion, onClose }: Props) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const loaded = usePrefsStore((s) => s.loaded);
   const lastShown = usePrefsStore((s) => s.prefs.lastChangelogVersionShown);
   const setPref = usePrefsStore((s) => s.set);
@@ -99,7 +99,7 @@ export function ChangelogModal({ forceVersion, onClose }: Props) {
         </header>
 
         <ul className="space-y-2 text-sm text-white/85">
-          {entry.highlights.map((h, i) => (
+          {(i18n.language?.startsWith("en") && entry.highlightsEn ? entry.highlightsEn : entry.highlights).map((h, i) => (
             <li key={i} className="leading-snug">
               {h}
             </li>

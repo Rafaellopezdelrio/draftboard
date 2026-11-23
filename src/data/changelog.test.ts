@@ -21,6 +21,15 @@ describe("CHANGELOG", () => {
     }
   });
 
+  it("English bullets, when present, match the Spanish ones one to one", () => {
+    for (const e of CHANGELOG) {
+      if (!e.highlightsEn) continue;
+      expect(e.highlightsEn.length, `highlightsEn for v${e.version}`).toBe(e.highlights.length);
+    }
+    // From 0.6.4 on every release is bilingual.
+    expect(CHANGELOG[0].highlightsEn).toBeDefined();
+  });
+
   it("versions are unique (no duplicate entries)", () => {
     const versions = CHANGELOG.map((e) => e.version);
     expect(new Set(versions).size).toBe(versions.length);

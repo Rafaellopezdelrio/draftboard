@@ -14,6 +14,8 @@ import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import { ChangelogModal } from "./ChangelogModal";
 import { usePrefsStore, DEFAULT_PREFS } from "../state/prefsStore";
 import { CHANGELOG } from "../data/changelog";
+import { i18n } from "../i18n";
+import enBundle from "../i18n/locales/en.json";
 
 const initialState = usePrefsStore.getState();
 const setPref = vi.fn(async () => {});
@@ -75,6 +77,19 @@ describe("ChangelogModal — auto mode", () => {
     expect(dialog()).toBeInTheDocument();
     expect(screen.getByText(`v${LATEST.version} · ${LATEST.date}`)).toBeInTheDocument();
     expect(screen.getAllByRole("listitem").map((li) => li.textContent)).toEqual(LATEST.highlights);
+  });
+
+  it("shows the English bullets when the app is in English", async () => {
+    expect(LATEST.highlightsEn).toBeDefined();
+    i18n.addResourceBundle("en", "translation", enBundle, true, true);
+    await i18n.changeLanguage("en");
+    try {
+      setPrefs("0.0.1");
+      render(<ChangelogModal />);
+      expect(screen.getAllByRole("listitem").map((li) => li.textContent)).toEqual(LATEST.highlightsEn);
+    } finally {
+      await i18n.changeLanguage("es");
+    }
   });
 
   it.each([
