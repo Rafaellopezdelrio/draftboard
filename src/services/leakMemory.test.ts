@@ -55,7 +55,13 @@ describe("buildLeakMemory", () => {
     const u = buildLeakMemory(report(), "Fuga principal: Visión — ... [vision]");
     expect(u.changed).toBe(true);
     expect(u.shouldSave).toBe(true);
-    expect(u.progress).toMatch(/vision → deaths/);
+    // Said in words, not the stored keys ("vision → deaths").
+    expect(u.progress).toBe("Tu fallo principal ha cambiado: Visión por minuto → Muertes por partida.");
+  });
+
+  it("names a macro leak in words too", () => {
+    const u = buildLeakMemory(report(), "Fuga principal: macro/draft — ... [macro]");
+    expect(u.progress).toBe("Tu fallo principal ha cambiado: decisiones y elección de campeón → Muertes por partida.");
   });
 
   it("encodes a macro verdict with a macro key", () => {

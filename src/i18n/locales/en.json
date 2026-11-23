@@ -30,7 +30,10 @@
     "patch": "Patch",
     "aiCoachSimple": "Ask the coach",
     "tierListSimple": "Best champions",
-    "liveSimple": "In game"
+    "liveSimple": "In game",
+    "cache": "Cache",
+    "cacheTitle": "Showing saved data — refreshing in the background.",
+    "basicDataTitle": "The meta sources (op.gg/dpm) did not answer — showing basic backup data. Retrying in the background; the tier list and suggestions get more precise once they are back."
   },
   "winConditions": {
     "title": "Game plan",
@@ -128,7 +131,47 @@
       "title": "Advice adherence",
       "followed": "You followed the suggestion",
       "notFollowed": "You didn't"
-    }
+    },
+    "bracket": {
+      "iron-silver": "Iron–Silver",
+      "gold-plat": "Gold–Platinum",
+      "emerald-diamond": "Emerald–Diamond",
+      "master-plus": "Master or higher"
+    },
+    "metric": {
+      "winrate": "Wins",
+      "kda": "KDA",
+      "cspm": "CS per minute",
+      "vspm": "Vision per minute",
+      "vision": "Vision per minute",
+      "dpm": "Deaths per minute",
+      "deaths": "Deaths per game",
+      "kp": "Kills and assists per minute"
+    },
+    "progressText": {
+      "span": "your last {{n}} games against the {{n}} before",
+      "improvingBest": "You're getting better ({{span}}), above all in {{label}}.",
+      "improving": "You're getting better ({{span}}).",
+      "decliningWorst": "You're getting worse ({{span}}), above all in {{label}}. Get that habit back.",
+      "declining": "You're getting worse ({{span}}).",
+      "mixed": "Some things better, some worse ({{span}}): better in {{better}}, worse in {{worse}}.",
+      "something": "something",
+      "stable": "No change ({{span}}). Pick one concrete thing and work on it."
+    },
+    "trendText": {
+      "flat": "{{metric}}: {{now}} (before {{before}})",
+      "better": "{{metric}} {{arrow}} {{now}} — improving",
+      "worse": "{{metric}} {{arrow}} {{now}} — getting worse"
+    },
+    "weak": {
+      "farming": "Farming",
+      "farmingDetail": "Your average CS/min is {{v}} — your main limiter.",
+      "deaths": "Deaths",
+      "kdaDetail": "Average KDA of {{v}} — you die too much.",
+      "dpmDetail": "You die {{v}} times/min — play safer."
+    },
+    "leakChanged": "Your main weak spot changed: {{from}} → {{to}}.",
+    "leakMacroShort": "decisions and champion choice"
   },
   "liveCoach": {
     "header": "Live coach",

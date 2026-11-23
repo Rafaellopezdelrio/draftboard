@@ -129,3 +129,41 @@ describe("detectWeakestArea", () => {
     expect(detectWeakestArea(low)?.category).toBe("Farming");
   });
 });
+
+describe("trends texts in English", () => {
+  it("trends, weakest area, progress and rank benchmarks read in English", async () => {
+    const { i18n } = await import("../i18n");
+    const enBundle = (await import("../i18n/locales/en.json")).default;
+    const { analyzeProgress } = await import("./progressEngine");
+    const { benchmarkStats, bracketLabel } = await import("./rankBenchmarks");
+    i18n.addResourceBundle("en", "translation", enBundle, true, true);
+    await i18n.changeLanguage("en");
+    try {
+      // 12 games: the newer six die a lot more and farm less than the older six.
+      const games = Array.from({ length: 12 }, (_, i) =>
+        match({
+          win: i >= 6,
+          deaths: i < 6 ? 9 : 2,
+          cs: i < 6 ? 90 : 220,
+          gameEndTimestampMs: 1_000 + i,
+        })
+      );
+      const texts: string[] = [];
+      for (const tr of computeTrends(games)) texts.push(tr.metric, tr.insight);
+      const weak = detectWeakestArea(games);
+      if (weak) texts.push(weak.category, weak.detail);
+      const progress = analyzeProgress(games);
+      if (progress) texts.push(progress.headline, ...progress.metrics.map((m) => m.label));
+      for (const b of benchmarkStats({ bracket: "gold-plat", role: "MIDDLE", cspm: 5, vspm: 1, dpm: 0.2, kda: 2 }))
+        texts.push(b.label);
+      texts.push(bracketLabel("master-plus"));
+
+      expect(texts.length).toBeGreaterThan(10);
+      for (const text of texts) expect(text).not.toMatch(/trends\.|[áéíóúñ]|antes|partidas|Muertes|Victorias/);
+      expect(texts).toContain("Wins");
+      expect(bracketLabel("master-plus")).toBe("Master or higher");
+    } finally {
+      await i18n.changeLanguage("es");
+    }
+  });
+});

@@ -11,6 +11,7 @@
 // Pure + fully tested. No DB / no I/O — caller passes the rows.
 
 import type { MatchRow } from "../services/matchRepo";
+import { i18n } from "../i18n";
 
 export type ProgressKey = "winrate" | "kda" | "cspm" | "deaths" | "vision" | "kp";
 
@@ -48,7 +49,6 @@ export interface ProgressReport {
 
 interface MetricDef {
   key: ProgressKey;
-  label: string;
   higherIsBetter: boolean;
   /** per-match value, or null to exclude this match from the metric. */
   value: (m: MatchRow) => number | null;
@@ -68,21 +68,18 @@ function cspm(m: MatchRow): number {
 const METRICS: MetricDef[] = [
   {
     key: "winrate",
-    label: "Victorias",
     higherIsBetter: true,
     value: (m) => (m.win ? 1 : 0),
     format: (v) => `${Math.round(v * 100)}%`,
   },
   {
     key: "kda",
-    label: "KDA",
     higherIsBetter: true,
     value: (m) => (m.kills + m.assists) / Math.max(1, m.deaths),
     format: (v) => v.toFixed(2),
   },
   {
     key: "cspm",
-    label: "Súbditos por minuto",
     higherIsBetter: true,
     // CS is meaningless for supports — exclude UTILITY so a support streak
     // doesn't read as a farming regression.
@@ -91,14 +88,12 @@ const METRICS: MetricDef[] = [
   },
   {
     key: "deaths",
-    label: "Muertes por partida",
     higherIsBetter: false,
     value: (m) => m.deaths,
     format: (v) => v.toFixed(1),
   },
   {
     key: "vision",
-    label: "Visión por minuto",
     higherIsBetter: true,
     value: (m) =>
       m.visionScore == null ? null : m.visionScore / Math.max(1, m.durationSec / 60),
@@ -106,7 +101,6 @@ const METRICS: MetricDef[] = [
   },
   {
     key: "kp",
-    label: "Asesinatos y asistencias por minuto",
     higherIsBetter: true,
     value: (m) => (m.kills + m.assists) / Math.max(1, m.durationSec / 60),
     format: (v) => `${v.toFixed(2)}/min`,
@@ -146,16 +140,17 @@ export function analyzeProgress(matches: MatchRow[]): ProgressReport | null {
     const tag =
       direction === "flat" ? "estable" : improving ? "mejora" : "empeora";
 
+    const label = i18n.t(`trends.metric.${def.key}`);
     metrics.push({
       key: def.key,
-      label: def.label,
+      label,
       older,
       newer,
       delta,
       pctChange,
       improving,
       direction,
-      display: `${def.label} ${def.format(older)} → ${def.format(newer)} (${tag})`,
+      display: `${label} ${def.format(older)} → ${def.format(newer)} (${tag})`,
     });
   }
 
@@ -204,22 +199,26 @@ function buildHeadline(
   regressed: ProgressMetric[],
   half: number
 ): string {
-  const span = `tus últimas ${half} partidas frente a las ${half} anteriores`;
+  const p = (key: string, params: Record<string, string | number>) =>
+    i18n.t(`trends.progressText.${key}`, params);
+  const span = p("span", { n: half });
   const best = improved[0];
   const worst = regressed[0];
   switch (trend) {
     case "improving":
-      return best
-        ? `Vas a mejor (${span}), sobre todo en ${best.label}.`
-        : `Vas a mejor (${span}).`;
+      return best ? p("improvingBest", { span, label: best.label }) : p("improving", { span });
     case "declining":
-      return worst
-        ? `Vas a peor (${span}), sobre todo en ${worst.label}. Recupera ese hábito.`
-        : `Vas a peor (${span}).`;
-    case "mixed":
-      return `Unas cosas mejor y otras peor (${span}): mejoras en ${improved[0]?.label ?? "algo"}, empeoras en ${regressed[0]?.label ?? "algo"}.`;
+      return worst ? p("decliningWorst", { span, label: worst.label }) : p("declining", { span });
+    case "mixed": {
+      const something = p("something", {});
+      return p("mixed", {
+        span,
+        better: improved[0]?.label ?? something,
+        worse: regressed[0]?.label ?? something,
+      });
+    }
     default:
-      return `Sin cambios (${span}). Elige una cosa concreta y trabájala.`;
+      return p("stable", { span });
   }
 }
 

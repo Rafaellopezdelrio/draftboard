@@ -752,15 +752,15 @@ function App() {
             {usingStaleCache && (
               <span
                 className="text-[10px] uppercase tracking-widest text-meh font-medium px-1.5 py-0.5 rounded ring-1 ring-meh/40"
-                title="Mostrando datos en caché — reintentando refresh en background"
+                title={t("nav.cacheTitle")}
               >
-                Caché
+                {t("nav.cache")}
               </span>
             )}
             {db.metaSourceUsed === "static" && (
               <span
                 className="text-[10px] uppercase tracking-widest text-bad font-medium px-1.5 py-0.5 rounded ring-1 ring-bad/40"
-                title="Las fuentes de meta (op.gg/dpm) no respondieron — mostrando datos básicos de respaldo. Reintentando en background; la tier list y las sugerencias serán más precisas cuando recuperen."
+                title={t("nav.basicDataTitle")}
               >
                 {t("nav.basicData")}
               </span>

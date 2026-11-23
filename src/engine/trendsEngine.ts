@@ -1,4 +1,7 @@
 import type { MatchRow } from "../services/matchRepo";
+import { i18n } from "../i18n";
+
+const metricName = (key: string): string => i18n.t(`trends.metric.${key}`);
 
 export interface Trend {
   metric: string;
@@ -19,7 +22,7 @@ export function computeTrends(matches: MatchRow[]): Trend[] {
 
   // Winrate trend
   out.push(
-    diff("Victorias", winrate(recent), winrate(earlier), {
+    diff(metricName("winrate"), winrate(recent), winrate(earlier), {
       goodIfUp: true,
       formatter: (v) => `${(v * 100).toFixed(0)}%`,
       threshold: 0.05,
@@ -28,7 +31,7 @@ export function computeTrends(matches: MatchRow[]): Trend[] {
 
   // KDA
   out.push(
-    diff("KDA", avgKda(recent), avgKda(earlier), {
+    diff(metricName("kda"), avgKda(recent), avgKda(earlier), {
       goodIfUp: true,
       formatter: (v) => v.toFixed(2),
       threshold: 0.3,
@@ -37,7 +40,7 @@ export function computeTrends(matches: MatchRow[]): Trend[] {
 
   // Deaths/min
   out.push(
-    diff("Muertes por minuto", avgDeathsPerMin(recent), avgDeathsPerMin(earlier), {
+    diff(metricName("dpm"), avgDeathsPerMin(recent), avgDeathsPerMin(earlier), {
       goodIfUp: false,
       formatter: (v) => v.toFixed(2),
       threshold: 0.05,
@@ -49,7 +52,7 @@ export function computeTrends(matches: MatchRow[]): Trend[] {
   const earlierDps = earlier.filter((m) => m.position !== "UTILITY");
   if (recentDps.length > 0 && earlierDps.length > 0) {
     out.push(
-      diff("Súbditos por minuto", avgCspm(recentDps), avgCspm(earlierDps), {
+      diff(metricName("cspm"), avgCspm(recentDps), avgCspm(earlierDps), {
         goodIfUp: true,
         formatter: (v) => v.toFixed(1),
         threshold: 0.5,
@@ -80,12 +83,20 @@ function diff(
       ? "up"
       : "down";
   let severity: Trend["severity"] = "info";
-  let insight = `${metric}: ${opts.formatter(current)} (antes ${opts.formatter(previous)})`;
+  let insight = i18n.t("trends.trendText.flat", {
+    metric,
+    now: opts.formatter(current),
+    before: opts.formatter(previous),
+  });
   if (meaningful) {
     const isGood = (delta > 0) === opts.goodIfUp;
     severity = isGood ? "good" : "warn";
     const arrow = delta > 0 ? "↑" : "↓";
-    insight = `${metric} ${arrow} ${opts.formatter(current)} ${isGood ? "— mejorando" : "— empeorando"}`;
+    insight = i18n.t(isGood ? "trends.trendText.better" : "trends.trendText.worse", {
+      metric,
+      arrow,
+      now: opts.formatter(current),
+    });
   }
   return { metric, current, previous, delta, direction, insight, severity };
 }
@@ -127,20 +138,20 @@ export function detectWeakestArea(matches: MatchRow[]): WeakestArea | null {
     Math.max(1, dps.length);
   if (dps.length >= 5 && avgCspm(dps) < cspmTarget) {
     return {
-      category: "Farming",
-      detail: `Tu CS/min medio es ${avgCspm(dps).toFixed(1)} — el principal limitador.`,
+      category: i18n.t("trends.weak.farming"),
+      detail: i18n.t("trends.weak.farmingDetail", { v: avgCspm(dps).toFixed(1) }),
     };
   }
   if (avgKda(matches) < 1.5) {
     return {
-      category: "Muertes",
-      detail: `KDA medio de ${avgKda(matches).toFixed(2)} — mueres demasiado.`,
+      category: i18n.t("trends.weak.deaths"),
+      detail: i18n.t("trends.weak.kdaDetail", { v: avgKda(matches).toFixed(2) }),
     };
   }
   if (avgDeathsPerMin(matches) > 0.3) {
     return {
-      category: "Muertes",
-      detail: `Mueres ${avgDeathsPerMin(matches).toFixed(2)} veces/min — juega más seguro.`,
+      category: i18n.t("trends.weak.deaths"),
+      detail: i18n.t("trends.weak.dpmDetail", { v: avgDeathsPerMin(matches).toFixed(2) }),
     };
   }
   return null;

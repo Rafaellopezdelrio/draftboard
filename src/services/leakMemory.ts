@@ -6,6 +6,13 @@
 
 import { saveMemory, memoriesByCategory } from "./aiMemory";
 import type { LeakReport } from "../engine/leakEngine";
+import { i18n } from "../i18n";
+
+/** A stored leak key ("deaths", "macro"...) as the player reads it. */
+const leakName = (key: string): string =>
+  key === "macro"
+    ? i18n.t("trends.leakMacroShort")
+    : i18n.t(`trends.leakMetric.${key}`, { defaultValue: key });
 
 const CATEGORY = "leak";
 
@@ -35,7 +42,9 @@ export function buildLeakMemory(
     ? prevContent.match(/\[(\w+)\]\s*$/)?.[1] ?? null
     : null;
   const changed = prevKey !== null && prevKey !== key;
-  const progress = changed ? `Tu fuga principal cambió: ${prevKey} → ${key}.` : null;
+  const progress = changed
+    ? i18n.t("trends.leakChanged", { from: leakName(prevKey), to: leakName(key) })
+    : null;
   const shouldSave = prevKey === null || changed;
 
   return { key, content, changed, progress, shouldSave };

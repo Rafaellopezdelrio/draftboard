@@ -30,7 +30,10 @@
     "patch": "Parche",
     "aiCoachSimple": "Pregunta al coach",
     "tierListSimple": "Mejores campeones",
-    "liveSimple": "En partida"
+    "liveSimple": "En partida",
+    "cache": "Caché",
+    "cacheTitle": "Mostrando datos guardados — se vuelven a pedir en segundo plano.",
+    "basicDataTitle": "Las fuentes de meta (op.gg/dpm) no respondieron — se muestran datos básicos de respaldo. Se reintenta en segundo plano; la tier list y las sugerencias serán más precisas cuando vuelvan."
   },
   "winConditions": {
     "title": "Game plan",
@@ -128,7 +131,47 @@
       "title": "Adherencia al consejo",
       "followed": "Seguiste la sugerencia",
       "notFollowed": "No la seguiste"
-    }
+    },
+    "bracket": {
+      "iron-silver": "Hierro–Plata",
+      "gold-plat": "Oro–Platino",
+      "emerald-diamond": "Esmeralda–Diamante",
+      "master-plus": "Maestro o más"
+    },
+    "metric": {
+      "winrate": "Victorias",
+      "kda": "KDA",
+      "cspm": "Súbditos por minuto",
+      "vspm": "Visión por minuto",
+      "vision": "Visión por minuto",
+      "dpm": "Muertes por minuto",
+      "deaths": "Muertes por partida",
+      "kp": "Asesinatos y asistencias por minuto"
+    },
+    "progressText": {
+      "span": "tus últimas {{n}} partidas frente a las {{n}} anteriores",
+      "improvingBest": "Vas a mejor ({{span}}), sobre todo en {{label}}.",
+      "improving": "Vas a mejor ({{span}}).",
+      "decliningWorst": "Vas a peor ({{span}}), sobre todo en {{label}}. Recupera ese hábito.",
+      "declining": "Vas a peor ({{span}}).",
+      "mixed": "Unas cosas mejor y otras peor ({{span}}): mejoras en {{better}}, empeoras en {{worse}}.",
+      "something": "algo",
+      "stable": "Sin cambios ({{span}}). Elige una cosa concreta y trabájala."
+    },
+    "trendText": {
+      "flat": "{{metric}}: {{now}} (antes {{before}})",
+      "better": "{{metric}} {{arrow}} {{now}} — mejorando",
+      "worse": "{{metric}} {{arrow}} {{now}} — empeorando"
+    },
+    "weak": {
+      "farming": "Farming",
+      "farmingDetail": "Tu CS/min medio es {{v}} — el principal limitador.",
+      "deaths": "Muertes",
+      "kdaDetail": "KDA medio de {{v}} — mueres demasiado.",
+      "dpmDetail": "Mueres {{v}} veces/min — juega más seguro."
+    },
+    "leakChanged": "Tu fallo principal ha cambiado: {{from}} → {{to}}.",
+    "leakMacroShort": "decisiones y elección de campeón"
   },
   "liveCoach": {
     "header": "Coach en vivo",

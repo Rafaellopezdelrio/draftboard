@@ -5,19 +5,13 @@
 // aggregate data — surfaced as estimates, never as exact truth.
 
 import type { Role } from "../types/champion";
+import { i18n } from "../i18n";
 
 export type RankBracket =
   | "iron-silver"
   | "gold-plat"
   | "emerald-diamond"
   | "master-plus";
-
-const BRACKET_LABEL: Record<RankBracket, string> = {
-  "iron-silver": "Hierro–Plata",
-  "gold-plat": "Oro–Platino",
-  "emerald-diamond": "Esmeralda–Diamante",
-  "master-plus": "Maestro o más",
-};
 
 const TIER_BRACKET: Record<string, RankBracket> = {
   IRON: "iron-silver",
@@ -39,8 +33,9 @@ export function bracketForTier(tier: string | null | undefined): RankBracket {
   return TIER_BRACKET[tier.toUpperCase()] ?? "gold-plat";
 }
 
+/** Bracket name in the app language (trends.bracket.*). */
 export function bracketLabel(b: RankBracket): string {
-  return BRACKET_LABEL[b];
+  return i18n.t(`trends.bracket.${b}`);
 }
 
 interface RoleBaseline {
@@ -128,15 +123,15 @@ export interface Benchmark {
 // Rank baselines are fuzzy — only call it above/below outside an 8% band.
 const TOLERANCE = 0.08;
 
+// Labels come from trends.metric.<key> when a benchmark is built.
 const METRICS: Array<{
   key: BenchmarkKey;
-  label: string;
   lowerIsBetter: boolean;
 }> = [
-  { key: "cspm", label: "Súbditos por minuto", lowerIsBetter: false },
-  { key: "vspm", label: "Visión por minuto", lowerIsBetter: false },
-  { key: "dpm", label: "Muertes por minuto", lowerIsBetter: true },
-  { key: "kda", label: "KDA", lowerIsBetter: false },
+  { key: "cspm", lowerIsBetter: false },
+  { key: "vspm", lowerIsBetter: false },
+  { key: "dpm", lowerIsBetter: true },
+  { key: "kda", lowerIsBetter: false },
 ];
 
 export interface BenchmarkInput {
@@ -172,7 +167,7 @@ export function benchmarkStats(input: BenchmarkInput): Benchmark[] {
     } else {
       verdict = value > expected ? "above" : "below";
     }
-    out.push({ key: m.key, label: m.label, value, expected, verdict });
+    out.push({ key: m.key, label: i18n.t(`trends.metric.${m.key}`), value, expected, verdict });
   }
   return out;
 }
