@@ -5,6 +5,7 @@ import { Markdown } from "./ui/Markdown";
 import { i18n } from "../i18n";
 import { analyzeMatch, type Insight } from "../engine/coachEngine";
 import { trackFeature } from "../services/reports";
+import { getItemMeta, loadItemMeta } from "../services/itemMeta";
 import { computeGpi, type GpiScore } from "../engine/gpiEngine";
 import { deriveTopInsight } from "../engine/topInsight";
 import {
@@ -115,10 +116,18 @@ export function CoachView({ db, onClose }: Props) {
           getMatchFull(cfg, riotId),
           getMatchTimeline(cfg, riotId),
           lcuRank().catch(() => null),
+          loadItemMeta(db.patch),
         ]);
         setMatchFull(full);
         setMatchTimeline(timeline);
-        setInsights(analyzeMatch({ match: full, timeline, myPuuid: cfg.puuid }));
+        setInsights(
+          analyzeMatch({
+            match: full,
+            timeline,
+            myPuuid: cfg.puuid,
+            itemTags: (id) => getItemMeta(db.patch, id)?.tags ?? [],
+          })
+        );
         trackFeature("postgame-coach");
         setGpi(computeGpi(full, cfg.puuid, rank?.tier ?? null, timeline));
       } catch (e) {
@@ -127,7 +136,7 @@ export function CoachView({ db, onClose }: Props) {
         setLoading(false);
       }
     })();
-  }, [matchId]);
+  }, [matchId, db.patch]);
 
   async function runAi() {
     if (!matchFull || !matchTimeline) return;

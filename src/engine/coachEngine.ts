@@ -29,6 +29,8 @@ interface AnalyzeArgs {
   match: MatchFull;
   timeline: MatchTimeline;
   myPuuid: string;
+  /** Data Dragon tags of an item ("Armor", "SpellBlock"…); [] when unknown. */
+  itemTags?: (itemId: number) => string[];
 }
 
 // Reference benchmarks per role for several elos. Coach picks the closest
@@ -78,6 +80,7 @@ export function analyzeMatch({
   match,
   timeline,
   myPuuid,
+  itemTags = () => [],
 }: AnalyzeArgs): Insight[] {
   const me = match.participants.find((p) => p.puuid === myPuuid);
   if (!me) return [];
@@ -105,7 +108,7 @@ export function analyzeMatch({
   out.push(...checkKillParticipation(me, team));
   out.push(...checkDamageShare(me, team, role));
   out.push(...checkObjectives(me, myTeamId, timeline));
-  out.push(...checkBuildVsEnemy(enemy));
+  out.push(...checkBuildVsEnemy(enemy, me, itemTags));
   out.push(...checkGoldEfficiency(me, team, minutes));
   out.push(...checkDamagePerGold(me, role));
   out.push(...checkFirstBlood(me, myParticipantId, timeline));
@@ -577,8 +580,17 @@ function checkLanePhase(
   return [];
 }
 
-function checkBuildVsEnemy(enemy: MatchParticipant[]): Insight[] {
+/** Two or more items giving that resist = the player already built for it. */
+const RESIST_BUILT_ITEMS = 2;
+
+function checkBuildVsEnemy(
+  enemy: MatchParticipant[],
+  me: MatchParticipant,
+  itemTags: (itemId: number) => string[]
+): Insight[] {
   if (enemy.length === 0) return [];
+  const builtResist = (tag: string) =>
+    me.items.filter((id) => id > 0 && itemTags(id).includes(tag)).length >= RESIST_BUILT_ITEMS;
   // Aggregate the enemy team's actual damage profile (magic vs physical). A
   // decisive skew means the concrete takeaway is to prioritise the matching
   // resist next game — real, actionable build advice instead of the old no-op.
@@ -593,6 +605,7 @@ function checkBuildVsEnemy(enemy: MatchParticipant[]): Insight[] {
   const magicShare = magic / total;
   // Only fire on a decisive skew — a balanced team gives no clear priority.
   if (magicShare >= 0.65) {
+    if (builtResist("SpellBlock")) return [];
     return [
       {
         category: "build",
@@ -604,6 +617,7 @@ function checkBuildVsEnemy(enemy: MatchParticipant[]): Insight[] {
     ];
   }
   if (magicShare <= 0.35) {
+    if (builtResist("Armor")) return [];
     return [
       {
         category: "build",

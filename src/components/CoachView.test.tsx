@@ -32,6 +32,10 @@ vi.mock("../services/lcuPersonalData", () => ({ lcuRank: vi.fn() }));
 vi.mock("../services/aiCoach", () => ({ aiCoachAnalysis: vi.fn() }));
 vi.mock("../engine/coachEngine", () => ({ analyzeMatch: vi.fn() }));
 vi.mock("../engine/gpiEngine", () => ({ computeGpi: vi.fn() }));
+vi.mock("../services/itemMeta", () => ({
+  loadItemMeta: vi.fn(() => Promise.resolve()),
+  getItemMeta: vi.fn((_patch: string, id: number) => (id === 3047 ? { tags: ["Armor", "Boots"] } : null)),
+}));
 
 import { recentMatches } from "../services/matchRepo";
 import { loadSettings } from "../services/settingsRepo";
@@ -198,7 +202,12 @@ describe("CoachView — match list + loading", () => {
       match: matchFull(),
       timeline: TIMELINE,
       myPuuid: "me",
+      itemTags: expect.any(Function),
     });
+    // Item tags come from the patch's item list (Armor, SpellBlock…).
+    const { itemTags } = vi.mocked(analyzeMatch).mock.calls[0][0];
+    expect(itemTags!(3047)).toEqual(["Armor", "Boots"]);
+    expect(itemTags!(1)).toEqual([]);
     expect(computeGpi).toHaveBeenCalledWith(matchFull(), "me", "GOLD", TIMELINE);
   });
 

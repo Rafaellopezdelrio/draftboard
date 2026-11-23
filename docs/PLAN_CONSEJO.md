@@ -186,6 +186,16 @@ programador en la tier list) para después de la prueba. Fechas fijadas:
   alta son de otro acento: es_MX-claude-high (México, Apache 2.0, 63 MB) y
   es_AR-daniela-high (Argentina, CC BY-SA 4.0, 114 MB). Antes de tocar nada:
   que las escuche en https://rhasspy.github.io/piper-samples/ y decida.
+- Apuntado 23/11 (Rafael, partida de Ornn top): el coach culpa al jugador de
+  derrotas que vienen de otros. Ornn empató en oro y ganó en experiencia a
+  Kled en el minuto 14; la partida se perdió por la jungla (Lee Sin rival
+  11/4, +1 382 de oro sobre Talon en el 14) y el coach solo dijo
+  "participación baja". Hacer: (1) "dónde se perdió": cada línea contra su
+  rival en el 14 y al final; si la tuya fue bien, decirlo y señalar la que se
+  hundió, solo con números, sin culpar; (2) separar muertes en peleas de
+  equipo (varios aliados caen a la vez) de las muertes en solitario.
+- Pendiente de respuesta: ¿nota suave del trinket en top/mid en el coach?
+  (sin voz; en top/mid el cambio depende de la partida).
 
 ### Fase 1 — Prueba cerrada (3 semanas, sin versiones nuevas salvo fallos graves)
 - [ ] 5-10 amigos o conocidos, grupo cerrado (nada de Reddit ni Discord abiertos).

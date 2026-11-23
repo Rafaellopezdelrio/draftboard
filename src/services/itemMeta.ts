@@ -100,6 +100,11 @@ async function loadFor(patch: string, locale: DDragonLocale): Promise<void> {
   return loadPromise;
 }
 
+/** Loads the item list for `patch` (UI language); resolves even if it fails. */
+export function loadItemMeta(patch: string): Promise<void> {
+  return loadFor(patch, ddragonLocale());
+}
+
 /**
  * Look up an item's metadata, named in the UI language. Returns null when:
  *   - patch/language hasn't loaded yet (caller should show "Item {id}" fallback)

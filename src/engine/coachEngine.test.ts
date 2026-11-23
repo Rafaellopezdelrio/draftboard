@@ -273,12 +273,19 @@ function timelineWith14(frames14: ParticipantFrame[]): MatchTimeline {
 
 function run(
   me: MatchParticipant,
-  opts: { durationSec?: number; events?: Ev[]; timeline?: MatchTimeline; match?: MatchFull } = {}
+  opts: {
+    durationSec?: number;
+    events?: Ev[];
+    timeline?: MatchTimeline;
+    match?: MatchFull;
+    itemTags?: (id: number) => string[];
+  } = {}
 ) {
   return analyzeMatch({
     match: opts.match ?? mkMatch(me, opts.durationSec ?? 1800),
     timeline: opts.timeline ?? mkTimeline(opts.events ?? []),
     myPuuid: "me",
+    itemTags: opts.itemTags,
   });
 }
 
@@ -583,6 +590,28 @@ describe("coachEngine — objectives & build", () => {
     expect(b).toMatchObject({ category: "build", severity: "info" });
     expect(b!.detail).toBe("El equipo enemigo hizo 86% de su daño como físico.");
     expect(b!.action).toMatch(/armadura/);
+  });
+
+  // 23/11 real game: Ornn with Sunfire, Plated Steelcaps and Bramble Vest
+  // was told to "prioritise armor".
+  it("skips the resist advice when I already built two items of it", () => {
+    const TAGS: Record<number, string[]> = { 3068: ["Armor", "Health"], 3047: ["Armor", "Boots"], 3076: ["Armor"], 3065: ["SpellBlock"] };
+    const tags = (id: number) => TAGS[id] ?? [];
+    const physicalMatch = (items: number[]) => {
+      const me = mkParticipant({ items });
+      const match = mkMatch(me);
+      for (const p of match.participants) {
+        if (p.teamId !== me.teamId) {
+          p.magicDamageDealtToChampions = 1_000;
+          p.physicalDamageDealtToChampions = 6_000;
+        }
+      }
+      return run(me, { match, itemTags: tags });
+    };
+    expect(titled(physicalMatch([3068, 3047, 3076, 3340]), "Enemigo mayormente físico")).toBeUndefined();
+    // One armor item, or only magic resist: still worth saying.
+    expect(titled(physicalMatch([3068, 3340]), "Enemigo mayormente físico")).toBeDefined();
+    expect(titled(physicalMatch([3065, 3340]), "Enemigo mayormente físico")).toBeDefined();
   });
 
   it("gives no build insight when the enemy dealt no damage at all", () => {
