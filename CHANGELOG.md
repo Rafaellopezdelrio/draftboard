@@ -54,6 +54,9 @@ versions match the Tauri app version + the `vX.Y.Z` git tags.
   of the team's gold. In a win everyone is rich, so the share drops: ADCs it
   flagged won 63% of Gold games. Now it flags ~11% of Gold ADCs, who win
   28%. The old text said a carry should hold 25-30%; the real median is 23%.
+- "You never swapped your trinket" is a note, not a warning, for ADC and
+  jungle: on 132 Gold games those who never swapped won 54% (ADC) and 50%
+  (jungle), like everyone else. Support keeps the warning.
 
 ## [0.6.8] — 2026-11-24
 

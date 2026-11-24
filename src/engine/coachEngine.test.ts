@@ -857,15 +857,15 @@ describe("coachEngine — trinket swap", () => {
 
   // Rafael 24/11: support swaps on the first trip after the item places wards,
   // jungle on the first or second trip, ADC on the first trip after level 9.
-  it("warns a support, jungler or ADC who had their trip to base and kept the Stealth Ward", () => {
+  it("flags a support, jungler or ADC who had their trip to base and kept the Stealth Ward (a note for ADC and jungle)", () => {
     const cases = [
-      [support(), "support", tl([atlas(7), ...trips(9, 12)])],
-      [jungler(), "jungla", tl(trips(5, 9, 13))],
-      [adc(), "ADC", tl(trips(13, 16), 12)],
+      [support(), "support", "warn", tl([atlas(7), ...trips(9, 12)])],
+      [jungler(), "jungla", "info", tl(trips(5, 9, 13))],
+      [adc(), "ADC", "info", tl(trips(13, 16), 12)],
     ] as const;
-    for (const [who, role, timeline] of cases) {
+    for (const [who, role, severity, timeline] of cases) {
       const ins = titled(run(who, { timeline }), NEVER);
-      expect(ins).toMatchObject({ category: "vision", severity: "warn" });
+      expect(ins).toMatchObject({ category: "vision", severity });
       expect(ins!.detail).toMatch(new RegExp(`30 min de ${role}`));
       expect(ins!.action).toMatch(/tienda/);
     }

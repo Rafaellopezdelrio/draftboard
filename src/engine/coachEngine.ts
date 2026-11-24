@@ -327,7 +327,9 @@ function checkTrinket(
     return [
       {
         category: "vision",
-        severity: "warn",
+        // A note for ADC and jungle (Rafael, 24/11): on 132 Gold games those
+        // who never swapped won 54% (ADC) and 50% (jungle), like everyone else.
+        severity: role === "BOTTOM" || role === "JUNGLE" ? "info" : "warn",
         title: i18n.t("coach.trinket.neverTitle"),
         detail: i18n.t(neverKey, { min: Math.round(minutes), due: toMin(dueMs) }),
         action,
