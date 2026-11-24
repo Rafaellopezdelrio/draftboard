@@ -472,7 +472,7 @@
       "visionLowMetric": "{{wards}} wards placed, {{control}} control wards",
       "visionLowAction": "Buy a control ward every time you go back. Ward before you push.",
       "controlWardsTitle": "Few control wards",
-      "controlWardsDetail": "You only bought {{n}} control wards in {{min}}min.",
+      "controlWardsDetail": "You only placed {{n}} control wards in {{min}}min.",
       "controlWardsAction": "Buy one every time you go back if you have 75g to spare.",
       "earlyDeathsBadTitle": "{{n}} early deaths",
       "earlyDeathsBadDetail": "You died too much before minute 8.",

@@ -386,13 +386,25 @@ describe("coachEngine — farming & vision", () => {
     expect(v!.metric).toBe("7 wards puestas, 2 control wards");
   });
 
-  it("warns about control wards when vision score is fine but pinks are scarce", () => {
+  it("support: warns when pinks are scarce (one every 8 min)", () => {
     // 30 min → expects at least floor(30/8) = 3 pinks
-    const insights = run(mkParticipant({ controlWardsBought: 1 }));
+    const insights = run(mkParticipant({ position: "UTILITY", visionScore: 60, controlWardsBought: 2 }));
     const v = titled(insights, "Pocos control wards");
     expect(v).toMatchObject({ category: "vision", severity: "warn" });
-    expect(v!.detail).toBe("Solo compraste 1 control wards en 30min.");
+    expect(v!.detail).toBe("Solo pusiste 2 control wards en 30min.");
     expect(titled(insights, "Visión muy baja")).toBeUndefined();
+    expect(titled(run(mkParticipant({ position: "UTILITY", visionScore: 60, controlWardsBought: 3 })), "Pocos control wards")).toBeUndefined();
+  });
+
+  it("jungle: warns only for none at all", () => {
+    expect(titled(run(mkParticipant({ position: "JUNGLE", controlWardsBought: 0 })), "Pocos control wards")).toMatchObject({ severity: "warn" });
+    expect(titled(run(mkParticipant({ position: "JUNGLE", controlWardsBought: 1 })), "Pocos control wards")).toBeUndefined();
+  });
+
+  it("laners: a note (not a warning) for none, nothing for one, nothing in a short game", () => {
+    expect(titled(run(mkParticipant({ controlWardsBought: 0 })), "Pocos control wards")).toMatchObject({ severity: "info" });
+    expect(titled(run(mkParticipant({ controlWardsBought: 1 })), "Pocos control wards")).toBeUndefined();
+    expect(titled(run(mkParticipant({ controlWardsBought: 0 }), { durationSec: 1140 }), "Pocos control wards")).toBeUndefined();
   });
 });
 
@@ -435,6 +447,12 @@ describe("coachEngine — kill participation & damage", () => {
     const kp = titled(run(mkParticipant({ kills: 0, assists: 2 })), "Participación baja");
     expect(kp).toMatchObject({ category: "macro", severity: "warn" });
     expect(kp!.detail).toBe("Solo participaste en 10% de las kills del equipo.");
+  });
+
+  it("top is alone on its side: 25% is not low there, but it is for a mid", () => {
+    // allies 4×5 kills + mine 1 = 21; (1+4)/21 = 24%
+    expect(titled(run(mkParticipant({ position: "TOP", kills: 1, assists: 4 })), "Participación baja")).toBeUndefined();
+    expect(titled(run(mkParticipant({ kills: 1, assists: 4 })), "Participación baja")).toMatchObject({ severity: "warn" });
   });
 
   it("praises kill participation ≥ 70%", () => {
@@ -712,13 +730,13 @@ describe("coachEngine — lane phase (CS@14)", () => {
   it("orders bad → warn → good → info regardless of push order (stable within severity)", () => {
     const tl = timelineWith14([pframe(1, 50)]);
     tl.frames[0].events = [kill(2, 1, 6), elite(20, 7, "BARON_NASHOR")] as never;
-    // 210 CS → no farming insight; 1 pink → warn; (10+15)/30 KP → good
-    const insights = run(mkParticipant({ cs: 210, kills: 10, assists: 15, controlWardsBought: 1 }), { timeline: tl });
+    // 210 CS → no farming insight; a mid without pinks → info (pushed before the goods); (10+15)/30 KP → good
+    const insights = run(mkParticipant({ cs: 210, kills: 10, assists: 15, controlWardsBought: 0 }), { timeline: tl });
     expect(insights.map((i) => i.title)).toEqual([
       "CS@14 muy bajo: 50",
-      "Pocos control wards",
       "Excelente participación",
       "First blood",
+      "Pocos control wards",
       "Baron al rival",
     ]);
   });

@@ -79,6 +79,9 @@ const VISION_SCORE_PER_MIN_TARGET: Record<string, number> = {
   UTILITY: 1.6,
 };
 
+/** Shorter games are too short to expect a control ward from a laner. */
+const CONTROL_WARD_MIN_GAME = 20;
+
 export function analyzeMatch({
   match,
   timeline,
@@ -184,11 +187,19 @@ function checkVision(me: MatchParticipant, role: string, minutes: number): Insig
       },
     ];
   }
-  if (me.controlWardsBought < Math.floor(minutes / 8)) {
+  // Measured on 40 Master+ EUW games (24/11): top, mid and ADC place 0 control
+  // wards in half their games and the jungler 0-1, so "one every 8 min" fired
+  // on 74-93% of them. Support keeps that bar; the jungler is warned only for
+  // none at all, and a laner just gets a note.
+  const fewPinks =
+    role === "UTILITY"
+      ? me.controlWardsBought < Math.floor(minutes / 8)
+      : me.controlWardsBought === 0 && minutes >= CONTROL_WARD_MIN_GAME;
+  if (fewPinks) {
     return [
       {
         category: "vision",
-        severity: "warn",
+        severity: role === "UTILITY" || role === "JUNGLE" ? "warn" : "info",
         title: T("controlWardsTitle"),
         detail: T("controlWardsDetail", { n: me.controlWardsBought, min: minutes.toFixed(0) }),
         action: T("controlWardsAction"),
@@ -554,11 +565,17 @@ function checkOutnumberedFights(myParticipantId: number, timeline: MatchTimeline
   ];
 }
 
+/** Below this share of the team's kills = "low participation". Top is alone
+ * on its side of the map: on 40 Master+ games half the tops were under 33%
+ * and a quarter under 21%, so one 40% bar flagged 61% of them. Each value
+ * sits near the 20th percentile of those players. */
+const KP_LOW: Record<string, number> = { TOP: 0.2, JUNGLE: 0.4, MIDDLE: 0.33, BOTTOM: 0.33, UTILITY: 0.4 };
+
 function checkKillParticipation(me: MatchParticipant, team: MatchParticipant[]): Insight[] {
   const teamKills = team.reduce((a, p) => a + p.kills, 0);
   if (teamKills === 0) return [];
   const kp = (me.kills + me.assists) / teamKills;
-  if (kp < 0.4) {
+  if (kp < (KP_LOW[me.position] ?? 0.4)) {
     return [
       {
         category: "macro",

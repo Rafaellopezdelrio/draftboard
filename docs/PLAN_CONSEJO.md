@@ -315,6 +315,11 @@ programador en la tier list) para después de la prueba. Fechas fijadas:
       de avisos** al instalar: viene sin marcar y sin ella no llega nada.
 - [ ] Tres preguntas: ¿la abres sin que te lo recuerde?, ¿qué usas?, ¿qué te sobra?
 - [ ] Medir el coach con partidas de otras posiciones (top, mid, ADC, support).
+      24/11: medido con 40 partidas Máster+ EUW (80 jugadores por posición).
+      "Pocos control wards" salía al 74-93 % (top, mid, ADC, jungla) y
+      "Participación baja" al 61 % de los top: ajustados por posición, ahora
+      los avisos fuertes salen al 8-33 %. Falta: partidas reales de los
+      probadores en otras posiciones (sin publicar: va en la próxima versión).
 
 ### Fase 2 — Decidir el día 21 (con datos)
 - 3 o más la siguen usando por su cuenta (al menos 2-3 veces por semana) →

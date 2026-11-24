@@ -472,7 +472,7 @@
       "visionLowMetric": "{{wards}} wards puestas, {{control}} control wards",
       "visionLowAction": "Compra control ward en cada vuelta a base. Pon ward antes de empujar.",
       "controlWardsTitle": "Pocos control wards",
-      "controlWardsDetail": "Solo compraste {{n}} control wards en {{min}}min.",
+      "controlWardsDetail": "Solo pusiste {{n}} control wards en {{min}}min.",
       "controlWardsAction": "Cómpralos siempre que vuelvas a base si tienes 75g sobrantes.",
       "earlyDeathsBadTitle": "{{n}} muertes en early",
       "earlyDeathsBadDetail": "Moriste demasiado antes del minuto 8.",

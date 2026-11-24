@@ -4,6 +4,18 @@ All notable changes to Draftboard are documented here.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/);
 versions match the Tauri app version + the `vX.Y.Z` git tags.
 
+## [Unreleased]
+
+### Changed
+- Post-game coach measured on 40 Master+ EUW games (80 players per position).
+  "Few control wards" fired on 74-93% of top, mid, ADC and jungle players:
+  support keeps "one every 8 min", the jungler is warned only for none, and
+  a laner without any gets a note instead of a warning. "Low kill
+  participation" now has a bar per position (top 20%, mid/ADC 33%,
+  jungle/support 40%); it flagged 61% of the tops. Strong warnings now fire
+  on 8-33% of those players. The control ward text says "placed" (it counts
+  wards placed, not bought).
+
 ## [0.6.8] — 2026-11-24
 
 From a tester (24/11): "advise champions against what the rival picked".
