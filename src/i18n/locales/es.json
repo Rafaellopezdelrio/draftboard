@@ -2330,5 +2330,35 @@
     "refreshedDetail": "Refresco completado.",
     "recoveredTitle": "Datos restablecidos",
     "recoveredDetail": "Tu base de datos estaba dañada y se ha guardado a un lado. La app arranca con datos en blanco para que puedas seguir usándola."
+  },
+  "teamMode": {
+    "title": "Modo equipo",
+    "intro": "Sois 5 en la sala: elegid a qué vais a jugar y os enseño primero los campeones que encajan.",
+    "optional": "Opcional: sin estilo, la app recomienda como siempre.",
+    "suggested": "Por vuestros campeones os va mejor: {{style}} (★).",
+    "active": "Estilo: {{style}}. Primero salen los campeones que encajan.",
+    "styles": {
+      "engage": {
+        "name": "Engage",
+        "what": "entrar a pelear todos a la vez, con tanques y campeones que inician."
+      },
+      "poke": {
+        "name": "Poke y control de zonas",
+        "what": "pegar de lejos y controlar el terreno antes de pelear."
+      },
+      "protect": {
+        "name": "Proteger al carry",
+        "what": "todo el equipo cuida al que hace el daño."
+      },
+      "pick": {
+        "name": "Pick",
+        "what": "cazar al que vaya solo y pelear con ventaja."
+      },
+      "split": {
+        "name": "Split",
+        "what": "presionar líneas por separado para que tengan que dividirse."
+      }
+    },
+    "fits": "Encaja con {{style}}"
   }
 }

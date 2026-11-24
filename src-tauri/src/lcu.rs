@@ -1201,6 +1201,7 @@ mod tests {
             "/lol-champ-select/v1/session",
             "/lol-ranked/v1/ranked-stats/0a1b2c3d-4e5f-6789-abcd-ef0123456789",
             "/lol-gameflow/v1/session",
+            "/lol-lobby/v2/lobby",
         ] {
             assert!(validate_lcu_path(p).is_ok(), "should accept: {p}");
         }

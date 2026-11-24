@@ -96,6 +96,28 @@ describe("SimpleDraftView", () => {
     expect(within(pick).getByText("tu main")).toBeInTheDocument();
   });
 
+  // Rafael 24/11: team mode — the group's style first, then your champions.
+  it("team mode: picks that fit the style come first and say so", () => {
+    const withKinds = (s: ScoredSuggestion, ...archetypes: string[]) =>
+      ({ ...s, champion: { ...s.champion, archetypes } }) as ScoredSuggestion;
+    render(
+      <SimpleDraftView
+        {...base}
+        teamStyle="engage"
+        suggestions={[
+          withKinds(sug("64", true), "burst"),
+          withKinds(sug("254", false), "engage"),
+          withKinds(sug("59", true), "engage", "frontline"),
+          withKinds(sug("238", false), "burst"),
+        ]}
+      />
+    );
+    const pick = screen.getByRole("region", { name: "Elige" });
+    const names = [...pick.querySelectorAll("p.font-semibold")].map((n) => n.textContent);
+    expect(names).toEqual(["Jarvan IV", "Vi", "Lee Sin"]);
+    expect(within(pick).getByText("Encaja con Engage")).toBeInTheDocument();
+  });
+
   it("pick step: the ideal pick for this game takes the last slot, labelled, even when your champions fill it", () => {
     const bestForGame = sug("238", false, ["suggestions.reason.bestForDraft", "suggestions.reason.counters"]);
     render(

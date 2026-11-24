@@ -164,6 +164,9 @@ import { HeaderMenu } from "./components/ui/HeaderMenu";
 import { useAppShortcuts } from "./hooks/useAppShortcuts";
 import { useScheduledJobs } from "./state/scheduledJobs";
 import { useGamePhase } from "./state/inGameDetection";
+import { useTeamMode, useTeamStyleStore } from "./hooks/useTeamMode";
+import { orderByStyle } from "./engine/teamStyle";
+import { TeamStylePicker } from "./components/TeamStylePicker";
 import { useLiveGame } from "./hooks/useLiveGame";
 import { findMyPlayer, liveChampionKey, liveRosterKeys } from "./services/liveClient";
 import { lcuPositionToRole } from "./services/lcuService";
@@ -546,7 +549,7 @@ function App() {
   // rankTier picks the op.gg bracket so WRs match the player's own elo.
   const liveCounters = useEnemyCounters(db, enemyKeys, myRole, rankTier);
 
-  const suggestions = useSuggestions({
+  const rawSuggestions = useSuggestions({
     db,
     role: myRole,
     allyKeys,
@@ -559,6 +562,16 @@ function App() {
     useMastery: prefs.useMastery,
     liveCounters,
   });
+
+  // Team mode (five friends in the lobby): the picks that fit the group's
+  // style come first. Solo and duo keep the usual order.
+  const teamMode = useTeamMode(gamePhase.phase, db);
+  const teamStyle = useTeamStyleStore((s) => s.style);
+  const setTeamStyle = useTeamStyleStore((s) => s.setStyle);
+  const suggestions = useMemo(
+    () => (teamMode.active ? orderByStyle(rawSuggestions, teamStyle) : rawSuggestions),
+    [rawSuggestions, teamMode.active, teamStyle]
+  );
 
   const draftPrediction = useDraftPrediction(db, allyKeys, enemyKeys, liveCounters);
 
@@ -874,6 +887,10 @@ function App() {
       {/* Simple view (default): one plain screen per moment — home, draft
           (ban / pick / buy) and in game. The full panels sit behind details. */}
       {mainView === "home" ? (
+        <>
+        {teamMode.active && (
+          <TeamStylePicker style={teamStyle} suggested={teamMode.suggested} onChange={setTeamStyle} />
+        )}
         <SimpleHomeView
           db={db}
           rank={rank}
@@ -882,6 +899,7 @@ function App() {
           onOpenChat={() => setShowChat(true)}
           onShowDetails={() => setShowDetails(true)}
         />
+        </>
       ) : mainView === "live" ? (
         <SimpleLiveView
           db={db}
@@ -907,6 +925,9 @@ function App() {
             </PanelBoundary>
           </div>
         )}
+        {teamMode.active && (
+          <TeamStylePicker style={teamStyle} suggested={teamMode.suggested} onChange={setTeamStyle} compact />
+        )}
         <SimpleDraftView
           db={db}
           role={myRole}
@@ -919,6 +940,7 @@ function App() {
           buildRole={buildRole}
           noLaneMode={noLaneMode}
           prediction={draftPrediction}
+          teamStyle={teamMode.active ? teamStyle : null}
           onShowDetails={() => setShowDetails(true)}
         />
         </>

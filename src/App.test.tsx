@@ -30,6 +30,8 @@ const h = vi.hoisted(() => ({
   findMyPlayer: vi.fn(),
   liveChampionKey: vi.fn(),
   liveRosterKeys: vi.fn(() => ({ allyKeys: [] as string[], enemyKeys: [] as string[] })),
+  suggestions: [] as unknown[],
+  team: { active: false, suggested: null as string | null },
 }));
 
 // Generic stub: renders a testid'd div and, when the component takes an
@@ -101,7 +103,11 @@ vi.mock("./hooks/useSentrySessionTags", () => ({ useSentrySessionTags: vi.fn() }
 vi.mock("./hooks/useTelemetryConsent", () => ({ useTelemetryConsent: vi.fn() }));
 vi.mock("./hooks/useSystemToasts", () => ({ useSystemToasts: vi.fn() }));
 vi.mock("./hooks/useRoleDerivation", () => ({ useRoleDerivation: vi.fn() }));
-vi.mock("./hooks/useSuggestions", () => ({ useSuggestions: () => [] }));
+vi.mock("./hooks/useSuggestions", () => ({ useSuggestions: () => h.suggestions }));
+vi.mock("./hooks/useTeamMode", async (orig) => ({
+  ...(await orig<typeof import("./hooks/useTeamMode")>()),
+  useTeamMode: () => h.team,
+}));
 vi.mock("./hooks/useEnemyCounters", () => ({ useEnemyCounters: () => null }));
 vi.mock("./hooks/useDraftPrediction", () => ({ useDraftPrediction: () => null }));
 vi.mock("./hooks/useDraftLogger", () => ({ useDraftLogger: vi.fn() }));
@@ -171,6 +177,7 @@ vi.mock("./components/ShortcutsHelp", () => ({ ShortcutsHelp: stub("ShortcutsHel
 
 import App from "./App";
 import { useDraftStore } from "./state/draftStore";
+import { useTeamStyleStore } from "./hooks/useTeamMode";
 import { usePrefsStore, DEFAULT_PREFS, type Preferences } from "./state/prefsStore";
 import { TERMS_VERSION } from "./config";
 
@@ -627,6 +634,39 @@ describe("App — simple view (default)", () => {
     const scout = screen.getByTestId("EnemyScoutPanel");
     expect(scout.closest("[hidden]")).not.toBeNull();
     expect(screen.getByTestId("SimpleDraftView")).toBeInTheDocument();
+  });
+
+  // Rafael 24/11: five friends in the lobby (Flex, Clash, normal draft) get team mode.
+  describe("team mode", () => {
+    const sug = (key: string, ...archetypes: string[]) => ({ champion: { key, archetypes } });
+    beforeEach(() => {
+      h.gamePhase.phase = "ChampSelect";
+      h.suggestions = [sug("poke", "poke"), sug("tank", "engage"), sug("mage", "burst")];
+    });
+    afterEach(() => {
+      h.suggestions = [];
+      h.team = { active: false, suggested: null };
+      useTeamStyleStore.setState({ style: null });
+    });
+
+    it("five together: the style buttons show and the picks that fit come first", async () => {
+      h.team = { active: true, suggested: "engage" };
+      await renderApp();
+      expect(screen.getByTestId("team-style-picker")).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: /^Engage/ }));
+      const keys = () => (h.props.SimpleDraftView.suggestions as Array<{ champion: { key: string } }>).map((s) => s.champion.key);
+      expect(keys()).toEqual(["tank", "poke", "mage"]);
+      expect(h.props.SimpleDraftView.teamStyle).toBe("engage");
+    });
+
+    it("solo or duo: no buttons, the usual order, even with a style left from before", async () => {
+      useTeamStyleStore.setState({ style: "engage" });
+      await renderApp();
+      expect(screen.queryByTestId("team-style-picker")).toBeNull();
+      const keys = (h.props.SimpleDraftView.suggestions as Array<{ champion: { key: string } }>).map((s) => s.champion.key);
+      expect(keys).toEqual(["poke", "tank", "mage"]);
+      expect(h.props.SimpleDraftView.teamStyle).toBeNull();
+    });
   });
 
   it("the moved entries still open their views from the menus", async () => {

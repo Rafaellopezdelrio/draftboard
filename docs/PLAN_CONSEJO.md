@@ -275,6 +275,18 @@ programador en la tier list) para después de la prueba. Fechas fijadas:
     el rival se conoce antes), tras el 11/12. Si la detección no está
     segura, el estilo se muestra. Preguntar a los probadores en qué cola
     juegan de verdad y si hay Clash antes del 11/12.
+  - Rafael (24/11): "cuando se detecte 5 personas en una cola competitiva o
+    normal (Reclutamiento), la app en modo team, también para entrenar";
+    juegan todas las colas y van a montar equipo de Clash. **Hecho (sin
+    publicar, para la 0.6.7):** la app lee la sala del cliente
+    (`/lol-lobby/v2/lobby`) cada 5 s en sala/cola/selección; con 5 en la sala
+    en la Grieta (no ARAM/Arena) sale "Modo equipo" con 5 estilos (Engage,
+    Poke y control de zonas, Proteger al carry, Pick, Split), el sugerido
+    (★) según los 5 campeones con más maestría de cada uno (mismo resultado
+    para todo el grupo) y, al elegir uno, primero los picks que encajan (y
+    dentro, los que dominas) con la etiqueta "Encaja con …". SoloQ/dúo/trío:
+    nada cambia. Contador: `team-mode`, `team-style`. FALTA: probarlo con
+    los 5 en una sala de verdad antes del 30/11.
 - 24/11: el plan de 7 días no se borra nunca (se guarda en la base de datos);
   parecía perdido porque la ventana abría en "Generar nuevo". Ahora abre en
   el plan de esta semana. Las respuestas de la IA salían con "vos" (jugá):

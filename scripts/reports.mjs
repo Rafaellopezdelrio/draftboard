@@ -51,6 +51,8 @@ const FEATURE = {
   "champ-select": "Selección de campeones con la app abierta",
   "in-game": "Partida con la app abierta",
   "postgame-coach": "Coach de después de la partida",
+  "team-mode": "Modo equipo (5 en la sala)",
+  "team-style": "Eligió un estilo de equipo",
   "voice-natural": "Voz natural habló",
   "voice-pc": "Voz del PC habló (eligió voz de Windows)",
   "voice-pc-while-loading": "Voz del PC mientras cargaba la natural",

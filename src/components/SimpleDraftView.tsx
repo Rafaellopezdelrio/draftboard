@@ -16,6 +16,7 @@ import { MatchupBuildCard, laneOpponentKey } from "./build/MatchupBuildCard";
 import { ItemIcon } from "./build/icons";
 import type { DraftPrediction } from "../engine/draftWinrateEngine";
 import { SimpleGamePlan, SimplePrepare, SimpleTopStrip } from "./SimpleDraftExtras";
+import { fitsStyle, orderByStyle, type TeamStyle } from "../engine/teamStyle";
 
 interface Props {
   db: ChampionDb;
@@ -32,6 +33,8 @@ interface Props {
   noLaneMode: boolean;
   /** Draft win chance (same as the detailed view badge); null until picks exist. */
   prediction?: DraftPrediction | null;
+  /** Team mode: the style the group picked (null outside team mode). */
+  teamStyle?: TeamStyle | null;
   onShowDetails: () => void;
 }
 
@@ -142,6 +145,7 @@ export function SimpleDraftView({
   buildRole,
   noLaneMode,
   prediction = null,
+  teamStyle = null,
   onShowDetails,
 }: Props) {
   const { t } = useTranslation();
@@ -185,7 +189,8 @@ export function SimpleDraftView({
   const picks = useMemo(() => {
     const comfort = suggestions.filter((s) => s.breakdown.isComfort);
     const rest = suggestions.filter((s) => !s.breakdown.isComfort);
-    const three = [...comfort, ...rest].slice(0, 3);
+    // Team mode: the group's style first; inside it, still your champions first.
+    const three = orderByStyle([...comfort, ...rest], teamStyle).slice(0, 3);
     // The ideal pick for this game, when it is not one of yours, takes the
     // last slot so the player sees it next to what they play.
     const ideal = suggestions.find((s) => s.reasons.includes(BEST_FOR_DRAFT));
@@ -194,7 +199,7 @@ export function SimpleDraftView({
       else three[2] = ideal;
     }
     return three;
-  }, [suggestions]);
+  }, [suggestions, teamStyle]);
 
   const bans = useMemo(
     () =>
@@ -247,6 +252,8 @@ export function SimpleDraftView({
   const tagOf = (s: ScoredSuggestion, i: number) =>
     i === 0
       ? { label: t("simple.tagBest"), tone: "good" as const }
+      : teamStyle && fitsStyle(s.champion, teamStyle)
+        ? { label: t("teamMode.fits", { style: t(`teamMode.styles.${teamStyle}.name`) }), tone: "good" as const }
       : s.reasons.includes(BEST_FOR_DRAFT)
         ? { label: t("simple.tagBestForGame"), tone: "info" as const }
         : s.breakdown.isComfort

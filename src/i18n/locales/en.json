@@ -2330,5 +2330,35 @@
     "refreshedDetail": "Refresh complete.",
     "recoveredTitle": "Data reset",
     "recoveredDetail": "Your database was damaged and has been set aside. The app starts with empty data so you can keep using it."
+  },
+  "teamMode": {
+    "title": "Team mode",
+    "intro": "Five of you in the lobby: pick how you want to play and the champions that fit come first.",
+    "optional": "Optional: with no style, the app recommends as usual.",
+    "suggested": "From your champions, your best fit is: {{style}} (★).",
+    "active": "Style: {{style}}. Champions that fit come first.",
+    "styles": {
+      "engage": {
+        "name": "Engage",
+        "what": "all fight at once, with tanks and champions who start fights."
+      },
+      "poke": {
+        "name": "Poke and zone control",
+        "what": "hit from range and control the area before fighting."
+      },
+      "protect": {
+        "name": "Protect the carry",
+        "what": "the whole team looks after the one dealing the damage."
+      },
+      "pick": {
+        "name": "Pick",
+        "what": "catch whoever is alone and fight with an edge."
+      },
+      "split": {
+        "name": "Split",
+        "what": "push lanes apart so they have to split up."
+      }
+    },
+    "fits": "Fits {{style}}"
   }
 }
