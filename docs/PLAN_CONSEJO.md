@@ -235,6 +235,15 @@ programador en la tier list) para después de la prueba. Fechas fijadas:
   consejo de siempre. Añadir un rol cuando se mida. (3) Mensaje de
   probadores: enlace a la 0.6.6 y 4.ª pregunta "¿abriste 'Ver más detalles'?
   ¿para qué?". Decidir esconderla en Ajustes tras 1-2 semanas de prueba.
+- 24/11, consejo completo ("¿qué tal 0.6.5/0.6.6 y qué más hacer?"):
+  invitar YA con la 0.6.6 tras UNA instalación desde cero (cuenta de Windows
+  nueva; pasos en `D:\Claude\draftboard\prueba-instalacion-limpia.txt`).
+  Invitar por tandas: 3 amigos y, a los 2-3 días, el resto (ver si aguantan
+  el límite de Riot y la IA compartida). Pedir rol principal, captura de cada
+  fallo y "¿qué te dijo el coach y era verdad?". La 0.6.7 (los 8 cambios del
+  24/11) en fecha fija (p. ej. 1/12), tras verlos en partidas reales; sin
+  tocar código hasta entonces salvo bloqueo. Riesgo que señaló: pulir para
+  no enseñar la app. Rafael: "Sí, hoy" a la instalación desde cero.
 - 24/11: el plan de 7 días no se borra nunca (se guarda en la base de datos);
   parecía perdido porque la ventana abría en "Generar nuevo". Ahora abre en
   el plan de esta semana. Las respuestas de la IA salían con "vos" (jugá):
