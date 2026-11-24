@@ -18,6 +18,24 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "0.6.9",
+    date: "2026-11-24",
+    highlights: [
+      "🎓 Coach medido con partidas reales de Oro y Máster en todas las posiciones: un aviso solo se queda si quien lo recibe pierde más que el resto",
+      "🌾 Objetivos de farmeo y visión según lo que hace de verdad tu rango; \"Buen farm\" sale a la mitad de los jugadores, no a casi todos",
+      "🏹 ADC: oro y daño por minuto en vez del % del equipo (que baja cuando ganas), y sin aviso por 2 muertes tempranas",
+      "📋 Menos avisos que no dicen nada: participación baja en jungla y mid, trinket sin cambiar en ADC y jungla y first blood en contra pasan a notas",
+      "📊 \"Comparado con tu rango\" (Tendencias) usa medias medidas en vez de cifras a ojo",
+    ],
+    highlightsEn: [
+      "🎓 Coach measured on real Gold and Master games in every position: a warning stays only if those who get it lose more than the rest",
+      "🌾 Farm and vision targets follow what your rank really does; \"Good farm\" goes to half the players, not almost all",
+      "🏹 ADC: gold and damage a minute instead of the team share (which drops when you win), and no warning for 2 early deaths",
+      "📋 Fewer warnings that tell you nothing: low participation in jungle and mid, never-swapped trinket in ADC and jungle, and first blood against become notes",
+      "📊 \"Compared with your rank\" (Trends) uses measured medians instead of hand-picked numbers",
+    ],
+  },
+  {
     version: "0.6.8",
     date: "2026-11-24",
     highlights: [

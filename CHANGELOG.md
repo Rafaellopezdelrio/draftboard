@@ -4,7 +4,11 @@ All notable changes to Draftboard are documented here.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/);
 versions match the Tauri app version + the `vX.Y.Z` git tags.
 
-## [Unreleased]
+## [0.6.9] — 2026-11-24
+
+The post-game coach checked against real games: 40 Master+ EUW and 132 Gold
+games, every position. A warning stays only if the players who get it lose
+more than the rest.
 
 ### Changed
 - Post-game coach measured on 40 Master+ EUW games (80 players per position).
