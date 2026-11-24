@@ -245,7 +245,9 @@ programador en la tier list) para después de la prueba. Fechas fijadas:
   tocar código hasta entonces salvo bloqueo. Riesgo que señaló: pulir para
   no enseñar la app. Rafael: "Sí, hoy" a la instalación desde cero.
   **Hecha el 24/11 en una cuenta de Windows nueva: todo bien** (Rafael).
-  Siguiente: enviar la invitación a los 3 primeros amigos.
+  **24/11: la prueba ha empezado.** Rafael avisó él mismo a los amigos (rol,
+  capturas, "¿qué te dijo el coach y era verdad?") y ya la están usando.
+  Mirar el contador (`npm run reports`) y sus mensajes; 0.6.7 en fecha fija.
 - 24/11: el plan de 7 días no se borra nunca (se guarda en la base de datos);
   parecía perdido porque la ventana abría en "Generar nuevo". Ahora abre en
   el plan de esta semana. Las respuestas de la IA salían con "vos" (jugá):
@@ -253,7 +255,7 @@ programador en la tier list) para después de la prueba. Fechas fijadas:
   cambiaste" (3 vueltas sin cambiar), Nocturne nada (cambió en la 1.ª).
 
 ### Fase 1 — Prueba cerrada (3 semanas, sin versiones nuevas salvo fallos graves)
-- [ ] 5-10 amigos o conocidos, grupo cerrado (nada de Reddit ni Discord abiertos).
+- [x] 5-10 amigos o conocidos, grupo cerrado (nada de Reddit ni Discord abiertos). Empezó el 24/11 (avisados por Rafael).
 - [ ] Avisar de que el coach solo está medido en jungla. 23/11: mensaje para
       el grupo listo en `D:\Claude\draftboard\mensaje-probadores.txt`
       (instalar, aviso de Windows, casilla de avisos, este aviso, botón de
