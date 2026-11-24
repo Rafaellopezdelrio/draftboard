@@ -68,6 +68,7 @@ export function LessonPlanView({ db, onClose }: Props) {
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [saveFailed, setSaveFailed] = useState(false);
 
   useEffect(() => {
     recentLessonPlans(20).then(setPast);
@@ -91,6 +92,7 @@ export function LessonPlanView({ db, onClose }: Props) {
       return;
     }
     setErr(null);
+    setSaveFailed(false);
     setLoading(true);
     setText("");
     try {
@@ -124,13 +126,19 @@ export function LessonPlanView({ db, onClose }: Props) {
       // recentLessonPlans and the new plan shows up immediately. This is the
       // ONLY save (aiLessonPlan no longer saves, it produced duplicates).
       // The archetype is stored as its id and translated when shown.
-      await saveLessonPlan({
+      const saved = await saveLessonPlan({
         createdTsMs: Date.now(),
         weakestArea: weakest?.detail ?? null,
         archetype: profile?.archetype ?? "balanced",
         planText: result,
         completed: false,
-      }).catch(() => {});
+      }).then(
+        () => true,
+        // Rafael 24/11: a plan he read was later gone. Never lose one quietly:
+        // the plan still shows, with a warning to copy it.
+        () => false
+      );
+      setSaveFailed(!saved);
       setText(result);
     } catch (e) {
       setErr(String(e));
@@ -218,6 +226,11 @@ export function LessonPlanView({ db, onClose }: Props) {
               {err && (
                 <Panel padding="sm">
                   <p className="text-sm text-bad">{err}</p>
+                </Panel>
+              )}
+              {text && saveFailed && (
+                <Panel padding="sm">
+                  <p className="text-sm text-bad">{t("lessonPlan.saveFailed")}</p>
                 </Panel>
               )}
               {text && (

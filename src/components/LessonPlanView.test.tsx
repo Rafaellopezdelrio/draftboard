@@ -282,6 +282,30 @@ describe("LessonPlanView — generation", () => {
     expect(screen.getByRole("button", { name: "marcar completado" })).toBeInTheDocument();
   });
 
+  // Rafael 24/11: a plan he had read was gone later; a failed save used to be silent.
+  it("still shows the plan when saving fails, with a warning to copy it", async () => {
+    vi.mocked(recentMatches).mockResolvedValue(Array.from({ length: 5 }, () => mk()));
+    vi.mocked(aiLessonPlan).mockResolvedValue("Plan sin guardar");
+    vi.mocked(saveLessonPlan).mockRejectedValue(new Error("database is locked"));
+    await setup();
+    await act(async () => {
+      fireEvent.click(generateBtn());
+    });
+    expect(screen.getByText("Plan sin guardar")).toBeInTheDocument();
+    expect(screen.getByText(/No se ha podido guardar este plan/)).toBeInTheDocument();
+  });
+
+  it("no warning when the plan is saved", async () => {
+    vi.mocked(recentMatches).mockResolvedValue(Array.from({ length: 5 }, () => mk()));
+    vi.mocked(aiLessonPlan).mockResolvedValue("Plan guardado");
+    await setup();
+    await act(async () => {
+      fireEvent.click(generateBtn());
+    });
+    expect(screen.getByText("Plan guardado")).toBeInTheDocument();
+    expect(screen.queryByText(/No se ha podido guardar/)).toBeNull();
+  });
+
   it("falls back to 'Balanceado' and a null weakest area when nothing is detected", async () => {
     vi.mocked(recentMatches).mockResolvedValue(Array.from({ length: 5 }, () => mk()));
     vi.mocked(buildPlaystyleProfile).mockReturnValue(null);

@@ -972,7 +972,8 @@
     "showPlan": "Show full plan",
     "hidePlan": "Hide plan",
     "errKey": "Set an API key ({{provider}}) in Prefs",
-    "errMinGames": "You need at least 5 saved games"
+    "errMinGames": "You need at least 5 saved games",
+    "saveFailed": "This plan could not be saved and will not appear under \"Past plans\". Copy it or take a screenshot before closing."
   },
   "aiChat": {
     "prompt1": "Why am I stuck in this elo?",

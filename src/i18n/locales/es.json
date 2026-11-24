@@ -972,7 +972,8 @@
     "showPlan": "Ver plan completo",
     "hidePlan": "Ocultar plan",
     "errKey": "Configura API key ({{provider}}) en Prefs",
-    "errMinGames": "Necesitas al menos 5 partidas guardadas"
+    "errMinGames": "Necesitas al menos 5 partidas guardadas",
+    "saveFailed": "No se ha podido guardar este plan: no saldrá en \"Anteriores\". Cópialo o hazle una captura antes de cerrar."
   },
   "aiChat": {
     "prompt1": "¿Por qué estoy estancado en este elo?",
