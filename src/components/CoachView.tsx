@@ -2,21 +2,14 @@ import { aiReady } from "../services/aiProvider";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Markdown } from "./ui/Markdown";
-import { i18n } from "../i18n";
-import { analyzeMatch, type Insight } from "../engine/coachEngine";
+import type { Insight } from "../engine/coachEngine";
 import { trackFeature } from "../services/reports";
-import { getItemMeta, loadItemMeta } from "../services/itemMeta";
 import { computeGpi, type GpiScore } from "../engine/gpiEngine";
 import { deriveTopInsight } from "../engine/topInsight";
-import {
-  getMatchFull,
-  getMatchTimeline,
-  type MatchFull,
-  type MatchTimeline,
-} from "../services/riotApi";
+import type { MatchFull, MatchTimeline } from "../services/riotApi";
 import { recentMatches } from "../services/matchRepo";
+import { loadMatchInsights } from "../services/matchInsights";
 import { loadSettings } from "../services/settingsRepo";
-import { resolveAccount } from "../services/accountResolve";
 import type { ChampionDb } from "../types/champion";
 import { GpiRadar } from "./GpiRadar";
 import { usePrefsStore } from "../state/prefsStore";
@@ -106,31 +99,15 @@ export function CoachView({ db, onClose }: Props) {
     setAiErr(null);
     (async () => {
       try {
-        let cfg = await loadSettings();
-        // Clean install: nothing saved yet, so read the account from the LoL client.
-        if (!cfg?.puuid) cfg = await resolveAccount().catch(() => null);
-        if (!cfg || !cfg.puuid) throw new Error(i18n.t("coach.needRiotId"));
-        // Games saved from the LoL client are "LCU_<id>"; Riot wants "<PLATFORM>_<id>".
-        const riotId = matchId.startsWith("LCU_") ? `${cfg.region.toUpperCase()}_${matchId.slice(4)}` : matchId;
-        const [full, timeline, rank] = await Promise.all([
-          getMatchFull(cfg, riotId),
-          getMatchTimeline(cfg, riotId),
+        const [{ full, timeline, insights, puuid }, rank] = await Promise.all([
+          loadMatchInsights(matchId, db),
           lcuRank().catch(() => null),
-          loadItemMeta(db.patch),
         ]);
         setMatchFull(full);
         setMatchTimeline(timeline);
-        setInsights(
-          analyzeMatch({
-            match: full,
-            timeline,
-            myPuuid: cfg.puuid,
-            itemTags: (id) => getItemMeta(db.patch, id)?.tags ?? [],
-            championName: (id) => db.champions[String(id)]?.name ?? `#${id}`,
-          })
-        );
+        setInsights(insights);
         trackFeature("postgame-coach");
-        setGpi(computeGpi(full, cfg.puuid, rank?.tier ?? null, timeline));
+        setGpi(computeGpi(full, puuid, rank?.tier ?? null, timeline));
       } catch (e) {
         setErr(String(e));
       } finally {

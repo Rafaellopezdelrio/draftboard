@@ -2273,6 +2273,7 @@
     "agoDays": "hace {{n}} días",
     "kda": "Asesinatos / muertes / asistencias",
     "nextTitle": "Una cosa para la próxima",
+    "keyTitle": "Lo más importante de la partida",
     "tip": {
       "deaths": "Moriste {{deaths}} veces. Juega más atrás cuando no veas a su jungla en el mapa.",
       "farm": "Te llevaste {{perMin}} súbditos por minuto. Intenta no perder los de cada oleada: es oro seguro.",

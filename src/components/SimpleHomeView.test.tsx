@@ -3,11 +3,20 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import { SimpleHomeView, nextTip, bestChampion } from "./SimpleHomeView";
+import { SimpleHomeView, nextTip, bestChampion, __testOnly_resetKeyPoints } from "./SimpleHomeView";
+import { loadMatchInsights } from "../services/matchInsights";
+import type { Insight } from "../engine/coachEngine";
 import type { ChampionDb } from "../types/champion";
 import { recentMatches, type MatchRow } from "../services/matchRepo";
 
 vi.mock("../services/matchRepo", () => ({ recentMatches: vi.fn(async () => []) }));
+vi.mock("../services/matchInsights", async (orig) => ({
+  ...(await orig<typeof import("../services/matchInsights")>()),
+  // Offline by default: the plain tip shows.
+  loadMatchInsights: vi.fn(async () => {
+    throw new Error("offline");
+  }),
+}));
 vi.mock("../services/personalDataSync", () => ({ MATCHES_SYNCED_EVENT: "draftboard:matches-synced" }));
 
 const db = {
@@ -45,7 +54,11 @@ const base = {
   onShowDetails: () => {},
 };
 
-beforeEach(() => vi.mocked(recentMatches).mockReset().mockResolvedValue([]));
+beforeEach(() => {
+  vi.mocked(recentMatches).mockReset().mockResolvedValue([]);
+  vi.mocked(loadMatchInsights).mockClear();
+  __testOnly_resetKeyPoints();
+});
 
 describe("nextTip", () => {
   it("many deaths come first", () => {
@@ -193,4 +206,57 @@ describe("SimpleHomeView", () => {
     rerender(<SimpleHomeView {...base} refreshKey="None" />);
     expect(vi.mocked(recentMatches)).toHaveBeenCalledTimes(2);
   });
+// Council 24/11: the home card shows the coach's own points instead of a
+  // generic line, only where the coach is measured (jungle for now).
+  describe("key points from the coach", () => {
+    const ins = (severity: Insight["severity"], title: string, action?: string): Insight => ({
+      category: "macro",
+      severity,
+      title,
+      detail: `detalle de ${title}`,
+      action,
+    });
+    const coached = (insights: Insight[]) =>
+      vi.mocked(loadMatchInsights).mockResolvedValueOnce({ insights } as never);
+
+    it("a jungle game shows up to three points (two to fix, one done well) instead of the plain tip", async () => {
+      coached([
+        ins("bad", "Muchas muertes", "Juega más atrás."),
+        ins("warn", "Pocos control wards", "Compra uno cada vuelta."),
+        ins("warn", "Participación baja"),
+        ins("good", "Buen farm"),
+        ins("info", "Baron al rival"),
+      ]);
+      vi.mocked(recentMatches).mockResolvedValue([match({ deaths: 9, matchId: "EUW1_1" })]);
+      render(<SimpleHomeView {...base} />);
+      const box = await screen.findByTestId("home-key-points");
+      expect(box).toHaveTextContent("Lo más importante de la partida");
+      expect([...box.querySelectorAll("li")].map((li) => li.querySelector("p")!.textContent)).toEqual([
+        "Muchas muertes",
+        "Pocos control wards",
+        "Buen farm",
+      ]);
+      expect(box).toHaveTextContent("Juega más atrás.");
+      expect(box).toHaveTextContent("detalle de Buen farm");
+      expect(screen.queryByText(/Moriste 9 veces/)).toBeNull();
+      expect(loadMatchInsights).toHaveBeenCalledWith("EUW1_1", db);
+    });
+
+    it("other roles keep the plain tip and fetch nothing", async () => {
+      vi.mocked(recentMatches).mockResolvedValue([match({ position: "MIDDLE", deaths: 9 })]);
+      render(<SimpleHomeView {...base} />);
+      expect(await screen.findByText(/Moriste 9 veces/)).toBeInTheDocument();
+      expect(screen.queryByTestId("home-key-points")).toBeNull();
+      expect(loadMatchInsights).not.toHaveBeenCalled();
+    });
+
+    it("offline or nothing to say: the plain tip stays", async () => {
+      vi.mocked(recentMatches).mockResolvedValue([match({ deaths: 9 })]);
+      render(<SimpleHomeView {...base} />);
+      expect(await screen.findByText(/Moriste 9 veces/)).toBeInTheDocument();
+      await vi.waitFor(() => expect(loadMatchInsights).toHaveBeenCalled());
+      expect(screen.queryByTestId("home-key-points")).toBeNull();
+    });
+  });
 });
+

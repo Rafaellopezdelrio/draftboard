@@ -2273,6 +2273,7 @@
     "agoDays": "{{n}} days ago",
     "kda": "Kills / deaths / assists",
     "nextTitle": "One thing for next time",
+    "keyTitle": "What mattered most this game",
     "tip": {
       "deaths": "You died {{deaths}} times. Play further back when you can't see their jungler on the map.",
       "farm": "You got {{perMin}} minions per minute. Try not to miss the ones in each wave: it is safe gold.",

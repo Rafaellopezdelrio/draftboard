@@ -9,6 +9,8 @@ import { recentMatches, type MatchRow } from "../services/matchRepo";
 import { MATCHES_SYNCED_EVENT } from "../services/personalDataSync";
 import { ACCOUNT_CHANGED_EVENT } from "../services/accountResolve";
 import type { RankState } from "../hooks/useLcuPersonalData";
+import type { Insight } from "../engine/coachEngine";
+import { loadMatchInsights, pickKeyPoints } from "../services/matchInsights";
 
 interface Props {
   db: ChampionDb;
@@ -28,6 +30,33 @@ const RECENT = 10;
 const FETCH = 30;
 /** Ranked Solo/Duo: the queue the shown rank belongs to. */
 const SOLO_QUEUE = 420;
+/** Roles where the coach is measured well enough to put its points first
+ * (docs/PLAN_CONSEJO.md: jungle only so far). Others keep the plain tip;
+ * add a role once its points are checked on real games. */
+const KEY_POINT_ROLES = new Set(["JUNGLE"]);
+/** One fetch per game and language: the screen re-renders on every phase. */
+const keyPointsCache = new Map<string, Promise<Insight[]>>();
+function keyPointsFor(matchId: string, db: ChampionDb, lang: string): Promise<Insight[]> {
+  const key = `${matchId}|${lang}`;
+  let p = keyPointsCache.get(key);
+  if (!p) {
+    p = loadMatchInsights(matchId, db).then((r) => pickKeyPoints(r.insights));
+    // A failed fetch (offline, Riot down) is tried again next time.
+    p.catch(() => keyPointsCache.delete(key));
+    keyPointsCache.set(key, p);
+  }
+  return p;
+}
+export function __testOnly_resetKeyPoints() {
+  keyPointsCache.clear();
+}
+const DOT: Record<Insight["severity"], string> = {
+  bad: "bg-bad",
+  warn: "bg-meh",
+  good: "bg-good",
+  info: "bg-white/40",
+};
+
 /** Master and above have no divisions. */
 const NO_DIVISION = new Set(["MASTER", "GRANDMASTER", "CHALLENGER"]);
 
@@ -71,8 +100,9 @@ export function bestChampion(matches: MatchRow[]): { championId: number; wins: n
 }
 
 export function SimpleHomeView({ db, rank, refreshKey, onOpenReview, onOpenChat, onShowDetails }: Props) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [matches, setMatches] = useState<MatchRow[] | null>(null);
+  const [keyPoints, setKeyPoints] = useState<{ matchId: string; points: Insight[] } | null>(null);
   // The first sync often finishes after this screen opens: read again then.
   const [syncTick, setSyncTick] = useState(0);
   useEffect(() => {
@@ -121,6 +151,21 @@ export function SimpleHomeView({ db, rank, refreshKey, onOpenReview, onOpenChat,
   const best = rift.length ? bestChampion(rift) : null;
   const bestChamp = best ? db.champions[String(best.championId)] : undefined;
   const tip = last ? nextTip(last) : null;
+  const keyMatchId = last && KEY_POINT_ROLES.has(last.position) ? last.matchId : null;
+  useEffect(() => {
+    if (!keyMatchId) return;
+    let stale = false;
+    keyPointsFor(keyMatchId, db, i18n.language)
+      .then((points) => {
+        if (!stale) setKeyPoints({ matchId: keyMatchId, points });
+      })
+      .catch(() => {});
+    return () => {
+      stale = true;
+    };
+  }, [keyMatchId, db, i18n.language]);
+  // Until they load (or if they fail) the plain tip shows.
+  const points = keyPoints && keyPoints.matchId === keyMatchId && keyPoints.points.length > 0 ? keyPoints.points : null;
 
   const ago = (endMs: number) => {
     const min = Math.max(1, Math.round((Date.now() - endMs) / 60_000));
@@ -159,7 +204,22 @@ export function SimpleHomeView({ db, rank, refreshKey, onOpenReview, onOpenChat,
               </p>
               <p className="text-xs text-white/50">{t("simpleHome.kda")}</p>
             </div>
-            {tip && (
+            {points ? (
+              <div className="rounded-xl border border-accent/30 bg-accent/5 p-3" data-testid="home-key-points">
+                <p className="text-sm font-bold text-accent">{t("simpleHome.keyTitle")}</p>
+                <ul className="mt-1.5 space-y-2">
+                  {points.map((p) => (
+                    <li key={p.title} className="flex gap-2">
+                      <span className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${DOT[p.severity]}`} aria-hidden />
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-white">{p.title}</p>
+                        <p className="text-sm text-white/70 leading-snug">{p.action ?? p.detail}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : tip && (
               <div className="rounded-xl border border-meh/30 bg-meh/10 p-3">
                 <p className="text-sm font-bold text-meh">{t("simpleHome.nextTitle")}</p>
                 <p className="text-sm text-white/80 leading-snug">

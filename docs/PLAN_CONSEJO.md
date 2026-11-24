@@ -223,7 +223,22 @@ programador en la tier list) para después de la prueba. Fechas fijadas:
   1.ª vuelta tras el nivel 9. Top/mid: nota suave (depende). Las vueltas a
   base salen de las compras de la partida (compras a <1 min = una vuelta).
   En directo: support al tener la Brújula, jungla desde el minuto 8, ADC al
-  nivel 9. Comprobado en tus partidas: Braum "tarde" (7 → 9), Nautilus "no
+  nivel 9.
+- 24/11, consejo completo ("¿más detalle en el inicio y quitamos la otra
+  vista?"): no quitar "Ver más detalles" sin datos. Hecho: (1) lista de lo
+  que solo vivía ahí y hacía algo solo: era solo el ojeo de rivales (voz y
+  avisos), ya pasado a la vista sencilla; lo demás es información para leer
+  (tablero manual, análisis de equipos, consejos del enfrentamiento, tus
+  campeones, maestrías, parche, intercambio de picks, coach de selección con
+  IA). (2) Inicio: "Lo más importante de la partida" con 3 puntos del coach
+  (2 a mejorar + 1 bien) SOLO en jungla (lo único medido); el resto, el
+  consejo de siempre. Añadir un rol cuando se mida. (3) Mensaje de
+  probadores: enlace a la 0.6.6 y 4.ª pregunta "¿abriste 'Ver más detalles'?
+  ¿para qué?". Decidir esconderla en Ajustes tras 1-2 semanas de prueba.
+- 24/11: el plan de 7 días no se borra nunca (se guarda en la base de datos);
+  parecía perdido porque la ventana abría en "Generar nuevo". Ahora abre en
+  el plan de esta semana. Las respuestas de la IA salían con "vos" (jugá):
+  ahora se le pide español de España. Comprobado en tus partidas: Braum "tarde" (7 → 9), Nautilus "no
   cambiaste" (3 vueltas sin cambiar), Nocturne nada (cambió en la 1.ª).
 
 ### Fase 1 — Prueba cerrada (3 semanas, sin versiones nuevas salvo fallos graves)
