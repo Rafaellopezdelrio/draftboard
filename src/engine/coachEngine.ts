@@ -426,7 +426,9 @@ function checkDeaths(
       detail: T("earlyDeathsBadDetail"),
       action: T(role === "JUNGLE" ? "earlyDeathsBadActionJungle" : "earlyDeathsBadActionLane"),
     });
-  } else if (earlyDeaths >= 2) {
+  } else if (earlyDeaths >= 2 && role !== "BOTTOM") {
+    // Not for the ADC: bot lane trades 2v2 kills both ways. Measured 24/11,
+    // ADCs with 2 deaths before 8 min won 54-59% (3+ won 22-25%).
     out.push({
       category: "deaths",
       severity: "warn",
@@ -451,7 +453,9 @@ function checkDeaths(
     });
   }
 
-  if (soloDeaths >= 3) {
+  // Top and mid lanes are 1v1, so dying alone is part of the matchup: with 3
+  // solo deaths they won 52% (measured 24/11), with 4+ only 33%.
+  if (soloDeaths >= (role === "TOP" || role === "MIDDLE" ? 4 : 3)) {
     out.push({
       category: "deaths",
       severity: "warn",

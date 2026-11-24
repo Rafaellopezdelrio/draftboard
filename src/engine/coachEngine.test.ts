@@ -437,11 +437,29 @@ describe("coachEngine — deaths", () => {
   });
 
   it("three late deaths without assists → solo-death warn, no early-death insight", () => {
-    const insights = run(mkParticipant(), {
+    const insights = run(mkParticipant({ position: "BOTTOM" }), {
       events: [kill(10, 6, 1), kill(15, 7, 1, []), kill(20, 8, 1)],
     });
     expect(titled(insights, "3 solo deaths")).toMatchObject({ category: "deaths", severity: "warn" });
     expect(insights.some((i) => /muertes (en early|tempranas)/.test(i.title))).toBe(false);
+  });
+
+  it("top and mid, alone in their lane, need 4 solo deaths", () => {
+    const three = [kill(10, 6, 1), kill(15, 7, 1), kill(20, 8, 1)];
+    for (const position of ["TOP", "MIDDLE"]) {
+      expect(run(mkParticipant({ position }), { events: three }).some((i) => i.title.includes("solo deaths"))).toBe(false);
+      const four = run(mkParticipant({ position }), { events: [...three, kill(25, 6, 1)] });
+      expect(titled(four, "4 solo deaths")).toMatchObject({ severity: "warn" });
+    }
+  });
+
+  it("no '2 early deaths' warning for the ADC, but 3 is still bad", () => {
+    const two = [kill(3, 6, 1, [7]), kill(6, 7, 1, [8])];
+    expect(titled(run(mkParticipant({ position: "BOTTOM" }), { events: two }), "2 muertes tempranas")).toBeUndefined();
+    const three = [...two, kill(7, 8, 1, [9])];
+    expect(titled(run(mkParticipant({ position: "BOTTOM" }), { events: three }), "3 muertes en early")).toMatchObject({
+      severity: "bad",
+    });
   });
 
   it("flags 8+ deaths in a game shorter than 24 min", () => {

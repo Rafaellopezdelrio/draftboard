@@ -42,6 +42,11 @@ versions match the Tauri app version + the `vX.Y.Z` git tags.
   used to need 8+ in a game under 30 min, so it never showed in half of
   Gold games (12 deaths in 32 min said nothing). Players it flags win
   0-33% of those games.
+- Death warnings checked against who won: ADCs with 2 deaths before minute
+  8 won 54-59% (bot lane trades kills both ways), so they no longer get
+  that warning; 3 or more is still flagged (they won 22-25%). Top and mid,
+  alone in their lane, get "solo deaths" from 4 instead of 3: with 3 they
+  won 52%, with 4+ 33%.
 
 ## [0.6.8] — 2026-11-24
 
