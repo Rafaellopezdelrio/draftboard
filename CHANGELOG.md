@@ -63,6 +63,10 @@ versions match the Tauri app version + the `vX.Y.Z` git tags.
 - "Very low CS@14" for the ADC aims at 110 instead of 130: Master+ ADCs
   average 111 at minute 14. The old bar flagged 25% of Gold ADCs, who won
   48%; now it flags 7%.
+- "Very low vision" is a warning instead of a red flag, except for the
+  support: in Gold games winners and losers ward alike (ADC median 0.67 both)
+  and flagged players won 45%, while the other red flags sit at 10-34%. The
+  coach now lists first what really loses games.
 
 ## [0.6.8] — 2026-11-24
 

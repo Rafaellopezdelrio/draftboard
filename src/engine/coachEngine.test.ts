@@ -392,7 +392,7 @@ describe("coachEngine — farming & vision", () => {
       run(mkParticipant({ visionScore: 10, wardsPlaced: 7, controlWardsBought: 2 })),
       "Visión muy baja"
     );
-    expect(v).toMatchObject({ category: "vision", severity: "bad" });
+    expect(v).toMatchObject({ category: "vision", severity: "warn" });
     expect(v!.detail).toBe("Vision score 10 (0.33/min). Objetivo: 0.70+/min.");
     expect(v!.metric).toBe("7 wards puestas, 2 control wards");
   });

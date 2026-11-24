@@ -187,7 +187,11 @@ function checkVision(me: MatchParticipant, role: string, minutes: number): Insig
     return [
       {
         category: "vision",
-        severity: "bad",
+        // Strong only for the support, whose job it is. Measured 24/11 on 132
+        // Gold games: winners and losers ward alike (ADC median 0.67 both), and
+        // non-supports flagged here won 45%, while the other "bad" points
+        // (many deaths, very low damage) sit at 10-34%.
+        severity: role === "UTILITY" ? "bad" : "warn",
         title: T("visionLowTitle"),
         detail: T("visionLowDetail", { score: me.visionScore, vspm: vspm.toFixed(2), target: target.toFixed(2) }),
         metric: T("visionLowMetric", { wards: me.wardsPlaced, control: me.controlWardsBought }),
