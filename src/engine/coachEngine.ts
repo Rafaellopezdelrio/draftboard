@@ -590,6 +590,10 @@ function checkOutnumberedFights(myParticipantId: number, timeline: MatchTimeline
  * and a quarter under 21%, so one 40% bar flagged 61% of them. Each value
  * sits near the 20th percentile of those players. */
 const KP_LOW: Record<string, number> = { TOP: 0.2, JUNGLE: 0.4, MIDDLE: 0.33, BOTTOM: 0.33, UTILITY: 0.4 };
+/** Low participation only says "you lost" for top, ADC and support (they won
+ * 23-38% of those games); junglers and mids under the bar won 50-55% in
+ * both Gold and Master+ games (measured 24/11), so for them it is a note. */
+const KP_LOW_NOTE_ONLY = new Set(["JUNGLE", "MIDDLE"]);
 
 function checkKillParticipation(me: MatchParticipant, team: MatchParticipant[]): Insight[] {
   const teamKills = team.reduce((a, p) => a + p.kills, 0);
@@ -599,7 +603,7 @@ function checkKillParticipation(me: MatchParticipant, team: MatchParticipant[]):
     return [
       {
         category: "macro",
-        severity: "warn",
+        severity: KP_LOW_NOTE_ONLY.has(me.position) ? "info" : "warn",
         title: T("kpLowTitle"),
         detail: T("kpLowDetail", { pct: (kp * 100).toFixed(0) }),
         action: T("kpLowAction"),

@@ -47,6 +47,9 @@ versions match the Tauri app version + the `vX.Y.Z` git tags.
   that warning; 3 or more is still flagged (they won 22-25%). Top and mid,
   alone in their lane, get "solo deaths" from 4 instead of 3: with 3 they
   won 52%, with 4+ 33%.
+- "Low kill participation" is a note, not a warning, for jungle and mid:
+  those under the bar won 50-55% of their games in both Gold and Master+.
+  It stays a warning for top, ADC and support (they won 23-38%).
 
 ## [0.6.8] — 2026-11-24
 

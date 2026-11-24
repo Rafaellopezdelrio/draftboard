@@ -484,7 +484,7 @@ describe("coachEngine — kill participation & damage", () => {
 
   it("warns on low kill participation with the percentage", () => {
     // allies 4×5 kills + mine 0 = 20 team kills; (0+2)/20 = 10%
-    const kp = titled(run(mkParticipant({ kills: 0, assists: 2 })), "Participación baja");
+    const kp = titled(run(mkParticipant({ position: "BOTTOM", kills: 0, assists: 2 })), "Participación baja");
     expect(kp).toMatchObject({ category: "macro", severity: "warn" });
     expect(kp!.detail).toBe("Solo participaste en 10% de las kills del equipo.");
   });
@@ -492,7 +492,14 @@ describe("coachEngine — kill participation & damage", () => {
   it("top is alone on its side: 25% is not low there, but it is for a mid", () => {
     // allies 4×5 kills + mine 1 = 21; (1+4)/21 = 24%
     expect(titled(run(mkParticipant({ position: "TOP", kills: 1, assists: 4 })), "Participación baja")).toBeUndefined();
-    expect(titled(run(mkParticipant({ kills: 1, assists: 4 })), "Participación baja")).toMatchObject({ severity: "warn" });
+    expect(titled(run(mkParticipant({ kills: 1, assists: 4 })), "Participación baja")).toMatchObject({ severity: "info" });
+  });
+
+  it("low participation is a warning for top, ADC and support, a note for jungle and mid", () => {
+    const sev = (position: string) =>
+      titled(run(mkParticipant({ position, kills: 0, assists: 2 })), "Participación baja")!.severity;
+    expect(["TOP", "BOTTOM", "UTILITY"].map(sev)).toEqual(["warn", "warn", "warn"]);
+    expect(["JUNGLE", "MIDDLE"].map(sev)).toEqual(["info", "info"]);
   });
 
   it("praises kill participation ≥ 70%", () => {
