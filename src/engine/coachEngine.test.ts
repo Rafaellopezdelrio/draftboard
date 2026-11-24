@@ -310,13 +310,13 @@ describe("coachEngine — baseline & guards", () => {
   beforeEach(() => setCoachEloBucket("DIAMOND"));
 
   it("default mid-laner produces exactly one insight: CS mejorable with the diamond target", () => {
-    const insights = run(mkParticipant());
+    const insights = run(mkParticipant({ cs: 180 }));
     expect(insights).toHaveLength(1);
     expect(insights[0]).toMatchObject({
       category: "farming",
       severity: "warn",
       title: "CS mejorable",
-      detail: "6.7 CS/min. Margen para llegar a 7.5.",
+      detail: "6.0 CS/min. Margen para llegar a 7.0.",
     });
   });
 
@@ -335,16 +335,16 @@ describe("coachEngine — setCoachEloBucket", () => {
   beforeEach(() => setCoachEloBucket("DIAMOND"));
 
   it.each([
-    ["IRON", "5.0"],
-    ["bronze", "5.0"], // lower-case tiers are normalised
-    ["SILVER", "6.0"],
-    ["GOLD", "6.8"],
-    ["PLATINUM", "6.8"],
-    ["EMERALD", "6.8"],
-    ["DIAMOND", "7.5"],
-    ["MASTER", "8.0"],
-    ["GRANDMASTER", "8.0"],
-    ["Challenger", "8.0"],
+    ["IRON", "4.7"],
+    ["bronze", "4.7"], // lower-case tiers are normalised
+    ["SILVER", "5.6"],
+    ["GOLD", "6.4"],
+    ["PLATINUM", "6.4"],
+    ["EMERALD", "6.4"],
+    ["DIAMOND", "7.0"],
+    ["MASTER", "7.6"],
+    ["GRANDMASTER", "7.6"],
+    ["Challenger", "7.6"],
   ])("tier %s uses a MIDDLE CS/min target of %s", (tier, target) => {
     setCoachEloBucket(tier);
     // 60 CS / 30 min = 2.0/min: "bad" in every bucket, so the detail always names the target.
@@ -360,17 +360,17 @@ describe("coachEngine — setCoachEloBucket", () => {
     setCoachEloBucket("");
     setCoachEloBucket("UNRANKED");
     const farm = titled(run(mkParticipant({ cs: 60 })), "CS muy bajo");
-    expect(farm!.detail).toContain("es 6.0+");
+    expect(farm!.detail).toContain("es 5.6+");
   });
 
   it("a lower bucket turns the same CS from 'bad' into 'warn'", () => {
-    // 120 CS / 30 min = 4.0/min. Diamond target 7.5 → bad; iron target 5.0 → 80% → warn.
+    // 120 CS / 30 min = 4.0/min. Diamond target 7.0 → bad; iron target 4.7 → 85% → warn.
     const me = mkParticipant({ cs: 120 });
     expect(titled(run(me), "CS muy bajo")).toBeDefined();
     setCoachEloBucket("IRON");
     const insights = run(me);
     expect(titled(insights, "CS muy bajo")).toBeUndefined();
-    expect(titled(insights, "CS mejorable")!.detail).toBe("4.0 CS/min. Margen para llegar a 5.0.");
+    expect(titled(insights, "CS mejorable")!.detail).toBe("4.0 CS/min. Margen para llegar a 4.7.");
   });
 });
 
@@ -383,8 +383,8 @@ describe("coachEngine — farming & vision", () => {
   });
 
   it("emits no farming insight between 90% and 100% of target", () => {
-    // 210 / 30 = 7.0/min = 93% of 7.5
-    expect(run(mkParticipant({ cs: 210 })).some((i) => i.category === "farming")).toBe(false);
+    // 195 / 30 = 6.5/min = 93% of 7.0
+    expect(run(mkParticipant({ cs: 195 })).some((i) => i.category === "farming")).toBe(false);
   });
 
   it("flags very low vision with wards metric for a non-support", () => {
@@ -747,8 +747,8 @@ describe("coachEngine — lane phase (CS@14)", () => {
   it("orders bad → warn → good → info regardless of push order (stable within severity)", () => {
     const tl = timelineWith14([pframe(1, 50)]);
     tl.frames[0].events = [kill(2, 1, 6), elite(20, 7, "BARON_NASHOR")] as never;
-    // 210 CS → no farming insight; a mid without pinks → info (pushed before the goods); (10+15)/30 KP → good
-    const insights = run(mkParticipant({ cs: 210, kills: 10, assists: 15, controlWardsBought: 0 }), { timeline: tl });
+    // 195 CS → no farming insight; a mid without pinks → info (pushed before the goods); (10+15)/30 KP → good
+    const insights = run(mkParticipant({ cs: 195, kills: 10, assists: 15, controlWardsBought: 0 }), { timeline: tl });
     expect(insights.map((i) => i.title)).toEqual([
       "CS@14 muy bajo: 50",
       "Excelente participación",

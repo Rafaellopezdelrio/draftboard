@@ -33,6 +33,11 @@ versions match the Tauri app version + the `vX.Y.Z` git tags.
   for 25 min instead of 20: Master+ mids are still on yellow in 45% of 20-25
   min games but only 17-18% of longer ones. Top no longer gets it: Master+
   tops keep the yellow trinket in 44-67% of games past 25 min.
+- Farm targets for top, mid and ADC are now the same medians "Compared with
+  your rank" uses. Gold top was 6.3 CS/min against a real 7.1, so "Good
+  farm" praised 67% of Gold tops while Trends marked the same number below
+  the median. "Good farm" now goes to about half the players of every
+  position, in Gold and in Master+ games.
 
 ## [0.6.8] — 2026-11-24
 
