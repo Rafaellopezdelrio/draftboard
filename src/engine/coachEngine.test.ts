@@ -568,11 +568,19 @@ describe("coachEngine — kill participation & damage", () => {
 describe("coachEngine — gold efficiency", () => {
   beforeEach(() => setCoachEloBucket("DIAMOND"));
 
-  it("warns an ADC holding less than 20% of team gold", () => {
-    // 8000 / (8000 + 4×10000) = 17%
-    const g = titled(run(mkParticipant({ position: "BOTTOM", goldEarned: 8000 })), "Oro bajo como ADC");
+  it("warns an ADC under 380 gold a minute", () => {
+    // 11100 / 30 min = 370
+    const g = titled(run(mkParticipant({ position: "BOTTOM", goldEarned: 11100 })), "Oro bajo como ADC");
     expect(g).toMatchObject({ category: "macro", severity: "warn" });
-    expect(g!.detail).toMatch(/^17% del oro del equipo/);
+    expect(g!.detail).toBe("370 de oro por minuto. Por debajo de 380, el ADC llega tarde a sus objetos clave.");
+  });
+
+  it("a small share of a rich team's gold is not low gold", () => {
+    // 11400 / 30 = 380 a minute, but only 11400 / (11400 + 4×15000) = 16% of the team's gold
+    const me = mkParticipant({ position: "BOTTOM", goldEarned: 11400 });
+    const match = mkMatch(me);
+    match.participants.forEach((p) => p.teamId === me.teamId && p.puuid !== me.puuid && (p.goldEarned = 15000));
+    expect(titled(run(me, { match }), "Oro bajo como ADC")).toBeUndefined();
   });
 
   it.each(["MIDDLE", "TOP"])("warns %s about GPM below 320", (position) => {

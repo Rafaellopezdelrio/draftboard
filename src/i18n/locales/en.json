@@ -501,7 +501,7 @@
       "baronLostTitle": "Enemy took Baron",
       "baronLostDetail": "The enemy took Baron — contest the next one with river vision ready.",
       "adcGoldTitle": "Low gold as ADC",
-      "adcGoldDetail": "{{pct}}% of your team's gold. As the carry you should be around 25-30%.",
+      "adcGoldDetail": "{{gpm}} gold a minute. Below {{min}}, an ADC is late to their key items.",
       "adcGoldAction": "Get to the waves quickly after teamfights. Don't die for nothing.",
       "gpmTitle": "Low GPM",
       "gpmDetail": "{{gpm}} gold/min. Diamond average for {{role}}: 380+.",

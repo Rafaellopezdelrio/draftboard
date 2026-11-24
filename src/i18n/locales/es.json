@@ -501,7 +501,7 @@
       "baronLostTitle": "Baron al rival",
       "baronLostDetail": "El rival cogió Baron — recuerda contestar el siguiente con visión río preparada.",
       "adcGoldTitle": "Oro bajo como ADC",
-      "adcGoldDetail": "{{pct}}% del oro del equipo. Como carry deberías estar entre 25-30%.",
+      "adcGoldDetail": "{{gpm}} de oro por minuto. Por debajo de {{min}}, el ADC llega tarde a sus objetos clave.",
       "adcGoldAction": "Llega a las waves rápido tras teamfights. No mueras innecesariamente.",
       "gpmTitle": "GPM bajo",
       "gpmDetail": "{{gpm}} oro/min. Diamond promedio en {{role}}: 380+.",

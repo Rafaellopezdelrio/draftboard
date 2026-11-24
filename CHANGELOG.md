@@ -50,6 +50,10 @@ versions match the Tauri app version + the `vX.Y.Z` git tags.
 - "Low kill participation" is a note, not a warning, for jungle and mid:
   those under the bar won 50-55% of their games in both Gold and Master+.
   It stays a warning for top, ADC and support (they won 23-38%).
+- "Low gold as ADC" looks at gold a minute (under 380) instead of the share
+  of the team's gold. In a win everyone is rich, so the share drops: ADCs it
+  flagged won 63% of Gold games. Now it flags ~11% of Gold ADCs, who win
+  28%. The old text said a carry should hold 25-30%; the real median is 23%.
 
 ## [0.6.8] — 2026-11-24
 

@@ -689,6 +689,7 @@ function checkObjectives(
   return out;
 }
 
+const ADC_GPM_LOW = 380;
 function checkGoldEfficiency(
   me: MatchParticipant,
   team: MatchParticipant[],
@@ -696,15 +697,18 @@ function checkGoldEfficiency(
 ): Insight[] {
   const teamGold = team.reduce((a, p) => a + p.goldEarned, 0);
   if (teamGold === 0) return [];
-  const goldShare = me.goldEarned / teamGold;
   const gpm = me.goldEarned / minutes;
-  if (me.position === "BOTTOM" && goldShare < 0.2) {
+  // ADC: gold a minute, not share of the team's gold. Measured 24/11 on 132
+  // Gold and 40 Master+ games: ADCs under 20% of team gold won 63% in Gold
+  // (in a win everyone is rich, so the share drops), while ADCs under 380
+  // gold a minute (~10% of them) won 0-28%.
+  if (me.position === "BOTTOM" && gpm < ADC_GPM_LOW) {
     return [
       {
         category: "macro",
         severity: "warn",
         title: T("adcGoldTitle"),
-        detail: T("adcGoldDetail", { pct: (goldShare * 100).toFixed(0) }),
+        detail: T("adcGoldDetail", { gpm: gpm.toFixed(0), min: ADC_GPM_LOW }),
         action: T("adcGoldAction"),
       },
     ];
