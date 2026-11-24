@@ -770,11 +770,11 @@ describe("coachEngine — lane phase (CS@14)", () => {
     expect(l!.detail).toBe("Objetivo en mid: 105+. Saliste de lane phase sin oro.");
   });
 
-  it("uses a 130 target for BOTTOM (85 flagged, 95 fine)", () => {
+  it("uses a 110 target for BOTTOM (75 flagged, 80 fine)", () => {
     const bot = mkParticipant({ position: "BOTTOM" });
-    const low = run(bot, { timeline: timelineWith14([pframe(1, 85)]) });
-    expect(titled(low, "CS@14 muy bajo: 85")!.detail).toMatch(/^Objetivo en ADC: 130\+/);
-    const ok = run(bot, { timeline: timelineWith14([pframe(1, 95)]) });
+    const low = run(bot, { timeline: timelineWith14([pframe(1, 75)]) });
+    expect(titled(low, "CS@14 muy bajo: 75")!.detail).toMatch(/^Objetivo en ADC: 110\+/);
+    const ok = run(bot, { timeline: timelineWith14([pframe(1, 80)]) });
     expect(ok.some((i) => i.title.startsWith("CS@14"))).toBe(false);
   });
 
