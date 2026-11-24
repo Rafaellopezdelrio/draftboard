@@ -293,6 +293,10 @@ programador en la tier list) para después de la prueba. Fechas fijadas:
     modo equipo todos hoy"; adelanta la fecha del 1/12 por decisión suya).
     Servidor 2026-11-24.1; manifiesto con firma idéntica al .sig; instalador
     6 870 732 bytes descarga bien.
+  - **24/11: publicada la 0.6.8** (Rafael: "Publica ya"): cada pick nombra al
+    rival de línea y el % ("contra Darius ganas 54 de cada 100"); en modo
+    equipo, con el rival ya elegido, primero lo que encaja y le gana.
+    Servidor 2026-11-24.2, firma idéntica, instalador 6 870 989 bytes.
 - 24/11: el plan de 7 días no se borra nunca (se guarda en la base de datos);
   parecía perdido porque la ventana abría en "Generar nuevo". Ahora abre en
   el plan de esta semana. Las respuestas de la IA salían con "vos" (jugá):
