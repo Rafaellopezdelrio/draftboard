@@ -73,12 +73,15 @@ const T = (key: string, params?: Record<string, string | number>): string =>
 const roleLabel = (role: string): string =>
   role ? i18n.t(`coach.roles.${role}`, { defaultValue: role }) : role;
 
+// Measured 24/11 (Gold and Master+ games): supports average 2.5-2.7 a minute,
+// so 1.6 never flagged one; mids sit near tops and ADCs (0.6-0.7), so 0.8
+// flagged twice as many. "Very low" (< 60%) now hits 7-19% of each position.
 const VISION_SCORE_PER_MIN_TARGET: Record<string, number> = {
   TOP: 0.7,
   JUNGLE: 0.9,
-  MIDDLE: 0.8,
+  MIDDLE: 0.7,
   BOTTOM: 0.7,
-  UTILITY: 1.6,
+  UTILITY: 2.5,
 };
 
 /** Shorter games are too short to expect a control ward from a laner. */

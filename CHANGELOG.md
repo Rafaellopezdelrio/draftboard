@@ -20,6 +20,9 @@ versions match the Tauri app version + the `vX.Y.Z` git tags.
   5.9, so "Good farm" praised ~90% of them. Now Gold 6.3, Master+ 7.3
   (Silver 5.5, Iron-Bronze 4.5, Diamond 6.8): "Good farm" ~45%, "could farm
   more" ~20-25%, as in the lanes.
+- Vision targets: support 1.6 → 2.5 a minute (supports average 2.5-2.7, so
+  "Very low vision" never fired for one) and mid 0.8 → 0.7 (like top and ADC;
+  it flagged twice as many mids). It now fires on 7-19% of each position.
 
 ## [0.6.8] — 2026-11-24
 

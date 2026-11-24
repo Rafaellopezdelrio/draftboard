@@ -393,7 +393,7 @@ describe("coachEngine — farming & vision", () => {
       "Visión muy baja"
     );
     expect(v).toMatchObject({ category: "vision", severity: "bad" });
-    expect(v!.detail).toBe("Vision score 10 (0.33/min). Objetivo: 0.80+/min.");
+    expect(v!.detail).toBe("Vision score 10 (0.33/min). Objetivo: 0.70+/min.");
     expect(v!.metric).toBe("7 wards puestas, 2 control wards");
   });
 
@@ -405,6 +405,12 @@ describe("coachEngine — farming & vision", () => {
     expect(v!.detail).toBe("Solo pusiste 2 control wards en 30min.");
     expect(titled(insights, "Visión muy baja")).toBeUndefined();
     expect(titled(run(mkParticipant({ position: "UTILITY", visionScore: 60, controlWardsBought: 3 })), "Pocos control wards")).toBeUndefined();
+  });
+
+  it("support: 1.2 vision a minute is very low for the role that wards", () => {
+    // 30 min: 36 → 1.2/min (< 60% of 2.5); 60 → 2.0/min is fine
+    expect(titled(run(mkParticipant({ position: "UTILITY", visionScore: 36, controlWardsBought: 4 })), "Visión muy baja")).toMatchObject({ severity: "bad" });
+    expect(titled(run(mkParticipant({ position: "UTILITY", visionScore: 60, controlWardsBought: 4 })), "Visión muy baja")).toBeUndefined();
   });
 
   it("jungle: warns only for none at all", () => {
