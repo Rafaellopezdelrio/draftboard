@@ -289,6 +289,10 @@ programador en la tier list) para después de la prueba. Fechas fijadas:
     dentro, los que dominas) con la etiqueta "Encaja con …". SoloQ/dúo/trío:
     nada cambia. Contador: `team-mode`, `team-style`. FALTA: probarlo con
     los 5 en una sala de verdad antes del 30/11.
+  - **24/11: publicada la 0.6.7** (Rafael: "despliega, así probamos el
+    modo equipo todos hoy"; adelanta la fecha del 1/12 por decisión suya).
+    Servidor 2026-11-24.1; manifiesto con firma idéntica al .sig; instalador
+    6 870 732 bytes descarga bien.
 - 24/11: el plan de 7 días no se borra nunca (se guarda en la base de datos);
   parecía perdido porque la ventana abría en "Generar nuevo". Ahora abre en
   el plan de esta semana. Las respuestas de la IA salían con "vos" (jugá):
