@@ -404,5 +404,5 @@ ${insightsBlock || "ninguna relevante"}
 
 Aplica el framework. Si soy ${bucket}, NO me digas obviedades — busca el patrón real.
 
-OBLIGATORIO: dame al menos UN insight de mejora, sin importar si la partida fue limpia — sacado de estos datos, sin inventar nada que no esté aquí. Quiero seguir mejorando — no me digas "perfect game". ${language === "en" ? "Respond in English." : "Responde en español."}`;
+OBLIGATORIO: dame al menos UN insight de mejora, sin importar si la partida fue limpia — sacado de estos datos, sin inventar nada que no esté aquí. Quiero seguir mejorando — no me digas "perfect game". ${language === "en" ? "Respond in English." : "Responde en español de España: tú, nunca vos."}`;
 }

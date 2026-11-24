@@ -110,7 +110,7 @@ export async function generateMatchupTips(
   }
   const key = matchupCacheKey(input.position, input.enemyPosition);
 
-  const systemPrompt = `Eres un coach pro de League of Legends. Generas tips de matchup específicos: 3-4 bullets cortos, accionables, basados en mecánicas reales (cooldowns, power spikes, thresholds). NADA de generalidades. ${input.language === "en" ? "Respond in English." : "Responde en español."}
+  const systemPrompt = `Eres un coach pro de League of Legends. Generas tips de matchup específicos: 3-4 bullets cortos, accionables, basados en mecánicas reales (cooldowns, power spikes, thresholds). NADA de generalidades. ${input.language === "en" ? "Respond in English." : "Responde en español de España: tú, nunca vos."}
 
 ${plainStyle(input.language === "en" ? "en" : "es", { closingTip: false })}`;
 

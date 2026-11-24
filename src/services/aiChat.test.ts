@@ -106,7 +106,7 @@ describe("chatWithCoach", () => {
     expect(sys).not.toContain("Yasuo: 2g");
     expect(sys).toContain("Más maestría: Ahri (M7, 252k)");
     expect(sys).toContain("Últimas 3 partidas (la más reciente primero, W = victoria, L = derrota, asesinatos/muertes/asistencias): W Ahri MIDDLE 5/2/7; L #999 TOP 1/6/0; W Ahri MIDDLE 5/2/7");
-    expect(sys).toContain("Responde en español.");
+    expect(sys).toContain("Responde en español de España: tú, nunca vos.");
   });
 
   it("caps the Spanish prompt at 5 top champs, 5 masteries and 10 matches", async () => {

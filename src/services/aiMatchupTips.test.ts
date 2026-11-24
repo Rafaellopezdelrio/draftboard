@@ -101,7 +101,7 @@ describe("generateMatchupTips", () => {
     const p = callAi.mock.calls[0][0];
     expect(p).toMatchObject({ provider: "groq", apiKey: "k", maxTokens: 400 });
     expect(p.userPrompt).toContain("yo juego Ahri MIDDLE, enemigo es Yasuo MIDDLE. Parche 14.20.");
-    expect(p.systemPrompt).toContain("Responde en español.");
+    expect(p.systemPrompt).toContain("Responde en español de España: tú, nunca vos.");
 
     const [sql, params] = executeMock.mock.calls[0];
     expect(sql).toMatch(/INSERT OR REPLACE INTO ai_matchup_tips/);

@@ -116,6 +116,34 @@ beforeEach(() => {
   });
 });
 
+// Rafael 24/11: yesterday's plan looked gone because the view opened on "Generar nuevo".
+describe("LessonPlanView — opens on this week's plan", () => {
+  const plan = (ageDays: number, completed = false) => ({
+    id: 9,
+    createdTsMs: Date.now() - ageDays * 24 * 60 * 60 * 1000,
+    weakestArea: null,
+    archetype: "aggressive",
+    planText: "Día 1: plan de la semana",
+    completed,
+  });
+
+  it("a plan from the last seven days opens in 'Anteriores', expanded", async () => {
+    vi.mocked(recentLessonPlans).mockResolvedValue([plan(1)]);
+    await setup();
+    expect(historyTab()).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByText(/plan de la semana/)).toBeInTheDocument();
+  });
+
+  it("an older or finished plan opens on 'Generar nuevo' as before", async () => {
+    for (const p of [plan(8), plan(1, true)]) {
+      vi.mocked(recentLessonPlans).mockResolvedValue([p]);
+      const { unmount } = await setup();
+      expect(generateBtn()).toBeInTheDocument();
+      unmount();
+    }
+  });
+});
+
 describe("LessonPlanView — intro & API key gating", () => {
   it("renders the title, intro bullets and loads the last 20 plans", async () => {
     await setup();
@@ -238,10 +266,10 @@ describe("LessonPlanView — generation", () => {
     expect(screen.getByText("Día 1: farmear")).toBeInTheDocument();
     expect(container.querySelector('[aria-busy="true"]')).toBeNull();
     // History refreshed after the new text: the tab count reflects the saved plan.
-    expect(recentLessonPlans).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(recentLessonPlans).mock.calls.filter(([n]) => n === 20)).toHaveLength(2);
     // The plan is persisted before the refresh, so history includes it.
     expect(vi.mocked(saveLessonPlan).mock.invocationCallOrder[0]).toBeLessThan(
-      vi.mocked(recentLessonPlans).mock.invocationCallOrder[1]
+      Math.max(...vi.mocked(recentLessonPlans).mock.invocationCallOrder)
     );
     await act(async () => {});
     expect(historyTab()).toHaveTextContent("1");

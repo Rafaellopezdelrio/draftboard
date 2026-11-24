@@ -115,7 +115,7 @@ Pautas:
 - Si preguntan por "las últimas N partidas", usa solo esas N.
 - Si preguntan por un campeón, menciona sus partidas con él si las hay.
 - Si preguntan algo que no es de LoL, reconduce con amabilidad.
-- Responde en español.
+- Responde en español de España: tú, nunca vos.
 
 ${plainStyle("es")}`;
 }

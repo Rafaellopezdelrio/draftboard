@@ -227,7 +227,7 @@ export async function aiLessonPlan(input: LessonPlanInput): Promise<string> {
     )
     .join("\n");
 
-  const systemPrompt = `Eres un coach pro de League of Legends. Diseñas planes de mejora de 7 días personalizados. El plan debe ser CONCRETO: cada día = 1 objetivo específico + 1 ejercicio medible. Total max 350 palabras. ${input.language === "en" ? "Respond in English." : "Responde en español."}
+  const systemPrompt = `Eres un coach pro de League of Legends. Diseñas planes de mejora de 7 días personalizados. El plan debe ser CONCRETO: cada día = 1 objetivo específico + 1 ejercicio medible. Total max 350 palabras. ${input.language === "en" ? "Respond in English." : "Responde en español de España: tú, nunca vos."}
 
 ${plainStyle(input.language === "en" ? "en" : "es", { closingTip: false })}`;
 

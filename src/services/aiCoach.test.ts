@@ -305,7 +305,7 @@ describe("AI coach orchestration", () => {
       const p = callAi.mock.calls[0][0];
       expect(p.systemPrompt).toContain("Respond in English");
       expect(p.userPrompt).toContain("Respond in English.");
-      expect(p.userPrompt).not.toContain("Responde en español.");
+      expect(p.userPrompt).not.toContain("Responde en español de España: tú, nunca vos.");
     });
   });
 
@@ -342,7 +342,7 @@ describe("AI coach orchestration", () => {
       await aiLessonPlan(lessonInput());
       const p = callAi.mock.calls[0][0];
       expect(p.maxTokens).toBe(900);
-      expect(p.systemPrompt).toContain("Responde en español.");
+      expect(p.systemPrompt).toContain("Responde en español de España: tú, nunca vos.");
       expect(p.userPrompt).toContain("Mi estilo: Agresivo");
       expect(p.userPrompt).toContain("Mi mayor problema: deaths");
       expect(p.userPrompt).toContain("- Champ0 MIDDLE: W 0/1/1");

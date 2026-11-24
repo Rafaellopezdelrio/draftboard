@@ -36,6 +36,8 @@ interface Props {
 }
 
 type Tab = "current" | "history";
+/** A plan covers seven days. */
+const PLAN_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
 export function LessonPlanView({ db, onClose }: Props) {
   const { t } = useTranslation();
@@ -70,6 +72,18 @@ export function LessonPlanView({ db, onClose }: Props) {
   useEffect(() => {
     recentLessonPlans(20).then(setPast);
   }, [text]);
+
+  // Rafael 24/11: a plan made yesterday looked gone, because the view opened
+  // on "Generate new". While the latest plan's week is running, open on it.
+  useEffect(() => {
+    recentLessonPlans(1)
+      .then(([p]) => {
+        if (!p || p.completed || Date.now() - p.createdTsMs >= PLAN_WEEK_MS) return;
+        setTab("history");
+        if (p.id != null) setExpanded(new Set([p.id]));
+      })
+      .catch(() => {});
+  }, []);
 
   async function generate() {
     if (!ready) {

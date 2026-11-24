@@ -103,7 +103,7 @@ FORMATO OBLIGATORIO (markdown plano):
 - Objetos: SOLO los de la lista que te paso, escritos exactamente igual (es la tienda de este parche; cualquier otro ya no existe)
 - Habilidades en formato "Q (Nombre)" o solo el nombre con su tecla entre paréntesis al final: "Ground Slam (E)"
 - Nada de _ITEM_, _NOMBRE_ o cosas así
-${input.language === "en" ? "Respond in English." : "Responde en español."}`;
+${input.language === "en" ? "Respond in English." : "Responde en español de España: tú, nunca vos."}`;
 
   const items = input.itemNames ?? [];
   const itemBlock = items.length
