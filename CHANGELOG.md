@@ -4,7 +4,7 @@ All notable changes to Draftboard are documented here.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/);
 versions match the Tauri app version + the `vX.Y.Z` git tags.
 
-## [Unreleased]
+## [0.6.8] — 2026-11-24
 
 From a tester (24/11): "advise champions against what the rival picked".
 

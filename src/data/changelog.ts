@@ -18,6 +18,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "0.6.8",
+    date: "2026-11-24",
+    highlights: [
+      "⚔️ Cuando tu rival de línea elige, cada pick te dice cómo va contra él: \"contra Darius ganas 54 de cada 100\" o \"⚠ contra Darius cuesta\"",
+      "👥 Modo equipo: con el rival de tu línea ya elegido, salen primero los campeones que encajan con vuestro estilo y además le ganan",
+    ],
+    highlightsEn: [
+      "⚔️ Once your lane rival picks, each pick tells you how it does against them: \"vs Darius you win 54 of 100\" or \"⚠ vs Darius it is hard\"",
+      "👥 Team mode: once your lane rival picked, the champions that fit your style and beat them come first",
+    ],
+  },
+  {
     version: "0.6.7",
     date: "2026-11-24",
     highlights: [
