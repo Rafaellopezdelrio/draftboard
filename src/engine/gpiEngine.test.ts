@@ -135,10 +135,10 @@ describe("computeGpi", () => {
   });
 
   it("CS-heavy game at the bracket target gives ~75 farming", () => {
-    // Emerald MID target = 7.5 CS/min. 30 min match. 7.5 * 30 = 225 CS = target.
+    // Emerald MID target = 7.0 CS/min. 30 min match. 7.0 * 30 = 210 CS = target.
     // Score formula: (cspm / target) * 75 → exactly 75 at target.
     const m = mkMatch([
-      mkParticipant({ puuid: "me", position: "MIDDLE", cs: 225 }),
+      mkParticipant({ puuid: "me", position: "MIDDLE", cs: 210 }),
       mkParticipant({ puuid: "x" }),
     ]);
     const s = computeGpi(m, "me", "EMERALD")!;

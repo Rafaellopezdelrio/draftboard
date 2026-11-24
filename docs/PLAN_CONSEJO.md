@@ -326,6 +326,9 @@ programador en la tier list) para después de la prueba. Fechas fijadas:
       partidas de jungla de Rafael pasa de 18 "Buen farm" a 4 buenas y 4
       mejorables. Visión: support 1,6 → 2,5 por minuto (nunca avisaba) y mid
       0,8 → 0,7; "Visión muy baja" sale ahora al 7-19 % de cada posición.
+      "Comparado con tu rango" (Tendencias) usa ahora las medias medidas
+      (Oro y Máster; Diamante en medio; Hierro-Plata sin medir) en vez de
+      cifras a ojo. Daño de mid: objetivo 27 % → 24 %.
 
 ### Fase 2 — Decidir el día 21 (con datos)
 - 3 o más la siguen usando por su cuenta (al menos 2-3 veces por semana) →

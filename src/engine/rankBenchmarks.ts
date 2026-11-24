@@ -45,36 +45,38 @@ interface RoleBaseline {
   kda: number;
 }
 
-// Approximate per-minute baselines. Numbers rise with bracket; supports trade
-// CS for vision. Tuned to feel right, not to be exact — labeled as estimates.
+// Per-minute medians per bracket. Gold-plat and master-plus were measured on
+// 24/11 (38 Gold III lobbies and 40 Master+ EUW games, 50-80 players per
+// role, the owner left out); emerald-diamond sits between the two, and
+// iron-silver keeps the old gap to gold-plat (not measured).
 const BASELINES: Record<RankBracket, Record<Role, RoleBaseline>> = {
   "iron-silver": {
-    TOP: { cspm: 5.5, vspm: 0.5, dpm: 0.3, kda: 1.8 },
-    JUNGLE: { cspm: 4.5, vspm: 0.7, dpm: 0.32, kda: 1.9 },
-    MIDDLE: { cspm: 5.8, vspm: 0.55, dpm: 0.3, kda: 2.0 },
-    BOTTOM: { cspm: 6.0, vspm: 0.5, dpm: 0.28, kda: 2.0 },
-    UTILITY: { cspm: 1.0, vspm: 1.3, dpm: 0.32, kda: 1.9 },
+    TOP: { cspm: 6, vspm: 0.64, dpm: 0.24, kda: 1.4 },
+    JUNGLE: { cspm: 5.4, vspm: 0.71, dpm: 0.23, kda: 1.9 },
+    MIDDLE: { cspm: 5.4, vspm: 0.52, dpm: 0.24, kda: 1.6 },
+    BOTTOM: { cspm: 6.5, vspm: 0.54, dpm: 0.24, kda: 2.1 },
+    UTILITY: { cspm: 1.1, vspm: 2.1, dpm: 0.27, kda: 2 },
   },
   "gold-plat": {
-    TOP: { cspm: 6.5, vspm: 0.6, dpm: 0.27, kda: 2.2 },
-    JUNGLE: { cspm: 5.2, vspm: 0.85, dpm: 0.28, kda: 2.3 },
-    MIDDLE: { cspm: 6.8, vspm: 0.65, dpm: 0.27, kda: 2.4 },
-    BOTTOM: { cspm: 7.0, vspm: 0.55, dpm: 0.25, kda: 2.4 },
-    UTILITY: { cspm: 1.2, vspm: 1.6, dpm: 0.28, kda: 2.3 },
+    TOP: { cspm: 7.1, vspm: 0.77, dpm: 0.21, kda: 1.8 },
+    JUNGLE: { cspm: 6.4, vspm: 0.85, dpm: 0.2, kda: 2.3 },
+    MIDDLE: { cspm: 6.4, vspm: 0.63, dpm: 0.21, kda: 2 },
+    BOTTOM: { cspm: 7.7, vspm: 0.65, dpm: 0.21, kda: 2.5 },
+    UTILITY: { cspm: 1.3, vspm: 2.5, dpm: 0.24, kda: 2.4 },
   },
   "emerald-diamond": {
-    TOP: { cspm: 7.2, vspm: 0.7, dpm: 0.24, kda: 2.6 },
-    JUNGLE: { cspm: 5.8, vspm: 1.0, dpm: 0.25, kda: 2.7 },
-    MIDDLE: { cspm: 7.5, vspm: 0.75, dpm: 0.24, kda: 2.8 },
-    BOTTOM: { cspm: 7.8, vspm: 0.6, dpm: 0.23, kda: 2.8 },
-    UTILITY: { cspm: 1.3, vspm: 1.9, dpm: 0.25, kda: 2.7 },
+    TOP: { cspm: 7.3, vspm: 0.77, dpm: 0.21, kda: 1.8 },
+    JUNGLE: { cspm: 6.9, vspm: 0.86, dpm: 0.2, kda: 2.8 },
+    MIDDLE: { cspm: 7, vspm: 0.69, dpm: 0.22, kda: 2.1 },
+    BOTTOM: { cspm: 8, vspm: 0.67, dpm: 0.21, kda: 2.6 },
+    UTILITY: { cspm: 1.2, vspm: 2.6, dpm: 0.23, kda: 2.6 },
   },
   "master-plus": {
-    TOP: { cspm: 7.8, vspm: 0.8, dpm: 0.22, kda: 3.0 },
-    JUNGLE: { cspm: 6.2, vspm: 1.15, dpm: 0.23, kda: 3.1 },
-    MIDDLE: { cspm: 8.0, vspm: 0.85, dpm: 0.22, kda: 3.2 },
-    BOTTOM: { cspm: 8.3, vspm: 0.65, dpm: 0.21, kda: 3.2 },
-    UTILITY: { cspm: 1.4, vspm: 2.1, dpm: 0.23, kda: 3.1 },
+    TOP: { cspm: 7.4, vspm: 0.77, dpm: 0.21, kda: 1.8 },
+    JUNGLE: { cspm: 7.3, vspm: 0.86, dpm: 0.2, kda: 3.2 },
+    MIDDLE: { cspm: 7.6, vspm: 0.74, dpm: 0.22, kda: 2.1 },
+    BOTTOM: { cspm: 8.2, vspm: 0.68, dpm: 0.21, kda: 2.7 },
+    UTILITY: { cspm: 1, vspm: 2.7, dpm: 0.22, kda: 2.8 },
   },
 };
 
@@ -92,7 +94,7 @@ export function baselineFor(
 export const DAMAGE_SHARE_TARGET: Record<string, number> = {
   TOP: 0.22,
   JUNGLE: 0.18,
-  MIDDLE: 0.27,
+  MIDDLE: 0.24,
   BOTTOM: 0.28,
   UTILITY: 0.1,
 };

@@ -491,7 +491,7 @@ describe("coachEngine — kill participation & damage", () => {
   });
 
   it.each([
-    ["MIDDLE", "27"],
+    ["MIDDLE", "24"],
     ["BOTTOM", "28"],
   ])("flags very low damage share for a %s carry (target %s percent)", (position, target) => {
     // 5000 / (5000 + 4×15000) = 8%

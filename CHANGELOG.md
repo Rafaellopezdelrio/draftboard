@@ -23,6 +23,12 @@ versions match the Tauri app version + the `vX.Y.Z` git tags.
 - Vision targets: support 1.6 → 2.5 a minute (supports average 2.5-2.7, so
   "Very low vision" never fired for one) and mid 0.8 → 0.7 (like top and ADC;
   it flagged twice as many mids). It now fires on 7-19% of each position.
+- "Compared with your rank" (Trends) uses measured medians instead of
+  hand-picked numbers: Gold-Plat and Master+ from the same games, Emerald-
+  Diamond between them, Iron-Silver keeping its old gap to Gold. The old
+  table had Gold supports at 1.6 vision a minute (real 2.5), Gold junglers at
+  5.2 CS (real 6.4) and Gold deaths at 0.27 a minute (real 0.21). Mid damage
+  share target 27% → 24% (Master median).
 
 ## [0.6.8] — 2026-11-24
 

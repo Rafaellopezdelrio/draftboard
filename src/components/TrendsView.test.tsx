@@ -263,19 +263,27 @@ describe("TrendsView — real engines on 6 games", () => {
     const box = header.parentElement!;
     const row = (label: string) => within(box).getByText(label).parentElement!;
 
-    expect(row("Súbditos por minuto")).toHaveTextContent("6.5vs 6.5≈");
-    expect(within(row("Súbditos por minuto")).getByText("≈")).toHaveClass("text-white/40");
-    expect(row("Visión por minuto")).toHaveTextContent("1.00vs 0.60✓");
+    expect(row("Súbditos por minuto")).toHaveTextContent("6.5vs 7.1✗");
+    expect(within(row("Súbditos por minuto")).getByText("✗")).toHaveClass("text-bad");
+    expect(row("Visión por minuto")).toHaveTextContent("1.00vs 0.77✓");
     expect(within(row("Visión por minuto")).getByText("✓")).toHaveClass("text-good");
-    expect(row("Muertes por minuto")).toHaveTextContent("0.30vs 0.27✗");
+    expect(row("Muertes por minuto")).toHaveTextContent("0.30vs 0.21✗");
     expect(within(row("Muertes por minuto")).getByText("✗")).toHaveClass("text-bad");
-    expect(row("KDA")).toHaveTextContent("1.33vs 2.20✗");
+    expect(row("KDA")).toHaveTextContent("1.33vs 1.80✗");
+  });
+
+  it("marks a stat close to the bracket median as level (≈)", async () => {
+    await renderWith(sixTop(), { rankTier: "silver" });
+    const box = screen.getByText(/Comparado con tu rango · Hierro–Plata · Top/).parentElement!;
+    const kda = within(box).getByText("KDA").parentElement!;
+    expect(kda).toHaveTextContent("1.33vs 1.40≈");
+    expect(within(kda).getByText("≈")).toHaveClass("text-white/40");
   });
 
   it("uses the player's rank bracket when rankTier is provided", async () => {
     await renderWith(sixTop(), { rankTier: "diamond" });
     const box = screen.getByText(/Comparado con tu rango · Esmeralda–Diamante · Top/).parentElement!;
-    expect(within(box).getByText("Súbditos por minuto").parentElement).toHaveTextContent("6.5vs 7.2✗");
+    expect(within(box).getByText("Súbditos por minuto").parentElement).toHaveTextContent("6.5vs 7.3✗");
   });
 
   it("omits vision benchmark when no match has a vision score", async () => {
@@ -289,7 +297,7 @@ describe("TrendsView — real engines on 6 games", () => {
     // 3 of 6 games have no vision score: 90 vision / 90 min = 1.00, not 0.50.
     await renderWith(sixTop().map((m, i) => (i % 2 === 0 ? m : { ...m, visionScore: null })));
     const box = screen.getByText(/Comparado con tu rango/).parentElement!;
-    expect(within(box).getByText("Visión por minuto").parentElement).toHaveTextContent("1.00vs 0.60✓");
+    expect(within(box).getByText("Visión por minuto").parentElement).toHaveTextContent("1.00vs 0.77✓");
   });
 
   it("picks the most-played lane as benchmark role when filtering ALL", async () => {
@@ -314,8 +322,8 @@ describe("TrendsView — real engines on 6 games", () => {
     ];
     await renderWith(ms);
     const box = screen.getByText(/Comparado con tu rango · Oro–Platino · Top/).parentElement!;
-    expect(within(box).getByText("Visión por minuto").parentElement).toHaveTextContent("1.00vs 0.60✓");
-    expect(within(box).getByText("Súbditos por minuto").parentElement).toHaveTextContent("6.5vs 6.5≈");
+    expect(within(box).getByText("Visión por minuto").parentElement).toHaveTextContent("1.00vs 0.77✓");
+    expect(within(box).getByText("Súbditos por minuto").parentElement).toHaveTextContent("6.5vs 7.1✗");
   });
 
   it("no benchmarks without any lane position (e.g. ARAM)", async () => {
@@ -523,7 +531,7 @@ describe("TrendsView — AI coach", () => {
     });
     expect(input.matches[2].championName).toBe("#9999");
     expect(input.benchmarkSummary).toBe(
-      "Rango Oro–Platino (TOP): Súbditos por minuto 6.5 vs 6.5 (at); Visión por minuto 1.00 vs 0.60 (above); Muertes por minuto 0.30 vs 0.27 (below); KDA 1.33 vs 2.20 (below)."
+      "Rango Oro–Platino (TOP): Súbditos por minuto 6.5 vs 7.1 (below); Visión por minuto 1.00 vs 0.77 (above); Muertes por minuto 0.30 vs 0.21 (below); KDA 1.33 vs 1.80 (below)."
     );
     expect(input.playstyleSummary).toMatch(/^Arquetipo: .+KDA 1\.33, CS\/min 6\.5, muertes\/min 0\.30\.$/);
     // Too few games for leak (8) or progress (10) analysis.
