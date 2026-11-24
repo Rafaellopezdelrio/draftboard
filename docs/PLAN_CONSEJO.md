@@ -216,7 +216,9 @@ programador en la tier list) para después de la prueba. Fechas fijadas:
   "no cambiaste el trinket" tiene 2 min de margen (support a las 15:14); y
   "participación baja" ya no dice "acude a teamfights" (chocaba con "no hace
   falta seguir cada pelea"). Pendiente de mirar con más partidas: daño por
-  oro en jungla (objetivo 1.1, Fiddle 2/0/4 ganando dio 0.49).
+  oro en jungla (objetivo 1.1, Fiddle 2/0/4 ganando dio 0.49). Mirado 24/11:
+  0 avisos en 20 partidas de jungla; solo salta en la de Fiddle (victoria de
+  17 min). Se deja como está (un caso no es dato).
 - 24/11 (Rafael): cuándo cambiar el trinket por rol, en vez de "minuto 15".
   Support: en la primera vuelta a base después de que el objeto ponga wards
   (Atlas → Brújula rúnica, 3866). Jungla: en la 1.ª o 2.ª vuelta. ADC: en la

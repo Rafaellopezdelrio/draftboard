@@ -4,6 +4,31 @@ All notable changes to Draftboard are documented here.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/);
 versions match the Tauri app version + the `vX.Y.Z` git tags.
 
+## [Unreleased] — planned as 0.6.7 (~1/12)
+
+From the first day of the closed test (testers' messages, Rafael's games).
+
+### Added
+- Team mode: with five friends in the lobby on Summoner's Rift (Flex,
+  Clash, normal draft, customs) a "Team mode" card offers five styles,
+  marks the one most of the group can play (from each member's top
+  masteries) and, once picked, shows the champions that fit first, tagged.
+  Solo, duo and trios unchanged.
+- Home card: the coach's three key points for jungle games (two to fix, one
+  done well) instead of a generic line.
+- Rival-scout voice and toasts also in the simple draft view.
+- Trinket swap timed per role from trips to base: support after the support
+  item places wards, jungle by the second trip, ADC after level 9.
+
+### Fixed
+- Fiddlesticks is no longer told to swap his locked trinket.
+- Trinket "never swapped" waits for a real trip to base; low kill
+  participation no longer says "join every fight".
+- 7-day plan opens on this week's plan and warns when it could not be saved.
+- AI answers in Spain Spanish (no "vos").
+- A voice line cut off by a newer one is no longer repeated by the PC voice.
+- Off-meta lane positions also settled for games read from the LoL client.
+
 ## [0.6.6] — 2026-11-23
 
 From two real games (Ornn and Mordekaiser top) and a champ-select screenshot.
