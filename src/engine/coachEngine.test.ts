@@ -131,6 +131,17 @@ describe("coachEngine", () => {
     expect(insights.some((i) => i.category === "farming" && i.severity === "good")).toBe(true);
   });
 
+  it("jungle farm is judged against today's camps (Gold: 6.3/min), not praised at 5", () => {
+    setCoachEloBucket("GOLD");
+    const farm = (cs: number) =>
+      analyzeMatch({ match: mkMatch(mkParticipant({ cs, position: "JUNGLE" }), 1800), timeline: mkTimeline(), myPuuid: "me" })
+        .find((i) => i.category === "farming")?.severity;
+    expect(farm(150)).toBe("warn"); // 5.0/min
+    expect(farm(180)).toBeUndefined(); // 6.0/min
+    expect(farm(195)).toBe("good"); // 6.5/min
+    setCoachEloBucket("DIAMOND");
+  });
+
   it("flags an enemy magic-damage skew with a build insight (revives the dead no-op)", () => {
     const me = mkParticipant();
     const match = mkMatch(me);

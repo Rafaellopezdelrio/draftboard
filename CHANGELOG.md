@@ -15,6 +15,11 @@ versions match the Tauri app version + the `vX.Y.Z` git tags.
   jungle/support 40%); it flagged 61% of the tops. Strong warnings now fire
   on 8-33% of those players. The control ward text says "placed" (it counts
   wards placed, not bought).
+- Jungle farm targets raised to what junglers farm today: other junglers in
+  Gold games average 6.4 CS/min and Master+ 7.3, but the targets were 4.8 and
+  5.9, so "Good farm" praised ~90% of them. Now Gold 6.3, Master+ 7.3
+  (Silver 5.5, Iron-Bronze 4.5, Diamond 6.8): "Good farm" ~45%, "could farm
+  more" ~20-25%, as in the lanes.
 
 ## [0.6.8] — 2026-11-24
 

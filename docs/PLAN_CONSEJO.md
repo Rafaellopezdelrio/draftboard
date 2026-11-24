@@ -320,6 +320,11 @@ programador en la tier list) para después de la prueba. Fechas fijadas:
       "Participación baja" al 61 % de los top: ajustados por posición, ahora
       los avisos fuertes salen al 8-33 %. Falta: partidas reales de los
       probadores en otras posiciones (sin publicar: va en la próxima versión).
+      También medido en 38 partidas de Rafael (Oro III, 70 jugadores por
+      posición): "Buen farm" en jungla salía al 91 % (objetivo 4,8; la media
+      real en Oro es 6,4). Objetivo de jungla subido por nivel; en las 19
+      partidas de jungla de Rafael pasa de 18 "Buen farm" a 4 buenas y 4
+      mejorables.
 
 ### Fase 2 — Decidir el día 21 (con datos)
 - 3 o más la siguen usando por su cuenta (al menos 2-3 veces por semana) →

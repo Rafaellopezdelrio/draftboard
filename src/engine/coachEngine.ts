@@ -37,14 +37,16 @@ interface AnalyzeArgs {
 }
 
 // Reference benchmarks per role for several elos. Coach picks the closest
-// to the user's current rank.
+// to the user's current rank. Jungle measured 24/11 on other junglers: Gold
+// median 6.4 CS/min, Master+ 7.3 (the old 4.8 / 5.9 praised 90% of them);
+// Silver and Iron-Bronze keep the lanes' ratio to Gold, Diamond in between.
 type EloBucket = "iron-bronze" | "silver" | "gold-platinum" | "diamond" | "master+";
 const CS_PER_MIN_BY_ELO: Record<EloBucket, Record<string, number>> = {
-  "iron-bronze": { TOP: 4.5, JUNGLE: 3.5, MIDDLE: 5.0, BOTTOM: 5.5, UTILITY: 1.0 },
-  silver:        { TOP: 5.5, JUNGLE: 4.3, MIDDLE: 6.0, BOTTOM: 6.5, UTILITY: 1.2 },
-  "gold-platinum":{ TOP: 6.3, JUNGLE: 4.8, MIDDLE: 6.8, BOTTOM: 7.3, UTILITY: 1.4 },
-  diamond:       { TOP: 7.0, JUNGLE: 5.5, MIDDLE: 7.5, BOTTOM: 8.0, UTILITY: 1.5 },
-  "master+":     { TOP: 7.7, JUNGLE: 5.9, MIDDLE: 8.0, BOTTOM: 8.4, UTILITY: 1.6 },
+  "iron-bronze": { TOP: 4.5, JUNGLE: 4.5, MIDDLE: 5.0, BOTTOM: 5.5, UTILITY: 1.0 },
+  silver:        { TOP: 5.5, JUNGLE: 5.5, MIDDLE: 6.0, BOTTOM: 6.5, UTILITY: 1.2 },
+  "gold-platinum":{ TOP: 6.3, JUNGLE: 6.3, MIDDLE: 6.8, BOTTOM: 7.3, UTILITY: 1.4 },
+  diamond:       { TOP: 7.0, JUNGLE: 6.8, MIDDLE: 7.5, BOTTOM: 8.0, UTILITY: 1.5 },
+  "master+":     { TOP: 7.7, JUNGLE: 7.3, MIDDLE: 8.0, BOTTOM: 8.4, UTILITY: 1.6 },
 };
 
 let CURRENT_ELO_BUCKET: EloBucket = "diamond";
