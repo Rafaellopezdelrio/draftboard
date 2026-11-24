@@ -509,6 +509,14 @@ describe("coachEngine — kill participation & damage", () => {
     expect(kp!.detail).toMatch(/^83% KP/);
   });
 
+  it("no praise when the team barely got kills (under 15)", () => {
+    // 6 + 4 allies × 2 = 14 team kills; (6+5)/14 = 79%
+    const me = mkParticipant({ kills: 6, assists: 5 });
+    const match = mkMatch(me);
+    for (const p of match.participants) if (p.teamId === me.teamId && p.puuid !== me.puuid) p.kills = 2;
+    expect(titled(run(me, { match }), "Excelente participación")).toBeUndefined();
+  });
+
   it("skips kill participation when the team has zero kills", () => {
     // Assists > 0 make the guard observable: without it, 3/0 = Infinity would read as "Excelente".
     const me = mkParticipant({ kills: 0, assists: 3 });
@@ -718,9 +726,16 @@ describe("coachEngine — first blood & snowball", () => {
     // Event order lists my kill first, but my death happened earlier.
     const insights = run(mkParticipant(), { events: [kill(5, 1, 6), kill(2.5, 6, 1, [7])] });
     const fb = titled(insights, "First blood en tu contra");
-    expect(fb).toMatchObject({ category: "deaths", severity: "warn" });
+    expect(fb).toMatchObject({ category: "deaths", severity: "info" });
     expect(fb!.detail).toBe("Moriste en el primer kill de la partida (2.5min).");
     expect(titled(insights, "First blood")).toBeUndefined();
+  });
+
+  it("giving first blood is a warning only for top, a note elsewhere", () => {
+    const sev = (position: string) =>
+      titled(run(mkParticipant({ position }), { events: [kill(2.5, 6, 1, [7])] }), "First blood en tu contra")!.severity;
+    expect(sev("TOP")).toBe("warn");
+    expect(["JUNGLE", "MIDDLE", "BOTTOM", "UTILITY"].map(sev)).toEqual(["info", "info", "info", "info"]);
   });
 
   it("says nothing about first blood when I wasn't involved", () => {

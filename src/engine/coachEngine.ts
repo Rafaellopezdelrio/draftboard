@@ -600,6 +600,7 @@ const KP_LOW: Record<string, number> = { TOP: 0.2, JUNGLE: 0.4, MIDDLE: 0.33, BO
  * 23-38% of those games); junglers and mids under the bar won 50-55% in
  * both Gold and Master+ games (measured 24/11), so for them it is a note. */
 const KP_LOW_NOTE_ONLY = new Set(["JUNGLE", "MIDDLE"]);
+const KP_PRAISE_MIN_TEAM_KILLS = 15;
 
 function checkKillParticipation(me: MatchParticipant, team: MatchParticipant[]): Insight[] {
   const teamKills = team.reduce((a, p) => a + p.kills, 0);
@@ -616,7 +617,9 @@ function checkKillParticipation(me: MatchParticipant, team: MatchParticipant[]):
       },
     ];
   }
-  if (kp >= 0.7) {
+  // Praise needs a real number of kills: under 15 team kills a 70% share
+  // went to lost games only (17 of 17, Gold and Master+ games, 24/11).
+  if (kp >= 0.7 && teamKills >= KP_PRAISE_MIN_TEAM_KILLS) {
     return [
       {
         category: "macro",
@@ -773,7 +776,7 @@ function checkDamagePerGold(me: MatchParticipant, role: string): Insight[] {
 }
 
 function checkFirstBlood(
-  _me: MatchParticipant,
+  me: MatchParticipant,
   myParticipantId: number,
   timeline: MatchTimeline
 ): Insight[] {
@@ -792,7 +795,9 @@ function checkFirstBlood(
     return [
       {
         category: "deaths",
-        severity: "warn",
+        // Only top, alone on its lane, loses for it: tops who gave first blood
+        // won 30-33% (Gold and Master+, 24/11); every other role 45-56%.
+        severity: me.position === "TOP" ? "warn" : "info",
         title: T("fbLostTitle"),
         detail: T("fbLostDetail", { min: (firstKill.ts / 1000 / 60).toFixed(1) }),
         action: T("fbLostAction"),

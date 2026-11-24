@@ -67,6 +67,10 @@ versions match the Tauri app version + the `vX.Y.Z` git tags.
   support: in Gold games winners and losers ward alike (ADC median 0.67 both)
   and flagged players won 45%, while the other red flags sit at 10-34%. The
   coach now lists first what really loses games.
+- "Excellent participation" needs at least 15 team kills: below that a 70%
+  share went to lost games only (17 of 17). "First blood against you" is a
+  warning only for top (tops who gave it won 30-33%); for the other roles,
+  who won 45-56%, it is a note.
 
 ## [0.6.8] — 2026-11-24
 
