@@ -248,6 +248,25 @@ programador en la tier list) para después de la prueba. Fechas fijadas:
   **24/11: la prueba ha empezado.** Rafael avisó él mismo a los amigos (rol,
   capturas, "¿qué te dijo el coach y era verdad?") y ya la están usando.
   Mirar el contador (`npm run reports`) y sus mensajes; 0.6.7 en fecha fija.
+- 24/11, probadores (juegan los 5 juntos): "no sabemos a qué jugar", "el
+  primer pick es aleatorio", "centrarnos primero en un estilo de juego".
+  Rafael: pick a ciegas según lado azul/rojo y orden de picks. Consejos
+  completos 24/11 (dos):
+  - 0.6.7 = SOLO "estilo de equipo": se elige en la sala antes de buscar
+    partida (sin reloj), misma sugerencia para el grupo (campeones de todos),
+    solo ordena/destaca picks que encajan (no cambia pesos), un toque,
+    opcional, se apunta si se usa (trackFeature) y se pregunta "¿os ayudó?".
+    Congelar el 30/11.
+  - Visión del probador ("herramienta de drafteo de los 5: varias opciones
+    según los rivales, estilos que se actualizan, todo explicado y guardado
+    para estudiar"): es la dirección, por fases y tras el 11/12 si se sigue.
+    Fase 2 (la más barata, no gasta Riot): pantalla de drafts guardados
+    unida al resultado de la partida. Después, campeones de los 5 y opciones
+    según rivales (gastan cupo de Riot: mejor con clave de producción).
+  - Fuera: prever rivales concretos o mirar su historial en la selección
+    (Riot los oculta en clasificatoria y lo prohíbe; pondría en riesgo la
+    clave de producción). Picks rivales visibles sí. El pick a ciegas, tras
+    el 11/12.
 - 24/11: el plan de 7 días no se borra nunca (se guarda en la base de datos);
   parecía perdido porque la ventana abría en "Generar nuevo". Ahora abre en
   el plan de esta semana. Las respuestas de la IA salían con "vos" (jugá):
