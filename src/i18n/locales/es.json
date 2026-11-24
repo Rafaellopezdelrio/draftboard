@@ -494,6 +494,7 @@
       "kpHighDetail": "{{pct}}% KP — siempre estuviste en las jugadas.",
       "dmgLowTitle": "Daño muy bajo",
       "dmgLowDetail": "Hiciste {{pct}}% del daño del equipo (objetivo en {{role}}: {{target}}%).",
+      "dmgLowDetailAdc": "{{dpm}} de daño a campeones por minuto. Por debajo de {{min}}, el ADC no está pegando en las peleas.",
       "dmgLowAction": "Posiciónate mejor en teamfights — necesitas mantenerte vivo y disparar todo el fight.",
       "dragonsLostTitle": "Dragones perdidos",
       "dragonsLostDetail": "Tu equipo cedió {{n}} dragones (alma del rival muy probable).",

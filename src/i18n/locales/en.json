@@ -494,6 +494,7 @@
       "kpHighDetail": "{{pct}}% KP — you were in every play.",
       "dmgLowTitle": "Very low damage",
       "dmgLowDetail": "You dealt {{pct}}% of your team's damage (target for {{role}}: {{target}}%).",
+      "dmgLowDetailAdc": "{{dpm}} champion damage a minute. Below {{min}}, the ADC isn't hitting in fights.",
       "dmgLowAction": "Position better in teamfights — you need to stay alive and keep hitting the whole fight.",
       "dragonsLostTitle": "Dragons lost",
       "dragonsLostDetail": "Your team gave up {{n}} dragons (enemy soul very likely).",

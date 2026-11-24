@@ -122,7 +122,7 @@ export function analyzeMatch({
   out.push(...checkDeaths(me, myParticipantId, timeline, minutes, role, new Set(team.map((p) => p.participantId))));
   out.push(...checkKillParticipation(me, team));
   out.push(...checkOutnumberedFights(myParticipantId, timeline, new Set(team.map((p) => p.participantId))));
-  out.push(...checkDamageShare(me, team, role));
+  out.push(...checkDamageShare(me, team, role, minutes));
   out.push(...checkObjectives(me, myTeamId, timeline));
   out.push(...checkBuildVsEnemy(enemy, me, itemTags));
   out.push(...checkGoldEfficiency(me, team, minutes));
@@ -625,16 +625,35 @@ function checkKillParticipation(me: MatchParticipant, team: MatchParticipant[]):
   return [];
 }
 
+const ADC_DPM_LOW = 450;
 function checkDamageShare(
   me: MatchParticipant,
   team: MatchParticipant[],
-  role: string
+  role: string,
+  minutes: number
 ): Insight[] {
   const teamDmg = team.reduce((a, p) => a + p.totalDamageDealtToChampions, 0);
   if (teamDmg === 0) return [];
+  // ADC: damage a minute, not share. Measured 24/11 (132 Gold, 40 Master+
+  // games): ADCs under 60% of the share target won 45-49%, like everyone;
+  // under 450 a minute (~10% of them) they won 22-33%. Mid keeps the share
+  // (those under it won 30-40%).
+  if (role === "BOTTOM") {
+    const dpm = me.totalDamageDealtToChampions / minutes;
+    if (dpm >= ADC_DPM_LOW) return [];
+    return [
+      {
+        category: "combat",
+        severity: "bad",
+        title: T("dmgLowTitle"),
+        detail: T("dmgLowDetailAdc", { dpm: dpm.toFixed(0), min: ADC_DPM_LOW }),
+        action: T("dmgLowAction"),
+      },
+    ];
+  }
   const share = me.totalDamageDealtToChampions / teamDmg;
   const target = DAMAGE_SHARE_TARGET[role] ?? 0.2;
-  if (share < target * 0.6 && (role === "MIDDLE" || role === "BOTTOM")) {
+  if (share < target * 0.6 && role === "MIDDLE") {
     return [
       {
         category: "combat",

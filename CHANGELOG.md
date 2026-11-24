@@ -57,6 +57,9 @@ versions match the Tauri app version + the `vX.Y.Z` git tags.
 - "You never swapped your trinket" is a note, not a warning, for ADC and
   jungle: on 132 Gold games those who never swapped won 54% (ADC) and 50%
   (jungle), like everyone else. Support keeps the warning.
+- "Very low damage" for the ADC looks at damage a minute (under 450) instead
+  of the share of the team's damage, which drops in wins: ADCs it flagged won
+  45-49%. Now they win 22-33%. Mid keeps the share check (30-40% won).
 
 ## [0.6.8] — 2026-11-24
 

@@ -520,14 +520,20 @@ describe("coachEngine — kill participation & damage", () => {
     ).toBe(false);
   });
 
-  it.each([
-    ["MIDDLE", "24"],
-    ["BOTTOM", "28"],
-  ])("flags very low damage share for a %s carry (target %s percent)", (position, target) => {
+  it("flags very low damage share for a mid (target 24 percent)", () => {
     // 5000 / (5000 + 4×15000) = 8%
-    const d = titled(run(mkParticipant({ position, totalDamageDealtToChampions: 5000 })), "Daño muy bajo");
+    const d = titled(run(mkParticipant({ totalDamageDealtToChampions: 5000 })), "Daño muy bajo");
     expect(d).toMatchObject({ category: "combat", severity: "bad" });
-    expect(d!.detail).toBe(`Hiciste 8% del daño del equipo (objetivo en ${ROLE_ES[position]}: ${target}%).`);
+    expect(d!.detail).toBe(`Hiciste 8% del daño del equipo (objetivo en ${ROLE_ES.MIDDLE}: 24%).`);
+  });
+
+  it("flags an ADC under 450 damage a minute, whatever the share", () => {
+    // 13200 / 30 min = 440 a minute
+    const d = titled(run(mkParticipant({ position: "BOTTOM", totalDamageDealtToChampions: 13200 })), "Daño muy bajo");
+    expect(d).toMatchObject({ category: "combat", severity: "bad" });
+    expect(d!.detail).toBe("440 de daño a campeones por minuto. Por debajo de 450, el ADC no está pegando en las peleas.");
+    // 13500 / 30 = 450 a minute, though only 13500 / (13500 + 4×15000) = 18% of the team's damage
+    expect(titled(run(mkParticipant({ position: "BOTTOM", totalDamageDealtToChampions: 13500 })), "Daño muy bajo")).toBeUndefined();
   });
 
   it("does not apply the damage-share check to non-carry roles", () => {
