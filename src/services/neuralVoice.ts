@@ -119,5 +119,12 @@ export async function speakNeural(id: string, text: string, volume: number): Pro
   audio.volume = volume;
   audio.onended = () => URL.revokeObjectURL(url);
   playing = audio;
-  await audio.play();
+  try {
+    await audio.play();
+  } catch (e) {
+    // A newer line paused this one before it started (two alerts at once):
+    // that is not a failed voice, and the PC voice must not repeat it.
+    if (playing !== audio || (e as { name?: string } | null)?.name === "AbortError") return;
+    throw e;
+  }
 }
