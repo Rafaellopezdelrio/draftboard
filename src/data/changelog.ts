@@ -18,6 +18,26 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "0.6.7",
+    date: "2026-11-24",
+    highlights: [
+      "👥 Modo equipo: si estáis 5 en la sala (Flex, Clash, Reclutamiento o personalizada), elegid un estilo (Engage, Poke, Proteger al carry, Pick o Split) y salen primero los campeones que encajan. La app os sugiere uno con ★",
+      "🏠 Inicio: en partidas de jungla, los 3 puntos más importantes del coach en vez de un consejo general",
+      "🔊 El aviso de rivales peligrosos (racha, one-trick) ahora suena también en la vista sencilla",
+      "👁️ Trinket según tu rol: support cuando tu objeto ya pone wards, jungla en la 1.ª o 2.ª vuelta a base, ADC al nivel 9. Fiddlesticks ya no recibe el aviso",
+      "📅 El plan de 7 días se abre en el de esta semana y avisa si no se pudo guardar",
+      "🗣️ La IA ya no habla de \"vos\", y un aviso de voz cortado por otro no se repite con la voz de Windows",
+    ],
+    highlightsEn: [
+      "👥 Team mode: with five of you in the lobby (Flex, Clash, normal draft or custom), pick a style (Engage, Poke, Protect the carry, Pick or Split) and the champions that fit come first. The app suggests one with ★",
+      "🏠 Home: for jungle games, the coach’s 3 key points instead of a general tip",
+      "🔊 The dangerous-rival alert (streak, one-trick) now also plays in the simple view",
+      "👁️ Trinket by role: support once your item places wards, jungle on the 1st or 2nd trip to base, ADC at level 9. Fiddlesticks no longer gets the reminder",
+      "📅 The 7-day plan opens on this week’s plan and warns if it could not be saved",
+      "🗣️ A voice line cut off by another is no longer repeated with the Windows voice",
+    ],
+  },
+  {
     version: "0.6.6",
     date: "2026-11-23",
     highlights: [

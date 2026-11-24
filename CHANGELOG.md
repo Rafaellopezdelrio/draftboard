@@ -4,7 +4,7 @@ All notable changes to Draftboard are documented here.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/);
 versions match the Tauri app version + the `vX.Y.Z` git tags.
 
-## [Unreleased] — planned as 0.6.7 (~1/12)
+## [0.6.7] — 2026-11-24
 
 From the first day of the closed test (testers' messages, Rafael's games).
 
