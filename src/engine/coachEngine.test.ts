@@ -908,22 +908,22 @@ describe("coachEngine — trinket swap", () => {
     }
   });
 
-  // Rafael 23/11: in top and mid it depends on the game — a gentle note only.
+  // Rafael 23/11: in mid it depends on the game — a gentle note only.
+  // Rafael 24/11: none for top (Master+ tops keep the yellow one).
   const SOFT = "Acabaste con el trinket amarillo";
-  it("gives top and mid a gentle info note after 25+ min still on the yellow trinket", () => {
-    for (const [position, label] of [["TOP", "top"], ["MIDDLE", "mid"]]) {
-      const ins = titled(run(mkParticipant({ position, items: [3006, 3340] })), SOFT);
-      expect(ins).toMatchObject({ category: "vision", severity: "info" });
-      expect(ins!.detail).toMatch(new RegExp(`^Jugaste 30 min de ${label} sin cambiar de trinket. En ${label} depende de la partida`));
-      expect(ins!.action).toBeUndefined();
-    }
+  it("gives mid a gentle info note after 25+ min still on the yellow trinket", () => {
+    const ins = titled(run(mkParticipant({ position: "MIDDLE", items: [3006, 3340] })), SOFT);
+    expect(ins).toMatchObject({ category: "vision", severity: "info" });
+    expect(ins!.detail).toMatch(/^Jugaste 30 min de mid sin cambiar de trinket. En mid depende de la partida/);
+    expect(ins!.action).toBeUndefined();
   });
 
-  it("no gentle note after a swap, in a short game, or for other roles", () => {
-    const top = (o: Partial<MatchParticipant> = {}) => mkParticipant({ position: "TOP", items: [3006, 3340], ...o });
-    expect(titled(run(top({ items: [3006, 3364] })), SOFT)).toBeUndefined();
-    expect(titled(run(top(), { events: [buy(18, 3363)] }), SOFT)).toBeUndefined();
-    expect(titled(run(top(), { durationSec: 24 * 60 }), SOFT)).toBeUndefined();
+  it("no gentle note after a swap, in a short game, for top or for other roles", () => {
+    const mid = (o: Partial<MatchParticipant> = {}) => mkParticipant({ position: "MIDDLE", items: [3006, 3340], ...o });
+    expect(titled(run(mid({ items: [3006, 3364] })), SOFT)).toBeUndefined();
+    expect(titled(run(mid(), { events: [buy(18, 3363)] }), SOFT)).toBeUndefined();
+    expect(titled(run(mid(), { durationSec: 24 * 60 }), SOFT)).toBeUndefined();
+    expect(titled(run(mkParticipant({ position: "TOP", items: [3006, 3340] })), SOFT)).toBeUndefined();
     expect(titled(run(support()), SOFT)).toBeUndefined();
   });
 

@@ -286,8 +286,9 @@ function trinketDueMs(role: string, me: MatchParticipant, myParticipantId: numbe
  * Supports and junglers should swap the starting Stealth Ward for Oracle Lens,
  * and ADCs for Farsight Alteration; many players forget. When (Rafael, 24/11):
  * a support on the first trip to base after the support item places wards, a
- * jungler by the second trip, an ADC on the first trip after level 9. Top and
- * mid depend on the game (softTrinketNote). Either swap counts as done.
+ * jungler by the second trip, an ADC on the first trip after level 9. Mid
+ * depends on the game (softTrinketNote); top keeps the yellow one. Either
+ * swap counts as done.
  */
 function checkTrinket(
   me: MatchParticipant,
@@ -344,11 +345,12 @@ function checkTrinket(
   return [];
 }
 
-/** Top and mid: the swap depends on the game (lane warding first, then the
- * red lens when grouping for objectives, or the blue one when split-pushing),
- * so only a gentle note after a long game still on the yellow trinket.
+/** Mid: the swap depends on the game (lane warding first, then the red lens
+ * when grouping for objectives, or the blue one when split-pushing), so only
+ * a gentle note after a long game still on the yellow trinket.
  * 25 min, measured 24/11: Master+ mids still on yellow are 45% of 20-25 min
- * games (laning just ended) but only 17-18% past 25. */
+ * games (laning just ended) but only 17-18% past 25. Top gets no note: Master+
+ * tops keep the yellow one in 44-67% of games past 25 min (Rafael, 24/11). */
 const SOFT_TRINKET_MIN = 25;
 /** The yellow trinket (Stealth Ward). */
 const STEALTH_WARD_TRINKET = 3340;
@@ -359,7 +361,7 @@ function softTrinketNote(
   role: string,
   minutes: number
 ): Insight[] {
-  if ((role !== "TOP" && role !== "MIDDLE") || minutes < SOFT_TRINKET_MIN) return [];
+  if (role !== "MIDDLE" || minutes < SOFT_TRINKET_MIN) return [];
   if (!me.items.includes(STEALTH_WARD_TRINKET)) return [];
   const swapped =
     me.items.includes(ORACLE_LENS) ||
