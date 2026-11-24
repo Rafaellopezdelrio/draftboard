@@ -329,6 +329,23 @@ programador en la tier list) para después de la prueba. Fechas fijadas:
       "Comparado con tu rango" (Tendencias) usa ahora las medias medidas
       (Oro y Máster; Diamante en medio; Hierro-Plata sin medir) en vez de
       cifras a ojo. Daño de mid: objetivo 27 % → 24 %.
+      Segunda pasada 24/11, con 132 partidas de Oro (264 jugadores por
+      posición) y la misma regla para todo: un aviso solo vale si quien lo
+      recibe pierde más que la media. Cambiado:
+      - Farmeo de top/mid/ADC = medias de Tendencias ("Buen farm" ≈ mitad).
+      - "Muchas muertes": 8+ y una cada 3 min (antes solo partidas < 30 min).
+      - ADC: sin aviso por 2 muertes tempranas; oro y daño por minuto (380 y
+        450) en vez de % del equipo, que baja cuando ganas; CS@14 110.
+      - Top/mid: "muertes en solitario" desde 4.
+      - Notas en vez de avisos: participación baja (jungla, mid), trinket sin
+        cambiar (ADC, jungla, decidido por Rafael), first blood en contra
+        (todos menos top). Top sin nota de trinket amarillo; mid desde 25 min.
+      - "Visión muy baja" es aviso normal salvo en support.
+      - "Excelente participación" necesita 15 kills del equipo.
+      Sin tocar (datos mezclados: no predicen en Oro, sí en Máster): support
+      con pocos control wards y 2 muertes tempranas. "Moriste en 1 pelea con
+      menos gente" lo pidió Rafael. Scripts de medición guardados en
+      D:\Claude\draftboard-coach-medicion (fuera del repo; ver su LEEME).
 
 ### Fase 2 — Decidir el día 21 (con datos)
 - 3 o más la siguen usando por su cuenta (al menos 2-3 veces por semana) →
