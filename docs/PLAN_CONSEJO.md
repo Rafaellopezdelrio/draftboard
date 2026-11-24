@@ -267,6 +267,14 @@ programador en la tier list) para después de la prueba. Fechas fijadas:
     (Riot los oculta en clasificatoria y lo prohíbe; pondría en riesgo la
     clave de producción). Picks rivales visibles sí. El pick a ciegas, tras
     el 11/12.
+  - Rafael (24/11): modo TEAM automático según la cola (SoloQ/dúo aparte;
+    Flex, Clash y grupos de 5 para equipo, composición y sinergia). Consejo
+    completo: en la 0.6.7, el estilo de equipo se OCULTA solo en SoloQ/dúo
+    (la cola ya se lee) con una línea que diga por qué; en el resto se ve.
+    Leer cuántos vais en la sala y el modo TEAM completo (con Clash, donde
+    el rival se conoce antes), tras el 11/12. Si la detección no está
+    segura, el estilo se muestra. Preguntar a los probadores en qué cola
+    juegan de verdad y si hay Clash antes del 11/12.
 - 24/11: el plan de 7 días no se borra nunca (se guarda en la base de datos);
   parecía perdido porque la ventana abría en "Generar nuevo". Ahora abre en
   el plan de esta semana. Las respuestas de la IA salían con "vos" (jugá):
