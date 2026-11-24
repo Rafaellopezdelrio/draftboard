@@ -444,15 +444,20 @@ describe("coachEngine — deaths", () => {
     expect(insights.some((i) => /muertes (en early|tempranas)/.test(i.title))).toBe(false);
   });
 
-  it("flags 8+ deaths in a game shorter than 30 min", () => {
-    const d = titled(run(mkParticipant({ deaths: 8 }), { durationSec: 1500 }), "Muchas muertes");
+  it("flags 8+ deaths in a game shorter than 24 min", () => {
+    const d = titled(run(mkParticipant({ deaths: 8 }), { durationSec: 1440 }), "Muchas muertes");
     expect(d).toMatchObject({ category: "deaths", severity: "bad" });
-    expect(d!.detail).toBe("8 muertes en 25min.");
-    expect(titled(run(mkParticipant({ deaths: 7 }), { durationSec: 1500 }), "Muchas muertes")).toBeUndefined();
+    expect(d!.detail).toBe("8 muertes en 24min.");
+    expect(titled(run(mkParticipant({ deaths: 7 }), { durationSec: 1440 }), "Muchas muertes")).toBeUndefined();
   });
 
-  it("does not flag 8+ deaths once the game reaches 30 minutes", () => {
+  it("in long games asks for one death every 3 minutes", () => {
+    expect(titled(run(mkParticipant({ deaths: 10 }), { durationSec: 1800 }), "Muchas muertes")).toBeDefined();
     expect(titled(run(mkParticipant({ deaths: 9 }), { durationSec: 1800 }), "Muchas muertes")).toBeUndefined();
+    expect(titled(run(mkParticipant({ deaths: 12 }), { durationSec: 36 * 60 }), "Muchas muertes")!.detail).toBe(
+      "12 muertes en 36min."
+    );
+    expect(titled(run(mkParticipant({ deaths: 11 }), { durationSec: 36 * 60 }), "Muchas muertes")).toBeUndefined();
   });
 });
 

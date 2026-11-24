@@ -38,6 +38,10 @@ versions match the Tauri app version + the `vX.Y.Z` git tags.
   farm" praised 67% of Gold tops while Trends marked the same number below
   the median. "Good farm" now goes to about half the players of every
   position, in Gold and in Master+ games.
+- "Many deaths" now needs 8+ deaths and at least one every 3 minutes. It
+  used to need 8+ in a game under 30 min, so it never showed in half of
+  Gold games (12 deaths in 32 min said nothing). Players it flags win
+  0-33% of those games.
 
 ## [0.6.8] — 2026-11-24
 

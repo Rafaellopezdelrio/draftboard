@@ -435,7 +435,10 @@ function checkDeaths(
     });
   }
 
-  if (me.deaths >= 8 && minutes < 30) {
+  // 8+ deaths and at least one every 3 min. Was "8+ in under 30 min", which
+  // never fired in half of Gold games (30+ min). Measured 24/11: fires on
+  // 6-13% of Gold players, 8-21% of Master+, who win 0-33% of those games.
+  if (me.deaths >= Math.max(MANY_DEATHS_MIN, minutes / 3)) {
     out.push({
       category: "deaths",
       severity: "bad",
@@ -462,6 +465,7 @@ function checkDeaths(
 }
 
 const TEAM_FIGHT_WINDOW_MS = 15_000;
+const MANY_DEATHS_MIN = 8;
 /** Gold gap at minute 14 that counts as a won / lost lane. */
 const LANE_GOLD_EDGE = 500;
 /** A lane this far behind at 14, and at least this much worse than mine,
