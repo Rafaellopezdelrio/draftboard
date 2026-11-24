@@ -16,7 +16,7 @@ import { MatchupBuildCard, laneOpponentKey } from "./build/MatchupBuildCard";
 import { ItemIcon } from "./build/icons";
 import type { DraftPrediction } from "../engine/draftWinrateEngine";
 import { SimpleGamePlan, SimplePrepare, SimpleTopStrip } from "./SimpleDraftExtras";
-import { fitsStyle, orderByStyle, type TeamStyle } from "../engine/teamStyle";
+import { fitsStyle, orderForTeam, type TeamStyle } from "../engine/teamStyle";
 
 interface Props {
   db: ChampionDb;
@@ -189,8 +189,9 @@ export function SimpleDraftView({
   const picks = useMemo(() => {
     const comfort = suggestions.filter((s) => s.breakdown.isComfort);
     const rest = suggestions.filter((s) => !s.breakdown.isComfort);
-    // Team mode: the group's style first; inside it, still your champions first.
-    const three = orderByStyle([...comfort, ...rest], teamStyle).slice(0, 3);
+    // Team mode: the group's style first (once your lane rival picked, what
+    // fits AND beats them); inside each group, still your champions first.
+    const three = orderForTeam([...comfort, ...rest], teamStyle).slice(0, 3);
     // The ideal pick for this game, when it is not one of yours, takes the
     // last slot so the player sees it next to what they play.
     const ideal = suggestions.find((s) => s.reasons.includes(BEST_FOR_DRAFT));
@@ -227,16 +228,31 @@ export function SimpleDraftView({
   );
 
   // Plain-language twin of each engine reason; falls back to the engine text.
-  const reasonOf = (s: ScoredSuggestion) =>
+  // Once your lane rival picked, say how this champion does against them by
+  // name ("vs Darius: you win 54 of 100"), then one more reason.
+  const laneLine = (s: ScoredSuggestion) => {
+    const lane = s.breakdown.lane;
+    const rival = lane ? db.champions[lane.opponentKey]?.name : undefined;
+    if (!lane || !rival) return null;
+    const pct = Math.round(lane.winRate * 100);
+    return t(pct >= 50 ? "simple.why.laneGood" : "simple.why.laneHard", { champ: rival, pct });
+  };
+  const reasonOf = (s: ScoredSuggestion) => {
+    const lane = laneLine(s);
+    const rest = otherReasons(s, lane ? 1 : 2);
+    return lane ? [lane, rest].filter(Boolean).join(" · ") : rest || t("suggestions.decentPick");
+  };
+  const otherReasons = (s: ScoredSuggestion, n: number) =>
     s.reasons
-      .slice(0, 2)
+      .filter((r) => !(s.breakdown.lane && /\.(counters|hardMatchup)$/.test(r)))
+      .slice(0, n)
       .map((r) => {
         // The engine's personal win rate is a literal ("WR 63%"), not a key.
         const wr = /^WR (\d+)%$/.exec(r);
         if (wr) return t("simple.why.winRate", { pct: wr[1] });
         return t(`simple.why.${r.split(".").pop()}`, { defaultValue: t(r) });
       })
-      .join(" · ") || t("suggestions.decentPick");
+      .join(" · ");
   // Same for bans: the numbers say it without "S-tier" or "WR".
   const banWhy = (b: BanSuggestion) => {
     if (b.source === "scout") return t("simple.banWhy.scout");

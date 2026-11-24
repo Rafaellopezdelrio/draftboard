@@ -58,6 +58,25 @@ export function orderByStyle<T extends { champion: Pick<Champion, "archetypes"> 
   return [...fit, ...list.filter((s) => !fitsStyle(s.champion, style))];
 }
 
+type LaneAware = {
+  champion: Pick<Champion, "archetypes">;
+  breakdown?: { lane?: { winRate: number } | null };
+};
+
+/** Team mode order. Before your lane rival picks: the style first. Once they
+ * picked, the matchup leads: first what fits the style AND beats them, then
+ * everything else in the usual order (which already weighs the matchup).
+ * Tester, 24/11: "advise champions against the rival's pick, to be more
+ * comfortable in the matchup". */
+export function orderForTeam<T extends LaneAware>(list: T[], style: TeamStyle | null): T[] {
+  if (!style) return list;
+  if (!list.some((s) => s.breakdown?.lane)) return orderByStyle(list, style);
+  const first = (s: T) => fitsStyle(s.champion, style) && (s.breakdown?.lane?.winRate ?? 0) >= 0.5;
+  const lead = list.filter(first);
+  if (lead.length === 0 || lead.length === list.length) return list;
+  return [...lead, ...list.filter((s) => !first(s))];
+}
+
 /** The style most of the group can play: for each style, how many players
  * have at least one of their main champions that fits it. The same lobby
  * gives the same answer in every friend's app. Null without enough data. */

@@ -51,6 +51,10 @@ export interface ScoredSuggestion {
     /** How well the pick fits this game (matchups, enemy comp, own team,
      * meta), comfort aside. 0-1. Picks the "best for this game" entry. */
     fit: number;
+    /** Win rate against your lane opponent once they have picked (op.gg,
+     * your elo); null before that or without enough games. Shown as
+     * "vs Darius: 54 of 100" so the player sees the matchup was counted. */
+    lane?: { opponentKey: string; winRate: number } | null;
   };
   reasons: string[];
   color: "good" | "meh" | "bad";
@@ -315,6 +319,7 @@ function scoreChampion(c: Champion, ctx: ScoreCtx): ScoredSuggestion {
       isComfort,
       isPerfectPick,
       masteryLevel: masteryEntry?.championLevel ?? 0,
+      lane: laneMatchup(c.key, ctx.laneOpponent, role, ctx.counters),
     },
     reasons,
     color,
@@ -375,6 +380,21 @@ function laneWeightedCounter(
     weight += w;
   }
   return weight === 0 ? 0.5 : total / weight;
+}
+
+/** Win rate of `key` against the lane opponent, with enough games to trust. */
+function laneMatchup(
+  key: string,
+  laneOpponent: string | null,
+  role: Role,
+  counters: CounterEntry[]
+): { opponentKey: string; winRate: number } | null {
+  if (!laneOpponent) return null;
+  const entry = counters.find(
+    (c) =>
+      c.championKey === key && c.vsChampionKey === laneOpponent && c.role === role && c.sampleSize >= MIN_COUNTER_SAMPLE
+  );
+  return entry ? { opponentKey: laneOpponent, winRate: entry.winRate } : null;
 }
 
 type DamageKind = "magic" | "physical" | null;

@@ -326,6 +326,29 @@ describe("suggestionEngine", () => {
     expect(ori!.reasons).toContain("suggestions.reason.counters");
   });
 
+  // Tester 24/11: "advise champions against what the rival picked" — the app
+  // did, but never said so. Each pick now carries its lane matchup.
+  it("carries the win rate against the lane opponent once they picked", () => {
+    const db = mkDb([meta(ORIANNA_KEY, "MIDDLE"), meta(YASUO_KEY, "MIDDLE")]);
+    const args = {
+      db,
+      role: "MIDDLE" as const,
+      allyKeys: [],
+      bannedKeys: [],
+      selfKey: null,
+      liveCounters: [
+        { championKey: ORIANNA_KEY, vsChampionKey: ZED_KEY, role: "MIDDLE" as const, winRate: 0.54, sampleSize: 1200 },
+        { championKey: YASUO_KEY, vsChampionKey: ZED_KEY, role: "MIDDLE" as const, winRate: 0.47, sampleSize: 30 },
+      ],
+    };
+    const res = suggest({ ...args, enemyKeys: [ZED_KEY] });
+    expect(res.find((s) => s.champion.key === ORIANNA_KEY)!.breakdown.lane).toEqual({ opponentKey: ZED_KEY, winRate: 0.54 });
+    // Too few games to trust: no number shown.
+    expect(res.find((s) => s.champion.key === YASUO_KEY)!.breakdown.lane).toBeNull();
+    // Before the rival picks: nothing.
+    expect(suggest({ ...args, enemyKeys: [] }).find((s) => s.champion.key === ORIANNA_KEY)!.breakdown.lane).toBeNull();
+  });
+
   it("liveCounters take priority over sparse personal db.counters for the same pair", () => {
     const db = mkDb([meta(ORIANNA_KEY, "MIDDLE")]);
     // Personal data says Orianna loses to Zed (small sample); live op.gg says

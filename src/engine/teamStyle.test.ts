@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { Archetype } from "../types/champion";
-import { fitsStyle, isTeamParty, orderByStyle, suggestStyle } from "./teamStyle";
+import { fitsStyle, isTeamParty, orderByStyle, orderForTeam, suggestStyle } from "./teamStyle";
 
 const c = (...archetypes: Archetype[]) => ({ archetypes });
 const party = (size: number, gameMode: string | null = "CLASSIC") => ({ size, gameMode, summonerIds: [] });
@@ -46,6 +46,31 @@ describe("orderByStyle", () => {
     expect(orderByStyle(list, null)).toBe(list);
     expect(orderByStyle(list, "split")).toBe(list);
     expect(orderByStyle([list[1], list[3]], "engage")).toEqual([list[1], list[3]]);
+  });
+});
+
+describe("orderForTeam", () => {
+  const s = (id: string, kinds: Archetype[], winRate?: number) => ({
+    id,
+    champion: c(...kinds),
+    breakdown: { lane: winRate == null ? null : { winRate } },
+  });
+  const ids = (l: Array<{ id: string }>) => l.map((x) => x.id).join("");
+
+  it("before the lane rival picks: just the style first", () => {
+    const list = [s("a", ["poke"]), s("b", ["engage"])];
+    expect(ids(orderForTeam(list, "engage"))).toBe("ba");
+  });
+
+  it("once they picked: what fits AND beats them leads, the rest keeps its order", () => {
+    // a: fits, loses · b: no fit, wins · c: fits, wins · d: no fit, loses
+    const list = [s("a", ["engage"], 0.46), s("b", ["poke"], 0.56), s("c", ["frontline"], 0.53), s("d", ["burst"], 0.44)];
+    expect(ids(orderForTeam(list, "engage"))).toBe("cabd");
+  });
+
+  it("no style: unchanged", () => {
+    const list = [s("a", ["poke"], 0.4), s("b", ["engage"], 0.6)];
+    expect(orderForTeam(list, null)).toBe(list);
   });
 });
 

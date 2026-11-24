@@ -96,6 +96,24 @@ describe("SimpleDraftView", () => {
     expect(within(pick).getByText("tu main")).toBeInTheDocument();
   });
 
+  // Tester 24/11: say how each pick does against the lane rival, by name.
+  it("names the lane rival and the matchup once they picked", () => {
+    const withLane = (s: ScoredSuggestion, winRate: number, reasons: string[]) =>
+      ({ ...s, reasons, breakdown: { ...s.breakdown, lane: { opponentKey: "238", winRate } } }) as ScoredSuggestion;
+    render(
+      <SimpleDraftView
+        {...base}
+        suggestions={[
+          withLane(sug("64", true), 0.54, ["suggestions.reason.counters", "suggestions.reason.main"]),
+          withLane(sug("254", true), 0.46, ["suggestions.reason.hardMatchup", "suggestions.reason.synergy"]),
+        ]}
+      />
+    );
+    const pick = screen.getByRole("region", { name: "Elige" });
+    expect(within(pick).getByText("contra Zed ganas 54 de cada 100 · tu main")).toBeInTheDocument();
+    expect(within(pick).getByText("⚠ contra Zed cuesta: 46 de cada 100 · combina bien con tu equipo")).toBeInTheDocument();
+  });
+
   // Rafael 24/11: team mode — the group's style first, then your champions.
   it("team mode: picks that fit the style come first and say so", () => {
     const withKinds = (s: ScoredSuggestion, ...archetypes: string[]) =>

@@ -2052,7 +2052,9 @@
       "fillsGap": "aporta lo que le falta al equipo",
       "winRate": "ganas {{pct}} de cada 100 con él",
       "bestForDraft": "encaja mejor en esta partida, aunque no lo juegas",
-      "answersComp": "responde a lo que hace su equipo"
+      "answersComp": "responde a lo que hace su equipo",
+      "laneGood": "contra {{champ}} ganas {{pct}} de cada 100",
+      "laneHard": "⚠ contra {{champ}} cuesta: {{pct}} de cada 100"
     },
     "prepareTitle": "Prepara",
     "chance": "{{pct}} de cada 100",

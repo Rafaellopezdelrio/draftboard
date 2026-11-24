@@ -4,6 +4,17 @@ All notable changes to Draftboard are documented here.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/);
 versions match the Tauri app version + the `vX.Y.Z` git tags.
 
+## [Unreleased]
+
+From a tester (24/11): "advise champions against what the rival picked".
+
+### Added
+- Once your lane rival picked, each pick says how it does against them by
+  name: "vs Darius you win 54 of 100" / "⚠ vs Darius it is hard: 46 of 100"
+  (op.gg, your elo; only with enough games).
+- Team mode: once the lane rival picked, what fits the style AND beats them
+  comes first; the rest keeps the usual order.
+
 ## [0.6.7] — 2026-11-24
 
 From the first day of the closed test (testers' messages, Rafael's games).

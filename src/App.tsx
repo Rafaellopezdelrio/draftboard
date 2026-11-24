@@ -165,7 +165,7 @@ import { useAppShortcuts } from "./hooks/useAppShortcuts";
 import { useScheduledJobs } from "./state/scheduledJobs";
 import { useGamePhase } from "./state/inGameDetection";
 import { useTeamMode, useTeamStyleStore } from "./hooks/useTeamMode";
-import { orderByStyle } from "./engine/teamStyle";
+import { orderForTeam } from "./engine/teamStyle";
 import { TeamStylePicker } from "./components/TeamStylePicker";
 import { useLiveGame } from "./hooks/useLiveGame";
 import { findMyPlayer, liveChampionKey, liveRosterKeys } from "./services/liveClient";
@@ -569,7 +569,7 @@ function App() {
   const teamStyle = useTeamStyleStore((s) => s.style);
   const setTeamStyle = useTeamStyleStore((s) => s.setStyle);
   const suggestions = useMemo(
-    () => (teamMode.active ? orderByStyle(rawSuggestions, teamStyle) : rawSuggestions),
+    () => (teamMode.active ? orderForTeam(rawSuggestions, teamStyle) : rawSuggestions),
     [rawSuggestions, teamMode.active, teamStyle]
   );
 

@@ -2052,7 +2052,9 @@
       "fillsGap": "gives the team what it lacks",
       "winRate": "you win {{pct}} of every 100 with it",
       "bestForDraft": "fits this game better, though you don't play it",
-      "answersComp": "answers what their team does"
+      "answersComp": "answers what their team does",
+      "laneGood": "vs {{champ}} you win {{pct}} of 100",
+      "laneHard": "⚠ vs {{champ}} it is hard: {{pct}} of 100"
     },
     "prepareTitle": "Get ready",
     "chance": "{{pct}} out of 100",
