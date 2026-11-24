@@ -89,7 +89,7 @@ marca cada punto cuando esté hecho **y comprobado**.
 #### Añadido por el segundo consejo (17/11/2026: ¿auditoría completa o seguir?)
 Veredicto unánime: **no hacer auditoría completa** (sería pulir en bucle con
 otro nombre); seguir este plan y antes de invitar a nadie:
-- [ ] **Instalación desde cero** en un usuario de Windows limpio, sin nuestras
+- [x] **Instalación desde cero** (hecha 24/11, todo bien) en un usuario de Windows limpio, sin nuestras
       claves ni historial, hasta la primera partida. Arreglar solo lo que
       bloquee. Si salen 3-4 fallos que bloquean o más: revisión corta solo de
       ese recorrido (no auditoría completa).
@@ -244,6 +244,8 @@ programador en la tier list) para después de la prueba. Fechas fijadas:
   24/11) en fecha fija (p. ej. 1/12), tras verlos en partidas reales; sin
   tocar código hasta entonces salvo bloqueo. Riesgo que señaló: pulir para
   no enseñar la app. Rafael: "Sí, hoy" a la instalación desde cero.
+  **Hecha el 24/11 en una cuenta de Windows nueva: todo bien** (Rafael).
+  Siguiente: enviar la invitación a los 3 primeros amigos.
 - 24/11: el plan de 7 días no se borra nunca (se guarda en la base de datos);
   parecía perdido porque la ventana abría en "Generar nuevo". Ahora abre en
   el plan de esta semana. Las respuestas de la IA salían con "vos" (jugá):
