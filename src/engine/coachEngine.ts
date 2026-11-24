@@ -346,8 +346,10 @@ function checkTrinket(
 
 /** Top and mid: the swap depends on the game (lane warding first, then the
  * red lens when grouping for objectives, or the blue one when split-pushing),
- * so only a gentle note after a long game still on the yellow trinket. */
-const SOFT_TRINKET_MIN = 20;
+ * so only a gentle note after a long game still on the yellow trinket.
+ * 25 min, measured 24/11: Master+ mids still on yellow are 45% of 20-25 min
+ * games (laning just ended) but only 17-18% past 25. */
+const SOFT_TRINKET_MIN = 25;
 /** The yellow trinket (Stealth Ward). */
 const STEALTH_WARD_TRINKET = 3340;
 function softTrinketNote(

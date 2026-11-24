@@ -910,7 +910,7 @@ describe("coachEngine — trinket swap", () => {
 
   // Rafael 23/11: in top and mid it depends on the game — a gentle note only.
   const SOFT = "Acabaste con el trinket amarillo";
-  it("gives top and mid a gentle info note after 20+ min still on the yellow trinket", () => {
+  it("gives top and mid a gentle info note after 25+ min still on the yellow trinket", () => {
     for (const [position, label] of [["TOP", "top"], ["MIDDLE", "mid"]]) {
       const ins = titled(run(mkParticipant({ position, items: [3006, 3340] })), SOFT);
       expect(ins).toMatchObject({ category: "vision", severity: "info" });
@@ -923,7 +923,7 @@ describe("coachEngine — trinket swap", () => {
     const top = (o: Partial<MatchParticipant> = {}) => mkParticipant({ position: "TOP", items: [3006, 3340], ...o });
     expect(titled(run(top({ items: [3006, 3364] })), SOFT)).toBeUndefined();
     expect(titled(run(top(), { events: [buy(18, 3363)] }), SOFT)).toBeUndefined();
-    expect(titled(run(top(), { durationSec: 19 * 60 }), SOFT)).toBeUndefined();
+    expect(titled(run(top(), { durationSec: 24 * 60 }), SOFT)).toBeUndefined();
     expect(titled(run(support()), SOFT)).toBeUndefined();
   });
 

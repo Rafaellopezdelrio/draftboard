@@ -29,6 +29,9 @@ versions match the Tauri app version + the `vX.Y.Z` git tags.
   table had Gold supports at 1.6 vision a minute (real 2.5), Gold junglers at
   5.2 CS (real 6.4) and Gold deaths at 0.27 a minute (real 0.21). Mid damage
   share target 27% → 24% (Master median).
+- The gentle "ended on the yellow trinket" note for top and mid waits for
+  25 min instead of 20: Master+ mids are still on yellow in 45% of 20-25 min
+  games but only 17-18% of longer ones.
 
 ## [0.6.8] — 2026-11-24
 
