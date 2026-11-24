@@ -297,6 +297,11 @@ programador en la tier list) para después de la prueba. Fechas fijadas:
     rival de línea y el % ("contra Darius ganas 54 de cada 100"); en modo
     equipo, con el rival ya elegido, primero lo que encaja y le gana.
     Servidor 2026-11-24.2, firma idéntica, instalador 6 870 989 bytes.
+  - **24/11 noche: publicada la 0.6.9** (Rafael: "Publica"): el coach medido
+    con partidas reales de Oro y Máster en todas las posiciones (15 ajustes,
+    ver CHANGELOG y la nota de "Medir el coach…"). Servidor 2026-11-25.1;
+    firma idéntica al .sig; instalador 6 872 504 bytes descarga bien; /health
+    y una llamada a Riot por el servidor responden bien.
 - 24/11: el plan de 7 días no se borra nunca (se guarda en la base de datos);
   parecía perdido porque la ventana abría en "Generar nuevo". Ahora abre en
   el plan de esta semana. Las respuestas de la IA salían con "vos" (jugá):
@@ -319,7 +324,7 @@ programador en la tier list) para después de la prueba. Fechas fijadas:
       "Pocos control wards" salía al 74-93 % (top, mid, ADC, jungla) y
       "Participación baja" al 61 % de los top: ajustados por posición, ahora
       los avisos fuertes salen al 8-33 %. Falta: partidas reales de los
-      probadores en otras posiciones (sin publicar: va en la próxima versión).
+      probadores en otras posiciones (publicado en la 0.6.9, 24/11).
       También medido en 38 partidas de Rafael (Oro III, 70 jugadores por
       posición): "Buen farm" en jungla salía al 91 % (objetivo 4,8; la media
       real en Oro es 6,4). Objetivo de jungla subido por nivel; en las 19
